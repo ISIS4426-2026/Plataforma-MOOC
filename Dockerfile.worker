@@ -1,0 +1,18 @@
+FROM golang:1.26-alpine AS builder
+
+WORKDIR /app
+
+COPY go.mod ./
+# COPY go.sum ./ (if exists)
+RUN go mod download
+
+COPY . .
+
+RUN CGO_ENABLED=0 GOOS=linux go build -o /app/bin/worker ./cmd/worker
+
+FROM alpine:latest
+
+WORKDIR /app
+COPY --from=builder /app/bin/worker /app/worker
+
+CMD ["/app/worker"]

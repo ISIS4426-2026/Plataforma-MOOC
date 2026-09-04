@@ -1,0 +1,73 @@
+version: '3.8'
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    ports:
+      - "${API_PORT:-8080}:8080"
+    environment:
+      - APP_ENV=development
+      - PORT=8080
+      - DATABASE_URL=postgres://moocuser:moocpassword@postgres:5432/moocdb?sslmode=disable
+      - REDIS_URL=redis:6379
+      - S3_ENDPOINT=http://minio:9000
+      - S3_BUCKET=mooc-storage
+    depends_on:
+      - postgres
+      - redis
+      - minio
+
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    environment:
+      - APP_ENV=development
+      - DATABASE_URL=postgres://moocuser:moocpassword@postgres:5432/moocdb?sslmode=disable
+      - REDIS_URL=redis:6379
+      - S3_ENDPOINT=http://minio:9000
+      - S3_BUCKET=mooc-storage
+    depends_on:
+      - postgres
+      - redis
+      - minio
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: moocuser
+      POSTGRES_PASSWORD: moocpassword
+      POSTGRES_DB: moocdb
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    ports:
+      - "${MINIO_PORT:-9000}:9000"
+      - "${MINIO_CONSOLE_PORT:-9001}:9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    volumes:
+      - minio_data:/data
+
+  mailpit:
+    image: axllent/mailpit:latest
+    ports:
+      - "${MAILPIT_PORT:-8025}:8025"
+      - "${MAILPIT_SMTP_PORT:-1025}:1025"
+
+volumes:
+  postgres_data:
+  minio_data:
