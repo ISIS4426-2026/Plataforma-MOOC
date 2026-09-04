@@ -1,0 +1,319 @@
+openapi: 3.1.0
+info:
+  title: Plataforma MOOC API
+  description: REST API for the Massive Open Online Course (MOOC) platform.
+  version: 1.0.0
+servers:
+  - url: /api/v1
+    description: Primary API v1 Endpoint Base Path
+
+paths:
+  /health:
+    get:
+      summary: Health check endpoint
+      description: Returns the current operational status of the API and its underlying services.
+      responses:
+        '200':
+          description: System is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthStatus'
+        '503':
+          description: System component unhealthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/register:
+    post:
+      summary: Register a new student
+      description: Public self-registration endpoint for students with mandatory email verification.
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterStudentRequest'
+      responses:
+        '201':
+          description: Student registered successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '400':
+          $ref: '#/components/responses/400BadRequest'
+        '409':
+          $ref: '#/components/responses/409Conflict'
+
+  /auth/login:
+    post:
+      summary: Authenticate user session
+      description: Logs in a user (student, professor, administrator) and returns a session token.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Authenticated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '401':
+          $ref: '#/components/responses/401Unauthorized'
+
+  /courses:
+    get:
+      summary: List published courses
+      description: Catalog search with cursor pagination and filtering.
+      parameters:
+        - name: cursor
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Pagination cursor
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 20
+        - name: search
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of courses
+          headers:
+            ETag:
+              schema:
+                type: string
+              description: Entity tag for response caching
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CourseListResponse'
+
+    post:
+      summary: Create a new course draft
+      description: Allowed only for Professors and Administrators.
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCourseRequest'
+      responses:
+        '201':
+          description: Course draft created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CourseResponse'
+        '401':
+          $ref: '#/components/responses/401Unauthorized'
+        '403':
+          $ref: '#/components/responses/403Forbidden'
+
+components:
+  parameters:
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: false
+      schema:
+        type: string
+        format: uuid
+      description: Unique UUID to ensure idempotent processing of write operations.
+
+  schemas:
+    HealthStatus:
+      type: object
+      required:
+        - status
+        - timestamp
+        - services
+      properties:
+        status:
+          type: string
+          example: "pass"
+        timestamp:
+          type: string
+          format: date-time
+        services:
+          type: object
+          properties:
+            database:
+              type: string
+              example: "up"
+            redis:
+              type: string
+              example: "up"
+
+    ErrorResponse:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: string
+          example: "INVALID_INPUT"
+        message:
+          type: string
+          example: "Email address is invalid or missing"
+        details:
+          type: object
+
+    RegisterStudentRequest:
+      type: object
+      required:
+        - email
+        - password
+        - full_name
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 8
+        full_name:
+          type: string
+
+    LoginRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+
+    LoginResponse:
+      type: object
+      required:
+        - token
+        - user
+      properties:
+        token:
+          type: string
+        user:
+          $ref: '#/components/schemas/UserResponse'
+
+    UserResponse:
+      type: object
+      required:
+        - id
+        - email
+        - full_name
+        - role
+        - status
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        full_name:
+          type: string
+        role:
+          type: string
+          enum: [administrador, profesor, estudiante]
+        status:
+          type: string
+          enum: [pending_verification, active, suspended]
+
+    CreateCourseRequest:
+      type: object
+      required:
+        - title
+        - description
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+
+    CourseResponse:
+      type: object
+      required:
+        - id
+        - stable_id
+        - title
+        - version
+        - status
+      properties:
+        id:
+          type: string
+          format: uuid
+        stable_id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        version:
+          type: integer
+        status:
+          type: string
+          enum: [draft, published, unpublished]
+
+    CourseListResponse:
+      type: object
+      required:
+        - items
+        - next_cursor
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/CourseResponse'
+        next_cursor:
+          type: string
+          nullable: true
+
+  responses:
+    400BadRequest:
+      description: Invalid request parameters or body
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    401Unauthorized:
+      description: Authentication required or invalid credentials
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    403Forbidden:
+      description: Insufficient permissions for requested action
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    409Conflict:
+      description: Resource state conflict (e.g. duplicate email registration)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
