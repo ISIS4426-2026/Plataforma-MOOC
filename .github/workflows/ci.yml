@@ -1,0 +1,74 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches: ["*"]
+  pull_request:
+    branches: ["*"]
+
+jobs:
+  ci:
+    name: Build, Lint, Migrations & Unit Tests
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: moocuser
+          POSTGRES_PASSWORD: moocpassword
+          POSTGRES_DB: moocdb
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgres://moocuser:moocpassword@127.0.0.1:5432/moocdb?sslmode=disable
+      REDIS_URL: 127.0.0.1:6379
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+          cache: true
+
+      - name: Install golangci-lint
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.60.1
+          echo "$(go env GOPATH)/bin" >> $GITHUB_PATH
+
+      - name: Install Spectral CLI
+        run: sudo npm install -g @stoplight/spectral-cli
+
+      - name: Run Linting (fmt, vet, golangci-lint, Spectral)
+        run: make lint
+
+      - name: Run Build (cmd/api & cmd/worker)
+        run: make build
+
+      - name: Run Database Migrations on Clean DB
+        run: make test-migrations
+
+      - name: Run Unit Tests
+        run: make test
+
+      - name: Run Full Quality Verification (make check)
+        run: make check
