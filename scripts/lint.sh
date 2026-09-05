@@ -20,6 +20,10 @@ elif [ -f "$HOME/go/bin/golangci-lint" ]; then
     "$HOME/go/bin/golangci-lint" run ./...
 else
     echo "golangci-lint not found in PATH or ~/go/bin. Skipping golangci-lint."
+    if [ "$CI" = "true" ]; then
+        echo "Error: golangci-lint is required in CI environment!"
+        exit 1
+    fi
 fi
 
 echo "==> Running OpenAPI 3.1 Spectral linter..."
@@ -31,6 +35,11 @@ elif command -v npx &> /dev/null; then
     npx -y @stoplight/spectral-cli lint api/openapi.yaml --ruleset .spectral.yaml
 else
     echo "Warning: spectral, docker, or npx not found in PATH. Skipping Spectral OpenAPI lint."
+    if [ "$CI" = "true" ]; then
+        echo "Error: Spectral OpenAPI linter is required in CI environment!"
+        exit 1
+    fi
 fi
 
 echo "==> All linting completed successfully with zero errors."
+

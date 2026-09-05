@@ -1,4 +1,4 @@
-.PHONY: all build fmt vet lint test check clean run-api run-worker docker-up docker-down
+.PHONY: all build fmt vet lint test test-migrations check clean run-api run-worker docker-up docker-down
 
 all: check
 
@@ -25,8 +25,13 @@ test:
 	@echo "==> Running unit tests..."
 	@go test -v ./...
 
-check: fmt vet lint test build
-	@echo "==> All checks (fmt, vet, lint, test, build) passed cleanly!"
+test-migrations:
+	@echo "==> Testing database migrations..."
+	@go test -v ./migrations/...
+
+check: fmt vet lint test test-migrations build
+	@echo "==> All checks (fmt, vet, lint, test, test-migrations, build) passed cleanly!"
+
 
 clean:
 	@echo "==> Cleaning build artifacts..."
