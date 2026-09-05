@@ -65,12 +65,23 @@ El código dentro de `internal/domain/` implementa una arquitectura limpia (Hexa
 
 ---
 
+### Configuración de Variables de Entorno
+
+Puedes copiar el archivo de ejemplo para configurar tus variables de entorno locales:
+```bash
+cp .env.example .env
+```
+
 ### Option A: Ejecución Completa con Docker Compose (Recomendado)
 
 Inicia todos los servicios (API, Worker, PostgreSQL, Redis, MinIO, Mailpit):
 
 ```bash
 make docker-up
+```
+o directamente con Docker Compose:
+```bash
+docker compose up
 ```
 
 Para detener los servicios:
