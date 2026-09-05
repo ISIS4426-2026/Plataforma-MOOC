@@ -1,0 +1,113 @@
+=== RUN   TestWorker_DLQ_3Retries_And_Alert
+{"time":"2026-09-05T20:26:15.30638036Z","level":"INFO","msg":"[Worker Engine] Starting background worker processor...","env":"test","redis_url":"localhost:6379","concurrency":2}
+{"time":"2026-09-05T20:26:15.306465999Z","level":"INFO","msg":"Starting processing"}
+{"time":"2026-09-05T20:26:15.377365783Z","level":"INFO","msg":"job test:failing_job_1788639975306276035 started","id":"dlq-test-key-1788639975306281733","tipo":"test:failing_job_1788639975306276035","estado":"started"}
+{"time":"2026-09-05T20:26:15.37956823Z","level":"ERROR","msg":"job test:failing_job_1788639975306276035 failed","id":"dlq-test-key-1788639975306281733","tipo":"test:failing_job_1788639975306276035","estado":"failed","duración":"2.193873ms","duración_ms":2,"error":"simulated persistent failure"}
+{"time":"2026-09-05T20:26:15.379630577Z","level":"ERROR","msg":"[Worker ErrorHandler] Task execution failed","id":"dlq-test-key-1788639975306281733","tipo":"test:failing_job_1788639975306276035","retried":0,"max_retry":3,"error":"simulated persistent failure"}
+{"time":"2026-09-05T20:26:15.408051146Z","level":"INFO","msg":"job test:failing_job_1788639975306276035 started","id":"dlq-test-key-1788639975306281733","tipo":"test:failing_job_1788639975306276035","estado":"started"}
+{"time":"2026-09-05T20:26:15.410245239Z","level":"ERROR","msg":"job test:failing_job_1788639975306276035 failed","id":"dlq-test-key-1788639975306281733","tipo":"test:failing_job_1788639975306276035","estado":"failed","duración":"2.195075ms","duración_ms":2,"error":"simulated persistent failure"}
+{"time":"2026-09-05T20:26:15.410316157Z","level":"ERROR","msg":"[Worker ErrorHandler] Task execution failed","id":"dlq-test-key-1788639975306281733","tipo":"test:failing_job_1788639975306276035","retried":1,"max_retry":3,"error":"simulated persistent failure"}
+{"time":"2026-09-05T20:26:15.426431663Z","level":"INFO","msg":"job test:failing_job_1788639975306276035 started","id":"dlq-test-key-1788639975306281733","tipo":"test:failing_job_1788639975306276035","estado":"started"}
+{"time":"2026-09-05T20:26:15.428640137Z","level":"ERROR","msg":"job test:failing_job_1788639975306276035 failed","id":"dlq-test-key-1788639975306281733","tipo":"test:failing_job_1788639975306276035","estado":"failed","duración":"2.200342ms","duración_ms":2,"error":"simulated persistent failure"}
+{"time":"2026-09-05T20:26:15.428701053Z","level":"ERROR","msg":"[Worker ErrorHandler] Task execution failed","id":"dlq-test-key-1788639975306281733","tipo":"test:failing_job_1788639975306276035","retried":2,"max_retry":3,"error":"simulated persistent failure"}
+{"time":"2026-09-05T20:26:15.446738434Z","level":"INFO","msg":"job test:failing_job_1788639975306276035 started","id":"dlq-test-key-1788639975306281733","tipo":"test:failing_job_1788639975306276035","estado":"started"}
+{"time":"2026-09-05T20:26:15.448896906Z","level":"ERROR","msg":"job test:failing_job_1788639975306276035 failed","id":"dlq-test-key-1788639975306281733","tipo":"test:failing_job_1788639975306276035","estado":"failed","duración":"2.154507ms","duración_ms":2,"error":"simulated persistent failure"}
+{"time":"2026-09-05T20:26:15.448937596Z","level":"ERROR","msg":"[Worker ErrorHandler] Task execution failed","id":"dlq-test-key-1788639975306281733","tipo":"test:failing_job_1788639975306276035","retried":3,"max_retry":3,"error":"simulated persistent failure"}
+{"time":"2026-09-05T20:26:15.448968083Z","level":"ERROR","msg":"[ALERT] Job moved to Dead-Letter Queue (DLQ)","alert":"DLQ_JOB_FAILED","id":"dlq-test-key-1788639975306281733","tipo":"test:failing_job_1788639975306276035","retried":3,"max_retry":3,"error":"simulated persistent failure"}
+{"time":"2026-09-05T20:26:15.449011169Z","level":"WARN","msg":"Retry exhausted for task id=dlq-test-key-1788639975306281733"}
+{"time":"2026-09-05T20:26:15.449257896Z","level":"WARN","msg":"Could not move task id=dlq-test-key-1788639975306281733 from \"asynq:{dlq_q1_1788639975306272848}:active\" to \"asynq:{dlq_q1_1788639975306272848}:archived\"; Will retry syncing"}
+{"time":"2026-09-05T20:26:15.550602499Z","level":"INFO","msg":"[Worker Engine] Shutting down background worker processor..."}
+{"time":"2026-09-05T20:26:15.550630337Z","level":"INFO","msg":"Starting graceful shutdown"}
+{"time":"2026-09-05T20:26:15.562877979Z","level":"INFO","msg":"Waiting for all workers to finish..."}
+{"time":"2026-09-05T20:26:15.562890535Z","level":"INFO","msg":"All workers have finished"}
+{"time":"2026-09-05T20:26:15.563001535Z","level":"ERROR","msg":"Could not move task id=dlq-test-key-1788639975306281733 from \"asynq:{dlq_q1_1788639975306272848}:active\" to \"asynq:{dlq_q1_1788639975306272848}:archived\""}
+{"time":"2026-09-05T20:26:15.563307989Z","level":"INFO","msg":"Exiting"}
+--- PASS: TestWorker_DLQ_3Retries_And_Alert (0.26s)
+=== RUN   TestWorker_DLQ_Reenqueue_And_Idempotency
+{"time":"2026-09-05T20:26:15.56449668Z","level":"INFO","msg":"[Worker Engine] Starting background worker processor...","env":"test","redis_url":"localhost:6379","concurrency":2}
+{"time":"2026-09-05T20:26:15.564519964Z","level":"INFO","msg":"Starting processing"}
+{"time":"2026-09-05T20:26:15.626393915Z","level":"INFO","msg":"job test:recoverable_job_1788639975564451957 started","id":"reenqueue-key-1788639975564452856","tipo":"test:recoverable_job_1788639975564451957","estado":"started"}
+{"time":"2026-09-05T20:26:15.628596026Z","level":"ERROR","msg":"job test:recoverable_job_1788639975564451957 failed","id":"reenqueue-key-1788639975564452856","tipo":"test:recoverable_job_1788639975564451957","estado":"failed","duración":"2.197154ms","duración_ms":2,"error":"temporary failure"}
+{"time":"2026-09-05T20:26:15.628638424Z","level":"ERROR","msg":"[Worker ErrorHandler] Task execution failed","id":"reenqueue-key-1788639975564452856","tipo":"test:recoverable_job_1788639975564451957","retried":0,"max_retry":3,"error":"temporary failure"}
+{"time":"2026-09-05T20:26:15.662710947Z","level":"INFO","msg":"job test:recoverable_job_1788639975564451957 started","id":"reenqueue-key-1788639975564452856","tipo":"test:recoverable_job_1788639975564451957","estado":"started"}
+{"time":"2026-09-05T20:26:15.664966066Z","level":"ERROR","msg":"job test:recoverable_job_1788639975564451957 failed","id":"reenqueue-key-1788639975564452856","tipo":"test:recoverable_job_1788639975564451957","estado":"failed","duración":"2.243905ms","duración_ms":2,"error":"temporary failure"}
+{"time":"2026-09-05T20:26:15.665072499Z","level":"ERROR","msg":"[Worker ErrorHandler] Task execution failed","id":"reenqueue-key-1788639975564452856","tipo":"test:recoverable_job_1788639975564451957","retried":1,"max_retry":3,"error":"temporary failure"}
+{"time":"2026-09-05T20:26:15.67544267Z","level":"INFO","msg":"job test:recoverable_job_1788639975564451957 started","id":"reenqueue-key-1788639975564452856","tipo":"test:recoverable_job_1788639975564451957","estado":"started"}
+{"time":"2026-09-05T20:26:15.677599375Z","level":"ERROR","msg":"job test:recoverable_job_1788639975564451957 failed","id":"reenqueue-key-1788639975564452856","tipo":"test:recoverable_job_1788639975564451957","estado":"failed","duración":"2.156047ms","duración_ms":2,"error":"temporary failure"}
+{"time":"2026-09-05T20:26:15.677668915Z","level":"ERROR","msg":"[Worker ErrorHandler] Task execution failed","id":"reenqueue-key-1788639975564452856","tipo":"test:recoverable_job_1788639975564451957","retried":2,"max_retry":3,"error":"temporary failure"}
+{"time":"2026-09-05T20:26:15.701435564Z","level":"INFO","msg":"job test:recoverable_job_1788639975564451957 started","id":"reenqueue-key-1788639975564452856","tipo":"test:recoverable_job_1788639975564451957","estado":"started"}
+{"time":"2026-09-05T20:26:15.703652518Z","level":"ERROR","msg":"job test:recoverable_job_1788639975564451957 failed","id":"reenqueue-key-1788639975564452856","tipo":"test:recoverable_job_1788639975564451957","estado":"failed","duración":"2.214246ms","duración_ms":2,"error":"skip retry for the task: temporary failure"}
+{"time":"2026-09-05T20:26:15.703716729Z","level":"ERROR","msg":"[Worker ErrorHandler] Task execution failed","id":"reenqueue-key-1788639975564452856","tipo":"test:recoverable_job_1788639975564451957","retried":3,"max_retry":3,"error":"skip retry for the task: temporary failure"}
+{"time":"2026-09-05T20:26:15.703757741Z","level":"ERROR","msg":"[ALERT] Job moved to Dead-Letter Queue (DLQ)","alert":"DLQ_JOB_FAILED","id":"reenqueue-key-1788639975564452856","tipo":"test:recoverable_job_1788639975564451957","retried":3,"max_retry":3,"error":"skip retry for the task: temporary failure"}
+{"time":"2026-09-05T20:26:15.703794053Z","level":"WARN","msg":"Retry exhausted for task id=reenqueue-key-1788639975564452856"}
+{"time":"2026-09-05T20:26:15.704145939Z","level":"WARN","msg":"Could not move task id=reenqueue-key-1788639975564452856 from \"asynq:{dlq_q2_1788639975564449824}:active\" to \"asynq:{dlq_q2_1788639975564449824}:archived\"; Will retry syncing"}
+{"time":"2026-09-05T20:26:15.804544192Z","level":"INFO","msg":"[Worker Engine] Shutting down background worker processor..."}
+{"time":"2026-09-05T20:26:15.804630042Z","level":"INFO","msg":"Starting graceful shutdown"}
+{"time":"2026-09-05T20:26:15.824856507Z","level":"INFO","msg":"Waiting for all workers to finish..."}
+{"time":"2026-09-05T20:26:15.824881366Z","level":"INFO","msg":"All workers have finished"}
+{"time":"2026-09-05T20:26:15.825052777Z","level":"ERROR","msg":"Could not move task id=reenqueue-key-1788639975564452856 from \"asynq:{dlq_q2_1788639975564449824}:active\" to \"asynq:{dlq_q2_1788639975564449824}:archived\""}
+{"time":"2026-09-05T20:26:15.825485514Z","level":"INFO","msg":"Exiting"}
+{"time":"2026-09-05T20:26:15.878243613Z","level":"INFO","msg":"[Worker Engine] Starting background worker processor...","env":"test","redis_url":"localhost:6379","concurrency":2}
+{"time":"2026-09-05T20:26:15.878297556Z","level":"INFO","msg":"Starting processing"}
+{"time":"2026-09-05T20:26:15.879688796Z","level":"INFO","msg":"job test:recoverable_job_1788639975564451957 started","id":"reenqueue-key-1788639975564452856","tipo":"test:recoverable_job_1788639975564451957","estado":"started"}
+{"time":"2026-09-05T20:26:15.881879874Z","level":"INFO","msg":"job test:recoverable_job_1788639975564451957 completed","id":"reenqueue-key-1788639975564452856","tipo":"test:recoverable_job_1788639975564451957","estado":"completed","duración":"2.186574ms","duración_ms":2}
+{"time":"2026-09-05T20:26:16.193425194Z","level":"INFO","msg":"[IdempotencyMiddleware] Task already processed successfully, skipping execution to prevent duplicate effects","idempotency_key":"reenqueue-key-1788639975564452856","tipo":"test:recoverable_job_1788639975564451957"}
+{"time":"2026-09-05T20:26:16.479758315Z","level":"INFO","msg":"[Worker Engine] Shutting down background worker processor..."}
+{"time":"2026-09-05T20:26:16.479814285Z","level":"INFO","msg":"Starting graceful shutdown"}
+{"time":"2026-09-05T20:26:16.482928062Z","level":"INFO","msg":"Waiting for all workers to finish..."}
+{"time":"2026-09-05T20:26:16.482953623Z","level":"INFO","msg":"All workers have finished"}
+{"time":"2026-09-05T20:26:16.483569841Z","level":"INFO","msg":"Exiting"}
+--- PASS: TestWorker_DLQ_Reenqueue_And_Idempotency (0.92s)
+=== RUN   TestIdempotencyStore_Memory
+--- PASS: TestIdempotencyStore_Memory (0.15s)
+=== RUN   TestIdempotencyStore_Redis
+--- PASS: TestIdempotencyStore_Redis (0.00s)
+=== RUN   TestIdempotency_DuplicateEvent_SinglePersistedEffect
+{"time":"2026-09-05T20:26:16.638913433Z","level":"INFO","msg":"[Worker Engine] Starting background worker processor...","env":"test","redis_url":"localhost:6379","concurrency":2}
+{"time":"2026-09-05T20:26:16.638994765Z","level":"INFO","msg":"Starting processing"}
+{"time":"2026-09-05T20:26:16.704574459Z","level":"INFO","msg":"job test:duplicate_job_1788639976638816616 started","id":"dup-event-key-1788639976638818152","tipo":"test:duplicate_job_1788639976638816616","estado":"started"}
+{"time":"2026-09-05T20:26:16.70462841Z","level":"INFO","msg":"job test:duplicate_job_1788639976638816616 completed","id":"dup-event-key-1788639976638818152","tipo":"test:duplicate_job_1788639976638816616","estado":"completed","duración":"57.036µs","duración_ms":0}
+{"time":"2026-09-05T20:26:16.897720917Z","level":"INFO","msg":"[IdempotencyMiddleware] Task already processed successfully, skipping execution to prevent duplicate effects","idempotency_key":"dup-event-key-1788639976638818152","tipo":"test:duplicate_job_1788639976638816616"}
+{"time":"2026-09-05T20:26:17.091319364Z","level":"INFO","msg":"[Worker Engine] Shutting down background worker processor..."}
+{"time":"2026-09-05T20:26:17.091362742Z","level":"INFO","msg":"Starting graceful shutdown"}
+{"time":"2026-09-05T20:26:17.092412337Z","level":"INFO","msg":"Waiting for all workers to finish..."}
+{"time":"2026-09-05T20:26:17.092427554Z","level":"INFO","msg":"All workers have finished"}
+{"time":"2026-09-05T20:26:17.092960285Z","level":"INFO","msg":"Exiting"}
+--- PASS: TestIdempotency_DuplicateEvent_SinglePersistedEffect (0.46s)
+=== RUN   TestIdempotency_ReenqueueWithSameKey_NoDuplicateResult
+{"time":"2026-09-05T20:26:17.094751913Z","level":"INFO","msg":"[Worker Engine] Starting background worker processor...","env":"test","redis_url":"localhost:6379","concurrency":2}
+{"time":"2026-09-05T20:26:17.094799938Z","level":"INFO","msg":"Starting processing"}
+{"time":"2026-09-05T20:26:17.150939848Z","level":"INFO","msg":"job test:reenqueue_job_1788639977094650669 started","id":"reenq-key-1788639977094652237","tipo":"test:reenqueue_job_1788639977094650669","estado":"started"}
+{"time":"2026-09-05T20:26:17.153230328Z","level":"ERROR","msg":"job test:reenqueue_job_1788639977094650669 failed","id":"reenq-key-1788639977094652237","tipo":"test:reenqueue_job_1788639977094650669","estado":"failed","duración":"2.291051ms","duración_ms":2,"error":"temporary failure forcing retry"}
+{"time":"2026-09-05T20:26:17.153303677Z","level":"ERROR","msg":"[Worker ErrorHandler] Task execution failed","id":"reenq-key-1788639977094652237","tipo":"test:reenqueue_job_1788639977094650669","retried":0,"max_retry":3,"error":"temporary failure forcing retry"}
+{"time":"2026-09-05T20:26:17.177640669Z","level":"INFO","msg":"job test:reenqueue_job_1788639977094650669 started","id":"reenq-key-1788639977094652237","tipo":"test:reenqueue_job_1788639977094650669","estado":"started"}
+{"time":"2026-09-05T20:26:17.179930613Z","level":"ERROR","msg":"job test:reenqueue_job_1788639977094650669 failed","id":"reenq-key-1788639977094652237","tipo":"test:reenqueue_job_1788639977094650669","estado":"failed","duración":"2.302858ms","duración_ms":2,"error":"temporary failure forcing retry"}
+{"time":"2026-09-05T20:26:17.179966129Z","level":"ERROR","msg":"[Worker ErrorHandler] Task execution failed","id":"reenq-key-1788639977094652237","tipo":"test:reenqueue_job_1788639977094650669","retried":1,"max_retry":3,"error":"temporary failure forcing retry"}
+{"time":"2026-09-05T20:26:17.223764383Z","level":"INFO","msg":"job test:reenqueue_job_1788639977094650669 started","id":"reenq-key-1788639977094652237","tipo":"test:reenqueue_job_1788639977094650669","estado":"started"}
+{"time":"2026-09-05T20:26:17.226028581Z","level":"ERROR","msg":"job test:reenqueue_job_1788639977094650669 failed","id":"reenq-key-1788639977094652237","tipo":"test:reenqueue_job_1788639977094650669","estado":"failed","duración":"2.261425ms","duración_ms":2,"error":"temporary failure forcing retry"}
+{"time":"2026-09-05T20:26:17.226095483Z","level":"ERROR","msg":"[Worker ErrorHandler] Task execution failed","id":"reenq-key-1788639977094652237","tipo":"test:reenqueue_job_1788639977094650669","retried":2,"max_retry":3,"error":"temporary failure forcing retry"}
+{"time":"2026-09-05T20:26:17.257684537Z","level":"INFO","msg":"job test:reenqueue_job_1788639977094650669 started","id":"reenq-key-1788639977094652237","tipo":"test:reenqueue_job_1788639977094650669","estado":"started"}
+{"time":"2026-09-05T20:26:17.259881492Z","level":"ERROR","msg":"job test:reenqueue_job_1788639977094650669 failed","id":"reenq-key-1788639977094652237","tipo":"test:reenqueue_job_1788639977094650669","estado":"failed","duración":"2.198538ms","duración_ms":2,"error":"skip retry for the task: temporary failure forcing DLQ"}
+{"time":"2026-09-05T20:26:17.259929634Z","level":"ERROR","msg":"[Worker ErrorHandler] Task execution failed","id":"reenq-key-1788639977094652237","tipo":"test:reenqueue_job_1788639977094650669","retried":3,"max_retry":3,"error":"skip retry for the task: temporary failure forcing DLQ"}
+{"time":"2026-09-05T20:26:17.259958794Z","level":"ERROR","msg":"[ALERT] Job moved to Dead-Letter Queue (DLQ)","alert":"DLQ_JOB_FAILED","id":"reenq-key-1788639977094652237","tipo":"test:reenqueue_job_1788639977094650669","retried":3,"max_retry":3,"error":"skip retry for the task: temporary failure forcing DLQ"}
+{"time":"2026-09-05T20:26:17.259980642Z","level":"WARN","msg":"Retry exhausted for task id=reenq-key-1788639977094652237"}
+{"time":"2026-09-05T20:26:17.260349641Z","level":"WARN","msg":"Could not move task id=reenq-key-1788639977094652237 from \"asynq:{reenq_q_1788639977094647602}:active\" to \"asynq:{reenq_q_1788639977094647602}:archived\"; Will retry syncing"}
+{"time":"2026-09-05T20:26:17.360939319Z","level":"INFO","msg":"[Worker Engine] Shutting down background worker processor..."}
+{"time":"2026-09-05T20:26:17.360969909Z","level":"INFO","msg":"Starting graceful shutdown"}
+{"time":"2026-09-05T20:26:17.381186601Z","level":"INFO","msg":"Waiting for all workers to finish..."}
+{"time":"2026-09-05T20:26:17.381212154Z","level":"INFO","msg":"All workers have finished"}
+{"time":"2026-09-05T20:26:17.381319742Z","level":"ERROR","msg":"Could not move task id=reenq-key-1788639977094652237 from \"asynq:{reenq_q_1788639977094647602}:active\" to \"asynq:{reenq_q_1788639977094647602}:archived\""}
+{"time":"2026-09-05T20:26:17.381820605Z","level":"INFO","msg":"Exiting"}
+{"time":"2026-09-05T20:26:17.434723871Z","level":"INFO","msg":"[Worker Engine] Starting background worker processor...","env":"test","redis_url":"localhost:6379","concurrency":2}
+{"time":"2026-09-05T20:26:17.43477751Z","level":"INFO","msg":"Starting processing"}
+{"time":"2026-09-05T20:26:17.436116742Z","level":"INFO","msg":"job test:reenqueue_job_1788639977094650669 started","id":"reenq-key-1788639977094652237","tipo":"test:reenqueue_job_1788639977094650669","estado":"started"}
+{"time":"2026-09-05T20:26:17.438269776Z","level":"INFO","msg":"job test:reenqueue_job_1788639977094650669 completed","id":"reenq-key-1788639977094652237","tipo":"test:reenqueue_job_1788639977094650669","estado":"completed","duración":"2.153891ms","duración_ms":2}
+{"time":"2026-09-05T20:26:17.741595095Z","level":"INFO","msg":"[IdempotencyMiddleware] Task already processed successfully, skipping execution to prevent duplicate effects","idempotency_key":"reenq-key-1788639977094652237","tipo":"test:reenqueue_job_1788639977094650669"}
+{"time":"2026-09-05T20:26:18.035624066Z","level":"INFO","msg":"[Worker Engine] Shutting down background worker processor..."}
+{"time":"2026-09-05T20:26:18.035670277Z","level":"INFO","msg":"Starting graceful shutdown"}
+{"time":"2026-09-05T20:26:18.036781978Z","level":"INFO","msg":"Waiting for all workers to finish..."}
+{"time":"2026-09-05T20:26:18.036815351Z","level":"INFO","msg":"All workers have finished"}
+{"time":"2026-09-05T20:26:18.037590057Z","level":"INFO","msg":"Exiting"}
+--- PASS: TestIdempotency_ReenqueueWithSameKey_NoDuplicateResult (0.94s)
+PASS
+ok  	github.com/ISIS4426-2026/Plataforma-MOOC/internal/worker	(cached)
