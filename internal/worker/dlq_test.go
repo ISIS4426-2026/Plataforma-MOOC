@@ -26,18 +26,6 @@ func flushRedis(t *testing.T, redisURL string) {
 	_ = rdb.FlushDB(context.Background()).Err()
 }
 
-func waitForTaskState(client *Client, queue, taskID string, expectedState asynq.TaskState, timeout time.Duration) (*asynq.TaskInfo, error) {
-	deadline := time.Now().Add(timeout)
-	for time.Now().Before(deadline) {
-		info, err := client.GetDLQTask(context.Background(), queue, taskID)
-		if err == nil && info.State == expectedState {
-			return info, nil
-		}
-		time.Sleep(25 * time.Millisecond)
-	}
-	return client.GetDLQTask(context.Background(), queue, taskID)
-}
-
 func TestWorker_DLQ_3Retries_And_Alert(t *testing.T) {
 	cfg := &config.Config{
 		Environment: "test",
