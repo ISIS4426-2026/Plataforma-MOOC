@@ -1,35 +1,67 @@
 openapi: 3.1.0
 info:
   title: Plataforma MOOC API
-  description: REST API for the Massive Open Online Course (MOOC) platform.
+  description: >
+    Official REST API specification for the Massive Open Online Course (MOOC) platform (ISIS4426 Cloud Course).
+    All endpoints require HTTP/JSON communications and strictly reside under the `/api/v1` path prefix.
   version: 1.0.0
+  contact:
+    name: MOOC Engineering Team
+    email: support@mooc-platform.example.com
+    url: https://mooc-platform.example.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
 servers:
   - url: /api/v1
     description: Primary API v1 Endpoint Base Path
 
+tags:
+  - name: Health
+    description: System operational health and dependency diagnostics endpoints.
+  - name: Auth
+    description: Public registration, authentication, and session control endpoints.
+  - name: Users
+    description: Administrative user account management and professor provisioning.
+  - name: Courses
+    description: Course catalog, authoring hierarchy, draft management, and publication versioning.
+  - name: Modules
+    description: Structure and ordering of modules, units, and learning resources within courses.
+  - name: Quizzes
+    description: Multiple-choice quizzes and server-side automated scoring submissions.
+  - name: Progress
+    description: Heartbeat tracking, dwell time, and server-validated course progress.
+  - name: Badges
+    description: Digital completion badges emission, retrieval, and public privacy-preserving verification.
+  - name: Media
+    description: Direct presigned S3 upload URLs and async media processing orchestration.
+
 paths:
   /health:
     get:
-      summary: Health check endpoint
-      description: Returns the current operational status of the API and its underlying services.
+      tags:
+        - Health
+      summary: Check operational health
+      description: Returns the operational status of the API and its underlying datastores (PostgreSQL, Redis).
+      operationId: getHealthStatus
       responses:
         '200':
-          description: System is healthy
+          description: System is operational and healthy.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/HealthStatus'
         '503':
-          description: System component unhealthy
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
+          $ref: '#/components/responses/503ServiceUnavailable'
 
   /auth/register:
     post:
-      summary: Register a new student
-      description: Public self-registration endpoint for students with mandatory email verification.
+      tags:
+        - Auth
+      summary: Register a new student account
+      description: Public self-registration for students with mandatory email verification trigger.
+      operationId: registerStudent
       parameters:
         - $ref: '#/components/parameters/IdempotencyKey'
       requestBody:
@@ -40,7 +72,10 @@ paths:
               $ref: '#/components/schemas/RegisterStudentRequest'
       responses:
         '201':
-          description: Student registered successfully
+          description: Student account successfully registered.
+          headers:
+            Idempotency-Key:
+              $ref: '#/components/headers/IdempotencyKey'
           content:
             application/json:
               schema:
@@ -49,11 +84,20 @@ paths:
           $ref: '#/components/responses/400BadRequest'
         '409':
           $ref: '#/components/responses/409Conflict'
+        '422':
+          $ref: '#/components/responses/422UnprocessableEntity'
+        '429':
+          $ref: '#/components/responses/429TooManyRequests'
+        '500':
+          $ref: '#/components/responses/500InternalServerError'
 
   /auth/login:
     post:
+      tags:
+        - Auth
       summary: Authenticate user session
-      description: Logs in a user (student, professor, administrator) and returns a session token.
+      description: Authenticates user credentials and returns a bearer JWT/session token.
+      operationId: loginUser
       requestBody:
         required: true
         content:
@@ -62,52 +106,107 @@ paths:
               $ref: '#/components/schemas/LoginRequest'
       responses:
         '200':
-          description: Authenticated successfully
+          description: User authenticated successfully.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/LoginResponse'
+        '400':
+          $ref: '#/components/responses/400BadRequest'
+        '401':
+          $ref: '#/components/responses/401Unauthorized'
+        '429':
+          $ref: '#/components/responses/429TooManyRequests'
+        '500':
+          $ref: '#/components/responses/500InternalServerError'
+
+  /auth/logout:
+    post:
+      tags:
+        - Auth
+      summary: Revoke current session
+      description: Invalidate active user token and terminate session in Redis.
+      operationId: logoutUser
+      responses:
+        '204':
+          description: Session revoked successfully.
         '401':
           $ref: '#/components/responses/401Unauthorized'
 
+  /users/professors:
+    post:
+      tags:
+        - Users
+      summary: Create a professor account
+      description: Admin-only endpoint to provision professor accounts (public registration for professors is prohibited).
+      operationId: createProfessor
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateProfessorRequest'
+      responses:
+        '201':
+          description: Professor account provisioned successfully.
+          headers:
+            Idempotency-Key:
+              $ref: '#/components/headers/IdempotencyKey'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '400':
+          $ref: '#/components/responses/400BadRequest'
+        '401':
+          $ref: '#/components/responses/401Unauthorized'
+        '403':
+          $ref: '#/components/responses/403Forbidden'
+        '409':
+          $ref: '#/components/responses/409Conflict'
+        '422':
+          $ref: '#/components/responses/422UnprocessableEntity'
+
   /courses:
     get:
-      summary: List published courses
-      description: Catalog search with cursor pagination and filtering.
+      tags:
+        - Courses
+      summary: List published courses catalog
+      description: Public course catalog search supporting cursor pagination and conditional GET via ETag.
+      operationId: listCourses
       parameters:
-        - name: cursor
-          in: query
-          required: false
-          schema:
-            type: string
-          description: Pagination cursor
-        - name: limit
-          in: query
-          required: false
-          schema:
-            type: integer
-            default: 20
+        - $ref: '#/components/parameters/CursorParam'
+        - $ref: '#/components/parameters/LimitParam'
+        - $ref: '#/components/parameters/IfNoneMatch'
         - name: search
           in: query
           required: false
           schema:
             type: string
+          description: Text search query to filter courses by title or description.
       responses:
         '200':
-          description: List of courses
+          description: List of published courses with pagination details.
           headers:
             ETag:
-              schema:
-                type: string
-              description: Entity tag for response caching
+              $ref: '#/components/headers/ETag'
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/CourseListResponse'
+        '304':
+          $ref: '#/components/responses/304NotModified'
+        '400':
+          $ref: '#/components/responses/400BadRequest'
 
     post:
+      tags:
+        - Courses
       summary: Create a new course draft
-      description: Allowed only for Professors and Administrators.
+      description: Instructor or Admin endpoint to create a new course in draft status.
+      operationId: createCourse
       parameters:
         - $ref: '#/components/parameters/IdempotencyKey'
       requestBody:
@@ -118,11 +217,383 @@ paths:
               $ref: '#/components/schemas/CreateCourseRequest'
       responses:
         '201':
-          description: Course draft created
+          description: Course draft created successfully.
+          headers:
+            Idempotency-Key:
+              $ref: '#/components/headers/IdempotencyKey'
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/CourseResponse'
+        '400':
+          $ref: '#/components/responses/400BadRequest'
+        '401':
+          $ref: '#/components/responses/401Unauthorized'
+        '403':
+          $ref: '#/components/responses/403Forbidden'
+        '422':
+          $ref: '#/components/responses/422UnprocessableEntity'
+
+  /courses/{course_id}:
+    get:
+      tags:
+        - Courses
+      summary: Get detailed course information
+      description: Retrieve details of a specific course by ID with support for conditional HTTP caching using ETag.
+      operationId: getCourseById
+      parameters:
+        - name: course_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Unique identifier of the course.
+        - $ref: '#/components/parameters/IfNoneMatch'
+      responses:
+        '200':
+          description: Course details retrieved successfully.
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETag'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CourseResponse'
+        '304':
+          $ref: '#/components/responses/304NotModified'
+        '404':
+          $ref: '#/components/responses/404NotFound'
+
+    put:
+      tags:
+        - Courses
+      summary: Update course draft
+      description: Modify an existing course draft. Requires If-Match for optimistic concurrency check to avoid lost updates.
+      operationId: updateCourse
+      parameters:
+        - name: course_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Unique identifier of the course.
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - $ref: '#/components/parameters/IfMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateCourseRequest'
+      responses:
+        '200':
+          description: Course draft updated successfully.
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETag'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CourseResponse'
+        '400':
+          $ref: '#/components/responses/400BadRequest'
+        '401':
+          $ref: '#/components/responses/401Unauthorized'
+        '403':
+          $ref: '#/components/responses/403Forbidden'
+        '404':
+          $ref: '#/components/responses/404NotFound'
+        '412':
+          $ref: '#/components/responses/412PreconditionFailed'
+        '422':
+          $ref: '#/components/responses/422UnprocessableEntity'
+
+  /courses/{course_id}/publish:
+    post:
+      tags:
+        - Courses
+      summary: Publish course draft version
+      description: Validate and publish a course draft. Once published, the version is strictly immutable.
+      operationId: publishCourse
+      parameters:
+        - name: course_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Unique identifier of the course draft to publish.
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '200':
+          description: Course version successfully published and made immutable.
+          headers:
+            Idempotency-Key:
+              $ref: '#/components/headers/IdempotencyKey'
+            ETag:
+              $ref: '#/components/headers/ETag'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CourseResponse'
+        '400':
+          $ref: '#/components/responses/400BadRequest'
+        '401':
+          $ref: '#/components/responses/401Unauthorized'
+        '403':
+          $ref: '#/components/responses/403Forbidden'
+        '404':
+          $ref: '#/components/responses/404NotFound'
+        '409':
+          $ref: '#/components/responses/409Conflict'
+
+  /courses/{course_id}/modules:
+    get:
+      tags:
+        - Modules
+      summary: List modules and resources of a course
+      description: Retrieve ordered structural modules, units, and resource metadata for a course.
+      operationId: getCourseModules
+      parameters:
+        - name: course_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Unique identifier of the course.
+        - $ref: '#/components/parameters/IfNoneMatch'
+      responses:
+        '200':
+          description: List of modules in sequential order.
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETag'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ModuleResponse'
+        '304':
+          $ref: '#/components/responses/304NotModified'
+        '404':
+          $ref: '#/components/responses/404NotFound'
+
+    post:
+      tags:
+        - Modules
+      summary: Add module to course draft
+      description: Append a new ordered module to an active course draft.
+      operationId: createCourseModule
+      parameters:
+        - name: course_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Unique identifier of the course.
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateModuleRequest'
+      responses:
+        '201':
+          description: Module created successfully.
+          headers:
+            Idempotency-Key:
+              $ref: '#/components/headers/IdempotencyKey'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ModuleResponse'
+        '400':
+          $ref: '#/components/responses/400BadRequest'
+        '401':
+          $ref: '#/components/responses/401Unauthorized'
+        '403':
+          $ref: '#/components/responses/403Forbidden'
+        '404':
+          $ref: '#/components/responses/404NotFound'
+
+  /quizzes/{quiz_id}/submissions:
+    post:
+      tags:
+        - Quizzes
+      summary: Submit quiz answers for server-side evaluation
+      description: Evaluates submitted answer options strictly on the server side. Correct answer key is never exposed.
+      operationId: submitQuiz
+      parameters:
+        - name: quiz_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Unique identifier of the quiz resource.
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/QuizSubmissionRequest'
+      responses:
+        '200':
+          description: Quiz evaluated and score recorded.
+          headers:
+            Idempotency-Key:
+              $ref: '#/components/headers/IdempotencyKey'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QuizSubmissionResponse'
+        '400':
+          $ref: '#/components/responses/400BadRequest'
+        '401':
+          $ref: '#/components/responses/401Unauthorized'
+        '404':
+          $ref: '#/components/responses/404NotFound'
+
+  /progress/heartbeat:
+    post:
+      tags:
+        - Progress
+      summary: Record consumption heartbeat
+      description: Record active student consumption time and progress heartbeat for server-side validation.
+      operationId: sendProgressHeartbeat
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProgressHeartbeatRequest'
+      responses:
+        '200':
+          description: Heartbeat recorded and calculated progress updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProgressResponse'
+        '400':
+          $ref: '#/components/responses/400BadRequest'
+        '401':
+          $ref: '#/components/responses/401Unauthorized'
+
+  /progress/courses/{course_id}:
+    get:
+      tags:
+        - Progress
+      summary: Get student progress for a course
+      description: Retrieve verified student progress percentage and completed resource stable IDs for a course.
+      operationId: getCourseProgress
+      parameters:
+        - name: course_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Unique identifier of the course.
+      responses:
+        '200':
+          description: Current validated student progress retrieved.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProgressResponse'
+        '401':
+          $ref: '#/components/responses/401Unauthorized'
+        '404':
+          $ref: '#/components/responses/404NotFound'
+
+  /badges/{badge_id}:
+    get:
+      tags:
+        - Badges
+      summary: Retrieve earned digital badge
+      description: Get metadata for an earned digital badge including verification status. Supports conditional GET.
+      operationId: getBadgeById
+      parameters:
+        - name: badge_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Unique identifier of the badge.
+        - $ref: '#/components/parameters/IfNoneMatch'
+      responses:
+        '200':
+          description: Badge details returned successfully.
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETag'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadgeResponse'
+        '304':
+          $ref: '#/components/responses/304NotModified'
+        '404':
+          $ref: '#/components/responses/404NotFound'
+
+  /badges/verify/{verification_code}:
+    get:
+      tags:
+        - Badges
+      summary: Public privacy-preserving badge verification
+      description: Publicly verify digital badge authenticity without revealing student personal identity or email.
+      operationId: verifyBadgePublic
+      parameters:
+        - name: verification_code
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Public verification code/hash of the badge.
+      responses:
+        '200':
+          description: Badge public verification result.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadgeVerificationResponse'
+        '404':
+          $ref: '#/components/responses/404NotFound'
+
+  /media/presigned-url:
+    post:
+      tags:
+        - Media
+      summary: Request direct S3 presigned upload URL
+      description: Generate a 24h presigned URL for direct client-to-storage resumable binary upload.
+      operationId: getPresignedUploadUrl
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PresignedUrlRequest'
+      responses:
+        '200':
+          description: Presigned upload URL generated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PresignedUrlResponse'
+        '400':
+          $ref: '#/components/responses/400BadRequest'
         '401':
           $ref: '#/components/responses/401Unauthorized'
         '403':
@@ -130,6 +601,27 @@ paths:
 
 components:
   parameters:
+    CursorParam:
+      name: cursor
+      in: query
+      required: false
+      schema:
+        type: string
+      description: Opaque pagination cursor token returned by previous page request.
+      example: "eyJpZCI6MTIzLCJjcmVhdGVkX2F0IjoxNjk4Nzc2MDAwfQ=="
+
+    LimitParam:
+      name: limit
+      in: query
+      required: false
+      schema:
+        type: integer
+        default: 20
+        minimum: 1
+        maximum: 100
+      description: Maximum number of items to return per page (1-100, default 20).
+      example: 20
+
     IdempotencyKey:
       name: Idempotency-Key
       in: header
@@ -137,7 +629,40 @@ components:
       schema:
         type: string
         format: uuid
-      description: Unique UUID to ensure idempotent processing of write operations.
+      description: Unique UUID token to guarantee idempotent processing of state-changing operations.
+      example: "a8b9c1d2-e3f4-4a5b-8c6d-7e8f9a0b1c2d"
+
+    IfNoneMatch:
+      name: If-None-Match
+      in: header
+      required: false
+      schema:
+        type: string
+      description: ETag header value for conditional HTTP request caching. Returns 304 Not Modified if matching.
+      example: '"w/33a64df551425fcc55e4d42a148795d9f25f89d4"'
+
+    IfMatch:
+      name: If-Match
+      in: header
+      required: false
+      schema:
+        type: string
+      description: ETag header value for optimistic concurrency control. Returns 412 Precondition Failed if mismatching.
+      example: '"w/33a64df551425fcc55e4d42a148795d9f25f89d4"'
+
+  headers:
+    ETag:
+      description: Entity tag representing the current version digest of the requested resource.
+      schema:
+        type: string
+      example: '"w/33a64df551425fcc55e4d42a148795d9f25f89d4"'
+
+    IdempotencyKey:
+      description: Echoed Idempotency-Key UUID header.
+      schema:
+        type: string
+        format: uuid
+      example: "a8b9c1d2-e3f4-4a5b-8c6d-7e8f9a0b1c2d"
 
   schemas:
     HealthStatus:
@@ -153,8 +678,12 @@ components:
         timestamp:
           type: string
           format: date-time
+          example: "2026-09-05T16:30:00Z"
         services:
           type: object
+          required:
+            - database
+            - redis
           properties:
             database:
               type: string
@@ -171,12 +700,35 @@ components:
       properties:
         code:
           type: string
+          description: Standard machine-readable error code string identifier.
           example: "INVALID_INPUT"
         message:
           type: string
+          description: Human-readable explanation of the error.
           example: "Email address is invalid or missing"
         details:
           type: object
+          description: Structured key-value object containing detailed validation or field errors.
+          additionalProperties: true
+          example:
+            field: "email"
+            issue: "Must be a valid email format"
+
+    CursorPagination:
+      type: object
+      required:
+        - next_cursor
+        - has_more
+      properties:
+        next_cursor:
+          type: string
+          nullable: true
+          description: Opaque pagination token for requesting the next page. Null if no remaining items.
+          example: "eyJpZCI6MTI0LCJjcmVhdGVkX2F0IjoxNjk4Nzc2MTAwfQ=="
+        has_more:
+          type: boolean
+          description: Boolean flag indicating if additional records exist past this page.
+          example: true
 
     RegisterStudentRequest:
       type: object
@@ -188,11 +740,33 @@ components:
         email:
           type: string
           format: email
+          example: "student@example.com"
         password:
           type: string
           minLength: 8
+          example: "StrongPassword123!"
         full_name:
           type: string
+          example: "Jane Doe"
+
+    CreateProfessorRequest:
+      type: object
+      required:
+        - email
+        - password
+        - full_name
+      properties:
+        email:
+          type: string
+          format: email
+          example: "prof.smith@example.com"
+        password:
+          type: string
+          minLength: 8
+          example: "ProfSecurePass2026!"
+        full_name:
+          type: string
+          example: "Prof. Alan Smith"
 
     LoginRequest:
       type: object
@@ -203,8 +777,10 @@ components:
         email:
           type: string
           format: email
+          example: "user@example.com"
         password:
           type: string
+          example: "UserSecret123!"
 
     LoginResponse:
       type: object
@@ -214,6 +790,8 @@ components:
       properties:
         token:
           type: string
+          description: JWT or bearer session token.
+          example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
         user:
           $ref: '#/components/schemas/UserResponse'
 
@@ -229,17 +807,22 @@ components:
         id:
           type: string
           format: uuid
+          example: "3fa85f64-5717-4562-b3fc-2c963f66afa6"
         email:
           type: string
           format: email
+          example: "user@example.com"
         full_name:
           type: string
+          example: "Jane Doe"
         role:
           type: string
           enum: [administrador, profesor, estudiante]
+          example: "estudiante"
         status:
           type: string
           enum: [pending_verification, active, suspended]
+          example: "active"
 
     CreateCourseRequest:
       type: object
@@ -249,8 +832,23 @@ components:
       properties:
         title:
           type: string
+          example: "Introducción a Arquitectura Cloud"
         description:
           type: string
+          example: "Curso completo de conceptos y patrones en la nube."
+
+    UpdateCourseRequest:
+      type: object
+      required:
+        - title
+        - description
+      properties:
+        title:
+          type: string
+          example: "Introducción a Arquitectura Cloud (Actualizado)"
+        description:
+          type: string
+          example: "Descripción actualizada del curso."
 
     CourseResponse:
       type: object
@@ -264,55 +862,300 @@ components:
         id:
           type: string
           format: uuid
+          example: "7c9e6679-7425-40de-944b-e07fc1f90ae7"
         stable_id:
           type: string
           format: uuid
+          example: "110ec58a-a0f2-4ac4-8393-c866d813b8d1"
         title:
           type: string
+          example: "Introducción a Arquitectura Cloud"
+        description:
+          type: string
+          example: "Curso completo de conceptos y patrones en la nube."
         version:
           type: integer
+          example: 1
         status:
           type: string
           enum: [draft, published, unpublished]
+          example: "draft"
 
     CourseListResponse:
       type: object
       required:
         - items
-        - next_cursor
+        - pagination
       properties:
         items:
           type: array
           items:
             $ref: '#/components/schemas/CourseResponse'
-        next_cursor:
+        pagination:
+          $ref: '#/components/schemas/CursorPagination'
+
+    CreateModuleRequest:
+      type: object
+      required:
+        - title
+        - order_index
+      properties:
+        title:
           type: string
-          nullable: true
+          example: "Módulo 1: Fundamentos de Nube"
+        order_index:
+          type: integer
+          example: 1
+
+    ModuleResponse:
+      type: object
+      required:
+        - id
+        - stable_id
+        - title
+        - order_index
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "8d9e6679-7425-40de-944b-e07fc1f90ae8"
+        stable_id:
+          type: string
+          format: uuid
+          example: "220ec58a-a0f2-4ac4-8393-c866d813b8d2"
+        title:
+          type: string
+          example: "Módulo 1: Fundamentos de Nube"
+        order_index:
+          type: integer
+          example: 1
+
+    QuizSubmissionRequest:
+      type: object
+      required:
+        - answers
+      properties:
+        answers:
+          type: array
+          items:
+            type: object
+            required:
+              - question_id
+              - selected_option_id
+            properties:
+              question_id:
+                type: string
+                format: uuid
+              selected_option_id:
+                type: string
+                format: uuid
+
+    QuizSubmissionResponse:
+      type: object
+      required:
+        - submission_id
+        - score
+        - passed
+      properties:
+        submission_id:
+          type: string
+          format: uuid
+        score:
+          type: number
+          format: float
+          example: 85.5
+        passed:
+          type: boolean
+          example: true
+
+    ProgressHeartbeatRequest:
+      type: object
+      required:
+        - course_id
+        - resource_stable_id
+        - dwell_time_seconds
+      properties:
+        course_id:
+          type: string
+          format: uuid
+        resource_stable_id:
+          type: string
+          format: uuid
+        dwell_time_seconds:
+          type: integer
+          example: 30
+
+    ProgressResponse:
+      type: object
+      required:
+        - course_id
+        - percentage
+        - completed_resource_stable_ids
+      properties:
+        course_id:
+          type: string
+          format: uuid
+        percentage:
+          type: number
+          format: float
+          example: 45.0
+        completed_resource_stable_ids:
+          type: array
+          items:
+            type: string
+            format: uuid
+
+    BadgeResponse:
+      type: object
+      required:
+        - id
+        - course_id
+        - issued_at
+        - verification_code
+        - verification_url
+      properties:
+        id:
+          type: string
+          format: uuid
+        course_id:
+          type: string
+          format: uuid
+        issued_at:
+          type: string
+          format: date-time
+        verification_code:
+          type: string
+          example: "a8f3d9b1c0e"
+        verification_url:
+          type: string
+          example: "https://mooc-platform.example.com/badges/verify/a8f3d9b1c0e"
+
+    BadgeVerificationResponse:
+      type: object
+      required:
+        - valid
+        - course_title
+        - issued_at
+      properties:
+        valid:
+          type: boolean
+          example: true
+        course_title:
+          type: string
+          example: "Introducción a Arquitectura Cloud"
+        issued_at:
+          type: string
+          format: date-time
+        revoked:
+          type: boolean
+          example: false
+
+    PresignedUrlRequest:
+      type: object
+      required:
+        - filename
+        - mime_type
+        - file_size_bytes
+      properties:
+        filename:
+          type: string
+          example: "intro_lecture.mp4"
+        mime_type:
+          type: string
+          example: "video/mp4"
+        file_size_bytes:
+          type: integer
+          example: 104857600
+
+    PresignedUrlResponse:
+      type: object
+      required:
+        - upload_url
+        - object_key
+        - expires_at
+      properties:
+        upload_url:
+          type: string
+          example: "https://storage.example.com/mooc-bucket/intro_lecture.mp4?X-Amz-Algorithm=..."
+        object_key:
+          type: string
+          example: "uploads/2026/09/intro_lecture.mp4"
+        expires_at:
+          type: string
+          format: date-time
 
   responses:
+    304NotModified:
+      description: Resource has not changed since the last request (If-None-Match match).
+      headers:
+        ETag:
+          $ref: '#/components/headers/ETag'
+
     400BadRequest:
-      description: Invalid request parameters or body
+      description: Invalid request parameters or body payload syntax.
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
 
     401Unauthorized:
-      description: Authentication required or invalid credentials
+      description: Authentication required or invalid/expired session token.
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
 
     403Forbidden:
-      description: Insufficient permissions for requested action
+      description: Insufficient permissions or role privileges for requested operation.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    404NotFound:
+      description: The requested resource identifier was not found.
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
 
     409Conflict:
-      description: Resource state conflict (e.g. duplicate email registration)
+      description: Resource state conflict (e.g. duplicate email registration or published immutability constraint).
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    412PreconditionFailed:
+      description: Optimistic concurrency check failed (If-Match header value does not match current state).
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    422UnprocessableEntity:
+      description: Semantic validation error in request body payload.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    429TooManyRequests:
+      description: Rate limit exceeded.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    500InternalServerError:
+      description: Internal server error.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    503ServiceUnavailable:
+      description: System or downstream service dependency is unavailable or degraded.
       content:
         application/json:
           schema:
