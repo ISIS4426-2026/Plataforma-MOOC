@@ -21,6 +21,8 @@ services:
       - SMTP_USERNAME=${SMTP_USERNAME:-}
       - SMTP_PASSWORD=${SMTP_PASSWORD:-}
       - SESSION_TTL=${SESSION_TTL:-24h}
+      - APP_BASE_URL=${APP_BASE_URL:-http://localhost:8080}
+      - EMAIL_VERIFICATION_TTL=${EMAIL_VERIFICATION_TTL:-24h}
     depends_on:
       postgres:
         condition: service_healthy
