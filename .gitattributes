@@ -1,0 +1,18 @@
+# Politica de finales de linea para el repositorio.
+#
+# Todo archivo de texto se guarda y se extrae con LF, sin importar el sistema
+# operativo ni el valor local de core.autocrlf. Sin esto, un checkout en
+# Windows (core.autocrlf=true) convierte los archivos a CRLF y rompe cosas que
+# solo fallan en esas maquinas, mientras Linux y el CI pasan verde:
+#
+#   - scripts/*.sh montados en contenedores: /bin/sh falla al leer el \r
+#     ("set: -: invalid option") y el contenedor sale con codigo 2.
+#   - gofmt trata CRLF como mal formateado, asi que scripts/lint.sh marca
+#     todos los .go y 'make lint' falla solo en Windows.
+#
+# Este archivo esta versionado y tiene precedencia sobre la configuracion
+# local, asi que aplica para todo el equipo sin que nadie configure nada.
+* text=auto eol=lf
+
+# Binarios: nunca convertir (git ya lo detecta, se declara por claridad).
+*.pdf binary
