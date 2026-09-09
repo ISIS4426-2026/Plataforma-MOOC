@@ -12,8 +12,8 @@ import (
 )
 
 // In-memory doubles for the domain ports. They are intentionally simple but
-// preserve the behaviour the service relies on: uniqueness of emails and atomic
-// single-use token consumption.
+// preserve the behaviour the service relies on: uniqueness of emails, atomic
+// single-use token consumption and revocation semantics.
 
 type fakeUserRepo struct {
 	mu    sync.Mutex
@@ -93,6 +93,144 @@ func (f *fakeUserRepo) CountActiveAdmins(context.Context) (int, error) {
 		}
 	}
 	return count, nil
+}
+
+type fakeSessionRepo struct {
+	mu       sync.Mutex
+	sessions map[string]*domain.Session // by id
+}
+
+func newFakeSessionRepo() *fakeSessionRepo {
+	return &fakeSessionRepo{sessions: make(map[string]*domain.Session)}
+}
+
+func (f *fakeSessionRepo) Create(_ context.Context, session *domain.Session) error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+
+	session.ID = uuid.NewString()
+	session.CreatedAt = time.Now()
+	session.LastActivityAt = session.CreatedAt
+
+	stored := *session
+	f.sessions[session.ID] = &stored
+	return nil
+}
+
+func (f *fakeSessionRepo) GetByTokenHash(_ context.Context, tokenHash string) (*domain.Session, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+
+	for _, session := range f.sessions {
+		if session.TokenHash == tokenHash {
+			copied := *session
+			return &copied, nil
+		}
+	}
+	return nil, domain.ErrNotFound
+}
+
+func (f *fakeSessionRepo) ListActiveByUser(_ context.Context, userID string) ([]*domain.Session, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+
+	now := time.Now()
+	var active []*domain.Session
+	for _, session := range f.sessions {
+		if session.UserID == userID && session.IsUsable(now) {
+			copied := *session
+			active = append(active, &copied)
+		}
+	}
+	return active, nil
+}
+
+func (f *fakeSessionRepo) Revoke(_ context.Context, sessionID string) error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+
+	session, ok := f.sessions[sessionID]
+	if !ok || session.IsRevoked {
+		return domain.ErrNotFound
+	}
+
+	now := time.Now()
+	session.IsRevoked = true
+	session.RevokedAt = &now
+	return nil
+}
+
+func (f *fakeSessionRepo) RevokeAllForUser(_ context.Context, userID string) (int, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+
+	now := time.Now()
+	count := 0
+	for _, session := range f.sessions {
+		if session.UserID == userID && !session.IsRevoked {
+			session.IsRevoked = true
+			session.RevokedAt = &now
+			count++
+		}
+	}
+	return count, nil
+}
+
+type fakeSessionCache struct {
+	mu       sync.Mutex
+	sessions map[string]*domain.Session // by token hash
+	// disabled simulates Redis being unavailable so the database fallback can
+	// be exercised.
+	disabled bool
+}
+
+func newFakeSessionCache() *fakeSessionCache {
+	return &fakeSessionCache{sessions: make(map[string]*domain.Session)}
+}
+
+func (f *fakeSessionCache) Save(_ context.Context, session *domain.Session, ttl time.Duration) error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+
+	if f.disabled || ttl <= 0 {
+		return nil
+	}
+
+	stored := *session
+	f.sessions[session.TokenHash] = &stored
+	return nil
+}
+
+func (f *fakeSessionCache) GetByTokenHash(_ context.Context, tokenHash string) (*domain.Session, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+
+	session, ok := f.sessions[tokenHash]
+	if !ok || f.disabled {
+		return nil, domain.ErrNotFound
+	}
+	copied := *session
+	return &copied, nil
+}
+
+func (f *fakeSessionCache) Delete(_ context.Context, tokenHash string) error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+
+	delete(f.sessions, tokenHash)
+	return nil
+}
+
+func (f *fakeSessionCache) DeleteAllForUser(_ context.Context, userID string) error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+
+	for hash, session := range f.sessions {
+		if session.UserID == userID {
+			delete(f.sessions, hash)
+		}
+	}
+	return nil
 }
 
 type fakeTokenRepo struct {

@@ -51,6 +51,11 @@ func NewServer(cfg *config.Config, deps Deps, logger *slog.Logger) *Server {
 	mux := http.NewServeMux()
 	authHandler := handler.NewAuthHandler(deps.Auth)
 
+	// requireAuth guards the endpoints that act on behalf of a signed-in user.
+	// It is applied per route rather than globally so the public endpoints stay
+	// reachable without a session.
+	requireAuth := middleware.RequireAuth(deps.Auth)
+
 	// Register API v1 routes
 	mux.Handle("GET /api/v1/health", handler.NewHealthHandler(deps.DB))
 
@@ -58,6 +63,17 @@ func NewServer(cfg *config.Config, deps Deps, logger *slog.Logger) *Server {
 	mux.HandleFunc("POST /api/v1/auth/register", authHandler.Register)
 	mux.HandleFunc("GET /api/v1/auth/verify", authHandler.Verify)
 	mux.HandleFunc("POST /api/v1/auth/verify/resend", authHandler.ResendVerification)
+	mux.HandleFunc("POST /api/v1/auth/login", authHandler.Login)
+
+	// Logout authenticates by the token it is about to revoke, so it validates
+	// the credential itself instead of going through requireAuth.
+	mux.HandleFunc("POST /api/v1/auth/logout", authHandler.Logout)
+
+	// Session management for the signed-in user
+	mux.Handle("GET /api/v1/auth/sessions",
+		requireAuth(http.HandlerFunc(authHandler.ListSessions)))
+	mux.Handle("DELETE /api/v1/auth/sessions/{sessionID}",
+		requireAuth(http.HandlerFunc(authHandler.RevokeSession)))
 
 	// Ordering matters: RequestID runs first so the correlation id is available
 	// to everything below it, and Recoverer sits closest to the handlers so a

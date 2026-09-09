@@ -3,7 +3,10 @@ package handler
 import (
 	"encoding/json"
 	"errors"
+	"net"
 	"net/http"
+	"strings"
+	"time"
 
 	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/auth"
 	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/domain"
@@ -14,8 +17,8 @@ import (
 // attempt to make the server buffer arbitrary input.
 const maxAuthBodyBytes = 16 << 10 // 16 KiB
 
-// AuthHandler exposes public registration and email verification over
-// /api/v1/auth.
+// AuthHandler exposes public registration, email verification and session
+// management over /api/v1/auth.
 type AuthHandler struct {
 	service *auth.Service
 }
@@ -46,6 +49,26 @@ func newUserResponse(user *domain.User) userResponse {
 	}
 }
 
+type sessionResponse struct {
+	ID             string    `json:"id"`
+	UserAgent      string    `json:"user_agent,omitempty"`
+	IPAddress      string    `json:"ip_address,omitempty"`
+	ExpiresAt      time.Time `json:"expires_at"`
+	CreatedAt      time.Time `json:"created_at"`
+	LastActivityAt time.Time `json:"last_activity_at"`
+}
+
+func newSessionResponse(session *domain.Session) sessionResponse {
+	return sessionResponse{
+		ID:             session.ID,
+		UserAgent:      session.UserAgent,
+		IPAddress:      session.IPAddress,
+		ExpiresAt:      session.ExpiresAt,
+		CreatedAt:      session.CreatedAt,
+		LastActivityAt: session.LastActivityAt,
+	}
+}
+
 type registerRequest struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
@@ -54,6 +77,17 @@ type registerRequest struct {
 
 type resendVerificationRequest struct {
 	Email string `json:"email"`
+}
+
+type loginRequest struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}
+
+type loginResponse struct {
+	Token     string       `json:"token"`
+	ExpiresAt time.Time    `json:"expires_at"`
+	User      userResponse `json:"user"`
 }
 
 // Register handles POST /api/v1/auth/register.
@@ -125,6 +159,95 @@ func (h *AuthHandler) ResendVerification(w http.ResponseWriter, r *http.Request)
 	})
 }
 
+// Login handles POST /api/v1/auth/login and returns the session token.
+func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
+	var req loginRequest
+	if !decodeJSON(w, r, &req) {
+		return
+	}
+
+	result, err := h.service.Login(r.Context(), auth.LoginInput{
+		Email:     req.Email,
+		Password:  req.Password,
+		UserAgent: r.UserAgent(),
+		IPAddress: clientIP(r),
+	})
+	if err != nil {
+		respondAuthError(w, err)
+		return
+	}
+
+	RespondWithJSON(w, http.StatusOK, loginResponse{
+		Token:     result.Token,
+		ExpiresAt: result.Session.ExpiresAt,
+		User:      newUserResponse(result.User),
+	})
+}
+
+// Logout handles POST /api/v1/auth/logout and revokes the presented session.
+func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
+	token, ok := BearerToken(r)
+	if !ok {
+		RespondWithError(w, http.StatusUnauthorized, "unauthorized",
+			"Se requiere un token de sesión.", nil)
+		return
+	}
+
+	if err := h.service.Logout(r.Context(), token); err != nil {
+		respondAuthError(w, err)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// ListSessions handles GET /api/v1/auth/sessions for the authenticated user.
+func (h *AuthHandler) ListSessions(w http.ResponseWriter, r *http.Request) {
+	user, ok := UserFromContext(r.Context())
+	if !ok {
+		RespondWithError(w, http.StatusUnauthorized, "unauthorized", "Se requiere autenticación.", nil)
+		return
+	}
+
+	sessions, err := h.service.ListSessions(r.Context(), user.ID)
+	if err != nil {
+		respondAuthError(w, err)
+		return
+	}
+
+	items := make([]sessionResponse, 0, len(sessions))
+	for _, session := range sessions {
+		items = append(items, newSessionResponse(session))
+	}
+
+	RespondWithJSON(w, http.StatusOK, map[string]any{"items": items})
+}
+
+// RevokeSession handles DELETE /api/v1/auth/sessions/{sessionID}.
+//
+// This is the self-service half of the immediate revocation requirement: after
+// it returns, a request carrying that session's token is rejected at once.
+func (h *AuthHandler) RevokeSession(w http.ResponseWriter, r *http.Request) {
+	user, ok := UserFromContext(r.Context())
+	if !ok {
+		RespondWithError(w, http.StatusUnauthorized, "unauthorized", "Se requiere autenticación.", nil)
+		return
+	}
+
+	sessionID := r.PathValue("sessionID")
+	if sessionID == "" {
+		RespondWithError(w, http.StatusBadRequest, "invalid_input", "Falta el identificador de sesión.", nil)
+		return
+	}
+
+	if err := h.service.RevokeSession(r.Context(), user.ID, sessionID); err != nil {
+		respondAuthError(w, err)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
 // decodeJSON reads a JSON body with a size limit and rejects unknown fields,
 // reporting failures itself. It returns false when the response is already
 // written.
@@ -157,6 +280,15 @@ func respondAuthError(w http.ResponseWriter, err error) {
 	case errors.Is(err, domain.ErrConflict):
 		RespondWithError(w, http.StatusConflict, "email_already_registered",
 			"No fue posible completar el registro con ese correo.", nil)
+	case errors.Is(err, auth.ErrEmailNotVerified):
+		RespondWithError(w, http.StatusForbidden, "email_not_verified",
+			"Debes verificar tu correo antes de iniciar sesión.", nil)
+	case errors.Is(err, auth.ErrAccountSuspended):
+		RespondWithError(w, http.StatusForbidden, "account_suspended",
+			"La cuenta está suspendida.", nil)
+	case errors.Is(err, domain.ErrUnauthorized):
+		RespondWithError(w, http.StatusUnauthorized, "invalid_credentials",
+			"Credenciales inválidas.", nil)
 	case errors.Is(err, domain.ErrForbidden):
 		RespondWithError(w, http.StatusForbidden, "forbidden",
 			"No tienes permiso para realizar esta operación.", nil)
@@ -167,4 +299,38 @@ func respondAuthError(w http.ResponseWriter, err error) {
 		RespondWithError(w, http.StatusInternalServerError, "internal_error",
 			"Ocurrió un error inesperado.", nil)
 	}
+}
+
+// BearerToken extracts the credential from the Authorization header.
+func BearerToken(r *http.Request) (string, bool) {
+	header := r.Header.Get("Authorization")
+	if header == "" {
+		return "", false
+	}
+
+	const prefix = "Bearer "
+	if len(header) <= len(prefix) || !strings.EqualFold(header[:len(prefix)], prefix) {
+		return "", false
+	}
+
+	token := strings.TrimSpace(header[len(prefix):])
+	if token == "" {
+		return "", false
+	}
+
+	return token, true
+}
+
+// clientIP reports the peer address of the connection.
+//
+// Forwarding headers are deliberately ignored: any client can set
+// X-Forwarded-For, so trusting it would let a caller forge the address written
+// into the session record. A proxy-aware version needs a configured list of
+// trusted proxies.
+func clientIP(r *http.Request) string {
+	host, _, err := net.SplitHostPort(r.RemoteAddr)
+	if err != nil {
+		return r.RemoteAddr
+	}
+	return host
 }
