@@ -49,7 +49,7 @@ func NewServer(cfg *config.Config, deps Deps, logger *slog.Logger) *Server {
 	}
 
 	mux := http.NewServeMux()
-	authHandler := handler.NewAuthHandler(deps.Auth)
+	authHandler := handler.NewAuthHandler(deps.Auth, logger)
 
 	// requireAuth guards the endpoints that act on behalf of a signed-in user.
 	// It is applied per route rather than globally so the public endpoints stay
@@ -70,6 +70,8 @@ func NewServer(cfg *config.Config, deps Deps, logger *slog.Logger) *Server {
 	mux.HandleFunc("GET /api/v1/auth/verify", authHandler.Verify)
 	mux.HandleFunc("POST /api/v1/auth/verify/resend", authHandler.ResendVerification)
 	mux.HandleFunc("POST /api/v1/auth/login", authHandler.Login)
+	mux.HandleFunc("POST /api/v1/auth/password/forgot", authHandler.ForgotPassword)
+	mux.HandleFunc("POST /api/v1/auth/password/reset", authHandler.ResetPassword)
 
 	// Logout authenticates by the token it is about to revoke, so it validates
 	// the credential itself instead of going through requireAuth.

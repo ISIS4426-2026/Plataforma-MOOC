@@ -41,6 +41,11 @@ type Config struct {
 
 	// EmailVerificationTTL is how long an activation link stays valid.
 	EmailVerificationTTL time.Duration
+
+	// PasswordResetTTL is how long a recovery link stays valid. It is shorter
+	// than the verification link because it grants an immediate credential
+	// change.
+	PasswordResetTTL time.Duration
 }
 
 func Load() *Config {
@@ -66,6 +71,7 @@ func Load() *Config {
 
 		AppBaseURL:           getEnv("APP_BASE_URL", "http://localhost:8080"),
 		EmailVerificationTTL: getEnvDuration("EMAIL_VERIFICATION_TTL", 24*time.Hour),
+		PasswordResetTTL:     getEnvDuration("PASSWORD_RESET_TTL", time.Hour),
 	}
 }
 

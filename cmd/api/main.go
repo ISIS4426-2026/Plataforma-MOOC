@@ -64,15 +64,19 @@ func run(logger *slog.Logger) error {
 	// Composition root: the concrete adapters are chosen here and everything
 	// below depends only on the domain ports they satisfy.
 	authService := auth.NewService(
-		postgres.NewUserRepository(db),
-		postgres.NewSessionRepository(db),
-		cache.NewSessionCache(redisClient),
-		postgres.NewEmailVerificationTokenRepository(db),
-		mailer.NewSMTPMailer(cfg),
+		auth.Deps{
+			Users:               postgres.NewUserRepository(db),
+			Sessions:            postgres.NewSessionRepository(db),
+			SessionCache:        cache.NewSessionCache(redisClient),
+			VerificationTokens:  postgres.NewEmailVerificationTokenRepository(db),
+			PasswordResetTokens: postgres.NewPasswordResetTokenRepository(db),
+			Mailer:              mailer.NewSMTPMailer(cfg),
+		},
 		auth.Config{
 			AppBaseURL:           cfg.AppBaseURL,
 			SessionTTL:           cfg.SessionTTL,
 			EmailVerificationTTL: cfg.EmailVerificationTTL,
+			PasswordResetTTL:     cfg.PasswordResetTTL,
 		},
 		logger,
 	)

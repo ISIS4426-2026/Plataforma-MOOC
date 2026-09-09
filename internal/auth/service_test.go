@@ -22,12 +22,13 @@ const (
 )
 
 type harness struct {
-	service  *auth.Service
-	users    *fakeUserRepo
-	sessions *fakeSessionRepo
-	cache    *fakeSessionCache
-	tokens   *fakeTokenRepo
-	mailer   *fakeMailer
+	service     *auth.Service
+	users       *fakeUserRepo
+	sessions    *fakeSessionRepo
+	cache       *fakeSessionCache
+	tokens      *fakeTokenRepo
+	resetTokens *fakeTokenRepo
+	mailer      *fakeMailer
 }
 
 func newHarness(t *testing.T, cfg auth.Config) *harness {
@@ -42,18 +43,29 @@ func newHarness(t *testing.T, cfg auth.Config) *harness {
 	if cfg.EmailVerificationTTL == 0 {
 		cfg.EmailVerificationTTL = 24 * time.Hour
 	}
+	if cfg.PasswordResetTTL == 0 {
+		cfg.PasswordResetTTL = time.Hour
+	}
 
 	h := &harness{
-		users:    newFakeUserRepo(),
-		sessions: newFakeSessionRepo(),
-		cache:    newFakeSessionCache(),
-		tokens:   newFakeTokenRepo(),
-		mailer:   newFakeMailer(),
+		users:       newFakeUserRepo(),
+		sessions:    newFakeSessionRepo(),
+		cache:       newFakeSessionCache(),
+		tokens:      newFakeTokenRepo(),
+		resetTokens: newFakeTokenRepo(),
+		mailer:      newFakeMailer(),
 	}
 
 	// Discard log output so a warning path under test does not pollute output.
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
-	h.service = auth.NewService(h.users, h.sessions, h.cache, h.tokens, h.mailer, cfg, logger)
+	h.service = auth.NewService(auth.Deps{
+		Users:               h.users,
+		Sessions:            h.sessions,
+		SessionCache:        h.cache,
+		VerificationTokens:  h.tokens,
+		PasswordResetTokens: h.resetTokens,
+		Mailer:              h.mailer,
+	}, cfg, logger)
 
 	return h
 }

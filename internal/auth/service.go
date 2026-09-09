@@ -38,43 +38,47 @@ type Config struct {
 	AppBaseURL           string
 	EmailVerificationTTL time.Duration
 	SessionTTL           time.Duration
+	// PasswordResetTTL is deliberately shorter than EmailVerificationTTL: a
+	// recovery link grants an immediate credential change, so a leaked one
+	// should stop working sooner.
+	PasswordResetTTL time.Duration
+}
+
+// Deps are the ports the service depends on.
+//
+// They are grouped in a struct rather than passed positionally because
+// VerificationTokens and PasswordResetTokens share the same interface type:
+// as positional arguments the two could be swapped silently, and the compiler
+// would never notice that recovery links were being minted in the verification
+// table.
+type Deps struct {
+	Users               domain.UserRepository
+	Sessions            domain.SessionRepository
+	SessionCache        domain.SessionCache
+	VerificationTokens  domain.VerificationTokenRepository
+	PasswordResetTokens domain.VerificationTokenRepository
+	Mailer              domain.Mailer
 }
 
 // Service implements public registration with email verification (issue #9) and
 // login with revocable sessions (issue #10).
 type Service struct {
-	users              domain.UserRepository
-	sessions           domain.SessionRepository
-	sessionCache       domain.SessionCache
-	verificationTokens domain.VerificationTokenRepository
-	mailer             domain.Mailer
-	cfg                Config
-	logger             *slog.Logger
-	now                func() time.Time
+	deps   Deps
+	cfg    Config
+	logger *slog.Logger
+	now    func() time.Time
 }
 
-func NewService(
-	users domain.UserRepository,
-	sessions domain.SessionRepository,
-	sessionCache domain.SessionCache,
-	verificationTokens domain.VerificationTokenRepository,
-	mailer domain.Mailer,
-	cfg Config,
-	logger *slog.Logger,
-) *Service {
+func NewService(deps Deps, cfg Config, logger *slog.Logger) *Service {
 	if logger == nil {
 		logger = slog.Default()
 	}
 
 	return &Service{
-		users:              users,
-		sessions:           sessions,
-		sessionCache:       sessionCache,
-		verificationTokens: verificationTokens,
-		mailer:             mailer,
-		cfg:                cfg,
-		logger:             logger,
-		now:                time.Now,
+		deps:   deps,
+		cfg:    cfg,
+		logger: logger,
+		now:    time.Now,
 	}
 }
 
@@ -132,7 +136,7 @@ func (s *Service) Register(ctx context.Context, input RegisterInput) (*domain.Us
 		Status:       domain.UserStatusPendingVerification,
 	}
 
-	if err := s.users.Create(ctx, user); err != nil {
+	if err := s.deps.Users.Create(ctx, user); err != nil {
 		return nil, err
 	}
 
@@ -156,7 +160,7 @@ func (s *Service) ResendVerification(ctx context.Context, rawEmail string) error
 		return nil
 	}
 
-	user, err := s.users.GetByEmail(ctx, email)
+	user, err := s.deps.Users.GetByEmail(ctx, email)
 	if err != nil {
 		if errors.Is(err, domain.ErrNotFound) {
 			return nil
@@ -176,7 +180,7 @@ func (s *Service) ResendVerification(ctx context.Context, rawEmail string) error
 func (s *Service) issueVerificationToken(ctx context.Context, user *domain.User) error {
 	now := s.now()
 
-	if err := s.verificationTokens.InvalidateForUser(ctx, user.ID, now); err != nil {
+	if err := s.deps.VerificationTokens.InvalidateForUser(ctx, user.ID, now); err != nil {
 		return err
 	}
 
@@ -190,14 +194,14 @@ func (s *Service) issueVerificationToken(ctx context.Context, user *domain.User)
 		TokenHash: hash,
 		ExpiresAt: now.Add(s.cfg.EmailVerificationTTL),
 	}
-	if err := s.verificationTokens.Create(ctx, token); err != nil {
+	if err := s.deps.VerificationTokens.Create(ctx, token); err != nil {
 		return err
 	}
 
 	subject := "Confirma tu cuenta en la Plataforma MOOC"
 	body := s.verificationBody(user.FullName, raw)
 
-	if err := s.mailer.Send(ctx, user.Email, subject, body); err != nil {
+	if err := s.deps.Mailer.Send(ctx, user.Email, subject, body); err != nil {
 		// Registration has already been persisted, so a mail failure must be
 		// reported rather than swallowed: otherwise the account exists with no
 		// way to activate it and the caller believes it succeeded.
@@ -234,12 +238,12 @@ func (s *Service) VerifyEmail(ctx context.Context, rawToken string) (*domain.Use
 		return nil, fmt.Errorf("token is required: %w", domain.ErrInvalidInput)
 	}
 
-	token, err := s.verificationTokens.Consume(ctx, HashToken(rawToken), s.now())
+	token, err := s.deps.VerificationTokens.Consume(ctx, HashToken(rawToken), s.now())
 	if err != nil {
 		return nil, err
 	}
 
-	user, err := s.users.GetByID(ctx, token.UserID)
+	user, err := s.deps.Users.GetByID(ctx, token.UserID)
 	if err != nil {
 		return nil, err
 	}
@@ -251,7 +255,7 @@ func (s *Service) VerifyEmail(ctx context.Context, rawToken string) (*domain.Use
 	}
 
 	user.Status = domain.UserStatusActive
-	if err := s.users.Update(ctx, user); err != nil {
+	if err := s.deps.Users.Update(ctx, user); err != nil {
 		return nil, err
 	}
 
@@ -281,7 +285,7 @@ func (s *Service) Login(ctx context.Context, input LoginInput) (*LoginResult, er
 		return nil, domain.ErrUnauthorized
 	}
 
-	user, err := s.users.GetByEmail(ctx, email)
+	user, err := s.deps.Users.GetByEmail(ctx, email)
 	if err != nil {
 		if errors.Is(err, domain.ErrNotFound) {
 			// Spend the same bcrypt time as a real comparison would.
@@ -321,7 +325,7 @@ func (s *Service) Login(ctx context.Context, input LoginInput) (*LoginResult, er
 		ExpiresAt: now.Add(s.cfg.SessionTTL),
 	}
 
-	if err := s.sessions.Create(ctx, session); err != nil {
+	if err := s.deps.Sessions.Create(ctx, session); err != nil {
 		return nil, err
 	}
 
@@ -342,7 +346,7 @@ func (s *Service) Authenticate(ctx context.Context, rawToken string) (*domain.Se
 	hash := HashToken(rawToken)
 	now := s.now()
 
-	session, err := s.sessionCache.GetByTokenHash(ctx, hash)
+	session, err := s.deps.SessionCache.GetByTokenHash(ctx, hash)
 	if err != nil && !errors.Is(err, domain.ErrNotFound) {
 		s.logger.WarnContext(ctx, "session cache lookup failed, falling back to database",
 			slog.String("error", err.Error()),
@@ -351,7 +355,7 @@ func (s *Service) Authenticate(ctx context.Context, rawToken string) (*domain.Se
 	}
 
 	if session == nil {
-		session, err = s.sessions.GetByTokenHash(ctx, hash)
+		session, err = s.deps.Sessions.GetByTokenHash(ctx, hash)
 		if err != nil {
 			if errors.Is(err, domain.ErrNotFound) {
 				return nil, nil, domain.ErrUnauthorized
@@ -368,7 +372,7 @@ func (s *Service) Authenticate(ctx context.Context, rawToken string) (*domain.Se
 		return nil, nil, domain.ErrUnauthorized
 	}
 
-	user, err := s.users.GetByID(ctx, session.UserID)
+	user, err := s.deps.Users.GetByID(ctx, session.UserID)
 	if err != nil {
 		if errors.Is(err, domain.ErrNotFound) {
 			return nil, nil, domain.ErrUnauthorized
@@ -392,7 +396,7 @@ func (s *Service) Authenticate(ctx context.Context, rawToken string) (*domain.Se
 func (s *Service) Logout(ctx context.Context, rawToken string) error {
 	hash := HashToken(rawToken)
 
-	session, err := s.sessions.GetByTokenHash(ctx, hash)
+	session, err := s.deps.Sessions.GetByTokenHash(ctx, hash)
 	if err != nil {
 		if errors.Is(err, domain.ErrNotFound) {
 			return domain.ErrUnauthorized
@@ -400,11 +404,11 @@ func (s *Service) Logout(ctx context.Context, rawToken string) error {
 		return err
 	}
 
-	if err := s.sessions.Revoke(ctx, session.ID); err != nil && !errors.Is(err, domain.ErrNotFound) {
+	if err := s.deps.Sessions.Revoke(ctx, session.ID); err != nil && !errors.Is(err, domain.ErrNotFound) {
 		return err
 	}
 
-	if err := s.sessionCache.Delete(ctx, hash); err != nil {
+	if err := s.deps.SessionCache.Delete(ctx, hash); err != nil {
 		return fmt.Errorf("drop cached session: %w", err)
 	}
 
@@ -413,7 +417,7 @@ func (s *Service) Logout(ctx context.Context, rawToken string) error {
 
 // ListSessions returns the caller's active sessions.
 func (s *Service) ListSessions(ctx context.Context, userID string) ([]*domain.Session, error) {
-	return s.sessions.ListActiveByUser(ctx, userID)
+	return s.deps.Sessions.ListActiveByUser(ctx, userID)
 }
 
 // RevokeSession revokes one of the caller's own sessions.
@@ -422,7 +426,7 @@ func (s *Service) ListSessions(ctx context.Context, userID string) ([]*domain.Se
 // somebody else reports ErrNotFound rather than ErrForbidden so the endpoint
 // cannot be used to probe which session ids exist.
 func (s *Service) RevokeSession(ctx context.Context, userID string, sessionID string) error {
-	sessions, err := s.sessions.ListActiveByUser(ctx, userID)
+	sessions, err := s.deps.Sessions.ListActiveByUser(ctx, userID)
 	if err != nil {
 		return err
 	}
@@ -438,11 +442,11 @@ func (s *Service) RevokeSession(ctx context.Context, userID string, sessionID st
 		return domain.ErrNotFound
 	}
 
-	if err := s.sessions.Revoke(ctx, target.ID); err != nil {
+	if err := s.deps.Sessions.Revoke(ctx, target.ID); err != nil {
 		return err
 	}
 
-	if err := s.sessionCache.Delete(ctx, target.TokenHash); err != nil {
+	if err := s.deps.SessionCache.Delete(ctx, target.TokenHash); err != nil {
 		return fmt.Errorf("drop cached session: %w", err)
 	}
 
@@ -452,12 +456,151 @@ func (s *Service) RevokeSession(ctx context.Context, userID string, sessionID st
 // cacheSession stores the session for its remaining lifetime. A cache failure is
 // never fatal: PostgreSQL already holds the session.
 func (s *Service) cacheSession(ctx context.Context, session *domain.Session, now time.Time) {
-	if err := s.sessionCache.Save(ctx, session, session.ExpiresAt.Sub(now)); err != nil {
+	if err := s.deps.SessionCache.Save(ctx, session, session.ExpiresAt.Sub(now)); err != nil {
 		s.logger.WarnContext(ctx, "failed to cache session",
 			slog.String("session_id", session.ID),
 			slog.String("error", err.Error()),
 		)
 	}
+}
+
+// RequestPasswordReset mails a single-use recovery link, retiring any previous
+// one so only the most recent message works.
+//
+// It always reports success. An unknown address, a real one and even a failure
+// to deliver the message all produce the same answer, because the acceptance
+// criteria require the response not to reveal whether an account exists.
+//
+// This is why a delivery failure is logged rather than returned, unlike at
+// registration: there, the account has just been created and the caller must
+// learn it cannot be activated; here, returning an error for a real address
+// while answering success for an unknown one would leak exactly what the
+// generic message is meant to hide.
+func (s *Service) RequestPasswordReset(ctx context.Context, rawEmail string) error {
+	email, err := normaliseEmail(rawEmail)
+	if err != nil {
+		return nil
+	}
+
+	user, err := s.deps.Users.GetByEmail(ctx, email)
+	if err != nil {
+		if errors.Is(err, domain.ErrNotFound) {
+			return nil
+		}
+		return err
+	}
+
+	now := s.now()
+	if err := s.deps.PasswordResetTokens.InvalidateForUser(ctx, user.ID, now); err != nil {
+		return err
+	}
+
+	raw, hash, err := GenerateToken()
+	if err != nil {
+		return err
+	}
+
+	token := &domain.VerificationToken{
+		UserID:    user.ID,
+		TokenHash: hash,
+		ExpiresAt: now.Add(s.cfg.PasswordResetTTL),
+	}
+	if err := s.deps.PasswordResetTokens.Create(ctx, token); err != nil {
+		return err
+	}
+
+	subject := "Restablece tu contraseña en la Plataforma MOOC"
+	body := s.passwordResetBody(user.FullName, raw)
+
+	if err := s.deps.Mailer.Send(ctx, user.Email, subject, body); err != nil {
+		s.logger.ErrorContext(ctx, "failed to send password reset email",
+			slog.String("user_id", user.ID),
+			slog.String("error", err.Error()),
+		)
+	}
+
+	return nil
+}
+
+func (s *Service) passwordResetBody(fullName, rawToken string) string {
+	link := fmt.Sprintf("%s/api/v1/auth/password/reset?token=%s",
+		strings.TrimRight(s.cfg.AppBaseURL, "/"),
+		url.QueryEscape(rawToken),
+	)
+
+	return fmt.Sprintf(`Hola %s,
+
+Recibimos una solicitud para restablecer tu contraseña en la Plataforma MOOC.
+Para elegir una nueva, abre el siguiente enlace:
+
+%s
+
+El enlace es de un solo uso y vence en %s.
+
+Si no solicitaste el cambio, puedes ignorar este mensaje: tu contraseña actual
+sigue siendo válida.
+`, fullName, link, s.cfg.PasswordResetTTL)
+}
+
+// ResetPassword consumes a recovery token, sets the new password and logs every
+// existing session out.
+//
+// The order of operations is deliberate. The new password is validated and
+// hashed before the token is consumed, so a rejected password does not burn a
+// single-use link. Sessions are then revoked before the credential is replaced:
+// if the update failed afterwards, the account would keep its old password with
+// its sessions already closed, which is a safe outcome. Doing it the other way
+// round could leave the new password active while old sessions stayed alive.
+func (s *Service) ResetPassword(ctx context.Context, rawToken string, newPassword string) error {
+	if strings.TrimSpace(rawToken) == "" {
+		return fmt.Errorf("token is required: %w", domain.ErrInvalidInput)
+	}
+	if len(newPassword) < MinPasswordBytes {
+		return fmt.Errorf("password must be at least %d characters: %w", MinPasswordBytes, domain.ErrInvalidInput)
+	}
+
+	passwordHash, err := HashPassword(newPassword)
+	if err != nil {
+		if errors.Is(err, ErrPasswordTooLong) {
+			return fmt.Errorf("%w: %w", domain.ErrInvalidInput, err)
+		}
+		return err
+	}
+
+	now := s.now()
+
+	token, err := s.deps.PasswordResetTokens.Consume(ctx, HashToken(rawToken), now)
+	if err != nil {
+		return err
+	}
+
+	user, err := s.deps.Users.GetByID(ctx, token.UserID)
+	if err != nil {
+		return err
+	}
+
+	// "Cambiar la contraseña invalida todas las sesiones activas previas."
+	// Both stores are cleared: the durable record so the sessions can never be
+	// resolved again, and the cache so a warm entry cannot outlive them.
+	if _, err := s.deps.Sessions.RevokeAllForUser(ctx, user.ID); err != nil {
+		return err
+	}
+	if err := s.deps.SessionCache.DeleteAllForUser(ctx, user.ID); err != nil {
+		return fmt.Errorf("drop cached sessions: %w", err)
+	}
+
+	user.PasswordHash = passwordHash
+	if err := s.deps.Users.Update(ctx, user); err != nil {
+		return err
+	}
+
+	// Any other recovery link still outstanding for this account is retired, so
+	// a second email cannot be used to change the password again.
+	if err := s.deps.PasswordResetTokens.InvalidateForUser(ctx, user.ID, now); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // normaliseEmail trims and lowercases the address so lookup and insertion agree
