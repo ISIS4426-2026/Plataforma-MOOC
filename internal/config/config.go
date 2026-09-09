@@ -33,6 +33,14 @@ type Config struct {
 
 	// Session lifetime used when issuing credentials.
 	SessionTTL time.Duration
+
+	// AppBaseURL is the public origin the frontend is served from. Verification
+	// links are built against it, so it must be the address the user's browser
+	// can reach, not the container hostname.
+	AppBaseURL string
+
+	// EmailVerificationTTL is how long an activation link stays valid.
+	EmailVerificationTTL time.Duration
 }
 
 func Load() *Config {
@@ -55,6 +63,9 @@ func Load() *Config {
 		SMTPPassword: getEnv("SMTP_PASSWORD", ""),
 
 		SessionTTL: getEnvDuration("SESSION_TTL", 24*time.Hour),
+
+		AppBaseURL:           getEnv("APP_BASE_URL", "http://localhost:8080"),
+		EmailVerificationTTL: getEnvDuration("EMAIL_VERIFICATION_TTL", 24*time.Hour),
 	}
 }
 

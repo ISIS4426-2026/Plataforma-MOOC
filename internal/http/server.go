@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/auth"
 	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/config"
 	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/http/handler"
 	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/http/middleware"
@@ -35,15 +36,28 @@ type Server struct {
 // Dependencies are injected rather than constructed here so that the HTTP layer
 // stays decoupled from persistence, as required by the architecture rules, and
 // so tests can supply their own doubles.
-func NewServer(cfg *config.Config, db handler.Pinger, logger *slog.Logger) *Server {
+// Deps are the collaborators the HTTP layer needs. Grouping them keeps the
+// constructor signature stable as more modules register routes.
+type Deps struct {
+	DB   handler.Pinger
+	Auth *auth.Service
+}
+
+func NewServer(cfg *config.Config, deps Deps, logger *slog.Logger) *Server {
 	if logger == nil {
 		logger = slog.Default()
 	}
 
 	mux := http.NewServeMux()
+	authHandler := handler.NewAuthHandler(deps.Auth)
 
 	// Register API v1 routes
-	mux.Handle("GET /api/v1/health", handler.NewHealthHandler(db))
+	mux.Handle("GET /api/v1/health", handler.NewHealthHandler(deps.DB))
+
+	// Public authentication endpoints
+	mux.HandleFunc("POST /api/v1/auth/register", authHandler.Register)
+	mux.HandleFunc("GET /api/v1/auth/verify", authHandler.Verify)
+	mux.HandleFunc("POST /api/v1/auth/verify/resend", authHandler.ResendVerification)
 
 	// Ordering matters: RequestID runs first so the correlation id is available
 	// to everything below it, and Recoverer sits closest to the handlers so a

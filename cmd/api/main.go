@@ -8,8 +8,10 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/auth"
 	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/config"
 	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/http"
+	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/mailer"
 	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/postgres"
 )
 
@@ -50,7 +52,20 @@ func run(logger *slog.Logger) error {
 		slog.String("conn_max_lifetime", cfg.DBConnMaxLifetime.String()),
 	)
 
-	server := http.NewServer(cfg, db, logger)
+	// Composition root: the concrete adapters are chosen here and everything
+	// below depends only on the domain ports they satisfy.
+	authService := auth.NewService(
+		postgres.NewUserRepository(db),
+		postgres.NewEmailVerificationTokenRepository(db),
+		mailer.NewSMTPMailer(cfg),
+		auth.Config{
+			AppBaseURL:           cfg.AppBaseURL,
+			EmailVerificationTTL: cfg.EmailVerificationTTL,
+		},
+		logger,
+	)
+
+	server := http.NewServer(cfg, http.Deps{DB: db, Auth: authService}, logger)
 
 	// Serve in the background so the main goroutine can wait for a termination
 	// signal and trigger a graceful shutdown.
