@@ -12,6 +12,15 @@ services:
       - REDIS_URL=${REDIS_URL:-redis:6379}
       - S3_ENDPOINT=${S3_ENDPOINT:-http://minio:9000}
       - S3_BUCKET=${S3_BUCKET:-mooc-storage}
+      - DB_MAX_OPEN_CONNS=${DB_MAX_OPEN_CONNS:-25}
+      - DB_MAX_IDLE_CONNS=${DB_MAX_IDLE_CONNS:-25}
+      - DB_CONN_MAX_LIFETIME=${DB_CONN_MAX_LIFETIME:-5m}
+      - SMTP_HOST=${SMTP_HOST:-mailpit}
+      - SMTP_PORT=${SMTP_PORT:-1025}
+      - SMTP_FROM=${SMTP_FROM:-no-reply@plataforma-mooc.local}
+      - SMTP_USERNAME=${SMTP_USERNAME:-}
+      - SMTP_PASSWORD=${SMTP_PASSWORD:-}
+      - SESSION_TTL=${SESSION_TTL:-24h}
     depends_on:
       postgres:
         condition: service_healthy
@@ -21,6 +30,8 @@ services:
         condition: service_healthy
       minio-init:
         condition: service_completed_successfully
+      mailpit:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/api/v1/health"]
       interval: 5s
@@ -38,6 +49,9 @@ services:
       - REDIS_URL=${REDIS_URL:-redis:6379}
       - S3_ENDPOINT=${S3_ENDPOINT:-http://minio:9000}
       - S3_BUCKET=${S3_BUCKET:-mooc-storage}
+      - DB_MAX_OPEN_CONNS=${DB_MAX_OPEN_CONNS:-25}
+      - DB_MAX_IDLE_CONNS=${DB_MAX_IDLE_CONNS:-25}
+      - DB_CONN_MAX_LIFETIME=${DB_CONN_MAX_LIFETIME:-5m}
     depends_on:
       postgres:
         condition: service_healthy

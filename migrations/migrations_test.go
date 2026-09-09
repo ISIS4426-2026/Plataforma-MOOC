@@ -5,77 +5,132 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"slices"
+	"sort"
 	"strings"
 	"testing"
 
 	_ "github.com/lib/pq"
 )
 
+// migration pairs an up script with the down script that reverses it.
+type migration struct {
+	name string
+	up   string
+	down string
+}
+
+// discoverMigrations returns every migration in lexicographic order, which is
+// also apply order given the numeric prefix convention (000001, 000002, ...).
+//
+// Discovering the files instead of naming them keeps every migration added
+// later covered by these tests automatically.
+func discoverMigrations(t *testing.T) []migration {
+	t.Helper()
+
+	upPaths, err := filepath.Glob(filepath.Join(".", "*.up.sql"))
+	if err != nil {
+		t.Fatalf("Failed to list migration files: %v", err)
+	}
+	if len(upPaths) == 0 {
+		t.Fatal("No *.up.sql migration files found")
+	}
+
+	sort.Strings(upPaths)
+
+	migrations := make([]migration, 0, len(upPaths))
+	for _, upPath := range upPaths {
+		name := strings.TrimSuffix(filepath.Base(upPath), ".up.sql")
+		migrations = append(migrations, migration{
+			name: name,
+			up:   upPath,
+			down: filepath.Join(".", name+".down.sql"),
+		})
+	}
+
+	return migrations
+}
+
 func TestMigrationFilesExistAndAreNonEmpty(t *testing.T) {
-	upPath := filepath.Join(".", "000001_init_schema.up.sql")
-	downPath := filepath.Join(".", "000001_init_schema.down.sql")
+	for _, m := range discoverMigrations(t) {
+		t.Run(m.name, func(t *testing.T) {
+			upBytes, err := os.ReadFile(m.up)
+			if err != nil {
+				t.Fatalf("Failed to read up migration file: %v", err)
+			}
+			if len(upBytes) == 0 {
+				t.Fatal("Up migration file is empty")
+			}
 
-	upBytes, err := os.ReadFile(upPath)
-	if err != nil {
-		t.Fatalf("Failed to read up migration file: %v", err)
-	}
-	if len(upBytes) == 0 {
-		t.Fatal("Up migration file is empty")
-	}
-
-	downBytes, err := os.ReadFile(downPath)
-	if err != nil {
-		t.Fatalf("Failed to read down migration file: %v", err)
-	}
-	if len(downBytes) == 0 {
-		t.Fatal("Down migration file is empty")
+			downBytes, err := os.ReadFile(m.down)
+			if err != nil {
+				t.Fatalf("Failed to read down migration file: %v", err)
+			}
+			if len(downBytes) == 0 {
+				t.Fatal("Down migration file is empty")
+			}
+		})
 	}
 }
 
 func TestMigrationReversibilityStructure(t *testing.T) {
-	upPath := filepath.Join(".", "000001_init_schema.up.sql")
-	downPath := filepath.Join(".", "000001_init_schema.down.sql")
-
-	upBytes, _ := os.ReadFile(upPath)
-	downBytes, _ := os.ReadFile(downPath)
-
 	createTableRegex := regexp.MustCompile(`(?i)CREATE\ TABLE\ (?:IF\ NOT\ EXISTS\ )?([a-zA-Z0-9_]+)`)
 	dropTableRegex := regexp.MustCompile(`(?i)DROP\ TABLE\ (?:IF\ EXISTS\ )?([a-zA-Z0-9_]+)`)
 
-	createdMatches := createTableRegex.FindAllStringSubmatch(string(upBytes), -1)
-	droppedMatches := dropTableRegex.FindAllStringSubmatch(string(downBytes), -1)
+	for _, m := range discoverMigrations(t) {
+		t.Run(m.name, func(t *testing.T) {
+			upBytes, err := os.ReadFile(m.up)
+			if err != nil {
+				t.Fatalf("Failed to read up migration file: %v", err)
+			}
+			downBytes, err := os.ReadFile(m.down)
+			if err != nil {
+				t.Fatalf("Failed to read down migration file: %v", err)
+			}
 
-	createdTables := make(map[string]bool)
-	for _, match := range createdMatches {
-		if len(match) > 1 {
-			createdTables[strings.ToLower(match[1])] = true
-		}
-	}
+			createdMatches := createTableRegex.FindAllStringSubmatch(string(upBytes), -1)
+			droppedMatches := dropTableRegex.FindAllStringSubmatch(string(downBytes), -1)
 
-	droppedTables := make(map[string]bool)
-	for _, match := range droppedMatches {
-		if len(match) > 1 {
-			droppedTables[strings.ToLower(match[1])] = true
-		}
-	}
+			createdTables := make(map[string]bool)
+			for _, match := range createdMatches {
+				if len(match) > 1 {
+					createdTables[strings.ToLower(match[1])] = true
+				}
+			}
 
-	if len(createdTables) == 0 {
-		t.Fatal("No tables found in up migration")
-	}
+			droppedTables := make(map[string]bool)
+			for _, match := range droppedMatches {
+				if len(match) > 1 {
+					droppedTables[strings.ToLower(match[1])] = true
+				}
+			}
 
-	for table := range createdTables {
-		if !droppedTables[table] {
-			t.Errorf("Table '%s' created in up migration but not dropped in down migration", table)
-		}
-	}
+			if len(createdTables) == 0 {
+				t.Fatal("No tables found in up migration")
+			}
 
-	// Verify no binary columns (BYTEA or BLOB) exist in up migration
-	upContentUpper := strings.ToUpper(string(upBytes))
-	if strings.Contains(upContentUpper, "BYTEA") || strings.Contains(upContentUpper, "BLOB") {
-		t.Errorf("Up migration contains binary columns (BYTEA/BLOB), violating zero-binary relational storage policy")
+			for table := range createdTables {
+				if !droppedTables[table] {
+					t.Errorf("Table '%s' created in up migration but not dropped in down migration", table)
+				}
+			}
+
+			// Verify no binary columns (BYTEA or BLOB) exist in up migration
+			upContentUpper := strings.ToUpper(string(upBytes))
+			if strings.Contains(upContentUpper, "BYTEA") || strings.Contains(upContentUpper, "BLOB") {
+				t.Errorf("Up migration contains binary columns (BYTEA/BLOB), violating zero-binary relational storage policy")
+			}
+		})
 	}
 }
 
+// TestMigrationsRunCleanlyOnPostgres applies the whole migration set against a
+// live database and rolls it back.
+//
+// Down scripts run in reverse order because later migrations reference tables
+// created by earlier ones; dropping in apply order would fail on the foreign
+// keys. The set is applied a second time so the database is left in the state
+// the rest of the suite expects.
 func TestMigrationsRunCleanlyOnPostgres(t *testing.T) {
 	dbURL := os.Getenv("DATABASE_URL")
 	if dbURL == "" {
@@ -92,34 +147,49 @@ func TestMigrationsRunCleanlyOnPostgres(t *testing.T) {
 		t.Skipf("Postgres DB not reachable: %v; skipping live test", err)
 	}
 
-	upPath := filepath.Join(".", "000001_init_schema.up.sql")
-	downPath := filepath.Join(".", "000001_init_schema.down.sql")
+	migrations := discoverMigrations(t)
 
-	upSQL, err := os.ReadFile(upPath)
-	if err != nil {
-		t.Fatalf("Failed to read up migration: %v", err)
+	upSQL := make([]string, len(migrations))
+	downSQL := make([]string, len(migrations))
+	for i, m := range migrations {
+		up, err := os.ReadFile(m.up)
+		if err != nil {
+			t.Fatalf("Failed to read up migration %s: %v", m.name, err)
+		}
+		down, err := os.ReadFile(m.down)
+		if err != nil {
+			t.Fatalf("Failed to read down migration %s: %v", m.name, err)
+		}
+		upSQL[i] = string(up)
+		downSQL[i] = string(down)
 	}
 
-	downSQL, err := os.ReadFile(downPath)
-	if err != nil {
-		t.Fatalf("Failed to read down migration: %v", err)
+	applyUp := func(stage string) {
+		for i, m := range migrations {
+			if _, err := db.Exec(upSQL[i]); err != nil {
+				t.Fatalf("Failed to execute UP migration %s (%s): %v", m.name, stage, err)
+			}
+		}
 	}
 
-	// 1. Run down to ensure clean slate
-	_, _ = db.Exec(string(downSQL))
+	applyDown := func(stage string, fatal bool) {
+		for i, m := range slices.Backward(migrations) {
+			if _, err := db.Exec(downSQL[i]); err != nil && fatal {
+				t.Fatalf("Failed to execute DOWN migration %s (%s): %v", m.name, stage, err)
+			}
+		}
+	}
+
+	// 1. Run down to ensure clean slate. Failures are ignored: the tables may
+	// legitimately not exist yet on a fresh database.
+	applyDown("clean slate", false)
 
 	// 2. Run up
-	if _, err := db.Exec(string(upSQL)); err != nil {
-		t.Fatalf("Failed to execute UP migration: %v", err)
-	}
+	applyUp("initial apply")
 
 	// 3. Run down (reversible check)
-	if _, err := db.Exec(string(downSQL)); err != nil {
-		t.Fatalf("Failed to execute DOWN migration: %v", err)
-	}
+	applyDown("rollback", true)
 
 	// 4. Run up again
-	if _, err := db.Exec(string(upSQL)); err != nil {
-		t.Fatalf("Failed to re-execute UP migration: %v", err)
-	}
+	applyUp("re-apply")
 }
