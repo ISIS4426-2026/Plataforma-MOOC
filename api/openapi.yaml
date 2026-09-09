@@ -234,6 +234,89 @@ paths:
         '500':
           $ref: '#/components/responses/500InternalServerError'
 
+  /auth/password/forgot:
+    post:
+      tags:
+        - Auth
+      summary: Request a password recovery link
+      description: >
+        Mails a single-use recovery link, retiring any previous one so only the
+        most recent message works.
+
+
+        The response is always `202` with the same body: an unknown address, a
+        registered one, and even a failure to deliver the message all answer
+        identically, so the endpoint cannot be used to discover which addresses
+        exist.
+      operationId: requestPasswordReset
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ForgotPasswordRequest'
+      responses:
+        '202':
+          description: Request accepted. A link is sent only if the account exists.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+        '400':
+          $ref: '#/components/responses/400BadRequest'
+        '429':
+          $ref: '#/components/responses/429TooManyRequests'
+        '500':
+          $ref: '#/components/responses/500InternalServerError'
+
+  /auth/password/reset:
+    post:
+      tags:
+        - Auth
+      summary: Set a new password with a recovery token
+      description: >
+        Consumes the single-use recovery token and replaces the password.
+
+
+        Every active session of the account is revoked before this returns, in
+        both the durable store and the cache, so any other device is logged out.
+
+
+        The new password is validated before the token is consumed, so a
+        rejected password does not burn the link and the user can retry with the
+        same one. Unknown, already used and expired tokens are indistinguishable.
+      operationId: resetPassword
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResetPasswordRequest'
+      responses:
+        '204':
+          description: Password replaced and every previous session revoked.
+        '400':
+          description: The password is unacceptable, or the token is unknown, already used or expired.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                invalidToken:
+                  summary: Token no longer usable
+                  value:
+                    code: invalid_token
+                    message: El enlace de recuperación no es válido o ya fue utilizado.
+                invalidPassword:
+                  summary: Password does not meet the minimum length
+                  value:
+                    code: invalid_input
+                    message: Los datos enviados no son válidos.
+        '429':
+          $ref: '#/components/responses/429TooManyRequests'
+        '500':
+          $ref: '#/components/responses/500InternalServerError'
+
   /auth/logout:
     post:
       tags:
@@ -1033,6 +1116,33 @@ components:
           type: string
           format: email
           example: "student@example.com"
+
+    ForgotPasswordRequest:
+      type: object
+      required:
+        - email
+      properties:
+        email:
+          type: string
+          format: email
+          example: "student@example.com"
+
+    ResetPasswordRequest:
+      type: object
+      required:
+        - token
+        - password
+      properties:
+        token:
+          type: string
+          description: Raw recovery token delivered in the password reset email.
+        password:
+          type: string
+          minLength: 8
+          description: >
+            New password. bcrypt truncates past 72 bytes, so longer values are
+            rejected rather than silently cut short.
+          example: "NuevaContrasenaSegura123"
 
     SessionResponse:
       type: object

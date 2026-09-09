@@ -3,6 +3,7 @@ package handler
 import (
 	"encoding/json"
 	"errors"
+	"log/slog"
 	"net"
 	"net/http"
 	"strings"
@@ -21,10 +22,14 @@ const maxAuthBodyBytes = 16 << 10 // 16 KiB
 // management over /api/v1/auth.
 type AuthHandler struct {
 	service *auth.Service
+	logger  *slog.Logger
 }
 
-func NewAuthHandler(service *auth.Service) *AuthHandler {
-	return &AuthHandler{service: service}
+func NewAuthHandler(service *auth.Service, logger *slog.Logger) *AuthHandler {
+	if logger == nil {
+		logger = slog.Default()
+	}
+	return &AuthHandler{service: service, logger: logger}
 }
 
 // userResponse is the public projection of a user.
@@ -84,6 +89,15 @@ type loginRequest struct {
 	Password string `json:"password"`
 }
 
+type forgotPasswordRequest struct {
+	Email string `json:"email"`
+}
+
+type resetPasswordRequest struct {
+	Token    string `json:"token"`
+	Password string `json:"password"`
+}
+
 type loginResponse struct {
 	Token     string       `json:"token"`
 	ExpiresAt time.Time    `json:"expires_at"`
@@ -106,7 +120,7 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		FullName: req.FullName,
 	})
 	if err != nil {
-		respondAuthError(w, err)
+		h.respondAuthError(w, r, err)
 		return
 	}
 
@@ -129,7 +143,7 @@ func (h *AuthHandler) Verify(w http.ResponseWriter, r *http.Request) {
 				"El enlace de verificación no es válido o ya fue utilizado.", nil)
 			return
 		}
-		respondAuthError(w, err)
+		h.respondAuthError(w, r, err)
 		return
 	}
 
@@ -150,7 +164,7 @@ func (h *AuthHandler) ResendVerification(w http.ResponseWriter, r *http.Request)
 	}
 
 	if err := h.service.ResendVerification(r.Context(), req.Email); err != nil {
-		respondAuthError(w, err)
+		h.respondAuthError(w, r, err)
 		return
 	}
 
@@ -173,7 +187,7 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		IPAddress: clientIP(r),
 	})
 	if err != nil {
-		respondAuthError(w, err)
+		h.respondAuthError(w, r, err)
 		return
 	}
 
@@ -182,6 +196,50 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		ExpiresAt: result.Session.ExpiresAt,
 		User:      newUserResponse(result.User),
 	})
+}
+
+// ForgotPassword handles POST /api/v1/auth/password/forgot.
+//
+// It always answers 202 with the same body, whether or not the address is
+// registered, so the endpoint cannot be used to enumerate accounts.
+func (h *AuthHandler) ForgotPassword(w http.ResponseWriter, r *http.Request) {
+	var req forgotPasswordRequest
+	if !decodeJSON(w, r, &req) {
+		return
+	}
+
+	if err := h.service.RequestPasswordReset(r.Context(), req.Email); err != nil {
+		h.respondAuthError(w, r, err)
+		return
+	}
+
+	RespondWithJSON(w, http.StatusAccepted, map[string]any{
+		"message": "Si la cuenta existe, enviamos un enlace para restablecer la contraseña.",
+	})
+}
+
+// ResetPassword handles POST /api/v1/auth/password/reset.
+//
+// On success every session of the account is already revoked, so any other
+// device is logged out before this returns.
+func (h *AuthHandler) ResetPassword(w http.ResponseWriter, r *http.Request) {
+	var req resetPasswordRequest
+	if !decodeJSON(w, r, &req) {
+		return
+	}
+
+	if err := h.service.ResetPassword(r.Context(), req.Token, req.Password); err != nil {
+		if errors.Is(err, domain.ErrNotFound) {
+			// Unknown, already used and expired tokens are indistinguishable.
+			RespondWithError(w, http.StatusBadRequest, "invalid_token",
+				"El enlace de recuperación no es válido o ya fue utilizado.", nil)
+			return
+		}
+		h.respondAuthError(w, r, err)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 }
 
 // Logout handles POST /api/v1/auth/logout and revokes the presented session.
@@ -194,7 +252,7 @@ func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.service.Logout(r.Context(), token); err != nil {
-		respondAuthError(w, err)
+		h.respondAuthError(w, r, err)
 		return
 	}
 
@@ -211,7 +269,7 @@ func (h *AuthHandler) ListSessions(w http.ResponseWriter, r *http.Request) {
 
 	sessions, err := h.service.ListSessions(r.Context(), user.ID)
 	if err != nil {
-		respondAuthError(w, err)
+		h.respondAuthError(w, r, err)
 		return
 	}
 
@@ -241,7 +299,7 @@ func (h *AuthHandler) RevokeSession(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.service.RevokeSession(r.Context(), user.ID, sessionID); err != nil {
-		respondAuthError(w, err)
+		h.respondAuthError(w, r, err)
 		return
 	}
 
@@ -271,8 +329,10 @@ func decodeJSON(w http.ResponseWriter, r *http.Request, target any) bool {
 // respondAuthError maps domain errors onto the uniform error contract.
 //
 // Messages are deliberately generic: nothing here reveals whether an email is
-// registered, and no error carries the submitted password.
-func respondAuthError(w http.ResponseWriter, err error) {
+// registered, and no error carries the submitted password. An error that maps
+// to no known case is logged before the generic 500, because a failure the
+// operator cannot see is a failure they cannot fix.
+func (h *AuthHandler) respondAuthError(w http.ResponseWriter, r *http.Request, err error) {
 	switch {
 	case errors.Is(err, domain.ErrInvalidInput):
 		RespondWithError(w, http.StatusBadRequest, "invalid_input",
@@ -296,6 +356,15 @@ func respondAuthError(w http.ResponseWriter, err error) {
 		RespondWithError(w, http.StatusNotFound, "not_found",
 			"El recurso solicitado no existe.", nil)
 	default:
+		// The correlation id is read back from the response header rather than
+		// from the context: the middleware that owns that context key imports
+		// this package, so reading it directly would be an import cycle.
+		h.logger.ErrorContext(r.Context(), "unhandled error in auth handler",
+			slog.String("request_id", w.Header().Get("X-Request-ID")),
+			slog.String("method", r.Method),
+			slog.String("path", r.URL.Path),
+			slog.String("error", err.Error()),
+		)
 		RespondWithError(w, http.StatusInternalServerError, "internal_error",
 			"Ocurrió un error inesperado.", nil)
 	}

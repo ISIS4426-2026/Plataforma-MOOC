@@ -5,14 +5,61 @@
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
-    { "key": "baseUrl", "value": "http://localhost:8080", "type": "string" },
-    { "key": "mailpitUrl", "value": "http://localhost:8025", "type": "string" },
-    { "key": "testPassword", "value": "contrasena-segura-123", "type": "string" },
-    { "key": "testEmail", "value": "", "type": "string" },
-    { "key": "messageId", "value": "", "type": "string" },
-    { "key": "verificationToken", "value": "", "type": "string" },
-    { "key": "sessionToken", "value": "", "type": "string" },
-    { "key": "sessionId", "value": "", "type": "string" }
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080",
+      "type": "string"
+    },
+    {
+      "key": "mailpitUrl",
+      "value": "http://localhost:8025",
+      "type": "string"
+    },
+    {
+      "key": "testPassword",
+      "value": "contrasena-segura-123",
+      "type": "string"
+    },
+    {
+      "key": "testEmail",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "messageId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "verificationToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "sessionToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "sessionId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "newPassword",
+      "value": "contrasena-nueva-456",
+      "type": "string"
+    },
+    {
+      "key": "resetToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "mensajeGenerico",
+      "value": "",
+      "type": "string"
+    }
   ],
   "item": [
     {
@@ -34,7 +81,17 @@
       "request": {
         "method": "GET",
         "header": [],
-        "url": { "raw": "{{baseUrl}}/api/v1/health", "host": ["{{baseUrl}}"], "path": ["api", "v1", "health"] }
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/health",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "health"
+          ]
+        }
       }
     },
     {
@@ -68,12 +125,28 @@
       ],
       "request": {
         "method": "POST",
-        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
         "body": {
           "mode": "raw",
           "raw": "{\n  \"email\": \"{{testEmail}}\",\n  \"password\": \"{{testPassword}}\",\n  \"full_name\": \"Estudiante Postman\"\n}"
         },
-        "url": { "raw": "{{baseUrl}}/api/v1/auth/register", "host": ["{{baseUrl}}"], "path": ["api", "v1", "auth", "register"] }
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/auth/register",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "auth",
+            "register"
+          ]
+        }
       }
     },
     {
@@ -94,12 +167,28 @@
       ],
       "request": {
         "method": "POST",
-        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
         "body": {
           "mode": "raw",
           "raw": "{\n  \"email\": \"intruso-{{$timestamp}}@example.test\",\n  \"password\": \"{{testPassword}}\",\n  \"full_name\": \"Intruso\",\n  \"role\": \"profesor\"\n}"
         },
-        "url": { "raw": "{{baseUrl}}/api/v1/auth/register", "host": ["{{baseUrl}}"], "path": ["api", "v1", "auth", "register"] }
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/auth/register",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "auth",
+            "register"
+          ]
+        }
       }
     },
     {
@@ -120,12 +209,28 @@
       ],
       "request": {
         "method": "POST",
-        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
         "body": {
           "mode": "raw",
           "raw": "{\n  \"email\": \"{{testEmail}}\",\n  \"password\": \"{{testPassword}}\",\n  \"full_name\": \"Duplicado\"\n}"
         },
-        "url": { "raw": "{{baseUrl}}/api/v1/auth/register", "host": ["{{baseUrl}}"], "path": ["api", "v1", "auth", "register"] }
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/auth/register",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "auth",
+            "register"
+          ]
+        }
       }
     },
     {
@@ -145,12 +250,28 @@
       ],
       "request": {
         "method": "POST",
-        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
         "body": {
           "mode": "raw",
           "raw": "{\n  \"email\": \"{{testEmail}}\",\n  \"password\": \"{{testPassword}}\"\n}"
         },
-        "url": { "raw": "{{baseUrl}}/api/v1/auth/login", "host": ["{{baseUrl}}"], "path": ["api", "v1", "auth", "login"] }
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/auth/login",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "auth",
+            "login"
+          ]
+        }
       }
     },
     {
@@ -178,11 +299,23 @@
         "header": [],
         "url": {
           "raw": "{{mailpitUrl}}/api/v1/search?query=to:{{testEmail}}&limit=1",
-          "host": ["{{mailpitUrl}}"],
-          "path": ["api", "v1", "search"],
+          "host": [
+            "{{mailpitUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "search"
+          ],
           "query": [
-            { "key": "query", "value": "to:{{testEmail}}" },
-            { "key": "limit", "value": "1" }
+            {
+              "key": "query",
+              "value": "to:{{testEmail}}"
+            },
+            {
+              "key": "limit",
+              "value": "1"
+            }
           ]
         }
       }
@@ -216,8 +349,15 @@
         "header": [],
         "url": {
           "raw": "{{mailpitUrl}}/api/v1/message/{{messageId}}",
-          "host": ["{{mailpitUrl}}"],
-          "path": ["api", "v1", "message", "{{messageId}}"]
+          "host": [
+            "{{mailpitUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "message",
+            "{{messageId}}"
+          ]
         }
       }
     },
@@ -241,9 +381,21 @@
         "header": [],
         "url": {
           "raw": "{{baseUrl}}/api/v1/auth/verify?token={{verificationToken}}",
-          "host": ["{{baseUrl}}"],
-          "path": ["api", "v1", "auth", "verify"],
-          "query": [{ "key": "token", "value": "{{verificationToken}}" }]
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "auth",
+            "verify"
+          ],
+          "query": [
+            {
+              "key": "token",
+              "value": "{{verificationToken}}"
+            }
+          ]
         }
       }
     },
@@ -267,9 +419,21 @@
         "header": [],
         "url": {
           "raw": "{{baseUrl}}/api/v1/auth/verify?token={{verificationToken}}",
-          "host": ["{{baseUrl}}"],
-          "path": ["api", "v1", "auth", "verify"],
-          "query": [{ "key": "token", "value": "{{verificationToken}}" }]
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "auth",
+            "verify"
+          ],
+          "query": [
+            {
+              "key": "token",
+              "value": "{{verificationToken}}"
+            }
+          ]
         }
       }
     },
@@ -296,12 +460,28 @@
       ],
       "request": {
         "method": "POST",
-        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
         "body": {
           "mode": "raw",
           "raw": "{\n  \"email\": \"{{testEmail}}\",\n  \"password\": \"{{testPassword}}\"\n}"
         },
-        "url": { "raw": "{{baseUrl}}/api/v1/auth/login", "host": ["{{baseUrl}}"], "path": ["api", "v1", "auth", "login"] }
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/auth/login",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "auth",
+            "login"
+          ]
+        }
       }
     },
     {
@@ -322,12 +502,28 @@
       ],
       "request": {
         "method": "POST",
-        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
         "body": {
           "mode": "raw",
           "raw": "{\n  \"email\": \"{{testEmail}}\",\n  \"password\": \"contrasena-incorrecta\"\n}"
         },
-        "url": { "raw": "{{baseUrl}}/api/v1/auth/login", "host": ["{{baseUrl}}"], "path": ["api", "v1", "auth", "login"] }
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/auth/login",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "auth",
+            "login"
+          ]
+        }
       }
     },
     {
@@ -347,12 +543,28 @@
       ],
       "request": {
         "method": "POST",
-        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
         "body": {
           "mode": "raw",
           "raw": "{\n  \"email\": \"no-existe-{{$timestamp}}@example.test\",\n  \"password\": \"{{testPassword}}\"\n}"
         },
-        "url": { "raw": "{{baseUrl}}/api/v1/auth/login", "host": ["{{baseUrl}}"], "path": ["api", "v1", "auth", "login"] }
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/auth/login",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "auth",
+            "login"
+          ]
+        }
       }
     },
     {
@@ -373,7 +585,18 @@
       "request": {
         "method": "GET",
         "header": [],
-        "url": { "raw": "{{baseUrl}}/api/v1/auth/sessions", "host": ["{{baseUrl}}"], "path": ["api", "v1", "auth", "sessions"] }
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/auth/sessions",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "auth",
+            "sessions"
+          ]
+        }
       }
     },
     {
@@ -398,8 +621,24 @@
       ],
       "request": {
         "method": "GET",
-        "header": [{ "key": "Authorization", "value": "Bearer {{sessionToken}}" }],
-        "url": { "raw": "{{baseUrl}}/api/v1/auth/sessions", "host": ["{{baseUrl}}"], "path": ["api", "v1", "auth", "sessions"] }
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{sessionToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/auth/sessions",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "auth",
+            "sessions"
+          ]
+        }
       }
     },
     {
@@ -418,8 +657,24 @@
       ],
       "request": {
         "method": "POST",
-        "header": [{ "key": "Authorization", "value": "Bearer {{sessionToken}}" }],
-        "url": { "raw": "{{baseUrl}}/api/v1/auth/logout", "host": ["{{baseUrl}}"], "path": ["api", "v1", "auth", "logout"] }
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{sessionToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/auth/logout",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "auth",
+            "logout"
+          ]
+        }
       }
     },
     {
@@ -440,8 +695,24 @@
       ],
       "request": {
         "method": "GET",
-        "header": [{ "key": "Authorization", "value": "Bearer {{sessionToken}}" }],
-        "url": { "raw": "{{baseUrl}}/api/v1/auth/sessions", "host": ["{{baseUrl}}"], "path": ["api", "v1", "auth", "sessions"] }
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{sessionToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/auth/sessions",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "auth",
+            "sessions"
+          ]
+        }
       }
     },
     {
@@ -462,12 +733,471 @@
       ],
       "request": {
         "method": "POST",
-        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
         "body": {
           "mode": "raw",
           "raw": "{\n  \"email\": \"{{testEmail}}\"\n}"
         },
-        "url": { "raw": "{{baseUrl}}/api/v1/auth/verify/resend", "host": ["{{baseUrl}}"], "path": ["api", "v1", "auth", "verify", "resend"] }
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/auth/verify/resend",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "auth",
+            "verify",
+            "resend"
+          ]
+        }
+      }
+    },
+    {
+      "name": "17 Login de nuevo para abrir una sesion",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('responde 200', () => pm.response.to.have.status(200));",
+              "pm.collectionVariables.set('sessionToken', pm.response.json().token);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"{{testEmail}}\",\n  \"password\": \"{{testPassword}}\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/auth/login",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "auth",
+            "login"
+          ]
+        }
+      }
+    },
+    {
+      "name": "18 Recuperacion: solicitar enlace",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('responde 202', () => pm.response.to.have.status(202));",
+              "pm.collectionVariables.set('mensajeGenerico', pm.response.json().message);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"{{testEmail}}\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/auth/password/forgot",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "auth",
+            "password",
+            "forgot"
+          ]
+        }
+      }
+    },
+    {
+      "name": "19 Recuperacion: correo inexistente responde identico",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Criterio de aceptacion: la respuesta no revela si el correo existe.",
+              "pm.test('responde 202', () => pm.response.to.have.status(202));",
+              "pm.test('mensaje identico al de un correo real', () =>",
+              "  pm.expect(pm.response.json().message).to.eql(pm.collectionVariables.get('mensajeGenerico')));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"jamas-existio-{{$timestamp}}@example.test\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/auth/password/forgot",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "auth",
+            "password",
+            "forgot"
+          ]
+        }
+      }
+    },
+    {
+      "name": "20 Mailpit: buscar el correo de recuperacion",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('responde 200', () => pm.response.to.have.status(200));",
+              "const m = pm.response.json().messages[0];",
+              "pm.test('llego el correo de recuperacion', () => pm.expect(m).to.not.be.undefined);",
+              "pm.test('es el mensaje de recuperacion', () => pm.expect(m.Subject).to.include('Restablece'));",
+              "pm.collectionVariables.set('messageId', m.ID);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{mailpitUrl}}/api/v1/search?query=to:{{testEmail}}&limit=1",
+          "host": [
+            "{{mailpitUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "search"
+          ],
+          "query": [
+            {
+              "key": "query",
+              "value": "to:{{testEmail}}"
+            },
+            {
+              "key": "limit",
+              "value": "1"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "21 Mailpit: extraer el token de recuperacion",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('responde 200', () => pm.response.to.have.status(200));",
+              "const cuerpo = pm.response.json().Text || '';",
+              "const m = cuerpo.match(/token=([A-Za-z0-9_\\-%]+)/);",
+              "pm.test('el correo trae un enlace de recuperacion', () => pm.expect(m).to.not.be.null);",
+              "if (m) { pm.collectionVariables.set('resetToken', decodeURIComponent(m[1])); }",
+              "pm.test('el enlace apunta al endpoint de reseteo', () =>",
+              "  pm.expect(cuerpo).to.include('/api/v1/auth/password/reset?token='));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{mailpitUrl}}/api/v1/message/{{messageId}}",
+          "host": [
+            "{{mailpitUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "message",
+            "{{messageId}}"
+          ]
+        }
+      }
+    },
+    {
+      "name": "22 Reset con contrasena corta no quema el enlace",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('responde 400', () => pm.response.to.have.status(400));",
+              "pm.test('rechaza por dato invalido, no por token', () =>",
+              "  pm.expect(pm.response.json().code).to.eql('invalid_input'));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"token\": \"{{resetToken}}\",\n  \"password\": \"corta\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/auth/password/reset",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "auth",
+            "password",
+            "reset"
+          ]
+        }
+      }
+    },
+    {
+      "name": "23 Reset con contrasena valida",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// El enlace del paso anterior debe seguir sirviendo: no se quemo.",
+              "pm.test('responde 204', () => pm.response.to.have.status(204));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"token\": \"{{resetToken}}\",\n  \"password\": \"{{newPassword}}\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/auth/password/reset",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "auth",
+            "password",
+            "reset"
+          ]
+        }
+      }
+    },
+    {
+      "name": "24 La sesion previa quedo invalidada",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Criterio: cambiar la contrasena invalida todas las sesiones activas.",
+              "pm.test('responde 401', () => pm.response.to.have.status(401));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{sessionToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/auth/sessions",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "auth",
+            "sessions"
+          ]
+        }
+      }
+    },
+    {
+      "name": "25 Login con la contrasena vieja",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('responde 401', () => pm.response.to.have.status(401));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"{{testEmail}}\",\n  \"password\": \"{{testPassword}}\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/auth/login",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "auth",
+            "login"
+          ]
+        }
+      }
+    },
+    {
+      "name": "26 Login con la contrasena nueva",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('responde 200', () => pm.response.to.have.status(200));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"{{testEmail}}\",\n  \"password\": \"{{newPassword}}\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/auth/login",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "auth",
+            "login"
+          ]
+        }
+      }
+    },
+    {
+      "name": "27 El enlace de recuperacion es de un solo uso",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('responde 400', () => pm.response.to.have.status(400));",
+              "pm.test('el enlace ya no sirve', () =>",
+              "  pm.expect(pm.response.json().code).to.eql('invalid_token'));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"token\": \"{{resetToken}}\",\n  \"password\": \"otra-contrasena-999\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/auth/password/reset",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "auth",
+            "password",
+            "reset"
+          ]
+        }
       }
     }
   ]

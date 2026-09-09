@@ -23,6 +23,7 @@ services:
       - SESSION_TTL=${SESSION_TTL:-24h}
       - APP_BASE_URL=${APP_BASE_URL:-http://localhost:8080}
       - EMAIL_VERIFICATION_TTL=${EMAIL_VERIFICATION_TTL:-24h}
+      - PASSWORD_RESET_TTL=${PASSWORD_RESET_TTL:-1h}
     depends_on:
       postgres:
         condition: service_healthy
@@ -74,7 +75,12 @@ services:
       - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./migrations/000001_init_schema.up.sql:/docker-entrypoint-initdb.d/01_init_schema.sql:ro
+      # Todas las migraciones, aplicadas en orden por el script de arranque.
+      # Montar la carpeta completa evita que agregar una migracion nueva exija
+      # tocar este archivo, que fue justo lo que dejo la base sin las tablas
+      # de tokens.
+      - ./migrations:/migrations:ro
+      - ./scripts/init-db.sh:/docker-entrypoint-initdb.d/01_init_db.sh:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-moocuser} -d $${POSTGRES_DB:-moocdb}"]
       interval: 5s
