@@ -60,10 +60,15 @@ paths:
       tags:
         - Auth
       summary: Register a new student account
-      description: Public self-registration for students with mandatory email verification trigger.
+      description: >
+        Public self-registration. The account is created in `pending_verification`
+        and a single-use activation link is mailed to the address.
+
+
+        The role is never taken from the request: this endpoint only ever creates
+        students. Unknown properties in the body are rejected with `400`, so a
+        smuggled `role` field is refused rather than silently ignored.
       operationId: registerStudent
-      parameters:
-        - $ref: '#/components/parameters/IdempotencyKey'
       requestBody:
         required: true
         content:
@@ -72,20 +77,92 @@ paths:
               $ref: '#/components/schemas/RegisterStudentRequest'
       responses:
         '201':
-          description: Student account successfully registered.
-          headers:
-            Idempotency-Key:
-              $ref: '#/components/headers/IdempotencyKey'
+          description: Student account successfully registered and activation email sent.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/UserResponse'
+                $ref: '#/components/schemas/RegisterResponse'
         '400':
           $ref: '#/components/responses/400BadRequest'
         '409':
           $ref: '#/components/responses/409Conflict'
-        '422':
-          $ref: '#/components/responses/422UnprocessableEntity'
+        '429':
+          $ref: '#/components/responses/429TooManyRequests'
+        '500':
+          $ref: '#/components/responses/500InternalServerError'
+
+  /auth/verify:
+    get:
+      tags:
+        - Auth
+      summary: Activate an account with the emailed token
+      description: >
+        Consumes the single-use activation token and moves the account from
+        `pending_verification` to `active`.
+
+
+        Unknown, already consumed and expired tokens are indistinguishable: all
+        three answer `400` with code `invalid_token`, so the endpoint cannot be
+        used to probe which tokens exist.
+      operationId: verifyEmail
+      parameters:
+        - name: token
+          in: query
+          required: true
+          description: Raw activation token delivered in the verification email.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Account verified and activated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VerifyResponse'
+        '400':
+          description: The token is unknown, already used or expired.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: invalid_token
+                message: El enlace de verificación no es válido o ya fue utilizado.
+        '429':
+          $ref: '#/components/responses/429TooManyRequests'
+        '500':
+          $ref: '#/components/responses/500InternalServerError'
+
+  /auth/verify/resend:
+    post:
+      tags:
+        - Auth
+      summary: Resend the activation link
+      description: >
+        Issues a fresh activation link and retires any previous one, so only the
+        most recent message works.
+
+
+        The response is always `202` with the same body, whether the address is
+        unknown, still pending or already active. No email is sent in the first
+        two cases. This keeps the endpoint from revealing which addresses are
+        registered.
+      operationId: resendVerification
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResendVerificationRequest'
+      responses:
+        '202':
+          description: Request accepted. A link is sent only if the account exists and is pending.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+        '400':
+          $ref: '#/components/responses/400BadRequest'
         '429':
           $ref: '#/components/responses/429TooManyRequests'
         '500':
@@ -96,7 +173,20 @@ paths:
       tags:
         - Auth
       summary: Authenticate user session
-      description: Authenticates user credentials and returns a bearer JWT/session token.
+      description: >
+        Verifies credentials and opens a session, returning an opaque bearer
+        token. The raw token is returned exactly once, here; only its SHA-256
+        hash is persisted.
+
+
+        The token is deliberately opaque rather than a self-contained JWT: the
+        session is re-resolved on every request, which is what allows a
+        revocation to take effect immediately.
+
+
+        Account status is inspected only after the password verifies, and an
+        unknown address costs the same work as a real one, so neither the
+        response nor its timing reveals which addresses are registered.
       operationId: loginUser
       requestBody:
         required: true
@@ -114,7 +204,31 @@ paths:
         '400':
           $ref: '#/components/responses/400BadRequest'
         '401':
-          $ref: '#/components/responses/401Unauthorized'
+          description: Invalid credentials. Identical for a wrong password and an unknown address.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: invalid_credentials
+                message: Credenciales inválidas.
+        '403':
+          description: The credentials are valid but the account cannot open a session.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                emailNotVerified:
+                  summary: Email not verified yet
+                  value:
+                    code: email_not_verified
+                    message: Debes verificar tu correo antes de iniciar sesión.
+                accountSuspended:
+                  summary: Account suspended by an administrator
+                  value:
+                    code: account_suspended
+                    message: La cuenta está suspendida.
         '429':
           $ref: '#/components/responses/429TooManyRequests'
         '500':
@@ -125,13 +239,77 @@ paths:
       tags:
         - Auth
       summary: Revoke current session
-      description: Invalidate active user token and terminate session in Redis.
+      description: >
+        Revokes the session backing the presented token. The cached entry is
+        dropped as well, so the very next request with that token is rejected.
       operationId: logoutUser
+      security:
+        - bearerAuth: []
       responses:
         '204':
           description: Session revoked successfully.
         '401':
           $ref: '#/components/responses/401Unauthorized'
+        '500':
+          $ref: '#/components/responses/500InternalServerError'
+
+  /auth/sessions:
+    get:
+      tags:
+        - Auth
+      summary: List the caller's active sessions
+      description: >
+        Returns the sessions that can currently authenticate: neither revoked nor
+        expired. Token hashes are never exposed.
+      operationId: listOwnSessions
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Active sessions of the authenticated user.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionListResponse'
+        '401':
+          $ref: '#/components/responses/401Unauthorized'
+        '500':
+          $ref: '#/components/responses/500InternalServerError'
+
+  /auth/sessions/{session_id}:
+    delete:
+      tags:
+        - Auth
+      summary: Revoke one of the caller's sessions
+      description: >
+        Self-service revocation. After it returns, a request carrying that
+        session's token is rejected immediately.
+
+
+        A session belonging to another user answers `404`, not `403`, so the
+        endpoint cannot be used to discover which session identifiers exist.
+      operationId: revokeOwnSession
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: session_id
+          in: path
+          required: true
+          description: Identifier of the session to revoke.
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Session revoked successfully.
+        '400':
+          $ref: '#/components/responses/400BadRequest'
+        '401':
+          $ref: '#/components/responses/401Unauthorized'
+        '404':
+          $ref: '#/components/responses/404NotFound'
+        '500':
+          $ref: '#/components/responses/500InternalServerError'
 
   /users/professors:
     post:
@@ -600,6 +778,15 @@ paths:
           $ref: '#/components/responses/403Forbidden'
 
 components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: >
+        Opaque session token issued by `POST /auth/login`. It is not a JWT: the
+        session is looked up on every request, which is what makes revocation
+        take effect immediately.
+
   parameters:
     CursorParam:
       name: cursor
@@ -786,14 +973,108 @@ components:
       type: object
       required:
         - token
+        - expires_at
         - user
       properties:
         token:
           type: string
-          description: JWT or bearer session token.
-          example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+          description: >
+            Opaque bearer session token, 256 bits of entropy encoded as
+            URL-safe base64. Returned exactly once; only its SHA-256 hash is
+            stored. Send it as `Authorization: Bearer <token>`.
+          example: "6RyPl3wXaFNvtXfXd2elqTnMcVvA1sKmzR0oQpYbW3g"
+        expires_at:
+          type: string
+          format: date-time
+          description: Instant after which the session stops authenticating requests.
+          example: "2026-09-10T02:04:06.829088565Z"
         user:
           $ref: '#/components/schemas/UserResponse'
+
+    MessageResponse:
+      type: object
+      required:
+        - message
+      properties:
+        message:
+          type: string
+          example: "Si la cuenta existe y está pendiente de verificación, enviamos un nuevo enlace."
+
+    RegisterResponse:
+      type: object
+      required:
+        - user
+        - message
+      properties:
+        user:
+          $ref: '#/components/schemas/UserResponse'
+        message:
+          type: string
+          example: "Cuenta creada. Revisa tu correo para activarla."
+
+    VerifyResponse:
+      type: object
+      required:
+        - user
+        - message
+      properties:
+        user:
+          $ref: '#/components/schemas/UserResponse'
+        message:
+          type: string
+          example: "Cuenta verificada correctamente."
+
+    ResendVerificationRequest:
+      type: object
+      required:
+        - email
+      properties:
+        email:
+          type: string
+          format: email
+          example: "student@example.com"
+
+    SessionResponse:
+      type: object
+      required:
+        - id
+        - expires_at
+        - created_at
+        - last_activity_at
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "346c7322-fc0f-435a-8c37-b9a0f43a9be5"
+        user_agent:
+          type: string
+          description: Client that opened the session, recorded for recognition in this listing.
+          example: "Mozilla/5.0"
+        ip_address:
+          type: string
+          description: >
+            Peer address of the connection. Forwarding headers are ignored, since
+            any client can set them.
+          example: "172.18.0.1"
+        expires_at:
+          type: string
+          format: date-time
+        created_at:
+          type: string
+          format: date-time
+        last_activity_at:
+          type: string
+          format: date-time
+
+    SessionListResponse:
+      type: object
+      required:
+        - items
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/SessionResponse'
 
     UserResponse:
       type: object

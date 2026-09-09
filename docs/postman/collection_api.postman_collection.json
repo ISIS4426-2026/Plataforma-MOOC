@@ -1,0 +1,474 @@
+{
+  "info": {
+    "name": "Plataforma MOOC - Identidad",
+    "description": "Flujo completo de registro con verificación de correo (#9) y login con sesiones revocables (#10).\n\nLa colección es autocontenida: genera un correo único en cada corrida, lee el enlace de activación desde la API de Mailpit y encadena todo hasta comprobar la revocación inmediata de sesión.\n\nRequisitos: `docker compose up -d` con la API en :8080 y Mailpit en :8025.\n\nEjecutar con el Collection Runner de arriba a abajo.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8080", "type": "string" },
+    { "key": "mailpitUrl", "value": "http://localhost:8025", "type": "string" },
+    { "key": "testPassword", "value": "contrasena-segura-123", "type": "string" },
+    { "key": "testEmail", "value": "", "type": "string" },
+    { "key": "messageId", "value": "", "type": "string" },
+    { "key": "verificationToken", "value": "", "type": "string" },
+    { "key": "sessionToken", "value": "", "type": "string" },
+    { "key": "sessionId", "value": "", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "00 Health",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('responde 200', () => pm.response.to.have.status(200));",
+              "const body = pm.response.json();",
+              "pm.test('estado pass', () => pm.expect(body.status).to.eql('pass'));",
+              "pm.test('la base de datos responde', () => pm.expect(body.services.database).to.eql('up'));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": { "raw": "{{baseUrl}}/api/v1/health", "host": ["{{baseUrl}}"], "path": ["api", "v1", "health"] }
+      }
+    },
+    {
+      "name": "01 Registro crea estudiante pendiente",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Correo único por corrida, para poder repetir la colección sin limpiar la base.",
+              "const unico = 'postman-' + Date.now() + '@example.test';",
+              "pm.collectionVariables.set('testEmail', unico);"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('responde 201', () => pm.response.to.have.status(201));",
+              "const body = pm.response.json();",
+              "pm.test('el rol es estudiante', () => pm.expect(body.user.role).to.eql('estudiante'));",
+              "pm.test('queda pendiente de verificacion', () => pm.expect(body.user.status).to.eql('pending_verification'));",
+              "pm.test('la respuesta no expone la contrasena', () =>",
+              "  pm.expect(pm.response.text().toLowerCase()).to.not.include(pm.collectionVariables.get('testPassword')));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"{{testEmail}}\",\n  \"password\": \"{{testPassword}}\",\n  \"full_name\": \"Estudiante Postman\"\n}"
+        },
+        "url": { "raw": "{{baseUrl}}/api/v1/auth/register", "host": ["{{baseUrl}}"], "path": ["api", "v1", "auth", "register"] }
+      }
+    },
+    {
+      "name": "02 Registro rechaza intento de crear profesor",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// El registro publico solo crea estudiantes (seccion 5.1, punto 1).",
+              "pm.test('responde 400', () => pm.response.to.have.status(400));",
+              "pm.test('el campo role se rechaza, no se ignora', () =>",
+              "  pm.expect(pm.response.json().code).to.eql('invalid_body'));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"intruso-{{$timestamp}}@example.test\",\n  \"password\": \"{{testPassword}}\",\n  \"full_name\": \"Intruso\",\n  \"role\": \"profesor\"\n}"
+        },
+        "url": { "raw": "{{baseUrl}}/api/v1/auth/register", "host": ["{{baseUrl}}"], "path": ["api", "v1", "auth", "register"] }
+      }
+    },
+    {
+      "name": "03 Registro duplicado devuelve conflicto",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('responde 409', () => pm.response.to.have.status(409));",
+              "// Mayusculas distintas: la normalizacion del correo debe detectarlo igual.",
+              "pm.test('detecta el duplicado', () =>",
+              "  pm.expect(pm.response.json().code).to.eql('email_already_registered'));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"{{testEmail}}\",\n  \"password\": \"{{testPassword}}\",\n  \"full_name\": \"Duplicado\"\n}"
+        },
+        "url": { "raw": "{{baseUrl}}/api/v1/auth/register", "host": ["{{baseUrl}}"], "path": ["api", "v1", "auth", "register"] }
+      }
+    },
+    {
+      "name": "04 Login antes de verificar es rechazado",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('responde 403', () => pm.response.to.have.status(403));",
+              "pm.test('exige verificar el correo', () =>",
+              "  pm.expect(pm.response.json().code).to.eql('email_not_verified'));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"{{testEmail}}\",\n  \"password\": \"{{testPassword}}\"\n}"
+        },
+        "url": { "raw": "{{baseUrl}}/api/v1/auth/login", "host": ["{{baseUrl}}"], "path": ["api", "v1", "auth", "login"] }
+      }
+    },
+    {
+      "name": "05 Mailpit: buscar el correo de verificacion",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('responde 200', () => pm.response.to.have.status(200));",
+              "const body = pm.response.json();",
+              "pm.test('llego el correo al destinatario', () => pm.expect(body.messages).to.have.lengthOf.at.least(1));",
+              "",
+              "const mensaje = body.messages[0];",
+              "pm.collectionVariables.set('messageId', mensaje.ID);",
+              "pm.test('el asunto es el esperado', () =>",
+              "  pm.expect(mensaje.Subject).to.include('Confirma tu cuenta'));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{mailpitUrl}}/api/v1/search?query=to:{{testEmail}}&limit=1",
+          "host": ["{{mailpitUrl}}"],
+          "path": ["api", "v1", "search"],
+          "query": [
+            { "key": "query", "value": "to:{{testEmail}}" },
+            { "key": "limit", "value": "1" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "06 Mailpit: extraer el token del enlace",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('responde 200', () => pm.response.to.have.status(200));",
+              "const cuerpo = pm.response.json().Text || '';",
+              "",
+              "const coincidencia = cuerpo.match(/token=([A-Za-z0-9_\\-%]+)/);",
+              "pm.test('el correo trae un enlace de activacion', () => pm.expect(coincidencia).to.not.be.null);",
+              "",
+              "if (coincidencia) {",
+              "  pm.collectionVariables.set('verificationToken', decodeURIComponent(coincidencia[1]));",
+              "}",
+              "",
+              "pm.test('el enlace apunta al endpoint de verificacion', () =>",
+              "  pm.expect(cuerpo).to.include('/api/v1/auth/verify?token='));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{mailpitUrl}}/api/v1/message/{{messageId}}",
+          "host": ["{{mailpitUrl}}"],
+          "path": ["api", "v1", "message", "{{messageId}}"]
+        }
+      }
+    },
+    {
+      "name": "07 Verificar activa la cuenta",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('responde 200', () => pm.response.to.have.status(200));",
+              "pm.test('la cuenta queda activa', () =>",
+              "  pm.expect(pm.response.json().user.status).to.eql('active'));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/auth/verify?token={{verificationToken}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "auth", "verify"],
+          "query": [{ "key": "token", "value": "{{verificationToken}}" }]
+        }
+      }
+    },
+    {
+      "name": "08 El enlace es de un solo uso",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('responde 400', () => pm.response.to.have.status(400));",
+              "pm.test('el token ya no sirve', () =>",
+              "  pm.expect(pm.response.json().code).to.eql('invalid_token'));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/auth/verify?token={{verificationToken}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "auth", "verify"],
+          "query": [{ "key": "token", "value": "{{verificationToken}}" }]
+        }
+      }
+    },
+    {
+      "name": "09 Login exitoso tras verificar",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('responde 200', () => pm.response.to.have.status(200));",
+              "const body = pm.response.json();",
+              "",
+              "pm.test('devuelve un token de sesion', () => pm.expect(body.token).to.be.a('string').and.not.empty);",
+              "pm.test('devuelve la fecha de expiracion', () => pm.expect(body.expires_at).to.be.a('string'));",
+              "pm.test('la respuesta no expone la contrasena', () =>",
+              "  pm.expect(pm.response.text()).to.not.include(pm.collectionVariables.get('testPassword')));",
+              "",
+              "pm.collectionVariables.set('sessionToken', body.token);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"{{testEmail}}\",\n  \"password\": \"{{testPassword}}\"\n}"
+        },
+        "url": { "raw": "{{baseUrl}}/api/v1/auth/login", "host": ["{{baseUrl}}"], "path": ["api", "v1", "auth", "login"] }
+      }
+    },
+    {
+      "name": "10 Login con contrasena incorrecta",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('responde 401', () => pm.response.to.have.status(401));",
+              "// Debe ser identico al de un correo inexistente, para no revelar que la cuenta existe.",
+              "pm.test('mensaje generico', () =>",
+              "  pm.expect(pm.response.json().code).to.eql('invalid_credentials'));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"{{testEmail}}\",\n  \"password\": \"contrasena-incorrecta\"\n}"
+        },
+        "url": { "raw": "{{baseUrl}}/api/v1/auth/login", "host": ["{{baseUrl}}"], "path": ["api", "v1", "auth", "login"] }
+      }
+    },
+    {
+      "name": "11 Login con correo inexistente responde igual",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('responde 401', () => pm.response.to.have.status(401));",
+              "pm.test('no revela si el correo existe', () =>",
+              "  pm.expect(pm.response.json().code).to.eql('invalid_credentials'));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"no-existe-{{$timestamp}}@example.test\",\n  \"password\": \"{{testPassword}}\"\n}"
+        },
+        "url": { "raw": "{{baseUrl}}/api/v1/auth/login", "host": ["{{baseUrl}}"], "path": ["api", "v1", "auth", "login"] }
+      }
+    },
+    {
+      "name": "12 Endpoint protegido sin token",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('responde 401', () => pm.response.to.have.status(401));",
+              "pm.test('pide autenticacion', () =>",
+              "  pm.expect(pm.response.headers.get('WWW-Authenticate')).to.eql('Bearer'));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": { "raw": "{{baseUrl}}/api/v1/auth/sessions", "host": ["{{baseUrl}}"], "path": ["api", "v1", "auth", "sessions"] }
+      }
+    },
+    {
+      "name": "13 Endpoint protegido con token",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('responde 200', () => pm.response.to.have.status(200));",
+              "const items = pm.response.json().items;",
+              "pm.test('lista la sesion abierta', () => pm.expect(items).to.have.lengthOf.at.least(1));",
+              "",
+              "pm.test('no expone el hash del token', () =>",
+              "  pm.expect(pm.response.text()).to.not.include('token_hash'));",
+              "",
+              "if (items && items.length) { pm.collectionVariables.set('sessionId', items[0].id); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{sessionToken}}" }],
+        "url": { "raw": "{{baseUrl}}/api/v1/auth/sessions", "host": ["{{baseUrl}}"], "path": ["api", "v1", "auth", "sessions"] }
+      }
+    },
+    {
+      "name": "14 Logout",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('responde 204', () => pm.response.to.have.status(204));",
+              "pm.test('sin cuerpo', () => pm.expect(pm.response.text()).to.be.empty);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Authorization", "value": "Bearer {{sessionToken}}" }],
+        "url": { "raw": "{{baseUrl}}/api/v1/auth/logout", "host": ["{{baseUrl}}"], "path": ["api", "v1", "auth", "logout"] }
+      }
+    },
+    {
+      "name": "15 Revocacion inmediata: el token ya no sirve",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Condicion de aceptacion de la seccion 9: revocacion inmediata de sesiones.",
+              "pm.test('responde 401 en la peticion siguiente', () => pm.response.to.have.status(401));",
+              "pm.test('la sesion quedo invalidada', () =>",
+              "  pm.expect(pm.response.json().code).to.eql('unauthorized'));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{sessionToken}}" }],
+        "url": { "raw": "{{baseUrl}}/api/v1/auth/sessions", "host": ["{{baseUrl}}"], "path": ["api", "v1", "auth", "sessions"] }
+      }
+    },
+    {
+      "name": "16 Reenvio de verificacion no revela nada",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// La cuenta ya esta activa: debe responder igual que para una desconocida y no enviar correo.",
+              "pm.test('responde 202', () => pm.response.to.have.status(202));",
+              "pm.test('mensaje generico', () =>",
+              "  pm.expect(pm.response.json().message).to.include('Si la cuenta existe'));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"{{testEmail}}\"\n}"
+        },
+        "url": { "raw": "{{baseUrl}}/api/v1/auth/verify/resend", "host": ["{{baseUrl}}"], "path": ["api", "v1", "auth", "verify", "resend"] }
+      }
+    }
+  ]
+}

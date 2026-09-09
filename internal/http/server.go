@@ -59,6 +59,12 @@ func NewServer(cfg *config.Config, deps Deps, logger *slog.Logger) *Server {
 	// Register API v1 routes
 	mux.Handle("GET /api/v1/health", handler.NewHealthHandler(deps.DB))
 
+	// The contract and its browsable rendering are served by the API itself, so
+	// the documentation page and the endpoints share an origin and "Try it out"
+	// works without a CORS policy.
+	mux.HandleFunc("GET /api/docs", handler.NewDocsHandler())
+	mux.HandleFunc("GET "+handler.SpecPath, handler.NewOpenAPISpecHandler())
+
 	// Public authentication endpoints
 	mux.HandleFunc("POST /api/v1/auth/register", authHandler.Register)
 	mux.HandleFunc("GET /api/v1/auth/verify", authHandler.Verify)

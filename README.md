@@ -92,6 +92,7 @@ make docker-down
 Servicios disponibles:
 * **API REST**: `http://localhost:8080/api/v1/health`
 * **MinIO Console**: `http://localhost:9001` (User: `minioadmin` / Pass: `minioadmin`)
+* **Documentación de la API (Swagger)**: `http://localhost:8080/api/docs`
 * **Mailpit (Email Testing)**: `http://localhost:8025`
 * **PostgreSQL**: `localhost:5432` (`moocdb` / `moocuser` / `moocpassword`)
 * **Redis**: `localhost:6379`
@@ -142,4 +143,29 @@ El comando `make check` ejecuta secuencialmente:
 
 ##  Contrato OpenAPI 3.1
 
-El contrato oficial de la API v1 se encuentra en `api/openapi.yaml`. Puedes visualizarlo importándolo en la UI de Swagger o Postman.
+`api/openapi.yaml` describe la API completa: qué rutas existen, qué recibe cada una y qué devuelve. Es documentación en un formato estándar que las herramientas entienden, no código que se ejecute. El CI la valida con Spectral en cada `make lint`.
+
+Alrededor de ese archivo hay dos herramientas, con propósitos distintos:
+
+| Herramienta | Para qué sirve | Dónde |
+|---|---|---|
+| **Swagger** | **Leer** la API y probar peticiones desde el navegador | http://localhost:8080/api/docs |
+| **Postman** | **Ejecutar** el flujo completo de forma automatizada | `docs/postman/` |
+
+### Swagger
+
+Con el stack levantado, abre **http://localhost:8080/api/docs**.
+
+* El botón **"Try it out" funciona**. La página y los endpoints comparten origen, así que el navegador no hace una petición cruzada y no hace falta ninguna política de CORS.
+
+El documento crudo queda en `http://localhost:8080/api/v1/openapi.yaml`, por si quieres importarlo en otra herramienta.
+
+> La página carga los recursos de Swagger UI desde un CDN, así que necesita conexión a internet. Sin ella, el contrato sigue disponible en la ruta `openapi.yaml` y en el archivo del repositorio.
+
+### Colección de Postman
+
+`docs/postman/` trae una colección que ejecuta el flujo completo de identidad —registro, verificación por correo, login, listado de sesiones y revocación— y comprueba cada respuesta.
+
+Se importa en Postman y se ejecuta con el Runner, de arriba a abajo. No hay que copiar el enlace del correo a mano: la colección lo lee de la API de Mailpit.
+
+Ver `docs/postman/README.md` para el detalle y para correrla sin abrir Postman.
