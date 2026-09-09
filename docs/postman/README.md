@@ -68,3 +68,29 @@ docker run --rm --network plataforma-mooc_default \
 ```
 
 Se conecta a la red de Compose y usa los nombres de servicio, así que no depende de los puertos publicados en el host. Útil para incorporarlo al pipeline de CI.
+
+## Seguridad (#13)
+
+La última carpeta de la colección, **Seguridad (#13)**, dispara el rate limiting: agota el cupo de login desde el propio script y comprueba que llega el `429` con `Retry-After` y `RateLimit-Remaining: 0`.
+
+Va al final a propósito, porque deja el cupo de login gastado durante el resto de la ventana. Con los valores por defecto (**10 intentos por minuto**) eso significa que **volver a correr la colección dentro del mismo minuto fallará** en el paso de login. Espera un minuto, o sube `RATE_LIMIT_LOGIN_ATTEMPTS` en tu `.env`.
+
+### Por qué el CSRF no está en la colección
+
+La comprobación de origen solo actúa cuando hay una lista blanca configurada, y por defecto `CSRF_ALLOWED_ORIGINS` está vacía —lo correcto mientras no exista un frontend—. Una petición de Postman tampoco envía cabecera `Origin`, así que nunca sería rechazada.
+
+Para comprobarlo a mano:
+
+```bash
+# Levantar la API con una lista blanca
+CSRF_ALLOWED_ORIGINS=https://app.plataforma-mooc.test docker compose up -d api
+
+# Origen no permitido -> 403
+curl -i -X POST http://localhost:8080/api/v1/auth/login   -H "Origin: https://sitio-del-atacante.test"   -H "Content-Type: application/json"   -d '{"email":"a@b.test","password":"loquesea1234"}'
+
+# Método seguro desde el mismo origen -> 200, no se comprueba
+curl -i -H "Origin: https://sitio-del-atacante.test" http://localhost:8080/api/v1/health
+```
+
+La cobertura automatizada de CSRF vive en `internal/http/middleware/security_test.go`.
+

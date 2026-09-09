@@ -1199,6 +1199,77 @@
           ]
         }
       }
+    },
+    {
+      "name": "Seguridad (#13)",
+      "description": "Rate limiting. El CSRF no se prueba aqui porque requiere CSRF_ALLOWED_ORIGINS configurado; ver docs/postman/README.md.",
+      "item": [
+        {
+          "name": "28 Rate limiting: el limite de login bloquea",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Dispara el limite de login agotando el cupo desde el propio script.",
+                  "// Va al final de la coleccion a proposito: deja el cupo de login gastado",
+                  "// durante el resto de la ventana (1 minuto por defecto).",
+                  "const url = pm.variables.get('baseUrl') + '/api/v1/auth/login';",
+                  "const cuerpo = JSON.stringify({ email: 'ratelimit-' + Date.now() + '@example.test', password: 'da-igual-1234' });",
+                  "const intentos = 15;",
+                  "let bloqueado = null;",
+                  "",
+                  "function intentar(n) {",
+                  "  if (n > intentos) { finalizar(); return; }",
+                  "  pm.sendRequest({",
+                  "    url: url,",
+                  "    method: 'POST',",
+                  "    header: { 'Content-Type': 'application/json' },",
+                  "    body: { mode: 'raw', raw: cuerpo }",
+                  "  }, (err, res) => {",
+                  "    if (!err && res.code === 429 && bloqueado === null) { bloqueado = res; }",
+                  "    intentar(n + 1);",
+                  "  });",
+                  "}",
+                  "",
+                  "function finalizar() {",
+                  "  pm.test('el limite se dispara antes de ' + intentos + ' intentos', () =>",
+                  "    pm.expect(bloqueado, 'ninguna peticion fue bloqueada').to.not.be.null);",
+                  "",
+                  "  if (bloqueado) {",
+                  "    pm.test('responde 429', () => pm.expect(bloqueado.code).to.eql(429));",
+                  "    pm.test('con codigo rate_limit_exceeded', () =>",
+                  "      pm.expect(bloqueado.json().code).to.eql('rate_limit_exceeded'));",
+                  "    pm.test('indica cuando reintentar', () =>",
+                  "      pm.expect(Number(bloqueado.headers.get('Retry-After'))).to.be.above(0));",
+                  "    pm.test('reporta cupo agotado', () =>",
+                  "      pm.expect(bloqueado.headers.get('RateLimit-Remaining')).to.eql('0'));",
+                  "  }",
+                  "}",
+                  "",
+                  "intentar(1);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/health",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "health"
+              ]
+            }
+          }
+        }
+      ]
     }
   ]
 }

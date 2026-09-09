@@ -9,6 +9,7 @@ import (
 
 	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/auth"
 	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/config"
+	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/domain"
 	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/http/handler"
 	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/http/middleware"
 )
@@ -39,8 +40,9 @@ type Server struct {
 // Deps are the collaborators the HTTP layer needs. Grouping them keeps the
 // constructor signature stable as more modules register routes.
 type Deps struct {
-	DB   handler.Pinger
-	Auth *auth.Service
+	DB          handler.Pinger
+	Auth        *auth.Service
+	RateLimiter domain.RateLimiter
 }
 
 func NewServer(cfg *config.Config, deps Deps, logger *slog.Logger) *Server {
@@ -56,6 +58,26 @@ func NewServer(cfg *config.Config, deps Deps, logger *slog.Logger) *Server {
 	// reachable without a session.
 	requireAuth := middleware.RequireAuth(deps.Auth)
 
+	// Rate limits are applied per endpoint group rather than globally: the
+	// thresholds that make sense for credential guessing would be absurd for
+	// ordinary reads, and exhausting the login quota must not lock a user out
+	// of password recovery.
+	limitLogin := middleware.RateLimit(deps.RateLimiter, middleware.RateLimitPolicy{
+		Name:   "login",
+		Limit:  cfg.RateLimitLoginAttempts,
+		Window: cfg.RateLimitLoginWindow,
+	}, logger)
+	limitRegister := middleware.RateLimit(deps.RateLimiter, middleware.RateLimitPolicy{
+		Name:   "register",
+		Limit:  cfg.RateLimitRegisterAttempts,
+		Window: cfg.RateLimitRegisterWindow,
+	}, logger)
+	limitRecovery := middleware.RateLimit(deps.RateLimiter, middleware.RateLimitPolicy{
+		Name:   "recovery",
+		Limit:  cfg.RateLimitRecoveryAttempts,
+		Window: cfg.RateLimitRecoveryWindow,
+	}, logger)
+
 	// Register API v1 routes
 	mux.Handle("GET /api/v1/health", handler.NewHealthHandler(deps.DB))
 
@@ -65,13 +87,23 @@ func NewServer(cfg *config.Config, deps Deps, logger *slog.Logger) *Server {
 	mux.HandleFunc("GET /api/docs", handler.NewDocsHandler())
 	mux.HandleFunc("GET "+handler.SpecPath, handler.NewOpenAPISpecHandler())
 
-	// Public authentication endpoints
-	mux.HandleFunc("POST /api/v1/auth/register", authHandler.Register)
-	mux.HandleFunc("GET /api/v1/auth/verify", authHandler.Verify)
-	mux.HandleFunc("POST /api/v1/auth/verify/resend", authHandler.ResendVerification)
-	mux.HandleFunc("POST /api/v1/auth/login", authHandler.Login)
-	mux.HandleFunc("POST /api/v1/auth/password/forgot", authHandler.ForgotPassword)
-	mux.HandleFunc("POST /api/v1/auth/password/reset", authHandler.ResetPassword)
+	// Public authentication endpoints. These are the ones exposed to credential
+	// guessing and mailbox flooding, so each carries a rate limit.
+	mux.Handle("POST /api/v1/auth/register",
+		limitRegister(http.HandlerFunc(authHandler.Register)))
+	// El token tiene 256 bits de entropia, asi que adivinarlo es inviable; el
+	// limite existe para que golpear el endpoint con tokens basura no salga
+	// gratis en consultas a la base de datos.
+	mux.Handle("GET /api/v1/auth/verify",
+		limitRecovery(http.HandlerFunc(authHandler.Verify)))
+	mux.Handle("POST /api/v1/auth/verify/resend",
+		limitRecovery(http.HandlerFunc(authHandler.ResendVerification)))
+	mux.Handle("POST /api/v1/auth/login",
+		limitLogin(http.HandlerFunc(authHandler.Login)))
+	mux.Handle("POST /api/v1/auth/password/forgot",
+		limitRecovery(http.HandlerFunc(authHandler.ForgotPassword)))
+	mux.Handle("POST /api/v1/auth/password/reset",
+		limitRecovery(http.HandlerFunc(authHandler.ResetPassword)))
 
 	// Logout authenticates by the token it is about to revoke, so it validates
 	// the credential itself instead of going through requireAuth.
@@ -83,13 +115,16 @@ func NewServer(cfg *config.Config, deps Deps, logger *slog.Logger) *Server {
 	mux.Handle("DELETE /api/v1/auth/sessions/{sessionID}",
 		requireAuth(http.HandlerFunc(authHandler.RevokeSession)))
 
-	// Ordering matters: RequestID runs first so the correlation id is available
-	// to everything below it, and Recoverer sits closest to the handlers so a
-	// recovered panic is still counted by the access log.
+	// Ordering matters. RequestID runs first so the correlation id is available
+	// to everything below it. RequestLogger comes next so every response is
+	// recorded, including the ones CSRF rejects. Recoverer sits below the logger
+	// so a recovered panic is still counted, and CSRF is innermost so a forged
+	// request is refused before it reaches a handler.
 	root := middleware.Chain(mux,
 		middleware.RequestID(),
 		middleware.RequestLogger(logger),
 		middleware.Recoverer(logger),
+		middleware.CSRF(middleware.CSRFConfig{AllowedOrigins: cfg.CSRFAllowedOrigins}, logger),
 	)
 
 	return &Server{
