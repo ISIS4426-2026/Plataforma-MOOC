@@ -22,10 +22,12 @@ const (
 )
 
 type harness struct {
-	service *auth.Service
-	users   *fakeUserRepo
-	tokens  *fakeTokenRepo
-	mailer  *fakeMailer
+	service  *auth.Service
+	users    *fakeUserRepo
+	sessions *fakeSessionRepo
+	cache    *fakeSessionCache
+	tokens   *fakeTokenRepo
+	mailer   *fakeMailer
 }
 
 func newHarness(t *testing.T, cfg auth.Config) *harness {
@@ -34,19 +36,24 @@ func newHarness(t *testing.T, cfg auth.Config) *harness {
 	if cfg.AppBaseURL == "" {
 		cfg.AppBaseURL = "http://localhost:8080"
 	}
+	if cfg.SessionTTL == 0 {
+		cfg.SessionTTL = time.Hour
+	}
 	if cfg.EmailVerificationTTL == 0 {
 		cfg.EmailVerificationTTL = 24 * time.Hour
 	}
 
 	h := &harness{
-		users:  newFakeUserRepo(),
-		tokens: newFakeTokenRepo(),
-		mailer: newFakeMailer(),
+		users:    newFakeUserRepo(),
+		sessions: newFakeSessionRepo(),
+		cache:    newFakeSessionCache(),
+		tokens:   newFakeTokenRepo(),
+		mailer:   newFakeMailer(),
 	}
 
 	// Discard log output so a warning path under test does not pollute output.
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
-	h.service = auth.NewService(h.users, h.tokens, h.mailer, cfg, logger)
+	h.service = auth.NewService(h.users, h.sessions, h.cache, h.tokens, h.mailer, cfg, logger)
 
 	return h
 }
@@ -252,15 +259,6 @@ func TestVerifyEmailRejectsUnknownToken(t *testing.T) {
 	}
 }
 
-func TestVerifyEmailRejectsEmptyToken(t *testing.T) {
-	h := newHarness(t, auth.Config{})
-
-	_, err := h.service.VerifyEmail(context.Background(), "   ")
-	if !errors.Is(err, domain.ErrInvalidInput) {
-		t.Errorf("expected domain.ErrInvalidInput, got %v", err)
-	}
-}
-
 // Issuing a new link must retire the previous one.
 func TestIssuingANewTokenInvalidatesThePreviousOne(t *testing.T) {
 	h := newHarness(t, auth.Config{})
@@ -294,6 +292,259 @@ func TestResendVerificationIsSilentForUnknownAddresses(t *testing.T) {
 	}
 	if _, sent := h.mailer.last(); sent {
 		t.Error("no email should be sent for an unknown address")
+	}
+}
+
+func TestLoginBeforeVerificationIsRejected(t *testing.T) {
+	h := newHarness(t, auth.Config{})
+	registerTestUser(t, h)
+
+	_, err := h.service.Login(context.Background(), auth.LoginInput{
+		Email:    testEmail,
+		Password: testPassword,
+	})
+	if !errors.Is(err, auth.ErrEmailNotVerified) {
+		t.Errorf("expected ErrEmailNotVerified, got %v", err)
+	}
+}
+
+// The acceptance flow of issue #9: register, verify, then log in.
+func TestRegisterVerifyLoginFlow(t *testing.T) {
+	h := newHarness(t, auth.Config{})
+	registerTestUser(t, h)
+
+	raw := verificationTokenFromEmail(t, h.mailer)
+	if _, err := h.service.VerifyEmail(context.Background(), raw); err != nil {
+		t.Fatalf("VerifyEmail failed: %v", err)
+	}
+
+	result, err := h.service.Login(context.Background(), auth.LoginInput{
+		Email:    testEmail,
+		Password: testPassword,
+	})
+	if err != nil {
+		t.Fatalf("Login failed after verification: %v", err)
+	}
+
+	if result.Token == "" {
+		t.Error("expected a session token")
+	}
+	if result.Session.TokenHash != auth.HashToken(result.Token) {
+		t.Error("the stored session must reference the hash of the issued token")
+	}
+	if result.Session.TokenHash == result.Token {
+		t.Error("the raw session token was stored")
+	}
+}
+
+func TestLoginRejectsWrongPassword(t *testing.T) {
+	h := newHarness(t, auth.Config{})
+	registerTestUser(t, h)
+	raw := verificationTokenFromEmail(t, h.mailer)
+	if _, err := h.service.VerifyEmail(context.Background(), raw); err != nil {
+		t.Fatalf("VerifyEmail failed: %v", err)
+	}
+
+	_, err := h.service.Login(context.Background(), auth.LoginInput{
+		Email:    testEmail,
+		Password: "contrasena-incorrecta",
+	})
+	if !errors.Is(err, domain.ErrUnauthorized) {
+		t.Errorf("expected domain.ErrUnauthorized, got %v", err)
+	}
+}
+
+// An unknown address must fail exactly like a wrong password, so login cannot
+// be used to discover which addresses are registered.
+func TestLoginRejectsUnknownEmailIndistinguishably(t *testing.T) {
+	h := newHarness(t, auth.Config{})
+
+	_, err := h.service.Login(context.Background(), auth.LoginInput{
+		Email:    "desconocido@example.test",
+		Password: testPassword,
+	})
+	if !errors.Is(err, domain.ErrUnauthorized) {
+		t.Errorf("expected domain.ErrUnauthorized, got %v", err)
+	}
+}
+
+func TestLoginRejectsSuspendedAccount(t *testing.T) {
+	h := newHarness(t, auth.Config{})
+	user := registerTestUser(t, h)
+	raw := verificationTokenFromEmail(t, h.mailer)
+	if _, err := h.service.VerifyEmail(context.Background(), raw); err != nil {
+		t.Fatalf("VerifyEmail failed: %v", err)
+	}
+
+	user.Status = domain.UserStatusSuspended
+	if err := h.users.Update(context.Background(), user); err != nil {
+		t.Fatalf("failed to suspend the account: %v", err)
+	}
+
+	_, err := h.service.Login(context.Background(), auth.LoginInput{
+		Email:    testEmail,
+		Password: testPassword,
+	})
+	if !errors.Is(err, auth.ErrAccountSuspended) {
+		t.Errorf("expected ErrAccountSuspended, got %v", err)
+	}
+}
+
+// loginActiveUser registers, verifies and logs in, returning the raw token.
+func loginActiveUser(t *testing.T, h *harness) *auth.LoginResult {
+	t.Helper()
+
+	registerTestUser(t, h)
+	raw := verificationTokenFromEmail(t, h.mailer)
+	if _, err := h.service.VerifyEmail(context.Background(), raw); err != nil {
+		t.Fatalf("VerifyEmail failed: %v", err)
+	}
+
+	result, err := h.service.Login(context.Background(), auth.LoginInput{
+		Email:    testEmail,
+		Password: testPassword,
+	})
+	if err != nil {
+		t.Fatalf("Login failed: %v", err)
+	}
+	return result
+}
+
+func TestAuthenticateResolvesAnActiveSession(t *testing.T) {
+	h := newHarness(t, auth.Config{})
+	result := loginActiveUser(t, h)
+
+	session, user, err := h.service.Authenticate(context.Background(), result.Token)
+	if err != nil {
+		t.Fatalf("Authenticate returned an error: %v", err)
+	}
+
+	if session.ID != result.Session.ID {
+		t.Errorf("expected session %q, got %q", result.Session.ID, session.ID)
+	}
+	if user.Email != testEmail {
+		t.Errorf("expected user %q, got %q", testEmail, user.Email)
+	}
+}
+
+// "Logout invalida la sesión de forma inmediata": the very next request fails.
+func TestLogoutRevokesTheSessionImmediately(t *testing.T) {
+	h := newHarness(t, auth.Config{})
+	result := loginActiveUser(t, h)
+
+	if err := h.service.Logout(context.Background(), result.Token); err != nil {
+		t.Fatalf("Logout returned an error: %v", err)
+	}
+
+	_, _, err := h.service.Authenticate(context.Background(), result.Token)
+	if !errors.Is(err, domain.ErrUnauthorized) {
+		t.Errorf("expected the revoked token to be rejected at once, got %v", err)
+	}
+}
+
+// Revocation must survive a warm cache: the entry is dropped, not left to expire.
+func TestRevokeSessionInvalidatesTheCachedEntry(t *testing.T) {
+	h := newHarness(t, auth.Config{})
+	result := loginActiveUser(t, h)
+
+	if err := h.service.RevokeSession(context.Background(), result.User.ID, result.Session.ID); err != nil {
+		t.Fatalf("RevokeSession returned an error: %v", err)
+	}
+
+	if _, ok := h.cache.sessions[result.Session.TokenHash]; ok {
+		t.Error("the cached session outlived its revocation")
+	}
+
+	_, _, err := h.service.Authenticate(context.Background(), result.Token)
+	if !errors.Is(err, domain.ErrUnauthorized) {
+		t.Errorf("expected the revoked session to be rejected, got %v", err)
+	}
+}
+
+// Losing Redis must cost latency, not sessions.
+func TestAuthenticateFallsBackToTheDatabaseOnCacheMiss(t *testing.T) {
+	h := newHarness(t, auth.Config{})
+	result := loginActiveUser(t, h)
+
+	// Simulate a cache flush.
+	h.cache.sessions = make(map[string]*domain.Session)
+
+	session, _, err := h.service.Authenticate(context.Background(), result.Token)
+	if err != nil {
+		t.Fatalf("expected the database fallback to resolve the session, got %v", err)
+	}
+	if session.ID != result.Session.ID {
+		t.Errorf("expected session %q, got %q", result.Session.ID, session.ID)
+	}
+
+	// The fallback should have repopulated the cache.
+	if _, ok := h.cache.sessions[result.Session.TokenHash]; !ok {
+		t.Error("expected the cache to be warmed after the fallback")
+	}
+}
+
+func TestAuthenticateRejectsAnExpiredSession(t *testing.T) {
+	h := newHarness(t, auth.Config{SessionTTL: -time.Minute})
+	registerTestUser(t, h)
+	raw := verificationTokenFromEmail(t, h.mailer)
+	if _, err := h.service.VerifyEmail(context.Background(), raw); err != nil {
+		t.Fatalf("VerifyEmail failed: %v", err)
+	}
+
+	result, err := h.service.Login(context.Background(), auth.LoginInput{
+		Email:    testEmail,
+		Password: testPassword,
+	})
+	if err != nil {
+		t.Fatalf("Login failed: %v", err)
+	}
+
+	_, _, err = h.service.Authenticate(context.Background(), result.Token)
+	if !errors.Is(err, domain.ErrUnauthorized) {
+		t.Errorf("expected an expired session to be rejected, got %v", err)
+	}
+}
+
+// Suspending a user must take effect on sessions that are already open.
+func TestAuthenticateRejectsSessionsOfASuspendedUser(t *testing.T) {
+	h := newHarness(t, auth.Config{})
+	result := loginActiveUser(t, h)
+
+	suspended := result.User
+	suspended.Status = domain.UserStatusSuspended
+	if err := h.users.Update(context.Background(), suspended); err != nil {
+		t.Fatalf("failed to suspend the account: %v", err)
+	}
+
+	_, _, err := h.service.Authenticate(context.Background(), result.Token)
+	if !errors.Is(err, domain.ErrUnauthorized) {
+		t.Errorf("expected the session of a suspended user to be rejected, got %v", err)
+	}
+}
+
+// A session id belonging to somebody else must not be revocable, and must not
+// be distinguishable from one that does not exist.
+func TestRevokeSessionOfAnotherUserIsNotFound(t *testing.T) {
+	h := newHarness(t, auth.Config{})
+	result := loginActiveUser(t, h)
+
+	err := h.service.RevokeSession(context.Background(), "otro-usuario", result.Session.ID)
+	if !errors.Is(err, domain.ErrNotFound) {
+		t.Errorf("expected domain.ErrNotFound, got %v", err)
+	}
+
+	// The session must still work for its owner.
+	if _, _, err := h.service.Authenticate(context.Background(), result.Token); err != nil {
+		t.Errorf("the session was affected by another user's revocation attempt: %v", err)
+	}
+}
+
+func TestVerifyEmailRejectsEmptyToken(t *testing.T) {
+	h := newHarness(t, auth.Config{})
+
+	_, err := h.service.VerifyEmail(context.Background(), "   ")
+	if !errors.Is(err, domain.ErrInvalidInput) {
+		t.Errorf("expected domain.ErrInvalidInput, got %v", err)
 	}
 }
 

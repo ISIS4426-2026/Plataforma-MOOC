@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/auth"
+	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/cache"
 	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/config"
 	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/http"
 	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/mailer"
@@ -52,14 +53,25 @@ func run(logger *slog.Logger) error {
 		slog.String("conn_max_lifetime", cfg.DBConnMaxLifetime.String()),
 	)
 
+	redisClient, err := cache.Connect(startupCtx, cfg)
+	if err != nil {
+		return err
+	}
+	defer redisClient.Close()
+
+	logger.Info("connected to redis", slog.String("session_ttl", cfg.SessionTTL.String()))
+
 	// Composition root: the concrete adapters are chosen here and everything
 	// below depends only on the domain ports they satisfy.
 	authService := auth.NewService(
 		postgres.NewUserRepository(db),
+		postgres.NewSessionRepository(db),
+		cache.NewSessionCache(redisClient),
 		postgres.NewEmailVerificationTokenRepository(db),
 		mailer.NewSMTPMailer(cfg),
 		auth.Config{
 			AppBaseURL:           cfg.AppBaseURL,
+			SessionTTL:           cfg.SessionTTL,
 			EmailVerificationTTL: cfg.EmailVerificationTTL,
 		},
 		logger,

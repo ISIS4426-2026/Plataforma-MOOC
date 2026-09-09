@@ -16,16 +16,36 @@ import (
 // MinPasswordBytes is the shortest password accepted at registration.
 const MinPasswordBytes = 8
 
+// dummyHash is compared against when no user matches, so a login attempt for an
+// unknown address costs the same bcrypt work as one for a real account. Without
+// it, response time alone reveals which addresses are registered.
+const dummyHash = "$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy"
+
+// ErrEmailNotVerified is returned when the credentials are correct but the
+// account has not completed email verification.
+//
+// It is only ever returned after the password has been checked, so it cannot be
+// used to discover which addresses are registered.
+var ErrEmailNotVerified = errors.New("email address has not been verified")
+
+// ErrAccountSuspended is returned when a suspended account presents valid
+// credentials.
+var ErrAccountSuspended = errors.New("account is suspended")
+
 // Config carries the settings the service needs, kept separate from the global
 // configuration so the package does not depend on how the process is wired.
 type Config struct {
 	AppBaseURL           string
 	EmailVerificationTTL time.Duration
+	SessionTTL           time.Duration
 }
 
-// Service implements public registration with email verification (issue #9).
+// Service implements public registration with email verification (issue #9) and
+// login with revocable sessions (issue #10).
 type Service struct {
 	users              domain.UserRepository
+	sessions           domain.SessionRepository
+	sessionCache       domain.SessionCache
 	verificationTokens domain.VerificationTokenRepository
 	mailer             domain.Mailer
 	cfg                Config
@@ -35,6 +55,8 @@ type Service struct {
 
 func NewService(
 	users domain.UserRepository,
+	sessions domain.SessionRepository,
+	sessionCache domain.SessionCache,
 	verificationTokens domain.VerificationTokenRepository,
 	mailer domain.Mailer,
 	cfg Config,
@@ -46,6 +68,8 @@ func NewService(
 
 	return &Service{
 		users:              users,
+		sessions:           sessions,
+		sessionCache:       sessionCache,
 		verificationTokens: verificationTokens,
 		mailer:             mailer,
 		cfg:                cfg,
@@ -62,6 +86,15 @@ type RegisterInput struct {
 	Email    string
 	Password string
 	FullName string
+}
+
+// LoginInput is the payload of a login attempt. UserAgent and IPAddress are
+// recorded on the session so it can be recognised in a session listing.
+type LoginInput struct {
+	Email     string
+	Password  string
+	UserAgent string
+	IPAddress string
 }
 
 // Register creates a student account in pending_verification and mails a
@@ -223,6 +256,208 @@ func (s *Service) VerifyEmail(ctx context.Context, rawToken string) (*domain.Use
 	}
 
 	return user, nil
+}
+
+// LoginResult carries everything a successful login produces. Token is the raw
+// session credential and is returned exactly once, here; it is never stored and
+// must never be logged.
+type LoginResult struct {
+	Session *domain.Session
+	User    *domain.User
+	Token   string
+}
+
+// Login verifies credentials and opens a session.
+//
+// The session is written to PostgreSQL first, which is the source of truth, and
+// then cached in Redis. A cache failure is logged but does not fail the login:
+// the session is already durable and the next request falls back to the
+// database.
+func (s *Service) Login(ctx context.Context, input LoginInput) (*LoginResult, error) {
+	email, err := normaliseEmail(input.Email)
+	if err != nil {
+		// An unparseable address is simply a failed attempt; reporting a
+		// validation error here would distinguish it from a wrong password.
+		return nil, domain.ErrUnauthorized
+	}
+
+	user, err := s.users.GetByEmail(ctx, email)
+	if err != nil {
+		if errors.Is(err, domain.ErrNotFound) {
+			// Spend the same bcrypt time as a real comparison would.
+			_ = VerifyPassword(dummyHash, input.Password)
+			return nil, domain.ErrUnauthorized
+		}
+		return nil, err
+	}
+
+	if err := VerifyPassword(user.PasswordHash, input.Password); err != nil {
+		return nil, domain.ErrUnauthorized
+	}
+
+	// Status is inspected only after the password checks out, so these errors
+	// cannot be used to enumerate accounts.
+	switch user.Status {
+	case domain.UserStatusPendingVerification:
+		return nil, ErrEmailNotVerified
+	case domain.UserStatusSuspended:
+		return nil, ErrAccountSuspended
+	case domain.UserStatusActive:
+	default:
+		return nil, domain.ErrUnauthorized
+	}
+
+	raw, hash, err := GenerateToken()
+	if err != nil {
+		return nil, err
+	}
+
+	now := s.now()
+	session := &domain.Session{
+		UserID:    user.ID,
+		TokenHash: hash,
+		UserAgent: input.UserAgent,
+		IPAddress: input.IPAddress,
+		ExpiresAt: now.Add(s.cfg.SessionTTL),
+	}
+
+	if err := s.sessions.Create(ctx, session); err != nil {
+		return nil, err
+	}
+
+	s.cacheSession(ctx, session, now)
+
+	return &LoginResult{Session: session, User: user, Token: raw}, nil
+}
+
+// Authenticate resolves a raw session token to its session and user.
+//
+// Redis answers the common case; a miss falls back to PostgreSQL and warms the
+// cache again, so a Redis restart costs latency instead of logging everyone out.
+func (s *Service) Authenticate(ctx context.Context, rawToken string) (*domain.Session, *domain.User, error) {
+	if strings.TrimSpace(rawToken) == "" {
+		return nil, nil, domain.ErrUnauthorized
+	}
+
+	hash := HashToken(rawToken)
+	now := s.now()
+
+	session, err := s.sessionCache.GetByTokenHash(ctx, hash)
+	if err != nil && !errors.Is(err, domain.ErrNotFound) {
+		s.logger.WarnContext(ctx, "session cache lookup failed, falling back to database",
+			slog.String("error", err.Error()),
+		)
+		session = nil
+	}
+
+	if session == nil {
+		session, err = s.sessions.GetByTokenHash(ctx, hash)
+		if err != nil {
+			if errors.Is(err, domain.ErrNotFound) {
+				return nil, nil, domain.ErrUnauthorized
+			}
+			return nil, nil, err
+		}
+
+		if session.IsUsable(now) {
+			s.cacheSession(ctx, session, now)
+		}
+	}
+
+	if !session.IsUsable(now) {
+		return nil, nil, domain.ErrUnauthorized
+	}
+
+	user, err := s.users.GetByID(ctx, session.UserID)
+	if err != nil {
+		if errors.Is(err, domain.ErrNotFound) {
+			return nil, nil, domain.ErrUnauthorized
+		}
+		return nil, nil, err
+	}
+
+	// A session must not outlive the account's right to use it: suspending a
+	// user takes effect on their existing sessions too.
+	if user.Status != domain.UserStatusActive {
+		return nil, nil, domain.ErrUnauthorized
+	}
+
+	return session, user, nil
+}
+
+// Logout revokes the session behind the presented token.
+//
+// The cache entry is dropped after the durable write, so there is no window in
+// which the database says revoked while Redis still serves the session.
+func (s *Service) Logout(ctx context.Context, rawToken string) error {
+	hash := HashToken(rawToken)
+
+	session, err := s.sessions.GetByTokenHash(ctx, hash)
+	if err != nil {
+		if errors.Is(err, domain.ErrNotFound) {
+			return domain.ErrUnauthorized
+		}
+		return err
+	}
+
+	if err := s.sessions.Revoke(ctx, session.ID); err != nil && !errors.Is(err, domain.ErrNotFound) {
+		return err
+	}
+
+	if err := s.sessionCache.Delete(ctx, hash); err != nil {
+		return fmt.Errorf("drop cached session: %w", err)
+	}
+
+	return nil
+}
+
+// ListSessions returns the caller's active sessions.
+func (s *Service) ListSessions(ctx context.Context, userID string) ([]*domain.Session, error) {
+	return s.sessions.ListActiveByUser(ctx, userID)
+}
+
+// RevokeSession revokes one of the caller's own sessions.
+//
+// Ownership is checked before the session is touched, and a session belonging to
+// somebody else reports ErrNotFound rather than ErrForbidden so the endpoint
+// cannot be used to probe which session ids exist.
+func (s *Service) RevokeSession(ctx context.Context, userID string, sessionID string) error {
+	sessions, err := s.sessions.ListActiveByUser(ctx, userID)
+	if err != nil {
+		return err
+	}
+
+	var target *domain.Session
+	for _, session := range sessions {
+		if session.ID == sessionID {
+			target = session
+			break
+		}
+	}
+	if target == nil {
+		return domain.ErrNotFound
+	}
+
+	if err := s.sessions.Revoke(ctx, target.ID); err != nil {
+		return err
+	}
+
+	if err := s.sessionCache.Delete(ctx, target.TokenHash); err != nil {
+		return fmt.Errorf("drop cached session: %w", err)
+	}
+
+	return nil
+}
+
+// cacheSession stores the session for its remaining lifetime. A cache failure is
+// never fatal: PostgreSQL already holds the session.
+func (s *Service) cacheSession(ctx context.Context, session *domain.Session, now time.Time) {
+	if err := s.sessionCache.Save(ctx, session, session.ExpiresAt.Sub(now)); err != nil {
+		s.logger.WarnContext(ctx, "failed to cache session",
+			slog.String("session_id", session.ID),
+			slog.String("error", err.Error()),
+		)
+	}
 }
 
 // normaliseEmail trims and lowercases the address so lookup and insertion agree
