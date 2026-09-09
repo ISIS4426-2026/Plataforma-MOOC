@@ -1,19 +1,83 @@
 package main
 
 import (
-	"log"
+	"context"
+	"log/slog"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/config"
 	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/http"
+	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/postgres"
 )
 
+// startupTimeout bounds the initial database probe so a missing dependency
+// fails the container fast instead of hanging the deployment.
+const startupTimeout = 10 * time.Second
+
+// shutdownTimeout is how long in-flight requests are given to finish once a
+// termination signal arrives.
+const shutdownTimeout = 15 * time.Second
+
 func main() {
+	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
+	slog.SetDefault(logger)
+
+	if err := run(logger); err != nil {
+		logger.Error("api server terminated", slog.String("error", err.Error()))
+		os.Exit(1)
+	}
+}
+
+// run holds the startup sequence so every deferred cleanup executes before the
+// process exits; calling os.Exit inside main would skip them.
+func run(logger *slog.Logger) error {
 	cfg := config.Load()
 
-	log.Printf("Starting Plataforma MOOC API server on port %s [Env: %s]\n", cfg.Port, cfg.Environment)
-	server := http.NewServer(cfg)
+	startupCtx, cancelStartup := context.WithTimeout(context.Background(), startupTimeout)
+	defer cancelStartup()
 
-	if err := server.Start(); err != nil {
-		log.Fatalf("API server encountered fatal error: %v\n", err)
+	db, err := postgres.Connect(startupCtx, cfg)
+	if err != nil {
+		return err
 	}
+	defer db.Close()
+
+	logger.Info("connected to postgres",
+		slog.Int("max_open_conns", cfg.DBMaxOpenConns),
+		slog.String("conn_max_lifetime", cfg.DBConnMaxLifetime.String()),
+	)
+
+	server := http.NewServer(cfg, db, logger)
+
+	// Serve in the background so the main goroutine can wait for a termination
+	// signal and trigger a graceful shutdown.
+	serverErr := make(chan error, 1)
+	go func() {
+		serverErr <- server.Start()
+	}()
+
+	// SIGTERM is what `docker compose down` and orchestrators send; SIGINT
+	// covers Ctrl+C during local development.
+	stop := make(chan os.Signal, 1)
+	signal.Notify(stop, os.Interrupt, syscall.SIGTERM)
+
+	select {
+	case err := <-serverErr:
+		return err
+	case sig := <-stop:
+		logger.Info("shutdown signal received", slog.String("signal", sig.String()))
+	}
+
+	shutdownCtx, cancelShutdown := context.WithTimeout(context.Background(), shutdownTimeout)
+	defer cancelShutdown()
+
+	if err := server.Shutdown(shutdownCtx); err != nil {
+		return err
+	}
+
+	logger.Info("api server stopped cleanly")
+	return nil
 }
