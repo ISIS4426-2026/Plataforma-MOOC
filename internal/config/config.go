@@ -3,6 +3,7 @@ package config
 import (
 	"os"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -46,6 +47,21 @@ type Config struct {
 	// than the verification link because it grants an immediate credential
 	// change.
 	PasswordResetTTL time.Duration
+
+	// CSRFAllowedOrigins lists the origins allowed to send state-changing
+	// requests. Empty disables the check, which is the right default while no
+	// browser client exists: with no frontend deployed there is no origin to
+	// trust, and rejecting everything would break the API for every caller.
+	CSRFAllowedOrigins []string
+
+	// Rate limits for the sensitive endpoints. The defaults are sized for
+	// development; production should tighten them, particularly on login.
+	RateLimitLoginAttempts    int
+	RateLimitLoginWindow      time.Duration
+	RateLimitRegisterAttempts int
+	RateLimitRegisterWindow   time.Duration
+	RateLimitRecoveryAttempts int
+	RateLimitRecoveryWindow   time.Duration
 }
 
 func Load() *Config {
@@ -72,6 +88,15 @@ func Load() *Config {
 		AppBaseURL:           getEnv("APP_BASE_URL", "http://localhost:8080"),
 		EmailVerificationTTL: getEnvDuration("EMAIL_VERIFICATION_TTL", 24*time.Hour),
 		PasswordResetTTL:     getEnvDuration("PASSWORD_RESET_TTL", time.Hour),
+
+		CSRFAllowedOrigins: getEnvList("CSRF_ALLOWED_ORIGINS"),
+
+		RateLimitLoginAttempts:    getEnvInt("RATE_LIMIT_LOGIN_ATTEMPTS", 10),
+		RateLimitLoginWindow:      getEnvDuration("RATE_LIMIT_LOGIN_WINDOW", time.Minute),
+		RateLimitRegisterAttempts: getEnvInt("RATE_LIMIT_REGISTER_ATTEMPTS", 20),
+		RateLimitRegisterWindow:   getEnvDuration("RATE_LIMIT_REGISTER_WINDOW", time.Hour),
+		RateLimitRecoveryAttempts: getEnvInt("RATE_LIMIT_RECOVERY_ATTEMPTS", 10),
+		RateLimitRecoveryWindow:   getEnvDuration("RATE_LIMIT_RECOVERY_WINDOW", time.Hour),
 	}
 }
 
@@ -96,6 +121,24 @@ func getEnvInt(key string, defaultValue int) int {
 		return defaultValue
 	}
 	return parsed
+}
+
+// getEnvList reads a comma-separated variable into a slice, dropping blanks so
+// a trailing comma or an empty value yields an empty list rather than an entry
+// that matches nothing.
+func getEnvList(key string) []string {
+	raw := strings.TrimSpace(os.Getenv(key))
+	if raw == "" {
+		return nil
+	}
+
+	var values []string
+	for _, item := range strings.Split(raw, ",") {
+		if trimmed := strings.TrimSpace(item); trimmed != "" {
+			values = append(values, trimmed)
+		}
+	}
+	return values
 }
 
 // getEnvDuration accepts any value understood by time.ParseDuration, e.g. "30s"

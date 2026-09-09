@@ -81,7 +81,7 @@ func run(logger *slog.Logger) error {
 		logger,
 	)
 
-	server := http.NewServer(cfg, http.Deps{DB: db, Auth: authService}, logger)
+	server := http.NewServer(cfg, http.Deps{DB: db, Auth: authService, RateLimiter: cache.NewRateLimiter(redisClient)}, logger)
 
 	// Serve in the background so the main goroutine can wait for a termination
 	// signal and trigger a graceful shutdown.

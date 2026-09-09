@@ -86,6 +86,8 @@ paths:
           $ref: '#/components/responses/400BadRequest'
         '409':
           $ref: '#/components/responses/409Conflict'
+        '403':
+          $ref: '#/components/responses/403CSRFOriginRejected'
         '429':
           $ref: '#/components/responses/429TooManyRequests'
         '500':
@@ -163,6 +165,8 @@ paths:
                 $ref: '#/components/schemas/MessageResponse'
         '400':
           $ref: '#/components/responses/400BadRequest'
+        '403':
+          $ref: '#/components/responses/403CSRFOriginRejected'
         '429':
           $ref: '#/components/responses/429TooManyRequests'
         '500':
@@ -229,6 +233,11 @@ paths:
                   value:
                     code: account_suspended
                     message: La cuenta está suspendida.
+                csrfOriginRejected:
+                  summary: Origin not on the allowlist
+                  value:
+                    code: csrf_origin_rejected
+                    message: El origen de la solicitud no está permitido.
         '429':
           $ref: '#/components/responses/429TooManyRequests'
         '500':
@@ -264,6 +273,8 @@ paths:
                 $ref: '#/components/schemas/MessageResponse'
         '400':
           $ref: '#/components/responses/400BadRequest'
+        '403':
+          $ref: '#/components/responses/403CSRFOriginRejected'
         '429':
           $ref: '#/components/responses/429TooManyRequests'
         '500':
@@ -312,6 +323,8 @@ paths:
                   value:
                     code: invalid_input
                     message: Los datos enviados no son válidos.
+        '403':
+          $ref: '#/components/responses/403CSRFOriginRejected'
         '429':
           $ref: '#/components/responses/429TooManyRequests'
         '500':
@@ -1532,11 +1545,56 @@ components:
             $ref: '#/components/schemas/ErrorResponse'
 
     429TooManyRequests:
-      description: Rate limit exceeded.
+      description: >
+        Rate limit exceeded. Quotas are counted per client address and per
+        endpoint group, so exhausting one does not affect the others.
+
+
+        Development defaults: 10 login attempts per minute, 20 registrations per
+        hour, and 10 recovery or verification resends per hour. Production
+        should tighten them, particularly on login.
+      headers:
+        Retry-After:
+          description: Seconds to wait before the quota resets.
+          schema:
+            type: integer
+        RateLimit-Limit:
+          description: Ceiling that applied to this decision.
+          schema:
+            type: integer
+        RateLimit-Remaining:
+          description: Requests left in the current window.
+          schema:
+            type: integer
+        RateLimit-Reset:
+          description: Seconds until the current window resets.
+          schema:
+            type: integer
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
+          example:
+            code: rate_limit_exceeded
+            message: Demasiadas solicitudes. Intenta de nuevo más tarde.
+
+    403CSRFOriginRejected:
+      description: >
+        The request declared an Origin or Referer that is not on the allowlist.
+
+
+        This API authenticates with a bearer token, which browsers never attach
+        automatically, so classic CSRF cannot reach it. The origin check is the
+        defence that does apply, and it only rejects requests that declare an
+        origin: a caller that sends none, such as curl or a server-to-server
+        client, cannot be the vehicle of a forgery and is allowed through.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            code: csrf_origin_rejected
+            message: El origen de la solicitud no está permitido.
 
     500InternalServerError:
       description: Internal server error.

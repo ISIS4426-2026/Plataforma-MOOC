@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"strings"
 	"time"
+	"unicode"
 
 	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/domain"
 )
@@ -112,9 +113,9 @@ func (s *Service) Register(ctx context.Context, input RegisterInput) (*domain.Us
 		return nil, err
 	}
 
-	fullName := strings.TrimSpace(input.FullName)
-	if fullName == "" {
-		return nil, fmt.Errorf("full name is required: %w", domain.ErrInvalidInput)
+	fullName, err := sanitiseFreeText(input.FullName, "full name")
+	if err != nil {
+		return nil, err
 	}
 	if len(input.Password) < MinPasswordBytes {
 		return nil, fmt.Errorf("password must be at least %d characters: %w", MinPasswordBytes, domain.ErrInvalidInput)
@@ -601,6 +602,51 @@ func (s *Service) ResetPassword(ctx context.Context, rawToken string, newPasswor
 	}
 
 	return nil
+}
+
+// maxFreeTextBytes bounds a free-text field. It is generous for a human name
+// while keeping a single field from carrying a payload.
+const maxFreeTextBytes = 200
+
+// sanitiseFreeText validates a field a user types in prose.
+//
+// The primary defence against XSS is output encoding, not input filtering:
+// every response goes through encoding/json, which by default escapes the three
+// characters that matter in HTML (angle brackets and ampersand) into their
+// \u00XX form, so stored markup cannot break out of a JSON document or an HTML
+// context that embeds one. Filtering input is the second layer, and it is
+// deliberately narrow.
+//
+// Rejected here are the characters that have no place in a name and every use
+// of which is an attempt at something: angle brackets, which only matter for
+// building markup, and control characters, which are used to hide content from
+// a reviewer or to split a record in a log or a CSV export.
+//
+// Legitimate text is not rewritten. Silently stripping characters would turn a
+// name the user believes they entered into a different one; refusing lets them
+// correct it.
+func sanitiseFreeText(raw string, field string) (string, error) {
+	trimmed := strings.TrimSpace(raw)
+	if trimmed == "" {
+		return "", fmt.Errorf("%s is required: %w", field, domain.ErrInvalidInput)
+	}
+	if len(trimmed) > maxFreeTextBytes {
+		return "", fmt.Errorf("%s exceeds %d characters: %w", field, maxFreeTextBytes, domain.ErrInvalidInput)
+	}
+
+	if strings.ContainsAny(trimmed, "<>") {
+		return "", fmt.Errorf("%s cannot contain angle brackets: %w", field, domain.ErrInvalidInput)
+	}
+
+	for _, r := range trimmed {
+		// Tab, carriage return and newline are control characters too, and a
+		// name has no use for any of them.
+		if unicode.IsControl(r) {
+			return "", fmt.Errorf("%s cannot contain control characters: %w", field, domain.ErrInvalidInput)
+		}
+	}
+
+	return trimmed, nil
 }
 
 // normaliseEmail trims and lowercases the address so lookup and insertion agree
