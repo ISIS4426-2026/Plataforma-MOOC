@@ -141,6 +141,44 @@ El comando `make check` ejecuta secuencialmente:
 
 ---
 
+##  Registro de auditoría — contrato para el issue #18
+
+El puerto está **definido y en uso** desde el issue #12 (gestión administrativa). Quien tome el **#18 (auditoría inmutable)** debe **extenderlo, no reemplazarlo**, para que lo que ya escribe entradas siga funcionando.
+
+### Lo que ya existe
+
+| Elemento | Dónde |
+|---|---|
+| `domain.AuditEntry` y `domain.AuditAction` | `internal/domain/audit.go` |
+| `domain.AuditRepository` (solo `Record`) | `internal/domain/audit.go` |
+| Implementación en PostgreSQL | `internal/postgres/audit_repository.go` |
+| Tabla `audit_logs` | `migrations/000001_init_schema.up.sql` |
+
+Las acciones se nombran `<recurso>.<hecho en pasado>` (`user.suspended`, `auth.login_failed`). El recurso va primero para poder filtrar una familia entera con un prefijo.
+
+`TargetResource` es una sola cadena `<tipo>:<identificador>` — por ejemplo `user:3fa85f64-…` — para que el rastro sirva con cualquier tipo de recurso sin una columna por tipo.
+
+### La regla que no se puede romper
+
+**`Record` no debe llamarse por su cuenta para una acción que cambia estado.**
+
+"Toda acción queda reflejada en el registro" solo es cierto si el cambio y su entrada se confirman juntos. Quien escriba primero el cambio y después la entrada pierde la entrada cada vez que falle la segunda escritura, y el rastro queda incompleto justo cuando más importa.
+
+Por eso los repositorios que mutan estado **reciben la entrada y escriben ambas cosas en la misma transacción**. Ver `AdminRepository.ChangeRole` y `ChangeStatus` en `internal/postgres/admin_repository.go` como referencia. `Record` existe para las acciones que no tienen nada que confirmar al lado, como un inicio de sesión fallido.
+
+### Lo que falta y le corresponde al #18
+
+**Inmutabilidad a nivel de base de datos.** Hoy nada impide un `UPDATE` o un `DELETE` sobre `audit_logs`, y un rastro editable no es un rastro. La forma habitual es revocar esos permisos al rol de la aplicación y añadir una regla o trigger que los rechace.
+
+**Un lado de lectura.** Listar y filtrar por actor, acción, recurso y rango de fechas, con la misma paginación por cursor que usa el resto de la API. Hay una referencia de cómo se implementa el cursor en `AdminRepository.ListUsers`.
+
+**Retención y exportación**, según la sección 11 del enunciado.
+
+### Qué no debe llevar una entrada
+
+Credenciales, tokens ni hashes de contraseña. El registro de auditoría lo lee más gente que la tabla `users`.
+
+
 ##  Contrato OpenAPI 3.1
 
 `api/openapi.yaml` describe la API completa: qué rutas existen, qué recibe cada una y qué devuelve. Es documentación en un formato estándar que las herramientas entienden, no código que se ejecute. El CI la valida con Spectral en cada `make lint`.

@@ -8,6 +8,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/admin"
 	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/auth"
 	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/cache"
 	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/config"
@@ -63,11 +64,17 @@ func run(logger *slog.Logger) error {
 
 	// Composition root: the concrete adapters are chosen here and everything
 	// below depends only on the domain ports they satisfy.
+	// Shared adapters are built once: the session store in particular is used by
+	// both authentication and administration, and two instances would be two
+	// connection-pool consumers doing the same job.
+	sessionRepo := postgres.NewSessionRepository(db)
+	sessionCache := cache.NewSessionCache(redisClient)
+
 	authService := auth.NewService(
 		auth.Deps{
 			Users:               postgres.NewUserRepository(db),
-			Sessions:            postgres.NewSessionRepository(db),
-			SessionCache:        cache.NewSessionCache(redisClient),
+			Sessions:            sessionRepo,
+			SessionCache:        sessionCache,
 			VerificationTokens:  postgres.NewEmailVerificationTokenRepository(db),
 			PasswordResetTokens: postgres.NewPasswordResetTokenRepository(db),
 			Mailer:              mailer.NewSMTPMailer(cfg),
@@ -81,7 +88,18 @@ func run(logger *slog.Logger) error {
 		logger,
 	)
 
-	server := http.NewServer(cfg, http.Deps{DB: db, Auth: authService, RateLimiter: cache.NewRateLimiter(redisClient)}, logger)
+	adminService := admin.NewService(admin.Deps{
+		Admin:        postgres.NewAdminRepository(db),
+		Sessions:     sessionRepo,
+		SessionCache: sessionCache,
+	}, logger)
+
+	server := http.NewServer(cfg, http.Deps{
+		DB:          db,
+		Auth:        authService,
+		Admin:       adminService,
+		RateLimiter: cache.NewRateLimiter(redisClient),
+	}, logger)
 
 	// Serve in the background so the main goroutine can wait for a termination
 	// signal and trigger a graceful shutdown.
