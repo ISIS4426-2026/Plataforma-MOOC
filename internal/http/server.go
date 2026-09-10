@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/admin"
 	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/auth"
 	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/config"
 	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/domain"
@@ -42,6 +43,7 @@ type Server struct {
 type Deps struct {
 	DB          handler.Pinger
 	Auth        *auth.Service
+	Admin       *admin.Service
 	RateLimiter domain.RateLimiter
 }
 
@@ -52,11 +54,19 @@ func NewServer(cfg *config.Config, deps Deps, logger *slog.Logger) *Server {
 
 	mux := http.NewServeMux()
 	authHandler := handler.NewAuthHandler(deps.Auth, logger)
+	adminHandler := handler.NewAdminHandler(deps.Admin, logger)
 
 	// requireAuth guards the endpoints that act on behalf of a signed-in user.
 	// It is applied per route rather than globally so the public endpoints stay
 	// reachable without a session.
 	requireAuth := middleware.RequireAuth(deps.Auth)
+
+	// Administrative routes compose both: RequireAuth establishes who the caller
+	// is, and RequireAdmin decides whether that identity may proceed. Order
+	// matters, since the role check reads the user the first one publishes.
+	requireAdmin := func(h http.HandlerFunc) http.Handler {
+		return requireAuth(middleware.RequireAdmin(logger)(h))
+	}
 
 	// Rate limits are applied per endpoint group rather than globally: the
 	// thresholds that make sense for credential guessing would be absurd for
@@ -114,6 +124,12 @@ func NewServer(cfg *config.Config, deps Deps, logger *slog.Logger) *Server {
 		requireAuth(http.HandlerFunc(authHandler.ListSessions)))
 	mux.Handle("DELETE /api/v1/auth/sessions/{sessionID}",
 		requireAuth(http.HandlerFunc(authHandler.RevokeSession)))
+
+	// Administrative account management (issue #12). Every route is restricted
+	// to administrators; a signed-in user with another role gets 403.
+	mux.Handle("GET /api/v1/admin/users", requireAdmin(adminHandler.ListUsers))
+	mux.Handle("PATCH /api/v1/admin/users/{userID}/role", requireAdmin(adminHandler.ChangeRole))
+	mux.Handle("PATCH /api/v1/admin/users/{userID}/status", requireAdmin(adminHandler.ChangeStatus))
 
 	// Ordering matters. RequestID runs first so the correlation id is available
 	// to everything below it. RequestLogger comes next so every response is

@@ -94,3 +94,36 @@ curl -i -H "Origin: https://sitio-del-atacante.test" http://localhost:8080/api/v
 
 La cobertura automatizada de CSRF vive en `internal/http/middleware/security_test.go`.
 
+## Administración (#12)
+
+La carpeta **Administracion (#12)** comprueba el criterio de aceptación del issue: **un usuario no administrador recibe `403`** en las operaciones administrativas, y una petición sin token recibe `401`.
+
+Las rutas felices —listar cuentas, cambiar rol, suspender y reactivar— no están en la colección porque necesitan una **cuenta de administrador**, y esa solo puede crearse fuera de banda: el registro público únicamente crea estudiantes, a propósito.
+
+Para probarlas a mano, arranca un administrador así:
+
+```bash
+# 1. Registrar y verificar una cuenta normal por la API
+#    (o reutilizar la que crea la colección)
+
+# 2. Promoverla, que es el bootstrap del primer administrador
+docker compose exec -T postgres psql -U moocuser -d moocdb   -c "UPDATE users SET role='administrador' WHERE email='TU_CORREO';"
+
+# 3. Iniciar sesión y usar ese token
+curl -s -X POST http://localhost:8080/api/v1/auth/login   -H "Content-Type: application/json"   -d '{"email":"TU_CORREO","password":"TU_CONTRASENA"}'
+```
+
+Con ese token:
+
+```bash
+curl -H "Authorization: Bearer $TOKEN" "http://localhost:8080/api/v1/admin/users?limit=10"
+
+curl -X PATCH "http://localhost:8080/api/v1/admin/users/$USER_ID/role"   -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json"   -d '{"role":"profesor"}'
+
+curl -X PATCH "http://localhost:8080/api/v1/admin/users/$USER_ID/status"   -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json"   -d '{"status":"suspended"}'
+```
+
+Intentar suspender o degradar al **último administrador activo** responde `409 last_admin_protected`, y no deja entrada en el registro de auditoría: el cambio y su entrada se escriben en la misma transacción, así que una operación rechazada no deja rastro a medias.
+
+La cobertura automatizada de estas rutas vive en `internal/postgres/admin_repository_test.go`, incluida una prueba de concurrencia que comprueba que dos suspensiones simultáneas no pueden dejar la plataforma sin administradores.
+

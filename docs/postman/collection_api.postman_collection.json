@@ -59,6 +59,11 @@
       "key": "mensajeGenerico",
       "value": "",
       "type": "string"
+    },
+    {
+      "key": "studentToken",
+      "value": "",
+      "type": "string"
     }
   ],
   "item": [
@@ -1199,6 +1204,216 @@
           ]
         }
       }
+    },
+    {
+      "name": "Administracion (#12)",
+      "description": "Comprueba que las operaciones administrativas rechazan a quien no es administrador. Las rutas felices (listar, cambiar rol, suspender) necesitan una cuenta de administrador, que solo puede crearse fuera de banda; ver docs/postman/README.md.",
+      "item": [
+        {
+          "name": "28 Login para obtener una sesion de estudiante",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 200', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('studentToken', pm.response.json().token);",
+                  "pm.test('el rol es estudiante', () =>",
+                  "  pm.expect(pm.response.json().user.role).to.eql('estudiante'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{testEmail}}\",\n  \"password\": \"{{newPassword}}\"\n}"
+            }
+          }
+        },
+        {
+          "name": "29 Listar usuarios sin token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 401', () => pm.response.to.have.status(401));",
+                  "pm.test('pide autenticacion', () =>",
+                  "  pm.expect(pm.response.headers.get('WWW-Authenticate')).to.eql('Bearer'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/users",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "users"
+              ]
+            }
+          }
+        },
+        {
+          "name": "30 Listar usuarios como estudiante",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Criterio de aceptacion: un usuario no-admin recibe 403.",
+                  "pm.test('responde 403', () => pm.response.to.have.status(403));",
+                  "pm.test('codigo forbidden', () =>",
+                  "  pm.expect(pm.response.json().code).to.eql('forbidden'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{studentToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/users",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "users"
+              ]
+            }
+          }
+        },
+        {
+          "name": "31 Cambiar un rol como estudiante",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 403', () => pm.response.to.have.status(403));",
+                  "pm.test('el rechazo ocurre antes de tocar el recurso', () =>",
+                  "  pm.expect(pm.response.json().code).to.eql('forbidden'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{studentToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/users/11111111-1111-1111-1111-111111111111/role",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "users",
+                "11111111-1111-1111-1111-111111111111",
+                "role"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"role\": \"administrador\"\n}"
+            }
+          }
+        },
+        {
+          "name": "32 Suspender una cuenta como estudiante",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 403', () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{studentToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/users/11111111-1111-1111-1111-111111111111/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "users",
+                "11111111-1111-1111-1111-111111111111",
+                "status"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"suspended\"\n}"
+            }
+          }
+        }
+      ]
     },
     {
       "name": "Seguridad (#13)",

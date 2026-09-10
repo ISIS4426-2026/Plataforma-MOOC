@@ -120,9 +120,28 @@ func (r *UserRepository) CountActiveAdmins(ctx context.Context) (int, error) {
 // queryOne centralises row scanning and the ErrNoRows to ErrNotFound
 // translation shared by the lookup methods.
 func (r *UserRepository) queryOne(ctx context.Context, query string, args ...any) (*domain.User, error) {
+	user, err := scanUser(r.db.QueryRowContext(ctx, query, args...))
+
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, domain.ErrNotFound
+	}
+	if err != nil {
+		return nil, fmt.Errorf("query user: %w", err)
+	}
+
+	return user, nil
+}
+
+// scanUser reads one row shaped like userColumns.
+//
+// It is shared with the administrative repository, which scans users from
+// inside a transaction, so the column order lives in exactly one place: adding
+// a column to userColumns without updating this function fails everywhere at
+// once rather than in whichever query was forgotten.
+func scanUser(scanner rowScanner) (*domain.User, error) {
 	var user domain.User
 
-	err := r.db.QueryRowContext(ctx, query, args...).Scan(
+	err := scanner.Scan(
 		&user.ID,
 		&user.Email,
 		&user.PasswordHash,
@@ -132,12 +151,8 @@ func (r *UserRepository) queryOne(ctx context.Context, query string, args ...any
 		&user.CreatedAt,
 		&user.UpdatedAt,
 	)
-
-	if errors.Is(err, sql.ErrNoRows) {
-		return nil, domain.ErrNotFound
-	}
 	if err != nil {
-		return nil, fmt.Errorf("query user: %w", err)
+		return nil, err
 	}
 
 	return &user, nil
