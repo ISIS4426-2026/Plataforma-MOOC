@@ -16,6 +16,7 @@ import (
 	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/http"
 	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/mailer"
 	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/postgres"
+	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/structure"
 )
 
 // startupTimeout bounds the initial database probe so a missing dependency
@@ -95,8 +96,16 @@ func run(logger *slog.Logger) error {
 		SessionCache: sessionCache,
 	}, logger)
 
+	courseRepo := postgres.NewCourseRepository(db)
 	courseService := course.NewService(course.Deps{
-		Courses: postgres.NewCourseRepository(db),
+		Courses: courseRepo,
+	}, logger)
+
+	structureService := structure.NewService(structure.Deps{
+		Courses:   courseRepo,
+		Modules:   postgres.NewModuleRepository(db),
+		Units:     postgres.NewUnitRepository(db),
+		Resources: postgres.NewResourceRepository(db),
 	}, logger)
 
 	server := http.NewServer(cfg, http.Deps{
@@ -104,6 +113,7 @@ func run(logger *slog.Logger) error {
 		Auth:             authService,
 		Admin:            adminService,
 		Course:           courseService,
+		Structure:        structureService,
 		Audit:            postgres.NewAuditRepository(db),
 		RateLimiter:      cache.NewRateLimiter(redisClient),
 		IdempotencyStore: cache.NewIdempotencyStore(redisClient),

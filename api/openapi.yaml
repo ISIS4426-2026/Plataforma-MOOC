@@ -922,18 +922,17 @@ paths:
         - $ref: '#/components/parameters/IfNoneMatch'
       responses:
         '200':
-          description: List of modules in sequential order.
-          headers:
-            ETag:
-              $ref: '#/components/headers/ETag'
+          description: Modules of the course, ordered by position.
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/ModuleResponse'
-        '304':
-          $ref: '#/components/responses/304NotModified'
+                type: object
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ModuleResponse'
         '404':
           $ref: '#/components/responses/404NotFound'
 
@@ -941,8 +940,14 @@ paths:
       tags:
         - Modules
       summary: Add module to course draft
-      description: Append a new ordered module to an active course draft.
+      description: >
+        Appends a new module at the end of the course. There is no position
+        in the request body: issue #16's ordering policy always assigns the
+        next position on insert (internal/domain/ordering.go); reordering
+        existing modules is a separate operation.
       operationId: createCourseModule
+      security:
+        - bearerAuth: []
       parameters:
         - name: course_id
           in: path
@@ -976,6 +981,334 @@ paths:
           $ref: '#/components/responses/403Forbidden'
         '404':
           $ref: '#/components/responses/404NotFound'
+        '409':
+          $ref: '#/components/responses/409Conflict'
+
+  /modules/{module_id}:
+    put:
+      tags:
+        - Modules
+      summary: Rename a module
+      operationId: updateModule
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: module_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateModuleRequest'
+      responses:
+        '200':
+          description: Module updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ModuleResponse'
+        '400':
+          $ref: '#/components/responses/400BadRequest'
+        '401':
+          $ref: '#/components/responses/401Unauthorized'
+        '403':
+          $ref: '#/components/responses/403Forbidden'
+        '404':
+          $ref: '#/components/responses/404NotFound'
+        '409':
+          $ref: '#/components/responses/409Conflict'
+
+    delete:
+      tags:
+        - Modules
+      summary: Delete a module
+      description: Removes the module and its units/resources (cascade), and closes the position gap left in its siblings.
+      operationId: deleteModule
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: module_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '204':
+          description: Module deleted.
+        '401':
+          $ref: '#/components/responses/401Unauthorized'
+        '403':
+          $ref: '#/components/responses/403Forbidden'
+        '404':
+          $ref: '#/components/responses/404NotFound'
+        '409':
+          $ref: '#/components/responses/409Conflict'
+
+  /modules/{module_id}/units:
+    get:
+      tags:
+        - Modules
+      summary: List units of a module
+      operationId: listModuleUnits
+      parameters:
+        - name: module_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Units of the module, ordered by position.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/UnitResponse'
+        '404':
+          $ref: '#/components/responses/404NotFound'
+
+    post:
+      tags:
+        - Modules
+      summary: Add unit to a module
+      description: Fails with 404 if the module does not exist (issue #19's integrity rule -- no unit without a parent module).
+      operationId: createModuleUnit
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: module_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateUnitRequest'
+      responses:
+        '201':
+          description: Unit created successfully.
+          headers:
+            Idempotency-Key:
+              $ref: '#/components/headers/IdempotencyKey'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnitResponse'
+        '400':
+          $ref: '#/components/responses/400BadRequest'
+        '401':
+          $ref: '#/components/responses/401Unauthorized'
+        '403':
+          $ref: '#/components/responses/403Forbidden'
+        '404':
+          $ref: '#/components/responses/404NotFound'
+        '409':
+          $ref: '#/components/responses/409Conflict'
+
+  /units/{unit_id}:
+    put:
+      tags:
+        - Modules
+      summary: Rename a unit
+      operationId: updateUnit
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: unit_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateUnitRequest'
+      responses:
+        '200':
+          description: Unit updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnitResponse'
+        '400':
+          $ref: '#/components/responses/400BadRequest'
+        '401':
+          $ref: '#/components/responses/401Unauthorized'
+        '403':
+          $ref: '#/components/responses/403Forbidden'
+        '404':
+          $ref: '#/components/responses/404NotFound'
+        '409':
+          $ref: '#/components/responses/409Conflict'
+
+    delete:
+      tags:
+        - Modules
+      summary: Delete a unit
+      description: Removes the unit and its resources (cascade), and closes the position gap left in its siblings.
+      operationId: deleteUnit
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: unit_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '204':
+          description: Unit deleted.
+        '401':
+          $ref: '#/components/responses/401Unauthorized'
+        '403':
+          $ref: '#/components/responses/403Forbidden'
+        '404':
+          $ref: '#/components/responses/404NotFound'
+        '409':
+          $ref: '#/components/responses/409Conflict'
+
+  /units/{unit_id}/resources:
+    get:
+      tags:
+        - Modules
+      summary: List resources of a unit
+      operationId: listUnitResources
+      parameters:
+        - name: unit_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Resources of the unit, ordered by position.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ResourceResponse'
+        '404':
+          $ref: '#/components/responses/404NotFound'
+
+    post:
+      tags:
+        - Modules
+      summary: Add resource to a unit
+      description: Fails with 404 if the unit does not exist (issue #19's integrity rule -- no resource without a parent unit).
+      operationId: createUnitResource
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: unit_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateResourceRequest'
+      responses:
+        '201':
+          description: Resource created successfully.
+          headers:
+            Idempotency-Key:
+              $ref: '#/components/headers/IdempotencyKey'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResourceResponse'
+        '400':
+          $ref: '#/components/responses/400BadRequest'
+        '401':
+          $ref: '#/components/responses/401Unauthorized'
+        '403':
+          $ref: '#/components/responses/403Forbidden'
+        '404':
+          $ref: '#/components/responses/404NotFound'
+        '409':
+          $ref: '#/components/responses/409Conflict'
+
+  /resources/{resource_id}:
+    put:
+      tags:
+        - Modules
+      summary: Update a resource
+      description: Title, visibility, mandatoriness and download permission. Type is immutable after creation; processing_status is set only by the media-processing worker.
+      operationId: updateResource
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: resource_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateResourceRequest'
+      responses:
+        '200':
+          description: Resource updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResourceResponse'
+        '400':
+          $ref: '#/components/responses/400BadRequest'
+        '401':
+          $ref: '#/components/responses/401Unauthorized'
+        '403':
+          $ref: '#/components/responses/403Forbidden'
+        '404':
+          $ref: '#/components/responses/404NotFound'
+        '409':
+          $ref: '#/components/responses/409Conflict'
+
+    delete:
+      tags:
+        - Modules
+      summary: Delete a resource
+      description: Closes the position gap left in its siblings.
+      operationId: deleteResource
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: resource_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '204':
+          description: Resource deleted.
+        '401':
+          $ref: '#/components/responses/401Unauthorized'
+        '403':
+          $ref: '#/components/responses/403Forbidden'
+        '404':
+          $ref: '#/components/responses/404NotFound'
+        '409':
+          $ref: '#/components/responses/409Conflict'
 
   /quizzes/{quiz_id}/submissions:
     post:
@@ -1682,22 +2015,19 @@ components:
       type: object
       required:
         - title
-        - order_index
       properties:
         title:
           type: string
           example: "Módulo 1: Fundamentos de Nube"
-        order_index:
-          type: integer
-          example: 1
 
     ModuleResponse:
       type: object
       required:
         - id
         - stable_id
+        - course_id
         - title
-        - order_index
+        - position
       properties:
         id:
           type: string
@@ -1707,12 +2037,131 @@ components:
           type: string
           format: uuid
           example: "220ec58a-a0f2-4ac4-8393-c866d813b8d2"
+        course_id:
+          type: string
+          format: uuid
         title:
           type: string
           example: "Módulo 1: Fundamentos de Nube"
-        order_index:
+        position:
           type: integer
-          example: 1
+          description: Zero-based position among sibling modules, assigned by issue #16's ordering policy.
+          example: 0
+
+    CreateUnitRequest:
+      type: object
+      required:
+        - title
+      properties:
+        title:
+          type: string
+          example: "Unidad 1: Conceptos básicos"
+
+    UnitResponse:
+      type: object
+      required:
+        - id
+        - stable_id
+        - module_id
+        - title
+        - position
+      properties:
+        id:
+          type: string
+          format: uuid
+        stable_id:
+          type: string
+          format: uuid
+        module_id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        position:
+          type: integer
+
+    CreateResourceRequest:
+      type: object
+      required:
+        - title
+        - type
+      properties:
+        title:
+          type: string
+          example: "Video introductorio"
+        type:
+          type: string
+          enum: [text, image, video, audio, pdf, presentation, downloadable, iframe, external_link, quiz]
+        is_visible:
+          type: boolean
+          default: true
+        is_mandatory:
+          type: boolean
+          default: true
+        allow_download:
+          type: boolean
+          default: false
+        content_text:
+          type: string
+          description: Canonical extended Markdown, for text resources.
+
+    UpdateResourceRequest:
+      type: object
+      required:
+        - title
+      properties:
+        title:
+          type: string
+        is_visible:
+          type: boolean
+        is_mandatory:
+          type: boolean
+        allow_download:
+          type: boolean
+
+    ResourceResponse:
+      type: object
+      required:
+        - id
+        - stable_id
+        - unit_id
+        - title
+        - type
+        - position
+        - is_visible
+        - is_mandatory
+        - allow_download
+      properties:
+        id:
+          type: string
+          format: uuid
+        stable_id:
+          type: string
+          format: uuid
+        unit_id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        type:
+          type: string
+          enum: [text, image, video, audio, pdf, presentation, downloadable, iframe, external_link, quiz]
+        position:
+          type: integer
+        is_visible:
+          type: boolean
+        is_mandatory:
+          type: boolean
+        allow_download:
+          type: boolean
+        content_text:
+          type: string
+        object_key:
+          type: string
+          description: Reference to the object in S3/MinIO. Never the binary itself.
+        processing_status:
+          type: string
+          enum: [pending, processing, completed, failed]
 
     QuizSubmissionRequest:
       type: object

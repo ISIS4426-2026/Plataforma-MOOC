@@ -66,6 +66,15 @@ const (
 	AuditActionCourseNewVersion AuditAction = "course.version_published"
 	AuditActionCourseCreated    AuditAction = "course.created"
 	AuditActionCourseUpdated    AuditAction = "course.updated"
+	AuditActionModuleCreated    AuditAction = "module.created"
+	AuditActionModuleUpdated    AuditAction = "module.updated"
+	AuditActionModuleDeleted    AuditAction = "module.deleted"
+	AuditActionUnitCreated      AuditAction = "unit.created"
+	AuditActionUnitUpdated      AuditAction = "unit.updated"
+	AuditActionUnitDeleted      AuditAction = "unit.deleted"
+	AuditActionResourceCreated  AuditAction = "resource.created"
+	AuditActionResourceUpdated  AuditAction = "resource.updated"
+	AuditActionResourceDeleted  AuditAction = "resource.deleted"
 )
 
 // AuditEntry is one immutable record of an action.
