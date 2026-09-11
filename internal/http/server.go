@@ -170,6 +170,15 @@ func NewServer(cfg *config.Config, deps Deps, logger *slog.Logger) *Server {
 	mux.Handle("PUT /api/v1/courses/{courseID}",
 		requireAuthor(idempotent(http.HandlerFunc(courseHandler.Update)).ServeHTTP))
 
+	// Publish and unpublish (issue #20). Publish validates the whole
+	// structure, so it is idempotent-key protected like the other writes;
+	// unpublish is the MVP's way back to editable (section 5.1) and carries
+	// the same protection since running it twice must not be visible.
+	mux.Handle("POST /api/v1/courses/{courseID}/publish",
+		requireAuthor(idempotent(http.HandlerFunc(courseHandler.Publish)).ServeHTTP))
+	mux.Handle("POST /api/v1/courses/{courseID}/unpublish",
+		requireAuthor(idempotent(http.HandlerFunc(courseHandler.Unpublish)).ServeHTTP))
+
 	// Module, Unit and Resource CRUD (issue #19), same public-read /
 	// professor-or-admin-write split as course authoring. Listing lives
 	// under its parent's path (a module's units, a unit's resources);

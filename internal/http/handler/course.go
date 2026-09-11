@@ -168,6 +168,46 @@ func (h *CourseHandler) Update(w http.ResponseWriter, r *http.Request) {
 	RespondWithJSON(w, http.StatusOK, newCourseResponse(updated))
 }
 
+// Publish handles POST /api/v1/courses/{course_id}/publish.
+func (h *CourseHandler) Publish(w http.ResponseWriter, r *http.Request) {
+	actor, ok := h.actor(w, r)
+	if !ok {
+		return
+	}
+
+	published, err := h.service.Publish(r.Context(), actor, r.PathValue("courseID"))
+	if err != nil {
+		h.respondCourseError(w, r, err)
+		return
+	}
+
+	w.Header().Set(HeaderETag, published.ETag())
+	RespondWithJSON(w, http.StatusOK, newCourseResponse(published))
+}
+
+// Unpublish handles POST /api/v1/courses/{course_id}/unpublish.
+//
+// This is the MVP's route to editing a published course (section 5.1 of the
+// spec): temporarily unpublish, edit, republish. There is no dedicated
+// endpoint in the OpenAPI scaffold this issue inherited, since publishing
+// was the only direction documented; added alongside it because a course
+// that can be published but never unpublished has no path back to editable.
+func (h *CourseHandler) Unpublish(w http.ResponseWriter, r *http.Request) {
+	actor, ok := h.actor(w, r)
+	if !ok {
+		return
+	}
+
+	unpublished, err := h.service.Unpublish(r.Context(), actor, r.PathValue("courseID"))
+	if err != nil {
+		h.respondCourseError(w, r, err)
+		return
+	}
+
+	w.Header().Set(HeaderETag, unpublished.ETag())
+	RespondWithJSON(w, http.StatusOK, newCourseResponse(unpublished))
+}
+
 // actor builds the authoring actor from the authenticated request. It mirrors
 // AdminHandler.actor; the two are not shared because they build values of
 // different package-local types (admin.Actor vs course.Actor).
@@ -187,7 +227,19 @@ func (h *CourseHandler) actor(w http.ResponseWriter, r *http.Request) (course.Ac
 }
 
 func (h *CourseHandler) respondCourseError(w http.ResponseWriter, r *http.Request, err error) {
+	var validationErrs domain.ValidationErrors
+
 	switch {
+	case errors.As(err, &validationErrs):
+		// 422 rather than 400: the request was well-formed, what failed is
+		// the content of the course against publication's own rules. Every
+		// problem found is returned in Details, not just the first (issue
+		// #20's third acceptance criterion).
+		RespondWithError(w, http.StatusUnprocessableEntity, "validation_failed",
+			"El curso no cumple los requisitos de publicación.", validationErrs)
+	case errors.Is(err, domain.ErrConflict):
+		RespondWithError(w, http.StatusConflict, "conflict",
+			"La operación no es válida para el estado actual del curso.", nil)
 	case errors.Is(err, domain.ErrPreconditionFailed):
 		RespondWithError(w, http.StatusPreconditionFailed, "precondition_failed",
 			"El curso cambió desde la versión que tienes. Vuelve a leerlo y reintenta.", nil)

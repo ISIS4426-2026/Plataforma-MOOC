@@ -96,16 +96,26 @@ func run(logger *slog.Logger) error {
 		SessionCache: sessionCache,
 	}, logger)
 
+	// Shared with both services: course.Service.Publish reads the structure
+	// to validate it (issue #20), the same repositories structure.Service
+	// writes it through (issue #19).
 	courseRepo := postgres.NewCourseRepository(db)
+	moduleRepo := postgres.NewModuleRepository(db)
+	unitRepo := postgres.NewUnitRepository(db)
+	resourceRepo := postgres.NewResourceRepository(db)
+
 	courseService := course.NewService(course.Deps{
-		Courses: courseRepo,
+		Courses:   courseRepo,
+		Modules:   moduleRepo,
+		Units:     unitRepo,
+		Resources: resourceRepo,
 	}, logger)
 
 	structureService := structure.NewService(structure.Deps{
 		Courses:   courseRepo,
-		Modules:   postgres.NewModuleRepository(db),
-		Units:     postgres.NewUnitRepository(db),
-		Resources: postgres.NewResourceRepository(db),
+		Modules:   moduleRepo,
+		Units:     unitRepo,
+		Resources: resourceRepo,
 	}, logger)
 
 	server := http.NewServer(cfg, http.Deps{

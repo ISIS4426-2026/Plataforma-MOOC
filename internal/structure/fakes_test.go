@@ -50,6 +50,9 @@ func (f *fakeCourseRepo) ListPublished(context.Context, domain.CourseFilter) (*d
 func (f *fakeCourseRepo) Update(context.Context, string, string, string, domain.ChangeOptions, *domain.AuditEntry) (*domain.Course, error) {
 	return nil, nil
 }
+func (f *fakeCourseRepo) UpdateStatus(context.Context, string, domain.CourseStatus, *domain.AuditEntry) (*domain.Course, error) {
+	return nil, nil
+}
 
 type fakeModuleRepo struct {
 	mu      sync.Mutex

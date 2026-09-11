@@ -870,8 +870,17 @@ paths:
       tags:
         - Courses
       summary: Publish course draft version
-      description: Validate and publish a course draft. Once published, the version is strictly immutable.
+      description: >
+        Validates the course before publishing: complete metadata, minimal
+        structure (at least one module with a unit with a visible, available
+        resource), and at least one mandatory resource on that path to
+        define the approval criteria. Every problem found is returned in a
+        single 422, not just the first (issue #20). Once published, the
+        version is immutable -- see /courses/{course_id}/unpublish for the
+        MVP's route back to editable.
       operationId: publishCourse
+      security:
+        - bearerAuth: []
       parameters:
         - name: course_id
           in: path
@@ -902,7 +911,63 @@ paths:
         '404':
           $ref: '#/components/responses/404NotFound'
         '409':
-          $ref: '#/components/responses/409Conflict'
+          description: The course is already published.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: The course does not meet the publication requirements.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublishValidationErrorResponse'
+
+  /courses/{course_id}/unpublish:
+    post:
+      tags:
+        - Courses
+      summary: Unpublish a course
+      description: >
+        Takes a published course off the catalog and makes it editable
+        again. The MVP's way to edit a published course (section 5.1): fork-
+        a-new-draft-version is explicitly optional/Should scope (section
+        5.2), so this is a plain status transition on the same row.
+      operationId: unpublishCourse
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: course_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '200':
+          description: Course unpublished and editable again.
+          headers:
+            Idempotency-Key:
+              $ref: '#/components/headers/IdempotencyKey'
+            ETag:
+              $ref: '#/components/headers/ETag'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CourseResponse'
+        '401':
+          $ref: '#/components/responses/401Unauthorized'
+        '403':
+          $ref: '#/components/responses/403Forbidden'
+        '404':
+          $ref: '#/components/responses/404NotFound'
+        '409':
+          description: The course is not currently published.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
   /courses/{course_id}/modules:
     get:
@@ -1619,6 +1684,38 @@ components:
           example:
             field: "email"
             issue: "Must be a valid email format"
+
+    FieldError:
+      type: object
+      required:
+        - field
+        - message
+      properties:
+        field:
+          type: string
+          example: "structure"
+        message:
+          type: string
+          example: "El curso debe tener al menos un módulo con una unidad con un recurso visible y disponible."
+
+    PublishValidationErrorResponse:
+      type: object
+      required:
+        - code
+        - message
+        - details
+      properties:
+        code:
+          type: string
+          example: "validation_failed"
+        message:
+          type: string
+          example: "El curso no cumple los requisitos de publicación."
+        details:
+          type: array
+          description: Every requirement the course fails, not just the first (issue #20).
+          items:
+            $ref: '#/components/schemas/FieldError'
 
     CursorPagination:
       type: object

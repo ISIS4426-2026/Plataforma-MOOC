@@ -188,3 +188,76 @@ func TestCourseRepositoryListPublishedOnlyReturnsPublishedCourses(t *testing.T) 
 		t.Fatalf("ListPublished returned %d courses, want exactly the one published course matching the search", len(page.Courses))
 	}
 }
+
+func TestCourseRepositoryUpdateStatusTransitionsAndAudits(t *testing.T) {
+	db := newTestDB(t)
+	users := postgres.NewUserRepository(db)
+	courses := postgres.NewCourseRepository(db)
+	audit := postgres.NewAuditRepository(db)
+	ctx := context.Background()
+
+	author := newAuthorUser(t, users)
+	draft := newDraftCourse(author.ID)
+	if err := courses.Create(ctx, draft, courseAuditEntry(author.ID, draft.ID, domain.AuditActionCourseCreated)); err != nil {
+		t.Fatalf("Create returned an error: %v", err)
+	}
+
+	published, err := courses.UpdateStatus(ctx, draft.ID, domain.CourseStatusPublished,
+		courseAuditEntry(author.ID, draft.ID, domain.AuditActionCourseNewVersion))
+	if err != nil {
+		t.Fatalf("UpdateStatus returned an error: %v", err)
+	}
+	if published.Status != domain.CourseStatusPublished {
+		t.Fatalf("status = %q, want %q", published.Status, domain.CourseStatusPublished)
+	}
+
+	page, err := audit.List(ctx, domain.AuditFilter{TargetResource: "course:" + draft.ID, ActionPrefix: "course."})
+	if err != nil {
+		t.Fatalf("audit List returned an error: %v", err)
+	}
+	found := false
+	for _, e := range page.Entries {
+		if e.Action == domain.AuditActionCourseNewVersion {
+			found = true
+		}
+	}
+	if !found {
+		t.Errorf("no %q audit entry found for course %s", domain.AuditActionCourseNewVersion, draft.ID)
+	}
+}
+
+// UpdateStatus itself applies whatever transition it is given -- it is
+// course.Service that decides a transition is allowed before calling it, so
+// this only proves the repository does not silently refuse a published ->
+// unpublished move, the one course.Service.Unpublish depends on.
+func TestCourseRepositoryUpdateStatusAllowsUnpublishing(t *testing.T) {
+	db := newTestDB(t)
+	users := postgres.NewUserRepository(db)
+	courses := postgres.NewCourseRepository(db)
+	ctx := context.Background()
+
+	author := newAuthorUser(t, users)
+	draft := newDraftCourse(author.ID)
+	if err := courses.Create(ctx, draft, courseAuditEntry(author.ID, draft.ID, domain.AuditActionCourseCreated)); err != nil {
+		t.Fatalf("Create returned an error: %v", err)
+	}
+	if _, err := courses.UpdateStatus(ctx, draft.ID, domain.CourseStatusPublished,
+		courseAuditEntry(author.ID, draft.ID, domain.AuditActionCourseNewVersion)); err != nil {
+		t.Fatalf("publish UpdateStatus returned an error: %v", err)
+	}
+
+	unpublished, err := courses.UpdateStatus(ctx, draft.ID, domain.CourseStatusUnpublished,
+		courseAuditEntry(author.ID, draft.ID, domain.AuditActionCourseUnpublished))
+	if err != nil {
+		t.Fatalf("unpublish UpdateStatus returned an error: %v", err)
+	}
+	if unpublished.Status != domain.CourseStatusUnpublished {
+		t.Fatalf("status = %q, want %q", unpublished.Status, domain.CourseStatusUnpublished)
+	}
+
+	// And the course is editable again through the normal Update path.
+	if _, err := courses.Update(ctx, draft.ID, "New title", "New description", domain.ChangeOptions{},
+		courseAuditEntry(author.ID, draft.ID, domain.AuditActionCourseUpdated)); err != nil {
+		t.Fatalf("Update after unpublish returned an error: %v", err)
+	}
+}
