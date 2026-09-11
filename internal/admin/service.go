@@ -56,14 +56,20 @@ func (s *Service) ListUsers(ctx context.Context, filter domain.UserFilter) (*dom
 // Refusing to demote the last active administrator is enforced by the
 // repository, inside the same transaction as the change, so two concurrent
 // requests cannot each remove one and leave the platform with none.
-func (s *Service) ChangeRole(ctx context.Context, actor Actor, targetID string, role domain.Role) (*domain.User, error) {
+func (s *Service) ChangeRole(ctx context.Context, actor Actor, targetID string, role domain.Role, opts domain.ChangeOptions) (*domain.User, error) {
 	if !isKnownRole(role) {
 		return nil, fmt.Errorf("unknown role %q: %w", role, domain.ErrInvalidInput)
 	}
 
 	entry := newEntry(actor, domain.AuditActionUserRoleChanged, targetID)
 
-	return s.deps.Admin.ChangeRole(ctx, targetID, role, entry)
+	return s.deps.Admin.ChangeRole(ctx, targetID, role, opts, entry)
+}
+
+// GetUser returns a single account so a client can read its ETag before
+// attempting a conditional write.
+func (s *Service) GetUser(ctx context.Context, userID string) (*domain.User, error) {
+	return s.deps.Admin.GetUser(ctx, userID)
 }
 
 // ChangeStatus suspends or reactivates an account.
@@ -73,7 +79,7 @@ func (s *Service) ChangeRole(ctx context.Context, actor Actor, targetID string, 
 // closes the window in which a cached session would still resolve and it makes
 // the intent explicit in the session record rather than implicit in a status
 // check somewhere else.
-func (s *Service) ChangeStatus(ctx context.Context, actor Actor, targetID string, status domain.UserStatus) (*domain.User, error) {
+func (s *Service) ChangeStatus(ctx context.Context, actor Actor, targetID string, status domain.UserStatus, opts domain.ChangeOptions) (*domain.User, error) {
 	if !isKnownStatus(status) {
 		return nil, fmt.Errorf("unknown status %q: %w", status, domain.ErrInvalidInput)
 	}
@@ -85,7 +91,7 @@ func (s *Service) ChangeStatus(ctx context.Context, actor Actor, targetID string
 
 	entry := newEntry(actor, action, targetID)
 
-	updated, err := s.deps.Admin.ChangeStatus(ctx, targetID, status, entry)
+	updated, err := s.deps.Admin.ChangeStatus(ctx, targetID, status, opts, entry)
 	if err != nil {
 		return nil, err
 	}

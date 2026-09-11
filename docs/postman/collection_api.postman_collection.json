@@ -64,6 +64,26 @@
       "key": "studentToken",
       "value": "",
       "type": "string"
+    },
+    {
+      "key": "idemEmail",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "idemKey",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "idemBody",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "idemUserId",
+      "value": "",
+      "type": "string"
     }
   ],
   "item": [
@@ -1410,6 +1430,256 @@
             "body": {
               "mode": "raw",
               "raw": "{\n  \"status\": \"suspended\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Idempotencia (#14)",
+      "description": "El criterio de aceptacion: el mismo POST con la misma Idempotency-Key, enviado dos veces, produce un solo efecto persistido. El lado de ETag/If-Match vive en los endpoints administrativos y necesita una cuenta de administrador; ver docs/postman/README.md.",
+      "item": [
+        {
+          "name": "33 Registro con Idempotency-Key",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Correo y clave unicos por corrida.",
+                  "const n = Date.now();",
+                  "pm.collectionVariables.set('idemEmail', 'idem-' + n + '@example.test');",
+                  "pm.collectionVariables.set('idemKey', 'clave-' + n);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 201', () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set('idemBody', pm.response.text());",
+                  "pm.collectionVariables.set('idemUserId', pm.response.json().user.id);",
+                  "pm.test('no viene marcada como repeticion', () =>",
+                  "  pm.expect(pm.response.headers.get('Idempotent-Replay')).to.not.exist);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Idempotency-Key",
+                "value": "{{idemKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{idemEmail}}\",\n  \"password\": \"contrasena-segura-123\",\n  \"full_name\": \"Idempotencia Demo\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "register"
+              ]
+            }
+          }
+        },
+        {
+          "name": "34 Mismo POST, misma clave",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Debe devolver la respuesta grabada, sin volver a ejecutar la operacion.",
+                  "pm.test('mismo codigo que la original', () => pm.response.to.have.status(201));",
+                  "pm.test('marcada como repeticion', () =>",
+                  "  pm.expect(pm.response.headers.get('Idempotent-Replay')).to.eql('true'));",
+                  "pm.test('cuerpo identico al original', () =>",
+                  "  pm.expect(pm.response.text()).to.eql(pm.collectionVariables.get('idemBody')));",
+                  "pm.test('el mismo usuario, no uno nuevo', () =>",
+                  "  pm.expect(pm.response.json().user.id).to.eql(pm.collectionVariables.get('idemUserId')));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Idempotency-Key",
+                "value": "{{idemKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{idemEmail}}\",\n  \"password\": \"contrasena-segura-123\",\n  \"full_name\": \"Idempotencia Demo\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "register"
+              ]
+            }
+          }
+        },
+        {
+          "name": "35 Misma clave con cuerpo diferente",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Reusar la clave con otro cuerpo es un defecto del cliente, no un reintento.",
+                  "pm.test('responde 422', () => pm.response.to.have.status(422));",
+                  "pm.test('codigo idempotency_key_reused', () =>",
+                  "  pm.expect(pm.response.json().code).to.eql('idempotency_key_reused'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Idempotency-Key",
+                "value": "{{idemKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"otro-{{idemEmail}}\",\n  \"password\": \"contrasena-segura-123\",\n  \"full_name\": \"Otro\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "register"
+              ]
+            }
+          }
+        },
+        {
+          "name": "36 La misma clave en otro endpoint es otra operacion",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// La clave se acota al metodo, la ruta y el llamante: no colisiona.",
+                  "pm.test('responde 202', () => pm.response.to.have.status(202));",
+                  "pm.test('no es una repeticion del registro', () =>",
+                  "  pm.expect(pm.response.headers.get('Idempotent-Replay')).to.not.exist);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Idempotency-Key",
+                "value": "{{idemKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{idemEmail}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/password/forgot",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "password",
+                "forgot"
+              ]
+            }
+          }
+        },
+        {
+          "name": "37 Sin clave, cada peticion se ejecuta",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Sin Idempotency-Key la proteccion no se activa: es opt-in.",
+                  "pm.test('responde 409 por correo duplicado', () => pm.response.to.have.status(409));",
+                  "pm.test('la operacion si se ejecuto', () =>",
+                  "  pm.expect(pm.response.json().code).to.eql('email_already_registered'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{idemEmail}}\",\n  \"password\": \"contrasena-segura-123\",\n  \"full_name\": \"Idempotencia Demo\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "register"
+              ]
             }
           }
         }

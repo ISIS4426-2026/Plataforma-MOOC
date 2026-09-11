@@ -31,6 +31,16 @@ type UserPage struct {
 	HasMore    bool
 }
 
+// ChangeOptions carries the preconditions a change must satisfy.
+type ChangeOptions struct {
+	// ExpectedETag, when set, requires the resource to still match it. It comes
+	// from the caller's If-Match header and is verified inside the transaction
+	// that applies the change, not before it: checking first and writing
+	// afterwards leaves a window in which another writer lands in between,
+	// which is the very race the header exists to close.
+	ExpectedETag string
+}
+
 // AdminRepository backs the administrative management of accounts.
 //
 // ChangeRole and ChangeStatus take the audit entry rather than leaving the
@@ -46,17 +56,21 @@ type AdminRepository interface {
 	// ListUsers returns one page of accounts, newest first.
 	ListUsers(ctx context.Context, filter UserFilter) (*UserPage, error)
 
+	// GetUser returns a single account, so a client can read its ETag before
+	// attempting a conditional write.
+	GetUser(ctx context.Context, userID string) (*User, error)
+
 	// ChangeRole assigns a new role.
 	//
 	// Returns ErrNotFound when the user does not exist, and
 	// ErrLastAdminProtected when the change would demote the only remaining
 	// active administrator.
-	ChangeRole(ctx context.Context, userID string, role Role, entry *AuditEntry) (*User, error)
+	ChangeRole(ctx context.Context, userID string, role Role, opts ChangeOptions, entry *AuditEntry) (*User, error)
 
 	// ChangeStatus suspends or reactivates an account.
 	//
 	// Returns ErrNotFound when the user does not exist, and
 	// ErrLastAdminProtected when the change would suspend the only remaining
 	// active administrator.
-	ChangeStatus(ctx context.Context, userID string, status UserStatus, entry *AuditEntry) (*User, error)
+	ChangeStatus(ctx context.Context, userID string, status UserStatus, opts ChangeOptions, entry *AuditEntry) (*User, error)
 }

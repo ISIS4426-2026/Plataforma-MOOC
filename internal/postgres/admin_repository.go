@@ -94,9 +94,24 @@ func (r *AdminRepository) ListUsers(ctx context.Context, filter domain.UserFilte
 	return page, nil
 }
 
+// GetUser returns a single account.
+func (r *AdminRepository) GetUser(ctx context.Context, userID string) (*domain.User, error) {
+	query := `SELECT ` + userColumns + ` FROM users WHERE id = $1`
+
+	user, err := scanUser(r.db.QueryRowContext(ctx, query, userID))
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, domain.ErrNotFound
+	}
+	if err != nil {
+		return nil, fmt.Errorf("get user %s: %w", userID, err)
+	}
+
+	return user, nil
+}
+
 // ChangeRole assigns a new role and records the audit entry in one transaction.
-func (r *AdminRepository) ChangeRole(ctx context.Context, userID string, role domain.Role, entry *domain.AuditEntry) (*domain.User, error) {
-	return r.mutate(ctx, userID, entry, func(current *domain.User) (bool, string, []any) {
+func (r *AdminRepository) ChangeRole(ctx context.Context, userID string, role domain.Role, opts domain.ChangeOptions, entry *domain.AuditEntry) (*domain.User, error) {
+	return r.mutate(ctx, userID, opts, entry, func(current *domain.User) (bool, string, []any) {
 		// The previous value is recorded here because this is the only place
 		// that sees it inside the transaction; read outside, it could already
 		// be stale by the time the change lands.
@@ -113,8 +128,8 @@ func (r *AdminRepository) ChangeRole(ctx context.Context, userID string, role do
 
 // ChangeStatus suspends or reactivates an account and records the audit entry in
 // one transaction.
-func (r *AdminRepository) ChangeStatus(ctx context.Context, userID string, status domain.UserStatus, entry *domain.AuditEntry) (*domain.User, error) {
-	return r.mutate(ctx, userID, entry, func(current *domain.User) (bool, string, []any) {
+func (r *AdminRepository) ChangeStatus(ctx context.Context, userID string, status domain.UserStatus, opts domain.ChangeOptions, entry *domain.AuditEntry) (*domain.User, error) {
+	return r.mutate(ctx, userID, opts, entry, func(current *domain.User) (bool, string, []any) {
 		recordTransition(entry, string(current.Status), string(status))
 
 		// Any status other than active takes the user out of the active
@@ -134,6 +149,7 @@ func (r *AdminRepository) ChangeStatus(ctx context.Context, userID string, statu
 func (r *AdminRepository) mutate(
 	ctx context.Context,
 	userID string,
+	opts domain.ChangeOptions,
 	entry *domain.AuditEntry,
 	plan func(current *domain.User) (removesAdmin bool, query string, args []any),
 ) (*domain.User, error) {
@@ -161,6 +177,14 @@ func (r *AdminRepository) mutate(
 	current, err := lockUser(ctx, tx, userID)
 	if err != nil {
 		return nil, err
+	}
+
+	// The precondition is verified here, holding the row lock, rather than by
+	// the handler before the call. Checking outside leaves a window in which
+	// another writer commits between the check and the update, and the caller's
+	// change silently overwrites one it never saw.
+	if opts.ExpectedETag != "" && opts.ExpectedETag != current.ETag() {
+		return nil, fmt.Errorf("user %s: %w", userID, domain.ErrPreconditionFailed)
 	}
 
 	removesAdmin, query, args := plan(current)
