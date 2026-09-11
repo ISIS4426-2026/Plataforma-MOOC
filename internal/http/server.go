@@ -15,6 +15,9 @@ import (
 	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/http/handler"
 	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/http/middleware"
 	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/structure"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/metric"
+	"go.opentelemetry.io/otel/trace"
 )
 
 // Timeouts guard against slow or idle clients holding server resources. Without
@@ -51,6 +54,13 @@ type Deps struct {
 	Audit            domain.AuditRepository
 	RateLimiter      domain.RateLimiter
 	IdempotencyStore domain.IdempotencyStore
+
+	// Observability (issue #21). Tracer and Meter instrument the request
+	// pipeline itself via middleware.Tracing; MetricsHandler is what
+	// GET /api/v1/metrics serves for scraping.
+	Tracer         trace.Tracer
+	Meter          metric.Meter
+	MetricsHandler http.Handler
 }
 
 func NewServer(cfg *config.Config, deps Deps, logger *slog.Logger) *Server {
@@ -59,6 +69,20 @@ func NewServer(cfg *config.Config, deps Deps, logger *slog.Logger) *Server {
 	}
 
 	mux := http.NewServeMux()
+
+	// Falls back to the global (no-op until observability.Setup runs)
+	// providers rather than panicking on a nil Tracer/Meter, so a caller
+	// that doesn't need tracing -- a test building a server directly --
+	// isn't forced to wire it.
+	tracer := deps.Tracer
+	if tracer == nil {
+		tracer = otel.Tracer("plataforma-mooc-api")
+	}
+	meter := deps.Meter
+	if meter == nil {
+		meter = otel.Meter("plataforma-mooc-api")
+	}
+
 	authHandler := handler.NewAuthHandler(deps.Auth, logger)
 	adminHandler := handler.NewAdminHandler(deps.Admin, logger)
 	courseHandler := handler.NewCourseHandler(deps.Course, logger)
@@ -110,6 +134,13 @@ func NewServer(cfg *config.Config, deps Deps, logger *slog.Logger) *Server {
 
 	// Register API v1 routes
 	mux.Handle("GET /api/v1/health", handler.NewHealthHandler(deps.DB))
+
+	// Metrics for scraping (issue #21). Unauthenticated, same as a
+	// Prometheus scrape endpoint typically is -- access is expected to be
+	// controlled at the network layer, not the application's own auth.
+	if deps.MetricsHandler != nil {
+		mux.Handle("GET /api/v1/metrics", deps.MetricsHandler)
+	}
 
 	// The contract and its browsable rendering are served by the API itself, so
 	// the documentation page and the endpoints share an origin and "Try it out"
@@ -210,12 +241,15 @@ func NewServer(cfg *config.Config, deps Deps, logger *slog.Logger) *Server {
 	mux.Handle("GET /api/v1/admin/audit-logs", requireAdmin(auditHandler.List))
 
 	// Ordering matters. RequestID runs first so the correlation id is available
-	// to everything below it. RequestLogger comes next so every response is
-	// recorded, including the ones CSRF rejects. Recoverer sits below the logger
-	// so a recovered panic is still counted, and CSRF is innermost so a forged
+	// to everything below it. Tracing comes next so it can attach that id to
+	// the span it starts, and so the span is in context by the time
+	// RequestLogger (issue #21) reads its trace id for the access log line.
+	// RequestLogger runs before Recoverer so every response is recorded,
+	// including the ones CSRF rejects, and CSRF is innermost so a forged
 	// request is refused before it reaches a handler.
 	root := middleware.Chain(mux,
 		middleware.RequestID(),
+		middleware.Tracing(tracer, meter),
 		middleware.RequestLogger(logger),
 		middleware.Recoverer(logger),
 		middleware.CSRF(middleware.CSRFConfig{AllowedOrigins: cfg.CSRFAllowedOrigins}, logger),

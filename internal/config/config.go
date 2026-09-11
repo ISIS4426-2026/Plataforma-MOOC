@@ -15,6 +15,11 @@ type Config struct {
 	S3Endpoint  string
 	S3Bucket    string
 
+	// MetricsPort is where the worker (which otherwise has no HTTP server)
+	// exposes GET /metrics for scraping (issue #21). The API mounts its own
+	// metrics endpoint on Port instead, alongside the rest of /api/v1.
+	MetricsPort string
+
 	// Database connection pool. The API and workers are stateless and scale
 	// horizontally, so each instance must bound its own share of Postgres
 	// connections instead of relying on the driver defaults (unlimited open
@@ -77,6 +82,8 @@ func Load() *Config {
 		RedisURL:    getEnv("REDIS_URL", "localhost:6379"),
 		S3Endpoint:  getEnv("S3_ENDPOINT", "http://localhost:9000"),
 		S3Bucket:    getEnv("S3_BUCKET", "mooc-storage"),
+
+		MetricsPort: getEnv("METRICS_PORT", "9090"),
 
 		DBMaxOpenConns:    getEnvInt("DB_MAX_OPEN_CONNS", 25),
 		DBMaxIdleConns:    getEnvInt("DB_MAX_IDLE_CONNS", 25),

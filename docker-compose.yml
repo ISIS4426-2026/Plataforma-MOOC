@@ -63,6 +63,11 @@ services:
       - DB_MAX_OPEN_CONNS=${DB_MAX_OPEN_CONNS:-25}
       - DB_MAX_IDLE_CONNS=${DB_MAX_IDLE_CONNS:-25}
       - DB_CONN_MAX_LIFETIME=${DB_CONN_MAX_LIFETIME:-5m}
+      - METRICS_PORT=9090
+    ports:
+      # Prometheus-style metrics (issue #21). The worker has no other HTTP
+      # server, so this is its own port rather than sharing the API's.
+      - "${WORKER_METRICS_PORT:-9090}:9090"
     depends_on:
       postgres:
         condition: service_healthy

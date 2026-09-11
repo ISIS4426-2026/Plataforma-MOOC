@@ -96,8 +96,28 @@ Servicios disponibles:
 * **Mailpit (Email Testing)**: `http://localhost:8025`
 * **PostgreSQL**: `localhost:5432` (`moocdb` / `moocuser` / `moocpassword`)
 * **Redis**: `localhost:6379`
+* **Métricas de la API** (Prometheus): `http://localhost:8080/api/v1/metrics`
+* **Métricas del Worker** (Prometheus): `http://localhost:9090/metrics`
 
 ---
+
+## Observabilidad (issue #21)
+
+Logs, métricas y trazas comparten dos identificadores para poder correlacionarse:
+
+* `request_id` (`X-Request-ID`): generado o propagado por request, presente en cada línea de log y como atributo del *span* correspondiente.
+* `trace_id`: el ID de traza de OpenTelemetry, presente en el log de acceso (campo `trace_id`) y en el *span*.
+
+Dado un `request_id` de una respuesta de la API, su log y su traza se encuentran con el mismo comando, porque ambos se escriben a stdout — el mismo stream que captura `docker compose logs`:
+
+```bash
+docker compose logs api | grep <request_id>
+```
+
+Las trazas se exportan como JSON a stdout (sin necesidad de levantar un colector aparte); las métricas se exponen en formato Prometheus, listas para scrapear:
+
+* API: `GET /api/v1/metrics` — incluye `http.server.request.duration` (latencia por endpoint) y `http.server.request.errors` (tasa de error, respuestas 5xx).
+* Worker: `GET :9090/metrics` — incluye `worker.jobs.processed` y `worker.jobs.failed`, por tipo de tarea.
 
 ### Option B: Compilación y Ejecución Manual
 
