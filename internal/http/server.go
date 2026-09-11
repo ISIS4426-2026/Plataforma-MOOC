@@ -10,6 +10,7 @@ import (
 	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/admin"
 	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/auth"
 	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/config"
+	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/course"
 	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/domain"
 	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/http/handler"
 	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/http/middleware"
@@ -44,6 +45,7 @@ type Deps struct {
 	DB               handler.Pinger
 	Auth             *auth.Service
 	Admin            *admin.Service
+	Course           *course.Service
 	RateLimiter      domain.RateLimiter
 	IdempotencyStore domain.IdempotencyStore
 }
@@ -56,6 +58,7 @@ func NewServer(cfg *config.Config, deps Deps, logger *slog.Logger) *Server {
 	mux := http.NewServeMux()
 	authHandler := handler.NewAuthHandler(deps.Auth, logger)
 	adminHandler := handler.NewAdminHandler(deps.Admin, logger)
+	courseHandler := handler.NewCourseHandler(deps.Course, logger)
 
 	// requireAuth guards the endpoints that act on behalf of a signed-in user.
 	// It is applied per route rather than globally so the public endpoints stay
@@ -67,6 +70,12 @@ func NewServer(cfg *config.Config, deps Deps, logger *slog.Logger) *Server {
 	// matters, since the role check reads the user the first one publishes.
 	requireAdmin := func(h http.HandlerFunc) http.Handler {
 		return requireAuth(middleware.RequireAdmin(logger)(h))
+	}
+
+	// Course authoring (issue #17) is open to professors and administrators;
+	// RequireRole is what already anticipates more than one accepted role.
+	requireAuthor := func(h http.HandlerFunc) http.Handler {
+		return requireAuth(middleware.RequireRole(logger, domain.RoleAdmin, domain.RoleProfessor)(h))
 	}
 
 	// Replay protection for the writes where running twice would be visible:
@@ -144,6 +153,17 @@ func NewServer(cfg *config.Config, deps Deps, logger *slog.Logger) *Server {
 		requireAuth(middleware.RequireAdmin(logger)(idempotent(http.HandlerFunc(adminHandler.ChangeRole)))))
 	mux.Handle("PATCH /api/v1/admin/users/{userID}/status",
 		requireAuth(middleware.RequireAdmin(logger)(idempotent(http.HandlerFunc(adminHandler.ChangeStatus)))))
+
+	// Course authoring (issue #17). Listing and reading a single course are
+	// public, matching the catalog; creating and editing a draft require a
+	// professor or administrator and carry Idempotency-Key like the other
+	// mutating admin endpoints.
+	mux.HandleFunc("GET /api/v1/courses", courseHandler.List)
+	mux.HandleFunc("GET /api/v1/courses/{courseID}", courseHandler.Get)
+	mux.Handle("POST /api/v1/courses",
+		requireAuthor(idempotent(http.HandlerFunc(courseHandler.Create)).ServeHTTP))
+	mux.Handle("PUT /api/v1/courses/{courseID}",
+		requireAuthor(idempotent(http.HandlerFunc(courseHandler.Update)).ServeHTTP))
 
 	// Ordering matters. RequestID runs first so the correlation id is available
 	// to everything below it. RequestLogger comes next so every response is
