@@ -105,10 +105,11 @@ func TestMigrationReversibilityStructure(t *testing.T) {
 				}
 			}
 
-			if len(createdTables) == 0 {
-				t.Fatal("No tables found in up migration")
-			}
-
+			// Not every migration creates a table: one that only adds a
+			// constraint or a column to an existing table, like
+			// 000003_academic_ordering, is expected to find zero here. The
+			// invariant that matters either way is the one below: whatever a
+			// migration does create, its down script must drop.
 			for table := range createdTables {
 				if !droppedTables[table] {
 					t.Errorf("Table '%s' created in up migration but not dropped in down migration", table)
