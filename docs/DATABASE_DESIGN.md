@@ -236,6 +236,7 @@ Gestiona las sesiones activas y permite revocación de tokens.
 * `course_id` (`UUID`, FK $\rightarrow$ `courses.id` ON DELETE CASCADE): Referencia a la versión del curso.
 * `title` (`VARCHAR(255)`, NOT NULL): Nombre del módulo.
 * `position` (`INT`, NOT NULL): Orden dentro del curso.
+* **Restricción Única**: `UNIQUE (course_id, position) DEFERRABLE INITIALLY DEFERRED` — ver sección 5.
 
 #### `units` (Unidades - Nivel 3)
 * `id` (`UUID`, PK): Identificador de fila/instancia de unidad.
@@ -243,6 +244,7 @@ Gestiona las sesiones activas y permite revocación de tokens.
 * `module_id` (`UUID`, FK $\rightarrow$ `modules.id` ON DELETE CASCADE): Referencia al módulo padre.
 * `title` (`VARCHAR(255)`, NOT NULL): Nombre de la unidad.
 * `position` (`INT`, NOT NULL): Orden dentro del módulo.
+* **Restricción Única**: `UNIQUE (module_id, position) DEFERRABLE INITIALLY DEFERRED` — ver sección 5.
 
 #### `resources` (Recursos - Nivel 4)
 * `id` (`UUID`, PK): Identificador de fila/instancia de recurso.
@@ -256,6 +258,7 @@ Gestiona las sesiones activas y permite revocación de tokens.
 * `content_text` (`TEXT`): Texto enriquecido en Markdown Canónico Extendido (sin binarios).
 * `object_key` (`VARCHAR(512)`): Clave del objeto en S3/MinIO (ej: `courses/video1.m3u8`).
 * `processing_status` (`VARCHAR(50)`, CHECK: `'pending'`, `'processing'`, `'completed'`, `'failed'`): Estado del procesamiento asíncrono (transcodificación HLS/PDF).
+* **Restricción Única**: `UNIQUE (unit_id, position) DEFERRABLE INITIALLY DEFERRED` — ver sección 5.
 
 ---
 
@@ -284,3 +287,26 @@ Las migraciones SQL están ubicadas en `./migrations/` y siguen el estándar num
 * **Migración UP (`000001_init_schema.up.sql`)**: Crea todas las tablas, restricciones tipo `CHECK`, llaves foráneas e índices optimizados (`idx_*`).
 * **Migración DOWN (`000001_init_schema.down.sql`)**: Elimina en orden inverso de dependencia todas las tablas mediante `DROP TABLE IF EXISTS ... CASCADE;`.
 * **Prueba en CI**: La suite de pruebas automatizadas (`migrations/migrations_test.go`) ejecuta la secuencia `DOWN` $\rightarrow$ `UP` $\rightarrow$ `DOWN` $\rightarrow$ `UP` sobre bases de datos vacías para garantizar la reversibilidad limpia.
+
+---
+
+## 5. Ordenamiento e Identificadores Estables (Issue #16)
+
+Cada módulo, unidad y recurso tiene dos identificadores con propósitos distintos:
+
+* `id`: fila/versión específica. Cambia cada vez que se publica una nueva versión del curso.
+* `stable_id`: identidad permanente del elemento a través de todas las versiones. El progreso de un estudiante (`student_progress.completed_resources`, `progress_events.resource_stable_id`) se referencia **siempre** por `stable_id`, nunca por `id` ni por `position`.
+
+El orden se expresa exclusivamente en el campo `position` (entero, dentro de su contenedor: módulo en el curso, unidad en el módulo, recurso en la unidad). Reordenar nunca toca `stable_id`, así que el progreso de un estudiante sigue apuntando al mismo recurso sin importar cuántas veces se haya movido dentro de su unidad. La prueba de esta propiedad vive en `internal/domain/ordering_test.go` (`TestReorderPreservesStableIdentityForProgress`).
+
+### Cómo se recalculan las posiciones
+
+Al insertar o mover un elemento, **todo el conjunto de hermanos se renumera en una sola pasada**: el orden deseado se expresa como la lista completa de `stable_id` de los hermanos, y esa lista se recorre asignando `0, 1, 2, ...` en orden (`domain.Reposition`). Como la salida siempre cubre el conjunto completo de una sola vez, no existe una ruta de código que pueda producir dos hermanos con la misma posición — no es una validación que atrapa la colisión después del hecho, es que la colisión no tiene forma de ocurrir.
+
+* `domain.InsertAt(existing, newID, index)`: inserta `newID` en el índice dado (recortado a `[0, len(existing)]`), usado al crear un módulo, unidad o recurso nuevo.
+* `domain.MoveTo(existing, id, index)`: reubica un `stable_id` existente al índice dado, usado cuando la autoría reordena la lista. Mover un id que no pertenece al contenedor es una operación nula.
+* `domain.Reposition(orderedStableIDs)`: convierte el orden resultante en el mapa `stable_id -> position` que el repositorio escribe.
+
+### Por qué no hay colisiones también a nivel de base de datos
+
+`resources(unit_id, position)`, `units(module_id, position)` y `modules(course_id, position)` tienen una restricción `UNIQUE ... DEFERRABLE INITIALLY DEFERRED` (`migrations/000003_academic_ordering.up.sql`). Reescribir todo el conjunto de hermanos dentro de una transacción puede hacer que, a mitad de la pasada, dos filas compartan momentáneamente una posición antes de que el resto de los `UPDATE` la corrija; una restricción `UNIQUE` normal rechazaría la transacción en ese instante. `DEFERRABLE INITIALLY DEFERRED` pospone la verificación hasta el `COMMIT`, así que la transacción solo falla si, terminada toda la pasada, sigue existiendo una colisión real — algo que el algoritmo garantiza que nunca sucede.
