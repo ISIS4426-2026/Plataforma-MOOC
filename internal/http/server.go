@@ -44,6 +44,7 @@ type Deps struct {
 	DB               handler.Pinger
 	Auth             *auth.Service
 	Admin            *admin.Service
+	Audit            domain.AuditRepository
 	RateLimiter      domain.RateLimiter
 	IdempotencyStore domain.IdempotencyStore
 }
@@ -56,6 +57,7 @@ func NewServer(cfg *config.Config, deps Deps, logger *slog.Logger) *Server {
 	mux := http.NewServeMux()
 	authHandler := handler.NewAuthHandler(deps.Auth, logger)
 	adminHandler := handler.NewAdminHandler(deps.Admin, logger)
+	auditHandler := handler.NewAuditHandler(deps.Audit, logger)
 
 	// requireAuth guards the endpoints that act on behalf of a signed-in user.
 	// It is applied per route rather than globally so the public endpoints stay
@@ -144,6 +146,10 @@ func NewServer(cfg *config.Config, deps Deps, logger *slog.Logger) *Server {
 		requireAuth(middleware.RequireAdmin(logger)(idempotent(http.HandlerFunc(adminHandler.ChangeRole)))))
 	mux.Handle("PATCH /api/v1/admin/users/{userID}/status",
 		requireAuth(middleware.RequireAdmin(logger)(idempotent(http.HandlerFunc(adminHandler.ChangeStatus)))))
+
+	// Read side of the audit trail (issue #18): administrators only, no
+	// Idempotency-Key since it is a GET with no side effect to replay.
+	mux.Handle("GET /api/v1/admin/audit-logs", requireAdmin(auditHandler.List))
 
 	// Ordering matters. RequestID runs first so the correlation id is available
 	// to everything below it. RequestLogger comes next so every response is

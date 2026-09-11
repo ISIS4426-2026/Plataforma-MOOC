@@ -98,6 +98,7 @@ func run(logger *slog.Logger) error {
 		DB:               db,
 		Auth:             authService,
 		Admin:            adminService,
+		Audit:            postgres.NewAuditRepository(db),
 		RateLimiter:      cache.NewRateLimiter(redisClient),
 		IdempotencyStore: cache.NewIdempotencyStore(redisClient),
 	}, logger)

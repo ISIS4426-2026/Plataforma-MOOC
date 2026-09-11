@@ -5,6 +5,44 @@ import (
 	"time"
 )
 
+// DefaultAuditPageSize and MaxAuditPageSize bound a trail listing the same
+// way DefaultUserPageSize and MaxUserPageSize bound an admin one.
+const (
+	DefaultAuditPageSize = 20
+	MaxAuditPageSize     = 100
+)
+
+// AuditFilter narrows and pages the audit trail. Every field is optional;
+// the zero value lists everything, newest first.
+type AuditFilter struct {
+	// ActorID matches entries recorded for exactly this actor.
+	ActorID string
+
+	// ActionPrefix matches the start of the dotted action name, e.g.
+	// "course." to find every course-related entry regardless of which one
+	// happened — the reason actions are named `<recurso>.<hecho>` in the
+	// first place.
+	ActionPrefix string
+
+	// TargetResource matches entries recorded against exactly this
+	// `<tipo>:<identificador>` string.
+	TargetResource string
+
+	// From and To bound CreatedAt, inclusive on both ends. Either may be nil.
+	From, To *time.Time
+
+	Cursor string
+	Limit  int
+}
+
+// AuditPage is one page of a trail listing.
+type AuditPage struct {
+	Entries []*AuditEntry
+	// NextCursor is empty when there is nothing more to fetch.
+	NextCursor string
+	HasMore    bool
+}
+
 // AuditAction names something that happened and is worth keeping a record of.
 //
 // The values are dotted strings rather than an enum of integers so a log line
@@ -30,9 +68,12 @@ const (
 
 // AuditEntry is one immutable record of an action.
 //
-// Nothing here is ever updated or deleted once written; that is what makes the
-// trail worth having. Enforcing it at the database level is the subject of
-// issue #18 and is not done yet, see the notes on AuditRepository.
+// Nothing here is ever updated or deleted once written; that is what makes
+// the trail worth having. It is immutable both by convention — nothing in
+// this codebase exposes an update or delete path — and, since issue #18
+// (migrations/000003_audit_immutability.up.sql), enforced at the database
+// level: a trigger rejects any UPDATE or DELETE on audit_logs outright,
+// regardless of which role or code path attempts it.
 type AuditEntry struct {
 	ID string `json:"id"`
 
@@ -62,22 +103,7 @@ type AuditEntry struct {
 	CreatedAt time.Time `json:"created_at"`
 }
 
-// AuditRepository appends entries to the audit trail.
-//
-// # Contract for issue #18
-//
-// This port is intentionally write-only and single-method. Issue #18 owns
-// making the trail genuinely immutable and queryable, and should extend this
-// rather than replace it, so the callers already recording entries keep
-// working. What that issue still has to provide:
-//
-//   - Immutability at the database level. Today nothing stops an UPDATE or a
-//     DELETE on audit_logs; a trail that can be edited is not a trail. The usual
-//     shape is revoking those grants from the application role and adding a rule
-//     or trigger that rejects them.
-//   - A read side. Listing and filtering by actor, action, target and time range,
-//     with the cursor pagination the rest of the API uses.
-//   - Retention and export, per section 11 of the statement.
+// AuditRepository appends to and reads from the audit trail.
 //
 // # Contract for callers
 //
@@ -86,8 +112,23 @@ type AuditEntry struct {
 // its entry commit together; a caller that writes the change first and the
 // entry afterwards loses the entry whenever the second write fails. The
 // repositories that mutate state therefore take the entry and write both inside
-// one transaction, and Record exists for the actions that have nothing to
-// commit alongside them.
+// one transaction (see insertAuditEntry in internal/postgres), and Record
+// exists for the actions that have nothing to commit alongside them.
+//
+// List is the read side (issue #18): filtering and cursor pagination for an
+// administrator reviewing the trail. It never returns an entry that isn't
+// already durably committed, which the database-level immutability guarantee
+// makes safe to rely on.
+//
+// Retention and export (section 11 of the statement) are deliberately not
+// part of this port: issue #18's acceptance criteria don't call for either,
+// and building a policy nobody has specified yet (how long to keep entries,
+// in what export format) would be guessing. Left as a note for whoever picks
+// it up next rather than silently dropped.
 type AuditRepository interface {
 	Record(ctx context.Context, entry *AuditEntry) error
+
+	// List returns one page of the audit trail, newest first, narrowed by
+	// filter. Returns ErrInvalidInput if filter.Cursor is set but malformed.
+	List(ctx context.Context, filter AuditFilter) (*AuditPage, error)
 }
