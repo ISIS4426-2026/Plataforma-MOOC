@@ -46,6 +46,7 @@ type Deps struct {
 	Auth             *auth.Service
 	Admin            *admin.Service
 	Course           *course.Service
+	Audit            domain.AuditRepository
 	RateLimiter      domain.RateLimiter
 	IdempotencyStore domain.IdempotencyStore
 }
@@ -59,6 +60,7 @@ func NewServer(cfg *config.Config, deps Deps, logger *slog.Logger) *Server {
 	authHandler := handler.NewAuthHandler(deps.Auth, logger)
 	adminHandler := handler.NewAdminHandler(deps.Admin, logger)
 	courseHandler := handler.NewCourseHandler(deps.Course, logger)
+	auditHandler := handler.NewAuditHandler(deps.Audit, logger)
 
 	// requireAuth guards the endpoints that act on behalf of a signed-in user.
 	// It is applied per route rather than globally so the public endpoints stay
@@ -164,6 +166,10 @@ func NewServer(cfg *config.Config, deps Deps, logger *slog.Logger) *Server {
 		requireAuthor(idempotent(http.HandlerFunc(courseHandler.Create)).ServeHTTP))
 	mux.Handle("PUT /api/v1/courses/{courseID}",
 		requireAuthor(idempotent(http.HandlerFunc(courseHandler.Update)).ServeHTTP))
+
+	// Read side of the audit trail (issue #18): administrators only, no
+	// Idempotency-Key since it is a GET with no side effect to replay.
+	mux.Handle("GET /api/v1/admin/audit-logs", requireAdmin(auditHandler.List))
 
 	// Ordering matters. RequestID runs first so the correlation id is available
 	// to everything below it. RequestLogger comes next so every response is

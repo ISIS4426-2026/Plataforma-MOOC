@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"sort"
 	"testing"
 	"time"
 
@@ -83,14 +84,27 @@ func newTestDB(t *testing.T) *sql.DB {
 
 	// Applying the committed migrations rather than a hand-written DDL keeps the
 	// tests honest: a schema change that breaks these queries fails here.
-	for _, name := range []string{"000001_init_schema.up.sql", "000002_auth_tokens.up.sql"} {
-		path := filepath.Join("..", "..", "migrations", name)
+	//
+	// The set is discovered by globbing rather than named explicitly: a
+	// hardcoded list is exactly the failure mode the comment on
+	// scripts/init-db.sh warns about — a migration added later silently isn't
+	// applied here, and a test schema quietly diverges from what a real
+	// deployment runs (a trigger that "works" in the suite because it was
+	// never actually created in the schema under test, for instance).
+	migrationsDir := filepath.Join("..", "..", "migrations")
+	upPaths, err := filepath.Glob(filepath.Join(migrationsDir, "*.up.sql"))
+	if err != nil {
+		t.Fatalf("failed to list migration files: %v", err)
+	}
+	sort.Strings(upPaths)
+
+	for _, path := range upPaths {
 		content, err := os.ReadFile(path)
 		if err != nil {
-			t.Fatalf("failed to read migration %s: %v", name, err)
+			t.Fatalf("failed to read migration %s: %v", path, err)
 		}
 		if _, err := db.ExecContext(ctx, string(content)); err != nil {
-			t.Fatalf("failed to apply migration %s: %v", name, err)
+			t.Fatalf("failed to apply migration %s: %v", path, err)
 		}
 	}
 

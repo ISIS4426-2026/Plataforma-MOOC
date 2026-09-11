@@ -24,6 +24,8 @@ tags:
     description: Public registration, authentication, and session control endpoints.
   - name: Users
     description: Administrative user account management and professor provisioning.
+  - name: Audit
+    description: Read side of the immutable audit trail of administrative and authoring actions.
   - name: Courses
     description: Course catalog, authoring hierarchy, draft management, and publication versioning.
   - name: Modules
@@ -609,6 +611,80 @@ paths:
           $ref: '#/components/responses/412PreconditionFailed'
         '422':
           $ref: '#/components/responses/422IdempotencyKeyReused'
+        '500':
+          $ref: '#/components/responses/500InternalServerError'
+
+  /admin/audit-logs:
+    get:
+      tags:
+        - Audit
+      summary: List the audit trail
+      description: >
+        Administrative listing of the append-only audit trail, newest first.
+        Every administrative action (role change, suspension) and authoring
+        action (create/edit/publish a course) that mutates state is recorded
+        here in the same transaction as the change itself, so an entry can
+        never exist without the change it describes, or vice versa.
+
+
+        The trail is immutable at the database level: no operation, through
+        this API or otherwise, can edit or delete an existing entry.
+      operationId: listAuditLogs
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: actor_id
+          in: query
+          required: false
+          schema:
+            type: string
+            format: uuid
+          description: Only entries recorded for exactly this actor.
+        - name: action_prefix
+          in: query
+          required: false
+          schema:
+            type: string
+          description: >
+            Only entries whose action starts with this prefix, e.g. "course."
+            for every course-related action regardless of which one.
+          example: "course."
+        - name: target_resource
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Only entries recorded against exactly this `<type>:<id>` target.
+          example: "course:110ec58a-a0f2-4ac4-8393-c866d813b8d1"
+        - name: from
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+          description: Only entries recorded at or after this timestamp (RFC3339).
+        - name: to
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+          description: Only entries recorded at or before this timestamp (RFC3339).
+        - $ref: '#/components/parameters/CursorParam'
+        - $ref: '#/components/parameters/LimitParam'
+      responses:
+        '200':
+          description: One page of the audit trail.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuditLogListResponse'
+        '400':
+          $ref: '#/components/responses/400BadRequest'
+        '401':
+          $ref: '#/components/responses/401Unauthorized'
+        '403':
+          $ref: '#/components/responses/403Forbidden'
         '500':
           $ref: '#/components/responses/500InternalServerError'
 
@@ -1382,6 +1458,55 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/UserResponse'
+        pagination:
+          $ref: '#/components/schemas/CursorPagination'
+
+    AuditLogEntry:
+      type: object
+      required:
+        - id
+        - action
+        - target_resource
+        - created_at
+      properties:
+        id:
+          type: string
+          format: uuid
+        actor_id:
+          type: string
+          format: uuid
+          nullable: true
+          description: Who performed the action. Null when the platform acted on its own.
+        action:
+          type: string
+          description: "Dotted `<resource>.<past-tense fact>` name, e.g. \"course.created\"."
+          example: "course.created"
+        target_resource:
+          type: string
+          description: "What the action was performed on, as `<type>:<id>`."
+          example: "course:110ec58a-a0f2-4ac4-8393-c866d813b8d1"
+        details:
+          type: object
+          additionalProperties: true
+          description: Whatever else is worth knowing about the action, such as a field's previous and new value. Never credentials, tokens or password hashes.
+        ip_address:
+          type: string
+        user_agent:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+
+    AuditLogListResponse:
+      type: object
+      required:
+        - items
+        - pagination
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/AuditLogEntry'
         pagination:
           $ref: '#/components/schemas/CursorPagination'
 
