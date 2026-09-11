@@ -26,6 +26,8 @@ const (
 	AuditActionLoginSucceeded   AuditAction = "auth.login_succeeded"
 	AuditActionLoginFailed      AuditAction = "auth.login_failed"
 	AuditActionCourseNewVersion AuditAction = "course.version_published"
+	AuditActionCourseCreated    AuditAction = "course.created"
+	AuditActionCourseUpdated    AuditAction = "course.updated"
 )
 
 // AuditEntry is one immutable record of an action.

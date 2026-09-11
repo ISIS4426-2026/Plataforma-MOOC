@@ -12,6 +12,7 @@ import (
 	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/auth"
 	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/cache"
 	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/config"
+	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/course"
 	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/http"
 	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/mailer"
 	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/postgres"
@@ -94,10 +95,15 @@ func run(logger *slog.Logger) error {
 		SessionCache: sessionCache,
 	}, logger)
 
+	courseService := course.NewService(course.Deps{
+		Courses: postgres.NewCourseRepository(db),
+	}, logger)
+
 	server := http.NewServer(cfg, http.Deps{
 		DB:               db,
 		Auth:             authService,
 		Admin:            adminService,
+		Course:           courseService,
 		RateLimiter:      cache.NewRateLimiter(redisClient),
 		IdempotencyStore: cache.NewIdempotencyStore(redisClient),
 	}, logger)
