@@ -64,6 +64,8 @@ const (
 	AuditActionLoginSucceeded   AuditAction = "auth.login_succeeded"
 	AuditActionLoginFailed      AuditAction = "auth.login_failed"
 	AuditActionCourseNewVersion AuditAction = "course.version_published"
+	AuditActionCourseCreated    AuditAction = "course.created"
+	AuditActionCourseUpdated    AuditAction = "course.updated"
 )
 
 // AuditEntry is one immutable record of an action.
@@ -71,7 +73,7 @@ const (
 // Nothing here is ever updated or deleted once written; that is what makes
 // the trail worth having. It is immutable both by convention — nothing in
 // this codebase exposes an update or delete path — and, since issue #18
-// (migrations/000003_audit_immutability.up.sql), enforced at the database
+// (migrations/000004_audit_immutability.up.sql), enforced at the database
 // level: a trigger rejects any UPDATE or DELETE on audit_logs outright,
 // regardless of which role or code path attempts it.
 type AuditEntry struct {
