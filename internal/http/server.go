@@ -14,6 +14,7 @@ import (
 	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/domain"
 	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/http/handler"
 	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/http/middleware"
+	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/structure"
 )
 
 // Timeouts guard against slow or idle clients holding server resources. Without
@@ -46,6 +47,7 @@ type Deps struct {
 	Auth             *auth.Service
 	Admin            *admin.Service
 	Course           *course.Service
+	Structure        *structure.Service
 	Audit            domain.AuditRepository
 	RateLimiter      domain.RateLimiter
 	IdempotencyStore domain.IdempotencyStore
@@ -60,6 +62,7 @@ func NewServer(cfg *config.Config, deps Deps, logger *slog.Logger) *Server {
 	authHandler := handler.NewAuthHandler(deps.Auth, logger)
 	adminHandler := handler.NewAdminHandler(deps.Admin, logger)
 	courseHandler := handler.NewCourseHandler(deps.Course, logger)
+	structureHandler := handler.NewStructureHandler(deps.Structure, logger)
 	auditHandler := handler.NewAuditHandler(deps.Audit, logger)
 
 	// requireAuth guards the endpoints that act on behalf of a signed-in user.
@@ -166,6 +169,32 @@ func NewServer(cfg *config.Config, deps Deps, logger *slog.Logger) *Server {
 		requireAuthor(idempotent(http.HandlerFunc(courseHandler.Create)).ServeHTTP))
 	mux.Handle("PUT /api/v1/courses/{courseID}",
 		requireAuthor(idempotent(http.HandlerFunc(courseHandler.Update)).ServeHTTP))
+
+	// Module, Unit and Resource CRUD (issue #19), same public-read /
+	// professor-or-admin-write split as course authoring. Listing lives
+	// under its parent's path (a module's units, a unit's resources);
+	// writes to an existing item address it directly by id, since by then
+	// its place in the hierarchy is already fixed.
+	mux.HandleFunc("GET /api/v1/courses/{courseID}/modules", structureHandler.ListModules)
+	mux.Handle("POST /api/v1/courses/{courseID}/modules",
+		requireAuthor(idempotent(http.HandlerFunc(structureHandler.CreateModule)).ServeHTTP))
+	mux.Handle("PUT /api/v1/modules/{moduleID}",
+		requireAuthor(idempotent(http.HandlerFunc(structureHandler.UpdateModule)).ServeHTTP))
+	mux.Handle("DELETE /api/v1/modules/{moduleID}", requireAuthor(structureHandler.DeleteModule))
+
+	mux.HandleFunc("GET /api/v1/modules/{moduleID}/units", structureHandler.ListUnits)
+	mux.Handle("POST /api/v1/modules/{moduleID}/units",
+		requireAuthor(idempotent(http.HandlerFunc(structureHandler.CreateUnit)).ServeHTTP))
+	mux.Handle("PUT /api/v1/units/{unitID}",
+		requireAuthor(idempotent(http.HandlerFunc(structureHandler.UpdateUnit)).ServeHTTP))
+	mux.Handle("DELETE /api/v1/units/{unitID}", requireAuthor(structureHandler.DeleteUnit))
+
+	mux.HandleFunc("GET /api/v1/units/{unitID}/resources", structureHandler.ListResources)
+	mux.Handle("POST /api/v1/units/{unitID}/resources",
+		requireAuthor(idempotent(http.HandlerFunc(structureHandler.CreateResource)).ServeHTTP))
+	mux.Handle("PUT /api/v1/resources/{resourceID}",
+		requireAuthor(idempotent(http.HandlerFunc(structureHandler.UpdateResource)).ServeHTTP))
+	mux.Handle("DELETE /api/v1/resources/{resourceID}", requireAuthor(structureHandler.DeleteResource))
 
 	// Read side of the audit trail (issue #18): administrators only, no
 	// Idempotency-Key since it is a GET with no side effect to replay.

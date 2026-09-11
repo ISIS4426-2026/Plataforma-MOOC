@@ -77,18 +77,22 @@ type Unit struct {
 }
 
 type Resource struct {
-	ID               string       `json:"id"`
-	StableID         string       `json:"stable_id"`
-	UnitID           string       `json:"unit_id"`
-	Title            string       `json:"title"`
-	Type             ResourceType `json:"type"`
-	Position         int          `json:"position"`
-	IsVisible        bool         `json:"is_visible"`
-	IsMandatory      bool         `json:"is_mandatory"`
-	ContentText      string       `json:"content_text,omitempty"` // Extended canonical markdown
-	ObjectKey        string       `json:"object_key,omitempty"`   // Reference in MinIO/S3
-	ProcessingStatus string       `json:"processing_status,omitempty"`
-	CreatedAt        time.Time    `json:"created_at"`
+	ID          string       `json:"id"`
+	StableID    string       `json:"stable_id"`
+	UnitID      string       `json:"unit_id"`
+	Title       string       `json:"title"`
+	Type        ResourceType `json:"type"`
+	Position    int          `json:"position"`
+	IsVisible   bool         `json:"is_visible"`
+	IsMandatory bool         `json:"is_mandatory"`
+	// AllowDownload is independent of Type: a video or PDF can be
+	// streamed/viewed-only or downloadable, section 3 of the spec lists it
+	// alongside visibility and mandatoriness as a per-resource property.
+	AllowDownload    bool      `json:"allow_download"`
+	ContentText      string    `json:"content_text,omitempty"` // Extended canonical markdown
+	ObjectKey        string    `json:"object_key,omitempty"`   // Reference in MinIO/S3
+	ProcessingStatus string    `json:"processing_status,omitempty"`
+	CreatedAt        time.Time `json:"created_at"`
 }
 
 // DefaultCoursePageSize and MaxCoursePageSize bound a catalog listing the
@@ -149,4 +153,88 @@ type CourseRepository interface {
 	// transaction that applies the change so a concurrent write can't slip
 	// between the check and the update.
 	Update(ctx context.Context, courseID string, title, description string, opts ChangeOptions, entry *AuditEntry) (*Course, error)
+}
+
+// The structural repositories below back issue #19: CRUD for Module, Unit
+// and Resource, respecting the Curso -> Módulo -> Unidad -> Recurso
+// hierarchy.
+//
+// Three conventions carry over unchanged from CourseRepository:
+//
+//   - The caller supplies ID and StableID, generated client-side, so the
+//     audit entry recorded in the same transaction as the insert can name
+//     the resource it just created.
+//   - Every write takes the audit entry and commits it in the same
+//     transaction as the change, per the #18 contract.
+//   - Every write returns ErrCourseImmutable if the owning course is
+//     currently published: the whole structure freezes with it, not only
+//     the course row itself, so a published course can't grow a new module
+//     any more than it can change its title.
+//
+// One is new here: Create returns ErrNotFound if the parent (course for a
+// module, module for a unit, unit for a resource) does not exist -- issue
+// #19's integrity rule that a unit can't be created without a module, nor a
+// resource without a unit. The parent is locked (SELECT ... FOR UPDATE)
+// inside the same transaction as the insert, which is what makes that check
+// race-free against a concurrent delete of the same parent, and what makes
+// it safe to read the parent's current sibling count to assign the new
+// item's position -- always at the end, the trivial case of the
+// InsertAt/Reposition algorithm in internal/domain/ordering.go, since
+// nothing about creating an item requires moving any of its siblings.
+type ModuleRepository interface {
+	// Create inserts a new module at the end of course courseID.
+	Create(ctx context.Context, module *Module, entry *AuditEntry) error
+
+	GetByID(ctx context.Context, id string) (*Module, error)
+
+	// ListByCourse returns every module of a course, ordered by position.
+	ListByCourse(ctx context.Context, courseID string) ([]*Module, error)
+
+	// Update renames a module.
+	Update(ctx context.Context, moduleID, title string, entry *AuditEntry) (*Module, error)
+
+	// Delete removes a module and closes the position gap it leaves behind
+	// in its siblings, so positions stay a dense 0..n-1 sequence. Units and
+	// resources beneath it are removed by the database's ON DELETE CASCADE.
+	Delete(ctx context.Context, moduleID string, entry *AuditEntry) error
+}
+
+type UnitRepository interface {
+	// Create inserts a new unit at the end of module moduleID.
+	Create(ctx context.Context, unit *Unit, entry *AuditEntry) error
+
+	GetByID(ctx context.Context, id string) (*Unit, error)
+
+	// ListByModule returns every unit of a module, ordered by position.
+	ListByModule(ctx context.Context, moduleID string) ([]*Unit, error)
+
+	Update(ctx context.Context, unitID, title string, entry *AuditEntry) (*Unit, error)
+
+	Delete(ctx context.Context, unitID string, entry *AuditEntry) error
+}
+
+// ResourceUpdate carries the fields of a resource a caller may change after
+// creation. Type is not among them: changing what kind of resource a row is
+// after the fact is a replace, not an edit. ProcessingStatus is not among
+// them either: only the media-processing worker moves a resource through
+// pending/processing/completed/failed, never a client request.
+type ResourceUpdate struct {
+	Title         string
+	IsVisible     bool
+	IsMandatory   bool
+	AllowDownload bool
+}
+
+type ResourceRepository interface {
+	// Create inserts a new resource at the end of unit unitID.
+	Create(ctx context.Context, resource *Resource, entry *AuditEntry) error
+
+	GetByID(ctx context.Context, id string) (*Resource, error)
+
+	// ListByUnit returns every resource of a unit, ordered by position.
+	ListByUnit(ctx context.Context, unitID string) ([]*Resource, error)
+
+	Update(ctx context.Context, resourceID string, fields ResourceUpdate, entry *AuditEntry) (*Resource, error)
+
+	Delete(ctx context.Context, resourceID string, entry *AuditEntry) error
 }
