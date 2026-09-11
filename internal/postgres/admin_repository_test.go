@@ -46,7 +46,7 @@ func TestChangeStatusRefusesToSuspendTheLastActiveAdmin(t *testing.T) {
 
 	onlyAdmin := newAdminUser(t, users)
 
-	_, err := admins.ChangeStatus(ctx, onlyAdmin.ID, domain.UserStatusSuspended,
+	_, err := admins.ChangeStatus(ctx, onlyAdmin.ID, domain.UserStatusSuspended, domain.ChangeOptions{},
 		auditEntryFor(onlyAdmin.ID, onlyAdmin.ID, domain.AuditActionUserSuspended))
 
 	if !errors.Is(err, domain.ErrLastAdminProtected) {
@@ -73,7 +73,7 @@ func TestChangeRoleRefusesToDemoteTheLastActiveAdmin(t *testing.T) {
 
 	onlyAdmin := newAdminUser(t, users)
 
-	_, err := admins.ChangeRole(ctx, onlyAdmin.ID, domain.RoleStudent,
+	_, err := admins.ChangeRole(ctx, onlyAdmin.ID, domain.RoleStudent, domain.ChangeOptions{},
 		auditEntryFor(onlyAdmin.ID, onlyAdmin.ID, domain.AuditActionUserRoleChanged))
 
 	if !errors.Is(err, domain.ErrLastAdminProtected) {
@@ -107,7 +107,7 @@ func TestSuspendedAdminDoesNotCountAsTheLastOne(t *testing.T) {
 	}
 
 	// Only one administrator is active, so suspending it must still be refused.
-	_, err := admins.ChangeStatus(ctx, active.ID, domain.UserStatusSuspended,
+	_, err := admins.ChangeStatus(ctx, active.ID, domain.UserStatusSuspended, domain.ChangeOptions{},
 		auditEntryFor(active.ID, active.ID, domain.AuditActionUserSuspended))
 
 	if !errors.Is(err, domain.ErrLastAdminProtected) {
@@ -125,7 +125,7 @@ func TestChangeStatusSuspendsAnAdminWhenAnotherRemains(t *testing.T) {
 	first := newAdminUser(t, users)
 	newAdminUser(t, users)
 
-	updated, err := admins.ChangeStatus(ctx, first.ID, domain.UserStatusSuspended,
+	updated, err := admins.ChangeStatus(ctx, first.ID, domain.UserStatusSuspended, domain.ChangeOptions{},
 		auditEntryFor(first.ID, first.ID, domain.AuditActionUserSuspended))
 	if err != nil {
 		t.Fatalf("ChangeStatus returned an error: %v", err)
@@ -150,7 +150,7 @@ func TestChangeStatusAlwaysAllowsReactivation(t *testing.T) {
 		t.Fatalf("failed to create the suspended administrator: %v", err)
 	}
 
-	updated, err := admins.ChangeStatus(ctx, suspended.ID, domain.UserStatusActive,
+	updated, err := admins.ChangeStatus(ctx, suspended.ID, domain.UserStatusActive, domain.ChangeOptions{},
 		auditEntryFor(suspended.ID, suspended.ID, domain.AuditActionUserReactivated))
 	if err != nil {
 		t.Fatalf("ChangeStatus returned an error: %v", err)
@@ -171,7 +171,7 @@ func TestChangeStatusSuspendsANonAdmin(t *testing.T) {
 	newAdminUser(t, users)
 	student := newStoredUser(t, users)
 
-	updated, err := admins.ChangeStatus(ctx, student.ID, domain.UserStatusSuspended,
+	updated, err := admins.ChangeStatus(ctx, student.ID, domain.UserStatusSuspended, domain.ChangeOptions{},
 		auditEntryFor(student.ID, student.ID, domain.AuditActionUserSuspended))
 	if err != nil {
 		t.Fatalf("ChangeStatus returned an error: %v", err)
@@ -202,7 +202,7 @@ func TestConcurrentDemotionsCannotLeaveThePlatformWithoutAdmins(t *testing.T) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			_, err := admins.ChangeStatus(ctx, target.ID, domain.UserStatusSuspended,
+			_, err := admins.ChangeStatus(ctx, target.ID, domain.UserStatusSuspended, domain.ChangeOptions{},
 				auditEntryFor(target.ID, target.ID, domain.AuditActionUserSuspended))
 			results[i] = err
 		}()
@@ -235,7 +235,7 @@ func TestChangeStatusReportsNotFound(t *testing.T) {
 	db := newTestDB(t)
 	admins := postgres.NewAdminRepository(db)
 
-	_, err := admins.ChangeStatus(context.Background(), uuid.NewString(), domain.UserStatusSuspended,
+	_, err := admins.ChangeStatus(context.Background(), uuid.NewString(), domain.UserStatusSuspended, domain.ChangeOptions{},
 		auditEntryFor(uuid.NewString(), uuid.NewString(), domain.AuditActionUserSuspended))
 
 	if !errors.Is(err, domain.ErrNotFound) {
@@ -255,7 +255,7 @@ func TestAdministrativeChangesAreAudited(t *testing.T) {
 	target := newStoredUser(t, users)
 
 	entry := auditEntryFor(actor.ID, target.ID, domain.AuditActionUserRoleChanged)
-	if _, err := admins.ChangeRole(ctx, target.ID, domain.RoleProfessor, entry); err != nil {
+	if _, err := admins.ChangeRole(ctx, target.ID, domain.RoleProfessor, domain.ChangeOptions{}, entry); err != nil {
 		t.Fatalf("ChangeRole returned an error: %v", err)
 	}
 
@@ -311,7 +311,7 @@ func TestARefusedChangeWritesNoAuditEntry(t *testing.T) {
 	onlyAdmin := newAdminUser(t, users)
 
 	entry := auditEntryFor(onlyAdmin.ID, onlyAdmin.ID, domain.AuditActionUserSuspended)
-	if _, err := admins.ChangeStatus(ctx, onlyAdmin.ID, domain.UserStatusSuspended, entry); !errors.Is(err, domain.ErrLastAdminProtected) {
+	if _, err := admins.ChangeStatus(ctx, onlyAdmin.ID, domain.UserStatusSuspended, domain.ChangeOptions{}, entry); !errors.Is(err, domain.ErrLastAdminProtected) {
 		t.Fatalf("expected the change to be refused, got %v", err)
 	}
 

@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/admin"
 	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/domain"
@@ -102,7 +103,7 @@ func (h *AdminHandler) ChangeRole(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	updated, err := h.service.ChangeRole(r.Context(), actor, targetID, domain.Role(req.Role))
+	updated, err := h.service.ChangeRole(r.Context(), actor, targetID, domain.Role(req.Role), changeOptions(r))
 	if err != nil {
 		h.respondAdminError(w, r, err)
 		return
@@ -129,13 +130,55 @@ func (h *AdminHandler) ChangeStatus(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	updated, err := h.service.ChangeStatus(r.Context(), actor, targetID, domain.UserStatus(req.Status))
+	updated, err := h.service.ChangeStatus(r.Context(), actor, targetID, domain.UserStatus(req.Status), changeOptions(r))
 	if err != nil {
 		h.respondAdminError(w, r, err)
 		return
 	}
 
-	RespondWithJSON(w, http.StatusOK, map[string]any{"user": newUserResponse(updated)})
+	respondWithUser(w, updated)
+}
+
+// GetUser handles GET /api/v1/admin/users/{user_id}.
+//
+// It carries the ETag a client needs before attempting a conditional write, and
+// honours If-None-Match so a poll that finds nothing new costs a 304 instead of
+// a full body.
+func (h *AdminHandler) GetUser(w http.ResponseWriter, r *http.Request) {
+	targetID := r.PathValue("userID")
+	if targetID == "" {
+		RespondWithError(w, http.StatusBadRequest, "invalid_input", "Falta el identificador de usuario.", nil)
+		return
+	}
+
+	user, err := h.service.GetUser(r.Context(), targetID)
+	if err != nil {
+		h.respondAdminError(w, r, err)
+		return
+	}
+
+	RespondWithETag(w, r, user.ETag(), map[string]any{"user": newUserResponse(user)})
+}
+
+// respondWithUser writes the updated resource together with its new ETag, so a
+// client can chain another conditional write without a second round trip.
+func respondWithUser(w http.ResponseWriter, user *domain.User) {
+	w.Header().Set(HeaderETag, user.ETag())
+	RespondWithJSON(w, http.StatusOK, map[string]any{"user": newUserResponse(user)})
+}
+
+// changeOptions reads the precondition a caller attached to the request.
+//
+// A missing If-Match means "apply regardless", which keeps the header optional:
+// requiring it would break every client that does not implement optimistic
+// concurrency. Sending "*" means "the resource must exist", which it does by
+// the time the change is attempted, so it imposes no version constraint.
+func changeOptions(r *http.Request) domain.ChangeOptions {
+	ifMatch := strings.TrimSpace(r.Header.Get(HeaderIfMatch))
+	if ifMatch == "" || ifMatch == "*" {
+		return domain.ChangeOptions{}
+	}
+	return domain.ChangeOptions{ExpectedETag: ifMatch}
 }
 
 // actor builds the audit actor from the authenticated request.
@@ -156,6 +199,11 @@ func (h *AdminHandler) actor(w http.ResponseWriter, r *http.Request) (admin.Acto
 // respondAdminError maps domain errors onto the uniform error contract.
 func (h *AdminHandler) respondAdminError(w http.ResponseWriter, r *http.Request, err error) {
 	switch {
+	case errors.Is(err, domain.ErrPreconditionFailed):
+		// 412 rather than 409: the request was well formed and permitted, and
+		// what failed is the condition the caller attached to it.
+		RespondWithError(w, http.StatusPreconditionFailed, "precondition_failed",
+			"El recurso cambió desde la versión que tienes. Vuelve a leerlo y reintenta.", nil)
 	case errors.Is(err, domain.ErrLastAdminProtected):
 		// 409 rather than 403: the caller has the permission, the platform
 		// state is what forbids the change.

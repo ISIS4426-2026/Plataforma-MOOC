@@ -48,6 +48,11 @@ type Config struct {
 	// change.
 	PasswordResetTTL time.Duration
 
+	// IdempotencyTTL is how long a recorded response stays replayable. It bounds
+	// how late a retry can still be recognised as one; past it the request runs
+	// again.
+	IdempotencyTTL time.Duration
+
 	// CSRFAllowedOrigins lists the origins allowed to send state-changing
 	// requests. Empty disables the check, which is the right default while no
 	// browser client exists: with no frontend deployed there is no origin to
@@ -88,6 +93,8 @@ func Load() *Config {
 		AppBaseURL:           getEnv("APP_BASE_URL", "http://localhost:8080"),
 		EmailVerificationTTL: getEnvDuration("EMAIL_VERIFICATION_TTL", 24*time.Hour),
 		PasswordResetTTL:     getEnvDuration("PASSWORD_RESET_TTL", time.Hour),
+
+		IdempotencyTTL: getEnvDuration("IDEMPOTENCY_TTL", 24*time.Hour),
 
 		CSRFAllowedOrigins: getEnvList("CSRF_ALLOWED_ORIGINS"),
 

@@ -41,10 +41,11 @@ type Server struct {
 // Deps are the collaborators the HTTP layer needs. Grouping them keeps the
 // constructor signature stable as more modules register routes.
 type Deps struct {
-	DB          handler.Pinger
-	Auth        *auth.Service
-	Admin       *admin.Service
-	RateLimiter domain.RateLimiter
+	DB               handler.Pinger
+	Auth             *auth.Service
+	Admin            *admin.Service
+	RateLimiter      domain.RateLimiter
+	IdempotencyStore domain.IdempotencyStore
 }
 
 func NewServer(cfg *config.Config, deps Deps, logger *slog.Logger) *Server {
@@ -67,6 +68,11 @@ func NewServer(cfg *config.Config, deps Deps, logger *slog.Logger) *Server {
 	requireAdmin := func(h http.HandlerFunc) http.Handler {
 		return requireAuth(middleware.RequireAdmin(logger)(h))
 	}
+
+	// Replay protection for the writes where running twice would be visible:
+	// a second account, a second email, a second audit entry. It is opt-in, so
+	// a client that sends no Idempotency-Key is unaffected.
+	idempotent := middleware.Idempotency(deps.IdempotencyStore, cfg.IdempotencyTTL, logger)
 
 	// Rate limits are applied per endpoint group rather than globally: the
 	// thresholds that make sense for credential guessing would be absurd for
@@ -100,7 +106,7 @@ func NewServer(cfg *config.Config, deps Deps, logger *slog.Logger) *Server {
 	// Public authentication endpoints. These are the ones exposed to credential
 	// guessing and mailbox flooding, so each carries a rate limit.
 	mux.Handle("POST /api/v1/auth/register",
-		limitRegister(http.HandlerFunc(authHandler.Register)))
+		limitRegister(idempotent(http.HandlerFunc(authHandler.Register))))
 	// El token tiene 256 bits de entropia, asi que adivinarlo es inviable; el
 	// limite existe para que golpear el endpoint con tokens basura no salga
 	// gratis en consultas a la base de datos.
@@ -111,7 +117,7 @@ func NewServer(cfg *config.Config, deps Deps, logger *slog.Logger) *Server {
 	mux.Handle("POST /api/v1/auth/login",
 		limitLogin(http.HandlerFunc(authHandler.Login)))
 	mux.Handle("POST /api/v1/auth/password/forgot",
-		limitRecovery(http.HandlerFunc(authHandler.ForgotPassword)))
+		limitRecovery(idempotent(http.HandlerFunc(authHandler.ForgotPassword))))
 	mux.Handle("POST /api/v1/auth/password/reset",
 		limitRecovery(http.HandlerFunc(authHandler.ResetPassword)))
 
@@ -128,8 +134,16 @@ func NewServer(cfg *config.Config, deps Deps, logger *slog.Logger) *Server {
 	// Administrative account management (issue #12). Every route is restricted
 	// to administrators; a signed-in user with another role gets 403.
 	mux.Handle("GET /api/v1/admin/users", requireAdmin(adminHandler.ListUsers))
-	mux.Handle("PATCH /api/v1/admin/users/{userID}/role", requireAdmin(adminHandler.ChangeRole))
-	mux.Handle("PATCH /api/v1/admin/users/{userID}/status", requireAdmin(adminHandler.ChangeStatus))
+	mux.Handle("GET /api/v1/admin/users/{userID}", requireAdmin(adminHandler.GetUser))
+
+	// The administrative writes are both idempotent and conditional: a replay
+	// returns the recorded answer, and a stale If-Match is refused. Idempotency
+	// sits inside the role check so the scoped key is bound to a caller that has
+	// already been authenticated.
+	mux.Handle("PATCH /api/v1/admin/users/{userID}/role",
+		requireAuth(middleware.RequireAdmin(logger)(idempotent(http.HandlerFunc(adminHandler.ChangeRole)))))
+	mux.Handle("PATCH /api/v1/admin/users/{userID}/status",
+		requireAuth(middleware.RequireAdmin(logger)(idempotent(http.HandlerFunc(adminHandler.ChangeStatus)))))
 
 	// Ordering matters. RequestID runs first so the correlation id is available
 	// to everything below it. RequestLogger comes next so every response is
