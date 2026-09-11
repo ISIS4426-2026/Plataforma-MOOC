@@ -205,6 +205,43 @@ func (r *CourseRepository) Update(ctx context.Context, courseID string, title, d
 	return updated, nil
 }
 
+// UpdateStatus transitions a course's status (issue #20: publish and
+// unpublish) inside a transaction that also records the audit entry. It does
+// not itself validate the transition or lock+recheck any precondition beyond
+// the row's existence -- course.Service decides whether a transition is
+// allowed before calling this.
+func (r *CourseRepository) UpdateStatus(ctx context.Context, courseID string, status domain.CourseStatus, entry *domain.AuditEntry) (*domain.Course, error) {
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return nil, fmt.Errorf("begin transaction: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	if _, err := lockCourse(ctx, tx, courseID); err != nil {
+		return nil, err
+	}
+
+	const query = `
+		UPDATE courses SET status = $2, updated_at = NOW()
+		WHERE id = $1
+		RETURNING ` + courseColumns
+
+	updated, err := scanCourse(tx.QueryRowContext(ctx, query, courseID, string(status)))
+	if err != nil {
+		return nil, fmt.Errorf("update status of course %s: %w", courseID, err)
+	}
+
+	if err := insertAuditEntry(ctx, tx, entry); err != nil {
+		return nil, err
+	}
+
+	if err := tx.Commit(); err != nil {
+		return nil, fmt.Errorf("commit course status change: %w", err)
+	}
+
+	return updated, nil
+}
+
 // lockCourse takes a row lock on the course being edited, so a concurrent
 // update or publish cannot interleave with the precondition and immutability
 // checks that follow it.

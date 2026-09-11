@@ -153,6 +153,13 @@ type CourseRepository interface {
 	// transaction that applies the change so a concurrent write can't slip
 	// between the check and the update.
 	Update(ctx context.Context, courseID string, title, description string, opts ChangeOptions, entry *AuditEntry) (*Course, error)
+
+	// UpdateStatus transitions a course between draft, published and
+	// unpublished (issue #20). It does not itself decide which transitions
+	// are valid or re-validate publication requirements -- that is
+	// course.Service's job, before it calls this -- it only applies the
+	// change and records the audit entry in the same transaction.
+	UpdateStatus(ctx context.Context, courseID string, status CourseStatus, entry *AuditEntry) (*Course, error)
 }
 
 // The structural repositories below back issue #19: CRUD for Module, Unit
