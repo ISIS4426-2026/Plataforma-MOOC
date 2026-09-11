@@ -15,13 +15,20 @@ const (
 
 type ResourceType string
 
+// The ten values match the CHECK constraint on resources.type in
+// migrations/000001_init_schema.up.sql; adding a resource type means updating
+// both.
 const (
-	ResourceTypeRichText ResourceType = "text"
-	ResourceTypeImage    ResourceType = "image"
-	ResourceTypeVideo    ResourceType = "video"
-	ResourceTypeAudio    ResourceType = "audio"
-	ResourceTypePDF      ResourceType = "pdf"
-	ResourceTypeQuiz     ResourceType = "quiz"
+	ResourceTypeRichText     ResourceType = "text"
+	ResourceTypeImage        ResourceType = "image"
+	ResourceTypeVideo        ResourceType = "video"
+	ResourceTypeAudio        ResourceType = "audio"
+	ResourceTypePDF          ResourceType = "pdf"
+	ResourceTypePresentation ResourceType = "presentation"
+	ResourceTypeDownloadable ResourceType = "downloadable"
+	ResourceTypeIframe       ResourceType = "iframe"
+	ResourceTypeExternalLink ResourceType = "external_link"
+	ResourceTypeQuiz         ResourceType = "quiz"
 )
 
 // Course aggregate root.
