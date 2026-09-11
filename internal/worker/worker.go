@@ -10,6 +10,7 @@ import (
 	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/config"
 	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/worker/handler"
 	"github.com/hibiken/asynq"
+	"go.opentelemetry.io/otel/metric"
 )
 
 // AlertHandlerFunc is a function signature for listening to alerts when a task fails and moves to DLQ.
@@ -28,6 +29,7 @@ type WorkerEngine struct {
 	queues                   map[string]int
 	delayedTaskCheckInterval time.Duration
 	taskCheckInterval        time.Duration
+	meter                    metric.Meter
 }
 
 // WorkerOption defines functional configuration options for WorkerEngine.
@@ -86,6 +88,15 @@ func WithDelayedTaskCheckInterval(d time.Duration) WorkerOption {
 func WithTaskCheckInterval(d time.Duration) WorkerOption {
 	return func(we *WorkerEngine) {
 		we.taskCheckInterval = d
+	}
+}
+
+// WithMeter enables MetricsMiddleware (issue #21: jobs processed/failed).
+// Omitting it -- as every existing test does -- leaves the worker exactly as
+// it was before this option existed, metrics included.
+func WithMeter(meter metric.Meter) WorkerOption {
+	return func(we *WorkerEngine) {
+		we.meter = meter
 	}
 }
 
@@ -165,6 +176,9 @@ func NewWorkerEngine(cfg *config.Config, opts ...WorkerOption) (*WorkerEngine, e
 	mux := asynq.NewServeMux()
 	mux.Use(IdempotencyMiddleware(we.idempotencyStore, we.logger))
 	mux.Use(LoggingMiddleware(we.logger))
+	if we.meter != nil {
+		mux.Use(MetricsMiddleware(we.meter))
+	}
 	handler.RegisterRoutes(mux)
 
 	we.server = srv

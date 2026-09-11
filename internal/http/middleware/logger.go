@@ -37,6 +37,13 @@ func RequestLogger(logger *slog.Logger) Middleware {
 				slog.String("duración", duration.String()),
 				slog.Int64("duración_ms", duration.Milliseconds()),
 			}
+			// Present only when Tracing runs earlier in the chain and started
+			// a span for this request; ties this log line to that span
+			// (issue #21: "logs y trazas correlacionados mediante un
+			// identificador común").
+			if traceID := TraceIDFrom(r.Context()); traceID != "" {
+				attrs = append(attrs, slog.String("trace_id", traceID))
+			}
 
 			// Server-side failures are the ones an operator needs to see by
 			// default; client errors stay at info so a scan of 404s does not

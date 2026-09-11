@@ -15,9 +15,15 @@ import (
 	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/course"
 	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/http"
 	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/mailer"
+	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/observability"
 	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/postgres"
 	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/structure"
 )
+
+// serviceVersion identifies this build in traces and metrics. A constant
+// rather than a build-time ldflag: the project has no release process yet
+// for it to track.
+const serviceVersion = "0.1.0"
 
 // startupTimeout bounds the initial database probe so a missing dependency
 // fails the container fast instead of hanging the deployment.
@@ -44,6 +50,24 @@ func run(logger *slog.Logger) error {
 
 	startupCtx, cancelStartup := context.WithTimeout(context.Background(), startupTimeout)
 	defer cancelStartup()
+
+	// Traces and metrics (issue #21); structured JSON logging is already in
+	// place via the slog handler set up in main().
+	obs, err := observability.Setup(observability.Config{
+		ServiceName:    "plataforma-mooc-api",
+		ServiceVersion: serviceVersion,
+		Environment:    cfg.Environment,
+	})
+	if err != nil {
+		return err
+	}
+	defer func() {
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
+		defer cancel()
+		if err := obs.Shutdown(shutdownCtx); err != nil {
+			logger.Error("failed to shut down observability providers", slog.String("error", err.Error()))
+		}
+	}()
 
 	db, err := postgres.Connect(startupCtx, cfg)
 	if err != nil {
@@ -127,6 +151,9 @@ func run(logger *slog.Logger) error {
 		Audit:            postgres.NewAuditRepository(db),
 		RateLimiter:      cache.NewRateLimiter(redisClient),
 		IdempotencyStore: cache.NewIdempotencyStore(redisClient),
+		Tracer:           obs.Tracer,
+		Meter:            obs.Meter,
+		MetricsHandler:   obs.MetricsHandler,
 	}, logger)
 
 	// Serve in the background so the main goroutine can wait for a termination
