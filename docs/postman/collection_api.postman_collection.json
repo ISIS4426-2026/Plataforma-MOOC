@@ -17,7 +17,7 @@
     },
     {
       "key": "testPassword",
-      "value": "contrasena-segura-123",
+      "value": "Password123!",
       "type": "string"
     },
     {
@@ -47,7 +47,7 @@
     },
     {
       "key": "newPassword",
-      "value": "contrasena-nueva-456",
+      "value": "NewPassword123!",
       "type": "string"
     },
     {
@@ -83,6 +83,11 @@
     {
       "key": "idemUserId",
       "value": "",
+      "type": "string"
+    },
+    {
+      "key": "expiredToken",
+      "value": "expired-token-sample-00000000",
       "type": "string"
     }
   ],
@@ -143,7 +148,7 @@
               "pm.test('el rol es estudiante', () => pm.expect(body.user.role).to.eql('estudiante'));",
               "pm.test('queda pendiente de verificacion', () => pm.expect(body.user.status).to.eql('pending_verification'));",
               "pm.test('la respuesta no expone la contrasena', () =>",
-              "  pm.expect(pm.response.text().toLowerCase()).to.not.include(pm.collectionVariables.get('testPassword')));"
+              "  pm.expect(pm.response.text().toLowerCase()).to.not.include(pm.collectionVariables.get('testPassword').toLowerCase()));"
             ]
           }
         }
@@ -184,8 +189,11 @@
             "exec": [
               "// El registro publico solo crea estudiantes (seccion 5.1, punto 1).",
               "pm.test('responde 400', () => pm.response.to.have.status(400));",
-              "pm.test('el campo role se rechaza, no se ignora', () =>",
-              "  pm.expect(pm.response.json().code).to.eql('invalid_body'));"
+              "pm.test('el campo role se rechaza, no se ignora', () => {",
+              "  const body = pm.response.json();",
+              "  pm.expect(body.code).to.eql('invalid_body');",
+              "  pm.expect(body.message).to.be.a('string');",
+              "});"
             ]
           }
         }
@@ -226,8 +234,11 @@
             "exec": [
               "pm.test('responde 409', () => pm.response.to.have.status(409));",
               "// Mayusculas distintas: la normalizacion del correo debe detectarlo igual.",
-              "pm.test('detecta el duplicado', () =>",
-              "  pm.expect(pm.response.json().code).to.eql('email_already_registered'));"
+              "pm.test('detecta el duplicado', () => {",
+              "  const body = pm.response.json();",
+              "  pm.expect(body.code).to.eql('email_already_registered');",
+              "  pm.expect(body.message).to.be.a('string');",
+              "});"
             ]
           }
         }
@@ -267,8 +278,11 @@
             "type": "text/javascript",
             "exec": [
               "pm.test('responde 403', () => pm.response.to.have.status(403));",
-              "pm.test('exige verificar el correo', () =>",
-              "  pm.expect(pm.response.json().code).to.eql('email_not_verified'));"
+              "pm.test('exige verificar el correo', () => {",
+              "  const body = pm.response.json();",
+              "  pm.expect(body.code).to.eql('email_not_verified');",
+              "  pm.expect(body.message).to.be.a('string');",
+              "});"
             ]
           }
         }
@@ -387,45 +401,7 @@
       }
     },
     {
-      "name": "07 Verificar activa la cuenta",
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "pm.test('responde 200', () => pm.response.to.have.status(200));",
-              "pm.test('la cuenta queda activa', () =>",
-              "  pm.expect(pm.response.json().user.status).to.eql('active'));"
-            ]
-          }
-        }
-      ],
-      "request": {
-        "method": "GET",
-        "header": [],
-        "url": {
-          "raw": "{{baseUrl}}/api/v1/auth/verify?token={{verificationToken}}",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "api",
-            "v1",
-            "auth",
-            "verify"
-          ],
-          "query": [
-            {
-              "key": "token",
-              "value": "{{verificationToken}}"
-            }
-          ]
-        }
-      }
-    },
-    {
-      "name": "08 El enlace es de un solo uso",
+      "name": "07 Verificar rechaza token expirado o invalido",
       "event": [
         {
           "listen": "test",
@@ -433,8 +409,52 @@
             "type": "text/javascript",
             "exec": [
               "pm.test('responde 400', () => pm.response.to.have.status(400));",
-              "pm.test('el token ya no sirve', () =>",
-              "  pm.expect(pm.response.json().code).to.eql('invalid_token'));"
+              "pm.test('rechaza por token invalido o expirado', () => {",
+              "  const body = pm.response.json();",
+              "  pm.expect(body.code).to.eql('invalid_token');",
+              "  pm.expect(body.message).to.be.a('string');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/auth/verify?token={{expiredToken}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "auth",
+            "verify"
+          ],
+          "query": [
+            {
+              "key": "token",
+              "value": "{{expiredToken}}"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "08 Verificar activa la cuenta",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('responde 200', () => pm.response.to.have.status(200));",
+              "pm.test('la cuenta queda activa', () => {",
+              "  const body = pm.response.json();",
+              "  pm.expect(body.user.status).to.eql('active');",
+              "  pm.expect(body.message).to.be.a('string');",
+              "});"
             ]
           }
         }
@@ -463,7 +483,48 @@
       }
     },
     {
-      "name": "09 Login exitoso tras verificar",
+      "name": "09 El enlace es de un solo uso",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('responde 400', () => pm.response.to.have.status(400));",
+              "pm.test('el token ya no sirve', () => {",
+              "  const body = pm.response.json();",
+              "  pm.expect(body.code).to.eql('invalid_token');",
+              "  pm.expect(body.message).to.be.a('string');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/auth/verify?token={{verificationToken}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "auth",
+            "verify"
+          ],
+          "query": [
+            {
+              "key": "token",
+              "value": "{{verificationToken}}"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "10 Login exitoso tras verificar",
       "event": [
         {
           "listen": "test",
@@ -510,7 +571,7 @@
       }
     },
     {
-      "name": "10 Login con contrasena incorrecta",
+      "name": "11 Login con contrasena incorrecta",
       "event": [
         {
           "listen": "test",
@@ -519,8 +580,11 @@
             "exec": [
               "pm.test('responde 401', () => pm.response.to.have.status(401));",
               "// Debe ser identico al de un correo inexistente, para no revelar que la cuenta existe.",
-              "pm.test('mensaje generico', () =>",
-              "  pm.expect(pm.response.json().code).to.eql('invalid_credentials'));"
+              "pm.test('mensaje generico', () => {",
+              "  const body = pm.response.json();",
+              "  pm.expect(body.code).to.eql('invalid_credentials');",
+              "  pm.expect(body.message).to.be.a('string');",
+              "});"
             ]
           }
         }
@@ -552,7 +616,7 @@
       }
     },
     {
-      "name": "11 Login con correo inexistente responde igual",
+      "name": "12 Login con correo inexistente responde igual",
       "event": [
         {
           "listen": "test",
@@ -560,8 +624,11 @@
             "type": "text/javascript",
             "exec": [
               "pm.test('responde 401', () => pm.response.to.have.status(401));",
-              "pm.test('no revela si el correo existe', () =>",
-              "  pm.expect(pm.response.json().code).to.eql('invalid_credentials'));"
+              "pm.test('no revela si el correo existe', () => {",
+              "  const body = pm.response.json();",
+              "  pm.expect(body.code).to.eql('invalid_credentials');",
+              "  pm.expect(body.message).to.be.a('string');",
+              "});"
             ]
           }
         }
@@ -593,7 +660,7 @@
       }
     },
     {
-      "name": "12 Endpoint protegido sin token",
+      "name": "13 Endpoint protegido sin token",
       "event": [
         {
           "listen": "test",
@@ -602,7 +669,12 @@
             "exec": [
               "pm.test('responde 401', () => pm.response.to.have.status(401));",
               "pm.test('pide autenticacion', () =>",
-              "  pm.expect(pm.response.headers.get('WWW-Authenticate')).to.eql('Bearer'));"
+              "  pm.expect(pm.response.headers.get('WWW-Authenticate')).to.eql('Bearer'));",
+              "pm.test('forma de error no autorizado', () => {",
+              "  const body = pm.response.json();",
+              "  pm.expect(body.code).to.eql('unauthorized');",
+              "  pm.expect(body.message).to.be.a('string');",
+              "});"
             ]
           }
         }
@@ -625,7 +697,7 @@
       }
     },
     {
-      "name": "13 Endpoint protegido con token",
+      "name": "14 Endpoint protegido con token",
       "event": [
         {
           "listen": "test",
@@ -667,7 +739,131 @@
       }
     },
     {
-      "name": "14 Logout",
+      "name": "15 Revocacion de sesion por ID",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Criterio de aceptacion seccion 9: revocacion individual de sesion por identificador.",
+              "pm.test('responde 204', () => pm.response.to.have.status(204));",
+              "pm.test('sin cuerpo tras revocacion', () => pm.expect(pm.response.text()).to.be.empty);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{sessionToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/auth/sessions/{{sessionId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "auth",
+            "sessions",
+            "{{sessionId}}"
+          ]
+        }
+      }
+    },
+    {
+      "name": "16 Revocacion inmediata por ID: el token ya no sirve",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Despues de revocar la sesion, su token queda inmediatamente invalidado.",
+              "pm.test('responde 401 tras revocacion por ID', () => pm.response.to.have.status(401));",
+              "pm.test('la sesion revocada no tiene acceso', () => {",
+              "  const body = pm.response.json();",
+              "  pm.expect(body.code).to.eql('unauthorized');",
+              "  pm.expect(body.message).to.be.a('string');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{sessionToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/auth/sessions",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "auth",
+            "sessions"
+          ]
+        }
+      }
+    },
+    {
+      "name": "17 Login para obtener nueva sesion para logout",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('responde 200', () => pm.response.to.have.status(200));",
+              "pm.test('devuelve nuevo token de sesion', () => {",
+              "  const body = pm.response.json();",
+              "  pm.expect(body.token).to.be.a('string').and.not.empty;",
+              "  pm.expect(body.expires_at).to.be.a('string');",
+              "  pm.collectionVariables.set('sessionToken', body.token);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"{{testEmail}}\",\n  \"password\": \"{{testPassword}}\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/auth/login",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "auth",
+            "login"
+          ]
+        }
+      }
+    },
+    {
+      "name": "18 Logout",
       "event": [
         {
           "listen": "test",
@@ -703,17 +899,20 @@
       }
     },
     {
-      "name": "15 Revocacion inmediata: el token ya no sirve",
+      "name": "19 Revocacion inmediata tras logout: el token ya no sirve",
       "event": [
         {
           "listen": "test",
           "script": {
             "type": "text/javascript",
             "exec": [
-              "// Condicion de aceptacion de la seccion 9: revocacion inmediata de sesiones.",
+              "// Condicion de aceptacion de la seccion 9: revocacion inmediata de sesiones tras logout.",
               "pm.test('responde 401 en la peticion siguiente', () => pm.response.to.have.status(401));",
-              "pm.test('la sesion quedo invalidada', () =>",
-              "  pm.expect(pm.response.json().code).to.eql('unauthorized'));"
+              "pm.test('la sesion quedo invalidada', () => {",
+              "  const body = pm.response.json();",
+              "  pm.expect(body.code).to.eql('unauthorized');",
+              "  pm.expect(body.message).to.be.a('string');",
+              "});"
             ]
           }
         }
@@ -741,17 +940,18 @@
       }
     },
     {
-      "name": "16 Reenvio de verificacion no revela nada",
+      "name": "20 Reenvio de verificacion no revela nada",
       "event": [
         {
           "listen": "test",
           "script": {
             "type": "text/javascript",
             "exec": [
-              "// La cuenta ya esta activa: debe responder igual que para una desconocida y no enviar correo.",
               "pm.test('responde 202', () => pm.response.to.have.status(202));",
-              "pm.test('mensaje generico', () =>",
-              "  pm.expect(pm.response.json().message).to.include('Si la cuenta existe'));"
+              "pm.test('mensaje generico', () => {",
+              "  const body = pm.response.json();",
+              "  pm.expect(body.message).to.include('Si la cuenta existe');",
+              "});"
             ]
           }
         }
@@ -784,7 +984,7 @@
       }
     },
     {
-      "name": "17 Login de nuevo para abrir una sesion",
+      "name": "21 Login de nuevo para abrir una sesion",
       "event": [
         {
           "listen": "test",
@@ -792,7 +992,12 @@
             "type": "text/javascript",
             "exec": [
               "pm.test('responde 200', () => pm.response.to.have.status(200));",
-              "pm.collectionVariables.set('sessionToken', pm.response.json().token);"
+              "pm.test('devuelve token de sesion', () => {",
+              "  const body = pm.response.json();",
+              "  pm.expect(body.token).to.be.a('string').and.not.empty;",
+              "  pm.expect(body.expires_at).to.be.a('string');",
+              "  pm.collectionVariables.set('sessionToken', body.token);",
+              "});"
             ]
           }
         }
@@ -824,7 +1029,7 @@
       }
     },
     {
-      "name": "18 Recuperacion: solicitar enlace",
+      "name": "22 Recuperacion: solicitar enlace",
       "event": [
         {
           "listen": "test",
@@ -832,7 +1037,11 @@
             "type": "text/javascript",
             "exec": [
               "pm.test('responde 202', () => pm.response.to.have.status(202));",
-              "pm.collectionVariables.set('mensajeGenerico', pm.response.json().message);"
+              "pm.test('mensaje generico de recuperacion', () => {",
+              "  const body = pm.response.json();",
+              "  pm.expect(body.message).to.be.a('string').and.not.empty;",
+              "  pm.collectionVariables.set('mensajeGenerico', body.message);",
+              "});"
             ]
           }
         }
@@ -865,7 +1074,7 @@
       }
     },
     {
-      "name": "19 Recuperacion: correo inexistente responde identico",
+      "name": "23 Recuperacion: correo inexistente responde identico",
       "event": [
         {
           "listen": "test",
@@ -908,7 +1117,7 @@
       }
     },
     {
-      "name": "20 Mailpit: buscar el correo de recuperacion",
+      "name": "24 Mailpit: buscar el correo de recuperacion",
       "event": [
         {
           "listen": "test",
@@ -951,7 +1160,7 @@
       }
     },
     {
-      "name": "21 Mailpit: extraer el token de recuperacion",
+      "name": "25 Mailpit: extraer el token de recuperacion",
       "event": [
         {
           "listen": "test",
@@ -987,7 +1196,7 @@
       }
     },
     {
-      "name": "22 Reset con contrasena corta no quema el enlace",
+      "name": "26 Reset rechaza token expirado o invalido",
       "event": [
         {
           "listen": "test",
@@ -995,8 +1204,56 @@
             "type": "text/javascript",
             "exec": [
               "pm.test('responde 400', () => pm.response.to.have.status(400));",
-              "pm.test('rechaza por dato invalido, no por token', () =>",
-              "  pm.expect(pm.response.json().code).to.eql('invalid_input'));"
+              "pm.test('rechaza por token invalido o expirado', () => {",
+              "  const body = pm.response.json();",
+              "  pm.expect(body.code).to.eql('invalid_token');",
+              "  pm.expect(body.message).to.be.a('string');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"token\": \"{{expiredToken}}\",\n  \"password\": \"{{newPassword}}\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/auth/password/reset",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "auth",
+            "password",
+            "reset"
+          ]
+        }
+      }
+    },
+    {
+      "name": "27 Reset con contrasena corta no quema el enlace",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('responde 400', () => pm.response.to.have.status(400));",
+              "pm.test('rechaza por dato invalido, no por token', () => {",
+              "  const body = pm.response.json();",
+              "  pm.expect(body.code).to.eql('invalid_input');",
+              "  pm.expect(body.message).to.be.a('string');",
+              "});"
             ]
           }
         }
@@ -1029,7 +1286,7 @@
       }
     },
     {
-      "name": "23 Reset con contrasena valida",
+      "name": "28 Reset con contrasena valida",
       "event": [
         {
           "listen": "test",
@@ -1037,7 +1294,8 @@
             "type": "text/javascript",
             "exec": [
               "// El enlace del paso anterior debe seguir sirviendo: no se quemo.",
-              "pm.test('responde 204', () => pm.response.to.have.status(204));"
+              "pm.test('responde 204', () => pm.response.to.have.status(204));",
+              "pm.test('sin cuerpo tras reseteo exitoso', () => pm.expect(pm.response.text()).to.be.empty);"
             ]
           }
         }
@@ -1070,7 +1328,7 @@
       }
     },
     {
-      "name": "24 La sesion previa quedo invalidada",
+      "name": "29 La sesion previa quedo invalidada",
       "event": [
         {
           "listen": "test",
@@ -1078,7 +1336,12 @@
             "type": "text/javascript",
             "exec": [
               "// Criterio: cambiar la contrasena invalida todas las sesiones activas.",
-              "pm.test('responde 401', () => pm.response.to.have.status(401));"
+              "pm.test('responde 401', () => pm.response.to.have.status(401));",
+              "pm.test('sesion invalidada por cambio de contrasena', () => {",
+              "  const body = pm.response.json();",
+              "  pm.expect(body.code).to.eql('unauthorized');",
+              "  pm.expect(body.message).to.be.a('string');",
+              "});"
             ]
           }
         }
@@ -1106,14 +1369,19 @@
       }
     },
     {
-      "name": "25 Login con la contrasena vieja",
+      "name": "30 Login con la contrasena vieja",
       "event": [
         {
           "listen": "test",
           "script": {
             "type": "text/javascript",
             "exec": [
-              "pm.test('responde 401', () => pm.response.to.have.status(401));"
+              "pm.test('responde 401', () => pm.response.to.have.status(401));",
+              "pm.test('credenciales viejas rechazadas', () => {",
+              "  const body = pm.response.json();",
+              "  pm.expect(body.code).to.eql('invalid_credentials');",
+              "  pm.expect(body.message).to.be.a('string');",
+              "});"
             ]
           }
         }
@@ -1145,14 +1413,19 @@
       }
     },
     {
-      "name": "26 Login con la contrasena nueva",
+      "name": "31 Login con la contrasena nueva",
       "event": [
         {
           "listen": "test",
           "script": {
             "type": "text/javascript",
             "exec": [
-              "pm.test('responde 200', () => pm.response.to.have.status(200));"
+              "pm.test('responde 200', () => pm.response.to.have.status(200));",
+              "pm.test('autenticacion exitosa con nueva contrasena', () => {",
+              "  const body = pm.response.json();",
+              "  pm.expect(body.token).to.be.a('string').and.not.empty;",
+              "  pm.expect(body.expires_at).to.be.a('string');",
+              "});"
             ]
           }
         }
@@ -1184,7 +1457,7 @@
       }
     },
     {
-      "name": "27 El enlace de recuperacion es de un solo uso",
+      "name": "32 El enlace de recuperacion es de un solo uso",
       "event": [
         {
           "listen": "test",
@@ -1192,8 +1465,11 @@
             "type": "text/javascript",
             "exec": [
               "pm.test('responde 400', () => pm.response.to.have.status(400));",
-              "pm.test('el enlace ya no sirve', () =>",
-              "  pm.expect(pm.response.json().code).to.eql('invalid_token'));"
+              "pm.test('el enlace ya no sirve', () => {",
+              "  const body = pm.response.json();",
+              "  pm.expect(body.code).to.eql('invalid_token');",
+              "  pm.expect(body.message).to.be.a('string');",
+              "});"
             ]
           }
         }
@@ -1230,7 +1506,7 @@
       "description": "Comprueba que las operaciones administrativas rechazan a quien no es administrador. Las rutas felices (listar, cambiar rol, suspender) necesitan una cuenta de administrador, que solo puede crearse fuera de banda; ver docs/postman/README.md.",
       "item": [
         {
-          "name": "28 Login para obtener una sesion de estudiante",
+          "name": "33 Login para obtener una sesion de estudiante",
           "event": [
             {
               "listen": "test",
@@ -1238,9 +1514,12 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('responde 200', () => pm.response.to.have.status(200));",
-                  "pm.collectionVariables.set('studentToken', pm.response.json().token);",
+                  "const body = pm.response.json();",
+                  "pm.collectionVariables.set('studentToken', body.token);",
                   "pm.test('el rol es estudiante', () =>",
-                  "  pm.expect(pm.response.json().user.role).to.eql('estudiante'));"
+                  "  pm.expect(body.user.role).to.eql('estudiante'));",
+                  "pm.test('forma de token de estudiante', () =>",
+                  "  pm.expect(body.token).to.be.a('string').and.not.empty);"
                 ]
               }
             }
@@ -1272,7 +1551,7 @@
           }
         },
         {
-          "name": "29 Listar usuarios sin token",
+          "name": "34 Listar usuarios sin token",
           "event": [
             {
               "listen": "test",
@@ -1281,7 +1560,12 @@
                 "exec": [
                   "pm.test('responde 401', () => pm.response.to.have.status(401));",
                   "pm.test('pide autenticacion', () =>",
-                  "  pm.expect(pm.response.headers.get('WWW-Authenticate')).to.eql('Bearer'));"
+                  "  pm.expect(pm.response.headers.get('WWW-Authenticate')).to.eql('Bearer'));",
+                  "pm.test('codigo unauthorized', () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.code).to.eql('unauthorized');",
+                  "  pm.expect(body.message).to.be.a('string');",
+                  "});"
                 ]
               }
             }
@@ -1304,7 +1588,7 @@
           }
         },
         {
-          "name": "30 Listar usuarios como estudiante",
+          "name": "35 Listar usuarios como estudiante",
           "event": [
             {
               "listen": "test",
@@ -1313,8 +1597,11 @@
                 "exec": [
                   "// Criterio de aceptacion: un usuario no-admin recibe 403.",
                   "pm.test('responde 403', () => pm.response.to.have.status(403));",
-                  "pm.test('codigo forbidden', () =>",
-                  "  pm.expect(pm.response.json().code).to.eql('forbidden'));"
+                  "pm.test('codigo forbidden', () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.code).to.eql('forbidden');",
+                  "  pm.expect(body.message).to.be.a('string');",
+                  "});"
                 ]
               }
             }
@@ -1342,7 +1629,7 @@
           }
         },
         {
-          "name": "31 Cambiar un rol como estudiante",
+          "name": "36 Cambiar un rol como estudiante",
           "event": [
             {
               "listen": "test",
@@ -1350,8 +1637,11 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('responde 403', () => pm.response.to.have.status(403));",
-                  "pm.test('el rechazo ocurre antes de tocar el recurso', () =>",
-                  "  pm.expect(pm.response.json().code).to.eql('forbidden'));"
+                  "pm.test('el rechazo ocurre antes de tocar el recurso', () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.code).to.eql('forbidden');",
+                  "  pm.expect(body.message).to.be.a('string');",
+                  "});"
                 ]
               }
             }
@@ -1389,14 +1679,19 @@
           }
         },
         {
-          "name": "32 Suspender una cuenta como estudiante",
+          "name": "37 Suspender una cuenta como estudiante",
           "event": [
             {
               "listen": "test",
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('responde 403', () => pm.response.to.have.status(403));"
+                  "pm.test('responde 403', () => pm.response.to.have.status(403));",
+                  "pm.test('codigo forbidden', () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.code).to.eql('forbidden');",
+                  "  pm.expect(body.message).to.be.a('string');",
+                  "});"
                 ]
               }
             }
@@ -1440,7 +1735,7 @@
       "description": "El criterio de aceptacion: el mismo POST con la misma Idempotency-Key, enviado dos veces, produce un solo efecto persistido. El lado de ETag/If-Match vive en los endpoints administrativos y necesita una cuenta de administrador; ver docs/postman/README.md.",
       "item": [
         {
-          "name": "33 Registro con Idempotency-Key",
+          "name": "38 Registro con Idempotency-Key",
           "event": [
             {
               "listen": "prerequest",
@@ -1460,10 +1755,15 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('responde 201', () => pm.response.to.have.status(201));",
+                  "const body = pm.response.json();",
                   "pm.collectionVariables.set('idemBody', pm.response.text());",
-                  "pm.collectionVariables.set('idemUserId', pm.response.json().user.id);",
+                  "pm.collectionVariables.set('idemUserId', body.user.id);",
                   "pm.test('no viene marcada como repeticion', () =>",
-                  "  pm.expect(pm.response.headers.get('Idempotent-Replay')).to.not.exist);"
+                  "  pm.expect(pm.response.headers.get('Idempotent-Replay')).to.not.exist);",
+                  "pm.test('forma de usuario registrado', () => {",
+                  "  pm.expect(body.user.id).to.be.a('string').and.not.empty;",
+                  "  pm.expect(body.user.email).to.be.a('string').and.not.empty;",
+                  "});"
                 ]
               }
             }
@@ -1499,7 +1799,7 @@
           }
         },
         {
-          "name": "34 Mismo POST, misma clave",
+          "name": "39 Mismo POST, misma clave",
           "event": [
             {
               "listen": "test",
@@ -1549,7 +1849,7 @@
           }
         },
         {
-          "name": "35 Misma clave con cuerpo diferente",
+          "name": "40 Misma clave con cuerpo diferente",
           "event": [
             {
               "listen": "test",
@@ -1558,8 +1858,11 @@
                 "exec": [
                   "// Reusar la clave con otro cuerpo es un defecto del cliente, no un reintento.",
                   "pm.test('responde 422', () => pm.response.to.have.status(422));",
-                  "pm.test('codigo idempotency_key_reused', () =>",
-                  "  pm.expect(pm.response.json().code).to.eql('idempotency_key_reused'));"
+                  "pm.test('codigo idempotency_key_reused', () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.code).to.eql('idempotency_key_reused');",
+                  "  pm.expect(body.message).to.be.a('string');",
+                  "});"
                 ]
               }
             }
@@ -1595,7 +1898,7 @@
           }
         },
         {
-          "name": "36 La misma clave en otro endpoint es otra operacion",
+          "name": "41 La misma clave en otro endpoint es otra operacion",
           "event": [
             {
               "listen": "test",
@@ -1605,7 +1908,11 @@
                   "// La clave se acota al metodo, la ruta y el llamante: no colisiona.",
                   "pm.test('responde 202', () => pm.response.to.have.status(202));",
                   "pm.test('no es una repeticion del registro', () =>",
-                  "  pm.expect(pm.response.headers.get('Idempotent-Replay')).to.not.exist);"
+                  "  pm.expect(pm.response.headers.get('Idempotent-Replay')).to.not.exist);",
+                  "pm.test('forma de respuesta valida', () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.message).to.be.a('string').and.not.empty;",
+                  "});"
                 ]
               }
             }
@@ -1642,7 +1949,7 @@
           }
         },
         {
-          "name": "37 Sin clave, cada peticion se ejecuta",
+          "name": "42 Sin clave, cada peticion se ejecuta",
           "event": [
             {
               "listen": "test",
@@ -1651,8 +1958,11 @@
                 "exec": [
                   "// Sin Idempotency-Key la proteccion no se activa: es opt-in.",
                   "pm.test('responde 409 por correo duplicado', () => pm.response.to.have.status(409));",
-                  "pm.test('la operacion si se ejecuto', () =>",
-                  "  pm.expect(pm.response.json().code).to.eql('email_already_registered'));"
+                  "pm.test('la operacion si se ejecuto', () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.code).to.eql('email_already_registered');",
+                  "  pm.expect(body.message).to.be.a('string');",
+                  "});"
                 ]
               }
             }
@@ -1690,13 +2000,16 @@
       "description": "Rate limiting. El CSRF no se prueba aqui porque requiere CSRF_ALLOWED_ORIGINS configurado; ver docs/postman/README.md.",
       "item": [
         {
-          "name": "28 Rate limiting: el limite de login bloquea",
+          "name": "43 Rate limiting: el limite de login bloquea",
           "event": [
             {
               "listen": "test",
               "script": {
                 "type": "text/javascript",
                 "exec": [
+                  "pm.test('healthcheck responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('healthcheck estado pass', () => pm.expect(pm.response.json().status).to.eql('pass'));",
+                  "",
                   "// Dispara el limite de login agotando el cupo desde el propio script.",
                   "// Va al final de la coleccion a proposito: deja el cupo de login gastado",
                   "// durante el resto de la ventana (1 minuto por defecto).",

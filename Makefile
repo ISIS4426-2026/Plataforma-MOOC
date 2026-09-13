@@ -1,4 +1,4 @@
-.PHONY: all build fmt vet lint test test-migrations demo-segment4 test-stage seed seed-clean seed-reset seed-status check clean run-api run-worker docker-up docker-down
+.PHONY: all build fmt vet lint test test-migrations demo-segment4 test-stage test-postman seed seed-clean seed-reset seed-status check clean run-api run-worker docker-up docker-down
 
 all: check
 
@@ -36,6 +36,13 @@ demo-segment4:
 test-stage:
 	@echo "==> Running Stage Automated Test & Validation Suite..."
 	@./scripts/validate_stage.sh
+
+test-postman:
+	@echo "==> Running Postman/Newman automated integration tests..."
+	@docker run --rm --network plataforma-mooc_default \
+		-v "$$(pwd)/docs/postman":/etc/newman postman/newman:alpine \
+		run /etc/newman/collection_api.postman_collection.json \
+		-e /etc/newman/mooc_docker.postman_environment.json
 
 seed:
 	@./scripts/seed.sh --load
