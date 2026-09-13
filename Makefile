@@ -1,4 +1,4 @@
-.PHONY: all build fmt vet lint test test-migrations demo-segment4 test-stage check clean run-api run-worker docker-up docker-down
+.PHONY: all build fmt vet lint test test-migrations demo-segment4 test-stage seed seed-clean seed-reset seed-status check clean run-api run-worker docker-up docker-down
 
 all: check
 
@@ -36,6 +36,18 @@ demo-segment4:
 test-stage:
 	@echo "==> Running Stage Automated Test & Validation Suite..."
 	@./scripts/validate_stage.sh
+
+seed:
+	@./scripts/seed.sh --load
+
+seed-clean:
+	@./scripts/seed.sh --clean
+
+seed-reset:
+	@./scripts/seed.sh --reset
+
+seed-status:
+	@./scripts/seed.sh --status
 
 check: fmt vet lint test test-migrations build
 	@echo "==> All checks (fmt, vet, lint, test, test-migrations, build) passed cleanly!"
