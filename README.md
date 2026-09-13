@@ -160,6 +160,13 @@ El comando `make check` ejecuta secuencialmente:
 * **`make demo-segment4`**: Ejecuta la demostración automatizada del **Segmento 4** de la Sección 10.2 (idempotencia ante doble entrega, reintentos con backoff, DLQ y alertas).
 * **Documento Maestro**: Consulte [`docs/PLAN_DE_PRUEBAS_ETAPA.md`](docs/PLAN_DE_PRUEBAS_ETAPA.md) para el mapeo completo de flujos críticos de la Sección 10.2 con los criterios de evaluación de la Sección 9, la distinción explícita de pruebas manuales vs automatizadas, y la guía paso a paso de revisión por el equipo.
 
+### Datos Sintéticos y Semillas Determinísticas (`make seed`):
+* **`make seed`**: Carga el dataset determinístico de prueba con usuarios de los 3 roles (`administrador`, `profesor`, `estudiante`) y cursos en distintos estados (`published`, `draft`, `unpublished`).
+* **`make seed-status`**: Muestra un resumen del conteo de entidades existentes en base de datos.
+* **`make seed-clean`**: Limpia todas las tablas relacionales de PostgreSQL mediante `TRUNCATE CASCADE` y vacía la caché de Redis.
+* **`make seed-reset`**: Ejecuta limpieza y recarga en un solo paso para restaurar el estado inicial determinístico.
+* **Guía Completa**: Consulte [`docs/DATOS_SINTETICOS.md`](docs/DATOS_SINTETICOS.md) para la tabla de credenciales (contraseña: `Password123!`), catálogo de cursos y ejemplos cURL.
+
 ### Otros comandos útiles:
 * `make lint` — Ejecuta únicamente la verificación de linteo y formato.
 * `make test` — Ejecuta la suite de pruebas unitarias.
