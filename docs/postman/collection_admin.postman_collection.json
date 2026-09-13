@@ -1,0 +1,1142 @@
+{
+  "info": {
+    "_postman_id": "b7c8d9e0-f1a2-3456-bcde-789012345678",
+    "name": "Plataforma MOOC - Administracion",
+    "description": "Suite de pruebas de integración de API en Postman/Newman para el módulo de Administración (#25). Cubre listar usuarios con filtros y paginación, cambiar rol, suspender y reactivar cuentas, control de acceso RBAC (403 para usuarios no-admin, 401 sin autenticación) y la protección obligatoria del último administrador activo (409 last_admin_protected).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080",
+      "type": "string"
+    },
+    {
+      "key": "adminEmail",
+      "value": "admin@plataforma-mooc.test",
+      "type": "string"
+    },
+    {
+      "key": "adminPassword",
+      "value": "Password123!",
+      "type": "string"
+    },
+    {
+      "key": "adminPrimaryId",
+      "value": "a0000000-0000-0000-0000-000000000001",
+      "type": "string"
+    },
+    {
+      "key": "adminSecondaryEmail",
+      "value": "admin.secundario@plataforma-mooc.test",
+      "type": "string"
+    },
+    {
+      "key": "adminSecondaryId",
+      "value": "a0000000-0000-0000-0000-000000000002",
+      "type": "string"
+    },
+    {
+      "key": "studentEmail",
+      "value": "estudiante1@plataforma-mooc.test",
+      "type": "string"
+    },
+    {
+      "key": "studentPassword",
+      "value": "Password123!",
+      "type": "string"
+    },
+    {
+      "key": "targetStudentId",
+      "value": "c0000000-0000-0000-0000-000000000001",
+      "type": "string"
+    },
+    {
+      "key": "adminToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "studentToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "studentETag",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "01 Login como Administrador Principal",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('responde 200', () => pm.response.to.have.status(200));",
+              "const body = pm.response.json();",
+              "pm.test('devuelve token Bearer y datos de usuario admin', () => {",
+              "  pm.expect(body.token).to.be.a('string').and.not.empty;",
+              "  pm.expect(body.user.role).to.eql('administrador');",
+              "  pm.expect(body.user.status).to.eql('active');",
+              "});",
+              "pm.collectionVariables.set('adminToken', body.token);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"{{adminEmail}}\",\n  \"password\": \"{{adminPassword}}\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/auth/login",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "auth",
+            "login"
+          ]
+        }
+      }
+    },
+    {
+      "name": "02 Listar usuarios (Paginacion y Estructura)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('responde 200', () => pm.response.to.have.status(200));",
+              "const body = pm.response.json();",
+              "pm.test('estructura de listado con paginacion y usuarios', () => {",
+              "  pm.expect(body.items).to.be.an('array').with.lengthOf.at.least(1);",
+              "  pm.expect(body.pagination).to.be.an('object');",
+              "  pm.expect(body.pagination).to.have.property('has_more');",
+              "  const first = body.items[0];",
+              "  pm.expect(first).to.have.property('id');",
+              "  pm.expect(first).to.have.property('email');",
+              "  pm.expect(first).to.have.property('role');",
+              "  pm.expect(first).to.have.property('status');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{adminToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/admin/users?limit=10",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "admin",
+            "users"
+          ],
+          "query": [
+            {
+              "key": "limit",
+              "value": "10"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "03 Filtrar usuarios por rol (profesor)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('responde 200', () => pm.response.to.have.status(200));",
+              "const body = pm.response.json();",
+              "pm.test('todos los usuarios devueltos tienen rol profesor', () => {",
+              "  pm.expect(body.items).to.be.an('array').with.lengthOf.at.least(1);",
+              "  body.items.forEach(u => pm.expect(u.role).to.eql('profesor'));",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{adminToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/admin/users?role=profesor",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "admin",
+            "users"
+          ],
+          "query": [
+            {
+              "key": "role",
+              "value": "profesor"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "04 Filtrar usuarios por estado (active)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('responde 200', () => pm.response.to.have.status(200));",
+              "const body = pm.response.json();",
+              "pm.test('todos los usuarios devueltos estan activos', () => {",
+              "  pm.expect(body.items).to.be.an('array').with.lengthOf.at.least(1);",
+              "  body.items.forEach(u => pm.expect(u.status).to.eql('active'));",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{adminToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/admin/users?status=active",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "admin",
+            "users"
+          ],
+          "query": [
+            {
+              "key": "status",
+              "value": "active"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "05 Consultar detalle de usuario por ID",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('responde 200', () => pm.response.to.have.status(200));",
+              "const body = pm.response.json();",
+              "pm.test('datos correctos de usuario y cabecera ETag', () => {",
+              "  pm.expect(body.user.id).to.eql(pm.variables.get('targetStudentId'));",
+              "  pm.expect(body.user.role).to.eql('estudiante');",
+              "  pm.expect(pm.response.headers.get('ETag')).to.be.a('string');",
+              "});",
+              "if (pm.response.headers.get('ETag')) {",
+              "  pm.collectionVariables.set('studentETag', pm.response.headers.get('ETag'));",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{adminToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/admin/users/{{targetStudentId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "admin",
+            "users",
+            "{{targetStudentId}}"
+          ]
+        }
+      }
+    },
+    {
+      "name": "06 Cambiar rol de estudiante a profesor",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Criterio seccion 5.1: la administracion crea o promueve profesores.",
+              "pm.test('responde 200', () => pm.response.to.have.status(200));",
+              "const body = pm.response.json();",
+              "pm.test('rol actualizado exitosamente a profesor', () => {",
+              "  pm.expect(body.user.id).to.eql(pm.variables.get('targetStudentId'));",
+              "  pm.expect(body.user.role).to.eql('profesor');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{adminToken}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"role\": \"profesor\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/admin/users/{{targetStudentId}}/role",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "admin",
+            "users",
+            "{{targetStudentId}}",
+            "role"
+          ]
+        }
+      }
+    },
+    {
+      "name": "07 Verificar persistencia del nuevo rol",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('responde 200', () => pm.response.to.have.status(200));",
+              "const body = pm.response.json();",
+              "pm.test('el usuario persiste con rol profesor', () => {",
+              "  pm.expect(body.user.role).to.eql('profesor');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{adminToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/admin/users/{{targetStudentId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "admin",
+            "users",
+            "{{targetStudentId}}"
+          ]
+        }
+      }
+    },
+    {
+      "name": "08 Restaurar rol de profesor a estudiante",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('responde 200', () => pm.response.to.have.status(200));",
+              "const body = pm.response.json();",
+              "pm.test('rol restaurado exitosamente a estudiante', () => {",
+              "  pm.expect(body.user.role).to.eql('estudiante');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{adminToken}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"role\": \"estudiante\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/admin/users/{{targetStudentId}}/role",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "admin",
+            "users",
+            "{{targetStudentId}}",
+            "role"
+          ]
+        }
+      }
+    },
+    {
+      "name": "09 Suspender cuenta de estudiante",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('responde 200', () => pm.response.to.have.status(200));",
+              "const body = pm.response.json();",
+              "pm.test('cuenta suspendida correctamente', () => {",
+              "  pm.expect(body.user.status).to.eql('suspended');",
+              "  pm.expect(pm.response.headers.get('ETag')).to.be.a('string');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{adminToken}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"status\": \"suspended\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/admin/users/{{targetStudentId}}/status",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "admin",
+            "users",
+            "{{targetStudentId}}",
+            "status"
+          ]
+        }
+      }
+    },
+    {
+      "name": "10 Verificar que el estudiante quedo suspendido",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('responde 200', () => pm.response.to.have.status(200));",
+              "const body = pm.response.json();",
+              "pm.test('el estado persiste en suspended', () => {",
+              "  pm.expect(body.user.status).to.eql('suspended');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{adminToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/admin/users/{{targetStudentId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "admin",
+            "users",
+            "{{targetStudentId}}"
+          ]
+        }
+      }
+    },
+    {
+      "name": "11 Reactivar cuenta de estudiante",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('responde 200', () => pm.response.to.have.status(200));",
+              "const body = pm.response.json();",
+              "pm.test('cuenta reactivada a active', () => {",
+              "  pm.expect(body.user.status).to.eql('active');",
+              "  pm.expect(pm.response.headers.get('ETag')).to.be.a('string');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{adminToken}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"status\": \"active\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/admin/users/{{targetStudentId}}/status",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "admin",
+            "users",
+            "{{targetStudentId}}",
+            "status"
+          ]
+        }
+      }
+    },
+    {
+      "name": "12 Verificar que el estudiante quedo activo",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('responde 200', () => pm.response.to.have.status(200));",
+              "const body = pm.response.json();",
+              "pm.test('el estado persiste en active', () => {",
+              "  pm.expect(body.user.status).to.eql('active');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{adminToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/admin/users/{{targetStudentId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "admin",
+            "users",
+            "{{targetStudentId}}"
+          ]
+        }
+      }
+    },
+    {
+      "name": "13 Login como usuario no-admin (Estudiante)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('responde 200', () => pm.response.to.have.status(200));",
+              "const body = pm.response.json();",
+              "pm.test('sesion obtenida con rol estudiante', () => {",
+              "  pm.expect(body.token).to.be.a('string').and.not.empty;",
+              "  pm.expect(body.user.role).to.eql('estudiante');",
+              "});",
+              "pm.collectionVariables.set('studentToken', body.token);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"{{studentEmail}}\",\n  \"password\": \"{{studentPassword}}\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/auth/login",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "auth",
+            "login"
+          ]
+        }
+      }
+    },
+    {
+      "name": "14 No-admin intenta listar usuarios",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Criterio de aceptacion: no-admin recibe 403.",
+              "pm.test('responde 403', () => pm.response.to.have.status(403));",
+              "const body = pm.response.json();",
+              "pm.test('codigo forbidden', () => {",
+              "  pm.expect(body.code).to.eql('forbidden');",
+              "  pm.expect(body.message).to.be.a('string');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{studentToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/admin/users",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "admin",
+            "users"
+          ]
+        }
+      }
+    },
+    {
+      "name": "15 No-admin intenta consultar usuario por ID",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('responde 403', () => pm.response.to.have.status(403));",
+              "const body = pm.response.json();",
+              "pm.test('codigo forbidden', () => {",
+              "  pm.expect(body.code).to.eql('forbidden');",
+              "  pm.expect(body.message).to.be.a('string');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{studentToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/admin/users/{{targetStudentId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "admin",
+            "users",
+            "{{targetStudentId}}"
+          ]
+        }
+      }
+    },
+    {
+      "name": "16 No-admin intenta cambiar un rol",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('responde 403', () => pm.response.to.have.status(403));",
+              "const body = pm.response.json();",
+              "pm.test('codigo forbidden', () => {",
+              "  pm.expect(body.code).to.eql('forbidden');",
+              "  pm.expect(body.message).to.be.a('string');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{studentToken}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"role\": \"profesor\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/admin/users/{{targetStudentId}}/role",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "admin",
+            "users",
+            "{{targetStudentId}}",
+            "role"
+          ]
+        }
+      }
+    },
+    {
+      "name": "17 No-admin intenta suspender una cuenta",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('responde 403', () => pm.response.to.have.status(403));",
+              "const body = pm.response.json();",
+              "pm.test('codigo forbidden', () => {",
+              "  pm.expect(body.code).to.eql('forbidden');",
+              "  pm.expect(body.message).to.be.a('string');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{studentToken}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"status\": \"suspended\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/admin/users/{{targetStudentId}}/status",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "admin",
+            "users",
+            "{{targetStudentId}}",
+            "status"
+          ]
+        }
+      }
+    },
+    {
+      "name": "18 Peticion sin autenticacion a listar usuarios",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('responde 401', () => pm.response.to.have.status(401));",
+              "const body = pm.response.json();",
+              "pm.test('cabecera WWW-Authenticate y codigo unauthorized', () => {",
+              "  pm.expect(pm.response.headers.get('WWW-Authenticate')).to.eql('Bearer');",
+              "  pm.expect(body.code).to.eql('unauthorized');",
+              "  pm.expect(body.message).to.be.a('string');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/admin/users",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "admin",
+            "users"
+          ]
+        }
+      }
+    },
+    {
+      "name": "19 Suspender al administrador secundario",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Deja unicamente a admin@plataforma-mooc.test como administrador activo.",
+              "pm.test('responde 200', () => pm.response.to.have.status(200));",
+              "const body = pm.response.json();",
+              "pm.test('admin secundario suspendido exitosamente', () => {",
+              "  pm.expect(body.user.id).to.eql(pm.variables.get('adminSecondaryId'));",
+              "  pm.expect(body.user.status).to.eql('suspended');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{adminToken}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"status\": \"suspended\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/admin/users/{{adminSecondaryId}}/status",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "admin",
+            "users",
+            "{{adminSecondaryId}}",
+            "status"
+          ]
+        }
+      }
+    },
+    {
+      "name": "20 Intento de suspender al ultimo administrador activo (espera rechazo 409)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Criterio de aceptacion: proteccion del ultimo administrador activo.",
+              "pm.test('responde 409', () => pm.response.to.have.status(409));",
+              "const body = pm.response.json();",
+              "pm.test('codigo last_admin_protected y mensaje protector', () => {",
+              "  pm.expect(body.code).to.eql('last_admin_protected');",
+              "  pm.expect(body.message).to.include('No es posible dejar la plataforma sin administradores activos');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{adminToken}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"status\": \"suspended\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/admin/users/{{adminPrimaryId}}/status",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "admin",
+            "users",
+            "{{adminPrimaryId}}",
+            "status"
+          ]
+        }
+      }
+    },
+    {
+      "name": "21 Intento de degradar rol del ultimo administrador activo (espera rechazo 409)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Criterio de aceptacion: no se puede degradar al ultimo administrador.",
+              "pm.test('responde 409', () => pm.response.to.have.status(409));",
+              "const body = pm.response.json();",
+              "pm.test('codigo last_admin_protected y mensaje protector', () => {",
+              "  pm.expect(body.code).to.eql('last_admin_protected');",
+              "  pm.expect(body.message).to.include('No es posible dejar la plataforma sin administradores activos');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{adminToken}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"role\": \"estudiante\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/admin/users/{{adminPrimaryId}}/role",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "admin",
+            "users",
+            "{{adminPrimaryId}}",
+            "role"
+          ]
+        }
+      }
+    },
+    {
+      "name": "22 Reactivar al administrador secundario",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Restaura el estado de la plataforma a 2 administradores activos.",
+              "pm.test('responde 200', () => pm.response.to.have.status(200));",
+              "const body = pm.response.json();",
+              "pm.test('admin secundario reactivado correctamente', () => {",
+              "  pm.expect(body.user.id).to.eql(pm.variables.get('adminSecondaryId'));",
+              "  pm.expect(body.user.status).to.eql('active');",
+              "  pm.expect(body.user.role).to.eql('administrador');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{adminToken}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"status\": \"active\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/admin/users/{{adminSecondaryId}}/status",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "admin",
+            "users",
+            "{{adminSecondaryId}}",
+            "status"
+          ]
+        }
+      }
+    },
+    {
+      "name": "23 Verificar que ambos administradores continuan activos",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('responde 200', () => pm.response.to.have.status(200));",
+              "const body = pm.response.json();",
+              "pm.test('existen al menos 2 administradores activos', () => {",
+              "  pm.expect(body.items).to.be.an('array').with.lengthOf.at.least(2);",
+              "  const activos = body.items.filter(u => u.status === 'active');",
+              "  pm.expect(activos).to.have.lengthOf.at.least(2);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{adminToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/admin/users?role=administrador",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "admin",
+            "users"
+          ],
+          "query": [
+            {
+              "key": "role",
+              "value": "administrador"
+            }
+          ]
+        }
+      }
+    }
+  ]
+}
