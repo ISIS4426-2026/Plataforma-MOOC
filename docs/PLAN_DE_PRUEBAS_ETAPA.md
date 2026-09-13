@@ -96,9 +96,9 @@ flowchart TD
 5. **Rate Limiting y Seguridad CSRF:**
    * Archivo: `internal/http/middleware/security_test.go`
    * Casos: Bloqueo tras exceder intentos configurados (`429 Too Many Requests` con cabecera `Retry-After`); rechazo de peticiones mutantes con `Origin` fuera de la lista blanca.
-6. **Batería E2E con Newman / Postman:**
-   * Archivo: `docs/postman/collection_api.postman_collection.json`
-   * Ejecuta 17 peticiones encadenadas y 42 aserciones automatizadas comprobando desde la creación de estudiante hasta la consulta y extracción de tokens en la API REST de Mailpit.
+6. **Baterías E2E con Newman / Postman:**
+   * Archivos: `docs/postman/collection_api.postman_collection.json` (Identidad #24) y `docs/postman/collection_admin.postman_collection.json` (Administración #25).
+   * Ejecutan 67 peticiones HTTP encadenadas y 156 aserciones automatizadas comprobando desde registro, verificación y sesiones hasta operaciones administrativas de usuarios, RBAC (403) y protección del último administrador activo (409).
 
 #### B. Pruebas Manuales
 * **Verificación de Notificaciones en Mailpit Web:**
@@ -318,23 +318,32 @@ o directamente:
 
 ### 4.5 Paso 4: Ejecución Automatizada de Pruebas E2E con Newman / Postman
 
-La colección de pruebas de integración de API cubre 17 peticiones encadenadas y 42 aserciones automáticas:
+Las colecciones de pruebas de integración de API en Postman cubren los subsistemas de Identidad (#24) y Administración (#25) con 67 peticiones y 156 aserciones automáticas:
 
-#### Opción A: Ejecución mediante Docker con Newman (Sin instalar nada localmente)
+#### Opción A: Ejecución Automatizada con Makefile / Docker (Newman)
+```bash
+# Ejecutar ambas suites (Identidad + Administración)
+make test-postman
+
+# O ejecutar individualmente cada suite:
+make test-postman-identity
+make test-postman-admin
+```
+
+Comando Docker directo equivalente para Administración (#25):
 ```bash
 docker run --rm --network plataforma-mooc_default \
   -v "$(pwd)/docs/postman":/etc/newman postman/newman:alpine \
-  run /etc/newman/collection_api.postman_collection.json \
-  --env-var baseUrl=http://api:8080 \
-  --env-var mailpitUrl=http://mailpit:8025
+  run /etc/newman/collection_admin.postman_collection.json \
+  -e /etc/newman/mooc_docker.postman_environment.json
 ```
 
-#### Opción B: Ejecución mediante la Aplicación Postman
+#### Opción B: Ejecución mediante la Aplicación Postman Desktop
 1. Abrir Postman y hacer clic en **Import**.
-2. Seleccionar el archivo `docs/postman/collection_api.postman_collection.json`.
-3. Abrir la pestaña **Runner** de la colección.
-4. Ejecutar la colección completa de arriba a abajo.
-5. Confirmar que las 42 aserciones pasen con resultado exitoso en verde (`PASS`).
+2. Seleccionar los archivos de colección `collection_api.postman_collection.json` y `collection_admin.postman_collection.json`, junto con el entorno `mooc_local.postman_environment.json`.
+3. Seleccionar el entorno activo **Plataforma MOOC - Local**.
+4. Abrir la pestaña **Runner** de la colección deseada y ejecutarla de inicio a fin.
+5. Confirmar que todas las aserciones pasen con resultado exitoso en verde (`PASS`).
 
 ---
 
