@@ -1,4 +1,4 @@
-.PHONY: all build fmt vet lint test test-migrations demo-segment4 test-stage test-postman test-postman-identity test-postman-admin seed seed-clean seed-reset seed-status check clean run-api run-worker docker-up docker-down
+.PHONY: all build fmt vet lint test test-migrations demo-segment4 test-stage test-postman test-postman-identity test-postman-admin test-postman-authoring seed seed-clean seed-reset seed-status check clean run-api run-worker docker-up docker-down
 
 all: check
 
@@ -53,7 +53,15 @@ test-postman-admin:
 		run /etc/newman/collection_admin.postman_collection.json \
 		-e /etc/newman/mooc_docker.postman_environment.json
 
-test-postman: test-postman-identity test-postman-admin
+test-postman-authoring:
+	@echo "==> Running Course Authoring Postman/Newman automated integration tests..."
+	@docker compose exec -T redis redis-cli EVAL "for _,k in ipairs(redis.call('keys','ratelimit:*')) do redis.call('del',k) end" 0 >/dev/null 2>&1 || true
+	@docker run --rm --network plataforma-mooc_default \
+		-v "$$(pwd)/docs/postman":/etc/newman postman/newman:alpine \
+		run /etc/newman/collection_authoring.postman_collection.json \
+		-e /etc/newman/mooc_docker.postman_environment.json
+
+test-postman: test-postman-identity test-postman-admin test-postman-authoring
 
 seed:
 	@./scripts/seed.sh --load

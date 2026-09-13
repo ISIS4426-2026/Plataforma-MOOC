@@ -136,6 +136,9 @@ flowchart TD
 4. **Inmutabilidad y Despublicación Temporal:**
    * Archivo: `internal/course/publish_test.go`
    * Casos: Intento de modificar un curso publicado falla con `ErrCoursePublishedImmutable`; la despublicación temporal (`Unpublish`) restablece el estado a `draft` permitiendo edición controlada según las reglas de la Sección 5.1 del MVP.
+5. **Batería E2E de Autoría con Newman / Postman (Issue #26):**
+   * Archivo: `docs/postman/collection_authoring.postman_collection.json`
+   * Casos: Creación completa de jerarquía de 4 niveles (`Curso` -> `Módulo` -> `Unidad` -> `Recurso`), previsualización de metadatos con `ETag` y listados ordenados, rechazo de publicación con lista completa de errores (422), reordenamiento eliminando recurso intermedio y verificando el desplazamiento de posición con preservación intacta del identificador estable (`stable_id`), publicación exitosa a versión 1 (`published`), comprobación de inmutabilidad (409 `course_immutable`) en metadatos y CRUD de estructura, ciclo de despublicación temporal y re-publicación (MVP 5.1), y restricciones RBAC (403 para no-autores y 401 para peticiones anónimas).
 
 #### B. Pruebas Manuales
 * **Construcción de Jerarquía Completa vía Swagger UI:**
@@ -318,29 +321,30 @@ o directamente:
 
 ### 4.5 Paso 4: Ejecución Automatizada de Pruebas E2E con Newman / Postman
 
-Las colecciones de pruebas de integración de API en Postman cubren los subsistemas de Identidad (#24) y Administración (#25) con 67 peticiones y 156 aserciones automáticas:
+Las colecciones de pruebas de integración de API en Postman cubren los subsistemas de Identidad (#24), Administración (#25) y Autoría de Cursos (#26) con 97 peticiones y 216 aserciones automáticas:
 
 #### Opción A: Ejecución Automatizada con Makefile / Docker (Newman)
 ```bash
-# Ejecutar ambas suites (Identidad + Administración)
+# Ejecutar todas las suites secuencialmente (Identidad + Administración + Autoría)
 make test-postman
 
 # O ejecutar individualmente cada suite:
 make test-postman-identity
 make test-postman-admin
+make test-postman-authoring
 ```
 
-Comando Docker directo equivalente para Administración (#25):
+Comando Docker directo equivalente para Autoría de Cursos (#26):
 ```bash
 docker run --rm --network plataforma-mooc_default \
   -v "$(pwd)/docs/postman":/etc/newman postman/newman:alpine \
-  run /etc/newman/collection_admin.postman_collection.json \
+  run /etc/newman/collection_authoring.postman_collection.json \
   -e /etc/newman/mooc_docker.postman_environment.json
 ```
 
 #### Opción B: Ejecución mediante la Aplicación Postman Desktop
 1. Abrir Postman y hacer clic en **Import**.
-2. Seleccionar los archivos de colección `collection_api.postman_collection.json` y `collection_admin.postman_collection.json`, junto con el entorno `mooc_local.postman_environment.json`.
+2. Seleccionar los archivos de colección `collection_api.postman_collection.json`, `collection_admin.postman_collection.json` y `collection_authoring.postman_collection.json`, junto con el entorno `mooc_local.postman_environment.json`.
 3. Seleccionar el entorno activo **Plataforma MOOC - Local**.
 4. Abrir la pestaña **Runner** de la colección deseada y ejecutarla de inicio a fin.
 5. Confirmar que todas las aserciones pasen con resultado exitoso en verde (`PASS`).

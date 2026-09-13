@@ -1,0 +1,1597 @@
+{
+  "info": {
+    "_postman_id": "7f65a123-91bc-4e58-8b77-d5d8361099b2",
+    "name": "Plataforma MOOC - Autoria de Cursos",
+    "description": "Suite de pruebas automatizadas para el subsistema de Autoría de Cursos (Issue #26). Cubre creación de jerarquía de 4 niveles (Curso -> Módulo -> Unidad -> Recurso), previsualización con ETag, validación exhaustiva de publicación (422), inmutabilidad de versión publicada (409), reordenamiento con preservación de identificadores estables (stable_id), despublicación temporal (MVP 5.1) y seguridad RBAC (403/401).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "01 Login como Profesor",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"responde 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "pm.test(\"devuelve token Bearer y usuario profesor\", function () {",
+              "    var data = pm.response.json();",
+              "    pm.expect(data.token).to.be.a(\"string\").that.is.not.empty;",
+              "    pm.expect(data.user).to.be.an(\"object\");",
+              "    pm.expect(data.user.role).to.eql(\"profesor\");",
+              "    pm.environment.set(\"professorToken\", data.token);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/auth/login",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "auth",
+            "login"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"{{professorEmail}}\",\n  \"password\": \"{{professorPassword}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "02 Crear Curso en Borrador (Draft)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"responde 201\", function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "pm.test(\"curso creado en estado draft y version 1\", function () {",
+              "    var data = pm.response.json();",
+              "    pm.expect(data.id).to.be.a(\"string\").that.is.not.empty;",
+              "    pm.expect(data.stable_id).to.be.a(\"string\").that.is.not.empty;",
+              "    pm.expect(data.status).to.eql(\"draft\");",
+              "    pm.expect(data.version).to.eql(1);",
+              "    pm.expect(data.title).to.eql(\"Arquitectura Cloud y Sistemas Distribuidos Avanzados\");",
+              "    pm.environment.set(\"courseId\", data.id);",
+              "    pm.environment.set(\"courseStableId\", data.stable_id);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{professorToken}}",
+            "type": "text"
+          },
+          {
+            "key": "Idempotency-Key",
+            "value": "course-draft-{{$timestamp}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/courses",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "courses"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"Arquitectura Cloud y Sistemas Distribuidos Avanzados\",\n  \"description\": \"Curso completo de microservicios, mensajería y resiliencia en la nube.\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "03 Intento de publicacion con errores (espera 422 validation_failed)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"responde 422\", function () {",
+              "    pm.response.to.have.status(422);",
+              "});",
+              "pm.test(\"lista exhaustiva de errores de validacion\", function () {",
+              "    var data = pm.response.json();",
+              "    pm.expect(data.code).to.eql(\"validation_failed\");",
+              "    pm.expect(data.details).to.be.an(\"array\").that.is.not.empty;",
+              "    var fields = data.details.map(function(d) { return d.field; });",
+              "    pm.expect(fields).to.include(\"structure\");",
+              "    pm.expect(fields).to.include(\"approval_criteria\");",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{professorToken}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/courses/{{courseId}}/publish",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "courses",
+            "{{courseId}}",
+            "publish"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "04 Crear Modulo 1 en Borrador",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"responde 201\", function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "pm.test(\"modulo creado con posicion 0 e identificador estable\", function () {",
+              "    var data = pm.response.json();",
+              "    pm.expect(data.id).to.be.a(\"string\").that.is.not.empty;",
+              "    pm.expect(data.stable_id).to.be.a(\"string\").that.is.not.empty;",
+              "    pm.expect(data.course_id).to.eql(pm.environment.get(\"courseId\"));",
+              "    pm.expect(data.position).to.eql(0);",
+              "    pm.environment.set(\"moduleId\", data.id);",
+              "    pm.environment.set(\"moduleStableId\", data.stable_id);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{professorToken}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/courses/{{courseId}}/modules",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "courses",
+            "{{courseId}}",
+            "modules"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"Modulo 1: Fundamentos de Diseno de Software\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "05 Crear Unidad 1 en Modulo 1",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"responde 201\", function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "pm.test(\"unidad creada con posicion 0 e identificador estable\", function () {",
+              "    var data = pm.response.json();",
+              "    pm.expect(data.id).to.be.a(\"string\").that.is.not.empty;",
+              "    pm.expect(data.stable_id).to.be.a(\"string\").that.is.not.empty;",
+              "    pm.expect(data.module_id).to.eql(pm.environment.get(\"moduleId\"));",
+              "    pm.expect(data.position).to.eql(0);",
+              "    pm.environment.set(\"unitId\", data.id);",
+              "    pm.environment.set(\"unitStableId\", data.stable_id);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{professorToken}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/modules/{{moduleId}}/units",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "modules",
+            "{{moduleId}}",
+            "units"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"Unidad 1.1: Patrones de Arquitectura\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "06 Crear Recurso 1 (Lectura Obligatoria - Markdown Canonico)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"responde 201\", function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "pm.test(\"recurso 1 obligatorio creado en posicion 0\", function () {",
+              "    var data = pm.response.json();",
+              "    pm.expect(data.id).to.be.a(\"string\").that.is.not.empty;",
+              "    pm.expect(data.stable_id).to.be.a(\"string\").that.is.not.empty;",
+              "    pm.expect(data.position).to.eql(0);",
+              "    pm.expect(data.is_mandatory).to.eql(true);",
+              "    pm.expect(data.is_visible).to.eql(true);",
+              "    pm.expect(data.type).to.eql(\"text\");",
+              "    pm.environment.set(\"resource1Id\", data.id);",
+              "    pm.environment.set(\"resource1StableId\", data.stable_id);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{professorToken}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/units/{{unitId}}/resources",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "units",
+            "{{unitId}}",
+            "resources"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"Lectura 1: Monolitos Modulares\",\n  \"type\": \"text\",\n  \"is_visible\": true,\n  \"is_mandatory\": true,\n  \"allow_download\": false,\n  \"content_text\": \"# Arquitectura Monolitica Modular\\n\\nPrincipios de desacoplamiento y diseno por dominios.\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "07 Crear Recurso 2 (Recurso Complementario - Posicion 1)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"responde 201\", function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "pm.test(\"recurso 2 complementario creado en posicion 1\", function () {",
+              "    var data = pm.response.json();",
+              "    pm.expect(data.id).to.be.a(\"string\").that.is.not.empty;",
+              "    pm.expect(data.stable_id).to.be.a(\"string\").that.is.not.empty;",
+              "    pm.expect(data.position).to.eql(1);",
+              "    pm.expect(data.is_mandatory).to.eql(false);",
+              "    pm.environment.set(\"resource2Id\", data.id);",
+              "    pm.environment.set(\"resource2StableId\", data.stable_id);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{professorToken}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/units/{{unitId}}/resources",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "units",
+            "{{unitId}}",
+            "resources"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"Lectura 2: Guia Complementaria\",\n  \"type\": \"text\",\n  \"is_visible\": true,\n  \"is_mandatory\": false,\n  \"allow_download\": true,\n  \"content_text\": \"## Recursos Adicionales\\n\\nLecturas recomendadas de patrones cloud.\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "08 Crear Recurso 3 (Quiz Formativo - Posicion 2)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"responde 201\", function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "pm.test(\"recurso 3 quiz creado en posicion 2\", function () {",
+              "    var data = pm.response.json();",
+              "    pm.expect(data.id).to.be.a(\"string\").that.is.not.empty;",
+              "    pm.expect(data.stable_id).to.be.a(\"string\").that.is.not.empty;",
+              "    pm.expect(data.position).to.eql(2);",
+              "    pm.expect(data.type).to.eql(\"quiz\");",
+              "    pm.environment.set(\"resource3Id\", data.id);",
+              "    pm.environment.set(\"resource3StableId\", data.stable_id);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{professorToken}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/units/{{unitId}}/resources",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "units",
+            "{{unitId}}",
+            "resources"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"Quiz Unidad 1\",\n  \"type\": \"quiz\",\n  \"is_visible\": true,\n  \"is_mandatory\": true,\n  \"allow_download\": false,\n  \"content_text\": \"Evaluacion formativa de conceptos\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "09 Previsualizar Metadatos del Curso (GET Draft con ETag)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"responde 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "pm.test(\"datos del borrador y cabecera ETag presentes\", function () {",
+              "    var data = pm.response.json();",
+              "    pm.expect(data.id).to.eql(pm.environment.get(\"courseId\"));",
+              "    pm.expect(data.status).to.eql(\"draft\");",
+              "    pm.expect(data.version).to.eql(1);",
+              "    var etag = pm.response.headers.get(\"ETag\");",
+              "    pm.expect(etag).to.be.a(\"string\").that.is.not.empty;",
+              "    pm.environment.set(\"courseETag\", etag);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{professorToken}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/courses/{{courseId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "courses",
+            "{{courseId}}"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "10 Previsualizar Modulos del Curso",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"responde 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "pm.test(\"listado de modulos del curso ordenado\", function () {",
+              "    var data = pm.response.json();",
+              "    pm.expect(data.items).to.be.an(\"array\").that.is.not.empty;",
+              "    pm.expect(data.items[0].id).to.eql(pm.environment.get(\"moduleId\"));",
+              "    pm.expect(data.items[0].position).to.eql(0);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{professorToken}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/courses/{{courseId}}/modules",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "courses",
+            "{{courseId}}",
+            "modules"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "11 Previsualizar Unidades del Modulo",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"responde 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "pm.test(\"listado de unidades del modulo ordenado\", function () {",
+              "    var data = pm.response.json();",
+              "    pm.expect(data.items).to.be.an(\"array\").that.is.not.empty;",
+              "    pm.expect(data.items[0].id).to.eql(pm.environment.get(\"unitId\"));",
+              "    pm.expect(data.items[0].position).to.eql(0);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{professorToken}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/modules/{{moduleId}}/units",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "modules",
+            "{{moduleId}}",
+            "units"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "12 Previsualizar Recursos de la Unidad (Antes de Reordenar)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"responde 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "pm.test(\"tres recursos con posiciones 0, 1 y 2\", function () {",
+              "    var data = pm.response.json();",
+              "    pm.expect(data.items).to.be.an(\"array\").with.lengthOf(3);",
+              "    pm.expect(data.items[0].position).to.eql(0);",
+              "    pm.expect(data.items[0].id).to.eql(pm.environment.get(\"resource1Id\"));",
+              "    pm.expect(data.items[1].position).to.eql(1);",
+              "    pm.expect(data.items[1].id).to.eql(pm.environment.get(\"resource2Id\"));",
+              "    pm.expect(data.items[2].position).to.eql(2);",
+              "    pm.expect(data.items[2].id).to.eql(pm.environment.get(\"resource3Id\"));",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{professorToken}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/units/{{unitId}}/resources",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "units",
+            "{{unitId}}",
+            "resources"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "13 Reordenar: Eliminar recurso intermedio (Posicion 1)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"responde 204\", function () {",
+              "    pm.response.to.have.status(204);",
+              "});",
+              "pm.test(\"cuerpo estrictamente vacio\", function () {",
+              "    pm.expect(pm.response.text()).to.be.empty;",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{professorToken}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/resources/{{resource2Id}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "resources",
+            "{{resource2Id}}"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "14 Verificar Reordenamiento y Preservacion de Identificadores Estables",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"responde 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "pm.test(\"reordenamiento exitoso sin huecos y stable_id intacto\", function () {",
+              "    var data = pm.response.json();",
+              "    pm.expect(data.items).to.be.an(\"array\").with.lengthOf(2);",
+              "    pm.expect(data.items[0].id).to.eql(pm.environment.get(\"resource1Id\"));",
+              "    pm.expect(data.items[0].stable_id).to.eql(pm.environment.get(\"resource1StableId\"));",
+              "    pm.expect(data.items[0].position).to.eql(0);",
+              "    pm.expect(data.items[1].id).to.eql(pm.environment.get(\"resource3Id\"));",
+              "    pm.expect(data.items[1].stable_id).to.eql(pm.environment.get(\"resource3StableId\"));",
+              "    pm.expect(data.items[1].position).to.eql(1);",
+              "    pm.expect(data.items[1].title).to.eql(\"Quiz Unidad 1\");",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{professorToken}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/units/{{unitId}}/resources",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "units",
+            "{{unitId}}",
+            "resources"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "15 Publicacion Exitosa del Curso",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"responde 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "pm.test(\"curso publicado exitosamente con version 1\", function () {",
+              "    var data = pm.response.json();",
+              "    pm.expect(data.id).to.eql(pm.environment.get(\"courseId\"));",
+              "    pm.expect(data.status).to.eql(\"published\");",
+              "    pm.expect(data.version).to.eql(1);",
+              "    var etag = pm.response.headers.get(\"ETag\");",
+              "    pm.expect(etag).to.be.a(\"string\").that.is.not.empty;",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{professorToken}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/courses/{{courseId}}/publish",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "courses",
+            "{{courseId}}",
+            "publish"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "16 Consultar Curso Publicado en Catalogo",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"responde 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "pm.test(\"curso accesible en catalogo como published\", function () {",
+              "    var data = pm.response.json();",
+              "    pm.expect(data.id).to.eql(pm.environment.get(\"courseId\"));",
+              "    pm.expect(data.status).to.eql(\"published\");",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/courses/{{courseId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "courses",
+            "{{courseId}}"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "17 Inmutabilidad: Rechazo al editar metadatos del curso publicado",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"responde 409\", function () {",
+              "    pm.response.to.have.status(409);",
+              "});",
+              "pm.test(\"codigo course_immutable y mensaje explicativo\", function () {",
+              "    var data = pm.response.json();",
+              "    pm.expect(data.code).to.eql(\"course_immutable\");",
+              "    pm.expect(data.message).to.include(\"inmutable\");",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{professorToken}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/courses/{{courseId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "courses",
+            "{{courseId}}"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"Intento Ilegal de Edicion\",\n  \"description\": \"Modificacion no permitida\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "18 Inmutabilidad: Rechazo al agregar modulo a curso publicado",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"responde 409\", function () {",
+              "    pm.response.to.have.status(409);",
+              "});",
+              "pm.test(\"codigo course_immutable\", function () {",
+              "    var data = pm.response.json();",
+              "    pm.expect(data.code).to.eql(\"course_immutable\");",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{professorToken}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/courses/{{courseId}}/modules",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "courses",
+            "{{courseId}}",
+            "modules"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"Modulo Ilegal\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "19 Inmutabilidad: Rechazo al agregar unidad en modulo de curso publicado",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"responde 409\", function () {",
+              "    pm.response.to.have.status(409);",
+              "});",
+              "pm.test(\"codigo course_immutable\", function () {",
+              "    var data = pm.response.json();",
+              "    pm.expect(data.code).to.eql(\"course_immutable\");",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{professorToken}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/modules/{{moduleId}}/units",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "modules",
+            "{{moduleId}}",
+            "units"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"Unidad Ilegal\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "20 Inmutabilidad: Rechazo al agregar recurso en unidad de curso publicado",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"responde 409\", function () {",
+              "    pm.response.to.have.status(409);",
+              "});",
+              "pm.test(\"codigo course_immutable\", function () {",
+              "    var data = pm.response.json();",
+              "    pm.expect(data.code).to.eql(\"course_immutable\");",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{professorToken}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/units/{{unitId}}/resources",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "units",
+            "{{unitId}}",
+            "resources"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"Recurso Ilegal\",\n  \"type\": \"text\",\n  \"content_text\": \"test\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "21 Inmutabilidad: Rechazo al eliminar recurso en curso publicado",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"responde 409\", function () {",
+              "    pm.response.to.have.status(409);",
+              "});",
+              "pm.test(\"codigo course_immutable\", function () {",
+              "    var data = pm.response.json();",
+              "    pm.expect(data.code).to.eql(\"course_immutable\");",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{professorToken}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/resources/{{resource1Id}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "resources",
+            "{{resource1Id}}"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "22 Inmutabilidad: Rechazo al republicar un curso ya publicado",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"responde 409\", function () {",
+              "    pm.response.to.have.status(409);",
+              "});",
+              "pm.test(\"codigo conflict\", function () {",
+              "    var data = pm.response.json();",
+              "    pm.expect(data.code).to.eql(\"conflict\");",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{professorToken}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/courses/{{courseId}}/publish",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "courses",
+            "{{courseId}}",
+            "publish"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "23 Despublicacion temporal (Flujo MVP Seccion 5.1)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"responde 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "pm.test(\"estado transiciona a unpublished\", function () {",
+              "    var data = pm.response.json();",
+              "    pm.expect(data.id).to.eql(pm.environment.get(\"courseId\"));",
+              "    pm.expect(data.status).to.eql(\"unpublished\");",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{professorToken}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/courses/{{courseId}}/unpublish",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "courses",
+            "{{courseId}}",
+            "unpublish"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "24 Editar curso temporalmente despublicado",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"responde 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "pm.test(\"titulo y descripcion actualizados exitosamente\", function () {",
+              "    var data = pm.response.json();",
+              "    pm.expect(data.title).to.eql(\"Arquitectura Cloud y Sistemas Distribuidos (Revisado)\");",
+              "    pm.expect(data.status).to.eql(\"unpublished\");",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{professorToken}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/courses/{{courseId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "courses",
+            "{{courseId}}"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"Arquitectura Cloud y Sistemas Distribuidos (Revisado)\",\n  \"description\": \"Actualizado bajo despublicacion temporal autorizada.\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "25 Republicar curso tras la actualizacion",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"responde 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "pm.test(\"curso republicado como published con nuevo titulo\", function () {",
+              "    var data = pm.response.json();",
+              "    pm.expect(data.status).to.eql(\"published\");",
+              "    pm.expect(data.title).to.eql(\"Arquitectura Cloud y Sistemas Distribuidos (Revisado)\");",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{professorToken}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/courses/{{courseId}}/publish",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "courses",
+            "{{courseId}}",
+            "publish"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "26 Login como Estudiante (Usuario no autor)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"responde 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "pm.test(\"sesion obtenida con rol estudiante\", function () {",
+              "    var data = pm.response.json();",
+              "    pm.expect(data.user.role).to.eql(\"estudiante\");",
+              "    pm.environment.set(\"studentToken\", data.token);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/auth/login",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "auth",
+            "login"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"{{studentEmail}}\",\n  \"password\": \"{{studentPassword}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "27 No-autor intenta crear curso (espera 403)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"responde 403\", function () {",
+              "    pm.response.to.have.status(403);",
+              "});",
+              "pm.test(\"codigo forbidden\", function () {",
+              "    var data = pm.response.json();",
+              "    pm.expect(data.code).to.eql(\"forbidden\");",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{studentToken}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/courses",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "courses"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"Curso No Autor\",\n  \"description\": \"Intento de estudiante\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "28 No-autor intenta agregar modulo (espera 403)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"responde 403\", function () {",
+              "    pm.response.to.have.status(403);",
+              "});",
+              "pm.test(\"codigo forbidden\", function () {",
+              "    var data = pm.response.json();",
+              "    pm.expect(data.code).to.eql(\"forbidden\");",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{studentToken}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/courses/{{courseId}}/modules",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "courses",
+            "{{courseId}}",
+            "modules"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"Modulo No Autor\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "29 No-autor intenta publicar curso (espera 403)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"responde 403\", function () {",
+              "    pm.response.to.have.status(403);",
+              "});",
+              "pm.test(\"codigo forbidden\", function () {",
+              "    var data = pm.response.json();",
+              "    pm.expect(data.code).to.eql(\"forbidden\");",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{studentToken}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/courses/{{courseId}}/publish",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "courses",
+            "{{courseId}}",
+            "publish"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "30 Peticion anonima sin autenticacion a crear curso (espera 401)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"responde 401\", function () {",
+              "    pm.response.to.have.status(401);",
+              "});",
+              "pm.test(\"cabecera WWW-Authenticate y codigo unauthorized\", function () {",
+              "    var authHeader = pm.response.headers.get(\"WWW-Authenticate\");",
+              "    pm.expect(authHeader).to.include(\"Bearer\");",
+              "    var data = pm.response.json();",
+              "    pm.expect(data.code).to.eql(\"unauthorized\");",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/courses",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "courses"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"Curso Anonimo\",\n  \"description\": \"Sin token\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "response": []
+    }
+  ]
+}
