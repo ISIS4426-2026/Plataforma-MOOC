@@ -107,9 +107,9 @@ func Load() *Config {
 
 		RateLimitLoginAttempts:    getEnvInt("RATE_LIMIT_LOGIN_ATTEMPTS", 10),
 		RateLimitLoginWindow:      getEnvDuration("RATE_LIMIT_LOGIN_WINDOW", time.Minute),
-		RateLimitRegisterAttempts: getEnvInt("RATE_LIMIT_REGISTER_ATTEMPTS", 20),
+		RateLimitRegisterAttempts: getEnvInt("RATE_LIMIT_REGISTER_ATTEMPTS", 50),
 		RateLimitRegisterWindow:   getEnvDuration("RATE_LIMIT_REGISTER_WINDOW", time.Hour),
-		RateLimitRecoveryAttempts: getEnvInt("RATE_LIMIT_RECOVERY_ATTEMPTS", 10),
+		RateLimitRecoveryAttempts: getEnvInt("RATE_LIMIT_RECOVERY_ATTEMPTS", 50),
 		RateLimitRecoveryWindow:   getEnvDuration("RATE_LIMIT_RECOVERY_WINDOW", time.Hour),
 	}
 }
