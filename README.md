@@ -141,7 +141,7 @@ Las trazas se exportan como JSON a stdout (sin necesidad de levantar un colector
 
 ##  Comandos de Calidad y Verificación (`Makefile`)
 
-El proyecto incluye un comando único para validar la integridad del código:
+El proyecto incluye comandos dedicados para validar la integridad del código y ejecutar el **Plan de Pruebas de la Etapa**:
 
 ```bash
 make check
@@ -150,13 +150,20 @@ make check
 El comando `make check` ejecuta secuencialmente:
 1. `make fmt`: Verifica y corrige el formato de Go (`gofmt`).
 2. `make vet`: Analiza posibles errores estáticos (`go vet`).
-3. `make lint`: Corre el script `./scripts/lint.sh` (ejecuta `golangci-lint` si está instalado).
+3. `make lint`: Corre el script `./scripts/lint.sh` (ejecuta `golangci-lint` y Spectral para OpenAPI).
 4. `make test`: Ejecuta todas las pruebas unitarias (`go test -v ./...`).
-5. `make build`: Compila los binarios `bin/api` y `bin/worker`.
+5. `make test-migrations`: Valida migraciones reversibles de base de datos (`migrations_test.go`).
+6. `make build`: Compila los binarios `bin/api` y `bin/worker`.
+
+### Validación del Plan de Pruebas de la Etapa (Issue #22):
+* **`make test-stage`**: Ejecuta la suite de verificación automatizada de la etapa (`./scripts/validate_stage.sh`), validando análisis estático, migraciones, pruebas de dominio, HTTP, postgres, observabilidad y workers.
+* **`make demo-segment4`**: Ejecuta la demostración automatizada del **Segmento 4** de la Sección 10.2 (idempotencia ante doble entrega, reintentos con backoff, DLQ y alertas).
+* **Documento Maestro**: Consulte [`docs/PLAN_DE_PRUEBAS_ETAPA.md`](docs/PLAN_DE_PRUEBAS_ETAPA.md) para el mapeo completo de flujos críticos de la Sección 10.2 con los criterios de evaluación de la Sección 9, la distinción explícita de pruebas manuales vs automatizadas, y la guía paso a paso de revisión por el equipo.
 
 ### Otros comandos útiles:
 * `make lint` — Ejecuta únicamente la verificación de linteo y formato.
 * `make test` — Ejecuta la suite de pruebas unitarias.
+* `make test-migrations` — Valida la reversibilidad de migraciones en PostgreSQL.
 * `make clean` — Elimina los binarios compilados en `bin/`.
 
 ---

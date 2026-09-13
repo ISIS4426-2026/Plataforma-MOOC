@@ -1,4 +1,4 @@
-.PHONY: all build fmt vet lint test test-migrations demo-segment4 check clean run-api run-worker docker-up docker-down
+.PHONY: all build fmt vet lint test test-migrations demo-segment4 test-stage check clean run-api run-worker docker-up docker-down
 
 all: check
 
@@ -32,6 +32,10 @@ test-migrations:
 demo-segment4:
 	@echo "==> Running Segment 4 Demo (Fault Tolerance & Idempotency)..."
 	@./scripts/demo_segment4_idempotency.sh
+
+test-stage:
+	@echo "==> Running Stage Automated Test & Validation Suite..."
+	@./scripts/validate_stage.sh
 
 check: fmt vet lint test test-migrations build
 	@echo "==> All checks (fmt, vet, lint, test, test-migrations, build) passed cleanly!"
