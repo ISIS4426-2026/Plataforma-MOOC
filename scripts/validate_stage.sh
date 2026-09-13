@@ -70,8 +70,8 @@ go build -o bin/api ./cmd/api
 go build -o bin/worker ./cmd/worker
 echo -e "${GREEN}  [✔] Binarios compilados exitosamente en ./bin/${NC}\n"
 
-# 6. Postman & Newman Suites (Identidad #24 y Administración #25)
-echo -e "${YELLOW}==> 6. Verificando colecciones de pruebas Postman / Newman (Identidad #24 y Administración #25)...${NC}"
+# 6. Postman & Newman Suites (Identidad #24, Administración #25 y Autoría de Cursos #26)
+echo -e "${YELLOW}==> 6. Verificando colecciones de pruebas Postman / Newman (Identidad #24, Administración #25 y Autoría #26)...${NC}"
 is_api_available() {
     if command -v curl &> /dev/null; then
         curl -s -f "http://localhost:8080/api/v1/health" > /dev/null 2>&1
@@ -96,7 +96,15 @@ if is_api_available && command -v docker &> /dev/null; then
         -v "$(pwd)/docs/postman":/etc/newman postman/newman:alpine \
         run /etc/newman/collection_admin.postman_collection.json \
         -e /etc/newman/mooc_docker.postman_environment.json
-    echo -e "${GREEN}     [✔] Colección de Administración superada (46 aserciones).${NC}\n"
+    echo -e "${GREEN}     [✔] Colección de Administración superada (46 aserciones).${NC}"
+
+    docker compose exec -T redis redis-cli EVAL "for _,k in ipairs(redis.call('keys','ratelimit:*')) do redis.call('del',k) end" 0 >/dev/null 2>&1 || true
+    echo -e "${CYAN}     -> Ejecutando colección Autoría de Cursos (#26)...${NC}"
+    docker run --rm --network plataforma-mooc_default \
+        -v "$(pwd)/docs/postman":/etc/newman postman/newman:alpine \
+        run /etc/newman/collection_authoring.postman_collection.json \
+        -e /etc/newman/mooc_docker.postman_environment.json
+    echo -e "${GREEN}     [✔] Colección de Autoría de Cursos superada (60 aserciones).${NC}\n"
 else
     echo -e "${YELLOW}  [i] La API no está disponible en localhost:8080 o Docker no está presente.${NC}"
     echo -e "${CYAN}      Para ejecutar las suites de Postman con la pila activa: make test-postman${NC}\n"
