@@ -1,243 +1,315 @@
-# Plataforma MOOC — Monorepo Setup
+# Plataforma MOOC — Monorepo y Guía Maestra de Despliegue
 
-Plataforma web de Cursos Masivos Abiertos en Línea (MOOC) para el curso Cloud (ISIS4426).
+[![Go Version](https://img.shields.io/badge/Go-1.24-00ADD8?style=flat&logo=go)](https://go.dev/)
+[![Docker Compose](https://img.shields.io/badge/Docker-Compose_v2-2496ED?style=flat&logo=docker)](https://www.docker.com/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16_Alpine-4169E1?style=flat&logo=postgresql)](https://www.postgresql.org/)
+[![Redis](https://img.shields.io/badge/Redis-7_Alpine-DC382D?style=flat&logo=redis)](https://redis.io/)
+[![MinIO S3](https://img.shields.io/badge/MinIO-S3_Storage-C72C48?style=flat&logo=minio)](https://min.io/)
+[![Mailpit](https://img.shields.io/badge/Mailpit-Email_Testing-FFA500?style=flat)](https://github.com/axllent/mailpit)
+[![OpenAPI 3.1](https://img.shields.io/badge/OpenAPI-3.1-6BA539?style=flat&logo=openapiinitiative)](https://swagger.io/specification/)
+[![Tests E2E](https://img.shields.io/badge/Tests_E2E-100%25_PASS_(216%2F216)-brightgreen?style=flat)](docs/e2e/REPORTE_BUGS_Y_CALIDAD_ETAPA.md)
+
+Plataforma web de **Cursos Masivos Abiertos en Línea (MOOC)** diseñada para una única organización operadora, desarrollada bajo una arquitectura de **Monolito Modular en Go con Workers Asíncronos Independientes**.
+
+Este repositorio contiene la implementación completa del backend, contratos OpenAPI 3.1, esquemas transaccionales de PostgreSQL, colas distribuidas Asynq/Redis, almacenamiento de objetos S3/MinIO, suite de observabilidad OpenTelemetry y colecciones automatizadas E2E en Postman/Newman.
+
+> [!TIP]
+> **¿Es su primera vez con el proyecto?**  
+> Siga la [Guía Rápida de Despliegue Paso a Paso](#guía-rápida-de-despliegue-paso-a-paso-desde-cero) para tener todo el sistema operativo con datos sintéticos y pruebas funcionales en menos de 3 minutos sin ayuda externa.  
+> También puede consultar la [Guía Detallada de Despliegue y Operación](docs/GUIA_DE_DESPLIEGUE.md).
 
 ---
 
-##  Estructura del Monorepo
+## Índice de Contenidos
+1. [Propósito y Arquitectura del Sistema](#propósito-y-arquitectura-del-sistema)
+2. [Estructura del Monorepo](#estructura-del-monorepo)
+3. [Requisitos Previos](#requisitos-previos)
+4. [Guía Rápida de Despliegue Paso a Paso (desde Cero)](#guía-rápida-de-despliegue-paso-a-paso-desde-cero)
+5. [Carga y Gestión de Datos Sintéticos (`make seed`)](#carga-y-gestión-de-datos-sintéticos-make-seed)
+6. [Importación y Ejecución de Colecciones Postman](#importación-y-ejecución-de-colecciones-postman)
+7. [Observabilidad, Trazas y Métricas Prometheus](#observabilidad-trazas-y-métricas-prometheus)
+8. [Pipeline de Calidad, Pruebas y Demos de la Etapa](#pipeline-de-calidad-pruebas-y-demos-de-la-etapa)
+9. [Solución de Problemas Frecuentes (Troubleshooting)](#solución-de-problemas-frecuentes-troubleshooting)
+10. [Índice de Documentación y Enlaces Oficiales](#índice-de-documentación-y-enlaces-oficiales)
+
+---
+
+## Propósito y Arquitectura del Sistema
+
+La solución atiende un objetivo de escala inicial de hasta **50.000 usuarios registrados** y **2.000 usuarios concurrentes**, articulada en torno a tres roles globales y una jerarquía académica estricta:
+
+* **Roles Globales:**
+  * **Administrador (`administrador`):** Control administrativo de usuarios, roles, estados, sesiones revocables, auditoría inmutable y protección del último administrador activo.
+  * **Profesor (`profesor`):** Autoría y estructuración de cursos, previsualización de borradores, validación de publicación y gestión de versiones. Creado exclusivamente por administradores (el registro público de profesores está prohibido).
+  * **Estudiante (`estudiante`):** Autoregistro público con verificación de correo transaccional (Mailpit), inicio de sesión seguro, consumo de contenidos, presentación de quizzes con calificación en servidor y progreso validado.
+* **Jerarquía Académica de 4 Niveles:**
+  $$\text{Curso} \longrightarrow \text{Módulo} \longrightarrow \text{Unidad} \longrightarrow \text{Recurso}$$
+* **Guardrails Inquebrantables de Arquitectura ([`docs/PROJECT_KEY_ASPECTS.md`](docs/PROJECT_KEY_ASPECTS.md)):**
+  1. **Quiz Key Secrecy:** La clave de respuestas correctas NUNCA viaja al cliente; la evaluación ocurre 100% en el servidor.
+  2. **Progreso Verificado en Servidor:** Rechazo y auditoría de porcentajes enviados por clientes; avance computado mediante permanencia y heartbeats.
+  3. **Inmutabilidad de Versiones Publicadas:** Los cursos publicados no se pueden mutar (retornan `409 Conflict`); la edición en MVP requiere despublicación temporal.
+  4. **Identificadores Estables (`stable_id`):** Preservan la continuidad del progreso ante reordenamientos y versiones actualizadas.
+  5. **Cero Binarios en PostgreSQL:** Archivos multimedia y PDFs residen exclusivamente en MinIO/S3 y se acceden mediante URLs prefirmadas.
+
+```
+┌─────────────────┐       REST JSON / OpenAPI 3.1      ┌──────────────────────────────────┐
+│  Cliente Web /  │ ─────────────────────────────────> │  API REST Go (Stateless)        │
+│  Swagger / Post │                                    │  Puerto 8080                     │
+└─────────────────┘                                    └──────────────────────────────────┘
+         │                                                       │             │
+         │ Direct Presigned Upload                               │             │ Encola tareas
+         ▼                                                       ▼             ▼
+┌─────────────────┐                                    ┌──────────────┐  ┌────────────────┐
+│  MinIO (S3)     │                                    │ PostgreSQL 16│  │ Redis 7 (Asynq)│
+│  Puerto 9000    │                                    │ Puerto 5432  │  │ Puerto 6379    │
+└─────────────────┘                                    └──────────────┘  └────────────────┘
+                                                                               ▲
+                                                                               │ Consume
+                                                       ┌───────────────────────┴──────────┐
+                                                       │  Worker Go (Stateless)           │
+                                                       │  Idempotencia / DLQ (Puerto 9090)│
+                                                       └──────────────────────────────────┘
+```
+
+---
+
+## Estructura del Monorepo
 
 ```
 .
-├── api/                   # Contratos y especificaciones OpenAPI 3.1 (/api/v1)
+├── api/                       # Contratos y especificación OpenAPI 3.1 (/api/v1)
 │   └── openapi.yaml
-├── cmd/                   # Puntos de entrada ejecutables (main.go)
-│   ├── api/               # Servidor HTTP API REST (/api/v1)
-│   └── worker/            # Procesador de tareas asíncronas (Redis + Asynq)
-├── docs/                  # Documentación del proyecto y guías arquitectónicas
-│   ├── 2026-20 proyecto-plataforma-mooc (2).pdf
-│   └── PROJECT_KEY_ASPECTS.md
-├── internal/              # Código interno de la aplicación (Encapsulado)
-│   ├── config/            # Carga de variables de entorno y configuración
-│   ├── domain/            # Modelos del dominio y puertos (Desacoplado de HTTP y Cloud)
-│   │   ├── badge.go
-│   │   ├── course.go
-│   │   ├── errors.go
-│   │   ├── ports.go       # Interfaces de almacenamiento y colas
-│   │   ├── progress.go
-│   │   ├── quiz.go
-│   │   └── user.go
-│   ├── http/              # Adaptadores HTTP (handlers, router, middlewares)
-│   │   ├── handler/
-│   │   └── server.go
-│   └── worker/            # Handlers de tareas asíncronas para el worker
-│       ├── handler/
-│       └── worker.go
-├── migrations/            # Scripts de migración SQL para PostgreSQL
-│   ├── 000001_init_schema.up.sql
-│   └── 000001_init_schema.down.sql
-├── scripts/               # Scripts de automatización y formateo/linting
-│   └── lint.sh
-├── Dockerfile.api         # Imagen Docker para el API Server
-├── Dockerfile.worker      # Imagen Docker para el Background Worker
-├── docker-compose.yml     # Infraestructura local (API, Worker, Postgres, Redis, MinIO, Mailpit)
-├── Makefile               # Comandos de compilación, linteo y pruebas
-├── go.mod                 # Módulo principal de Go
-└── README.md
+├── cmd/                       # Puntos de entrada ejecutables (main.go)
+│   ├── api/                   # Servidor HTTP API REST
+│   └── worker/                # Procesador de tareas asíncronas en background
+├── docs/                      # Documentación arquitectónica, técnica y normativa
+│   ├── 2026-20 proyecto...pdf# Especificación técnica oficial del curso
+│   ├── DATABASE_DESIGN.md     # Modelo relacional y diagramas de base de datos
+│   ├── DATOS_SINTETICOS.md    # Catálogo detallado de entidades y semillas sintéticas
+│   ├── GUIA_DE_DESPLIEGUE.md  # Guía exhaustiva de despliegue paso a paso
+│   ├── PLAN_DE_PRUEBAS_ETAPA.md # Plan de pruebas formal de la etapa (Sec. 6, 9 y 10.2)
+│   ├── PROJECT_KEY_ASPECTS.md # Directrices y guardrails arquitectónicos no negociables
+│   ├── e2e/                   # Evidencias y reportes de pruebas E2E
+│   │   ├── DEMO_SEGMENTOS_1_Y_2.md # Runbook para sustentación en vivo
+│   │   ├── REPORTE_BUGS_Y_CALIDAD_ETAPA.md # Certificación de Sección 10 y matriz de bugs
+│   │   ├── REPORTE_E2E_IDENTIDAD_Y_AUTORIA.md # Reporte 100% PASS de Newman
+│   │   └── evidencia/         # Respuestas JSON capturadas y logs de contenedores
+│   └── postman/               # Colecciones Postman v2.1 y entornos parametrizados
+│       ├── README.md          # Especificación de peticiones y aserciones Postman
+│       ├── collection_admin.postman_collection.json
+│       ├── collection_api.postman_collection.json
+│       ├── collection_authoring.postman_collection.json
+│       ├── mooc_docker.postman_environment.json
+│       └── mooc_local.postman_environment.json
+├── internal/                  # Código modular encapsulado (Hexagonal / Clean Architecture)
+│   ├── admin/                 # Casos de uso de administración de usuarios y roles
+│   ├── auth/                  # Casos de uso de autenticación, sesiones y recuperación
+│   ├── config/                # Carga de variables de entorno y validación
+│   ├── course/                # Casos de uso de autoría, jerarquía y validación de cursos
+│   ├── domain/                # Entidades puras y puertos (desacoplado de HTTP y Cloud)
+│   ├── http/                  # Adaptadores HTTP (handlers, router, middlewares, RBAC)
+│   ├── mailer/                # Adaptador de envío SMTP para Mailpit
+│   ├── observability/         # Tracing OpenTelemetry, métricas Prometheus y logs slog
+│   ├── postgres/              # Adaptadores de persistencia relacional PostgreSQL
+│   ├── structure/             # Gestión de módulos, unidades y recursos jerárquicos
+│   └── worker/                # Adaptador del procesador asíncrono con Asynq
+├── migrations/                # Scripts SQL de migración numerados (Up/Down reversibles)
+├── scripts/                   # Scripts de automatización, validación, linting y semillas
+│   ├── demo_segment4_idempotency.sh
+│   ├── demo_segments_1_and_2.sh
+│   ├── generate_e2e_report.go
+│   ├── init-db.sh             # Aplicador automático de migraciones en PostgreSQL
+│   ├── init-minio.sh          # Aprovisionador del bucket S3 en MinIO
+│   ├── lint.sh                # Linter estático (Go fmt, vet, golangci-lint, Spectral)
+│   ├── run_e2e_identity_authoring.sh # Ejecutor E2E y cosechador de evidencias
+│   ├── seed.sh                # Script CLI de carga, limpieza y status de datos
+│   ├── seeds/                 # Datos determinísticos en SQL
+│   └── validate_stage.sh      # Suite integral de verificación de la etapa
+├── Dockerfile.api             # Imagen multi-stage en Go 1.24 para API Server
+├── Dockerfile.worker          # Imagen multi-stage en Go 1.24 para Worker
+├── docker-compose.yml         # Pila completa de infraestructura multi-servicio
+├── Makefile                   # Automatización de tareas de desarrollo y pruebas
+├── go.mod                     # Dependencias del módulo Go
+└── README.md                  # Este documento
 ```
 
 ---
 
-##  Desacoplamiento del Dominio (Restricción de la Sección 7)
+## Requisitos Previos
 
-El código dentro de `internal/domain/` implementa una arquitectura limpia (Hexagonal):
-* **Cero dependencias** con frameworks HTTP (ej. `net/http`, `gin`, `fiber`).
-* **Cero dependencias** con proveedores de nube o drivers de base de datos (ej. `aws-sdk-go`, `minio-go`, `pq`).
-* Declara entidades del negocio (`User`, `Course`, `Quiz`, `Progress`, `Badge`) e interfaces de repositorio/puertos (`StorageProvider`, `TaskQueue`).
-
----
-
-##  Cómo Correr el Proyecto Localmente
-
-### Requisitos Previos
-* **Go** 1.22+
-* **Docker** y **Docker Compose**
-* **GNU Make**
+Para ejecutar la plataforma localmente solo se requiere:
+* **Docker Engine** 24.0+ y **Docker Compose** v2.20+ ([Instrucciones oficiales de Docker](https://docs.docker.com/get-docker/)).
+* **GNU Make** (disponible por defecto en Linux/macOS; en Windows disponible mediante WSL2 o Chocolatey).
+* *(Opcional)* **Postman Desktop** si desea ejecutar pruebas visuales interactivas.
+* *(Opcional)* **Go 1.22+** únicamente si desea compilar o depurar binarios fuera de Docker.
 
 ---
 
-### Configuración de Variables de Entorno
+## Guía Rápida de Despliegue Paso a Paso (desde Cero)
 
-Puedes copiar el archivo de ejemplo para configurar tus variables de entorno locales:
+Siga estos 3 pasos exactos en su terminal para levantar el sistema completo:
+
+### Paso 1: Clonar y Configurar Entorno
 ```bash
+# 1. Clonar el repositorio
+git clone https://github.com/ISIS4426-2026/Plataforma-MOOC.git
+cd Plataforma-MOOC
+
+# 2. Copiar variables de entorno por defecto (listas para usar sin cambios)
 cp .env.example .env
 ```
 
-### Option A: Ejecución Completa con Docker Compose (Recomendado)
-
-Inicia todos los servicios (API, Worker, PostgreSQL, Redis, MinIO, Mailpit):
-
+### Paso 2: Construir y Levantar con Docker Compose
 ```bash
-make docker-up
+docker compose up --build -d
 ```
-o directamente con Docker Compose:
-```bash
-docker compose up
-```
+*(O simplemente: `make docker-up`)*
 
-Para detener los servicios:
+El sistema descargará las imágenes base, compilará el código de Go, aplicará automáticamente las migraciones en PostgreSQL, creará el bucket `mooc-storage` en MinIO y esperará a que todos los health checks estén saludables.
+
+### Paso 3: Verificar Salud de los Servicios
+Espere 10 segundos y compruebe que todos los contenedores reporten `(healthy)`:
 ```bash
-make docker-down
+docker compose ps
 ```
 
-Servicios disponibles:
-* **API REST**: `http://localhost:8080/api/v1/health`
-* **MinIO Console**: `http://localhost:9001` (User: `minioadmin` / Pass: `minioadmin`)
-* **Documentación de la API (Swagger)**: `http://localhost:8080/api/docs`
-* **Mailpit (Email Testing)**: `http://localhost:8025`
-* **PostgreSQL**: `localhost:5432` (`moocdb` / `moocuser` / `moocpassword`)
-* **Redis**: `localhost:6379`
-* **Métricas de la API** (Prometheus): `http://localhost:8080/api/v1/metrics`
-* **Métricas del Worker** (Prometheus): `http://localhost:9090/metrics`
+#### Servicios Disponibles de Inmediato en su Máquina Local:
 
----
-
-## Observabilidad (issue #21)
-
-Logs, métricas y trazas comparten dos identificadores para poder correlacionarse:
-
-* `request_id` (`X-Request-ID`): generado o propagado por request, presente en cada línea de log y como atributo del *span* correspondiente.
-* `trace_id`: el ID de traza de OpenTelemetry, presente en el log de acceso (campo `trace_id`) y en el *span*.
-
-Dado un `request_id` de una respuesta de la API, su log y su traza se encuentran con el mismo comando, porque ambos se escriben a stdout — el mismo stream que captura `docker compose logs`:
-
-```bash
-docker compose logs api | grep <request_id>
-```
-
-Las trazas se exportan como JSON a stdout (sin necesidad de levantar un colector aparte); las métricas se exponen en formato Prometheus, listas para scrapear:
-
-* API: `GET /api/v1/metrics` — incluye `http.server.request.duration` (latencia por endpoint) y `http.server.request.errors` (tasa de error, respuestas 5xx).
-* Worker: `GET :9090/metrics` — incluye `worker.jobs.processed` y `worker.jobs.failed`, por tipo de tarea.
-
-### Option B: Compilación y Ejecución Manual
-
-1. **Compilar los ejecutables del API y Worker**:
-   ```bash
-   make build
-   ```
-   Los binarios se generarán en la carpeta `./bin/api` y `./bin/worker`.
-
-2. **Correr el API localmente**:
-   ```bash
-   make run-api
-   ```
-
-3. **Correr el Worker localmente**:
-   ```bash
-   make run-worker
-   ```
-
----
-
-##  Comandos de Calidad y Verificación (`Makefile`)
-
-El proyecto incluye comandos dedicados para validar la integridad del código y ejecutar el **Plan de Pruebas de la Etapa**:
-
-```bash
-make check
-```
-
-El comando `make check` ejecuta secuencialmente:
-1. `make fmt`: Verifica y corrige el formato de Go (`gofmt`).
-2. `make vet`: Analiza posibles errores estáticos (`go vet`).
-3. `make lint`: Corre el script `./scripts/lint.sh` (ejecuta `golangci-lint` y Spectral para OpenAPI).
-4. `make test`: Ejecuta todas las pruebas unitarias (`go test -v ./...`).
-5. `make test-migrations`: Valida migraciones reversibles de base de datos (`migrations_test.go`).
-6. `make build`: Compila los binarios `bin/api` y `bin/worker`.
-
-### Validación del Plan de Pruebas de la Etapa (Issue #22):
-* **`make test-stage`**: Ejecuta la suite de verificación automatizada de la etapa (`./scripts/validate_stage.sh`), validando análisis estático, migraciones, pruebas de dominio, HTTP, postgres, observabilidad y workers.
-* **`make demo-segment4`**: Ejecuta la demostración automatizada del **Segmento 4** de la Sección 10.2 (idempotencia ante doble entrega, reintentos con backoff, DLQ y alertas).
-* **Documento Maestro**: Consulte [`docs/PLAN_DE_PRUEBAS_ETAPA.md`](docs/PLAN_DE_PRUEBAS_ETAPA.md) para el mapeo completo de flujos críticos de la Sección 10.2 con los criterios de evaluación de la Sección 9, la distinción explícita de pruebas manuales vs automatizadas, y la guía paso a paso de revisión por el equipo.
-
-### Datos Sintéticos y Semillas Determinísticas (`make seed`):
-* **`make seed`**: Carga el dataset determinístico de prueba con usuarios de los 3 roles (`administrador`, `profesor`, `estudiante`) y cursos en distintos estados (`published`, `draft`, `unpublished`).
-* **`make seed-status`**: Muestra un resumen del conteo de entidades existentes en base de datos.
-* **`make seed-clean`**: Limpia todas las tablas relacionales de PostgreSQL mediante `TRUNCATE CASCADE` y vacía la caché de Redis.
-* **`make seed-reset`**: Ejecuta limpieza y recarga en un solo paso para restaurar el estado inicial determinístico.
-* **Guía Completa**: Consulte [`docs/DATOS_SINTETICOS.md`](docs/DATOS_SINTETICOS.md) para la tabla de credenciales (contraseña: `Password123!`), catálogo de cursos y ejemplos cURL.
-
-### Otros comandos útiles:
-* `make lint` — Ejecuta únicamente la verificación de linteo y formato.
-* `make test` — Ejecuta la suite de pruebas unitarias.
-* `make test-migrations` — Valida la reversibilidad de migraciones en PostgreSQL.
-* `make clean` — Elimina los binarios compilados en `bin/`.
-
----
-
-##  Registro de auditoría — contrato para el issue #18
-
-El puerto está **definido y en uso** desde el issue #12 (gestión administrativa). Quien tome el **#18 (auditoría inmutable)** debe **extenderlo, no reemplazarlo**, para que lo que ya escribe entradas siga funcionando.
-
-### Lo que ya existe
-
-| Elemento | Dónde |
-|---|---|
-| `domain.AuditEntry` y `domain.AuditAction` | `internal/domain/audit.go` |
-| `domain.AuditRepository` (solo `Record`) | `internal/domain/audit.go` |
-| Implementación en PostgreSQL | `internal/postgres/audit_repository.go` |
-| Tabla `audit_logs` | `migrations/000001_init_schema.up.sql` |
-
-Las acciones se nombran `<recurso>.<hecho en pasado>` (`user.suspended`, `auth.login_failed`). El recurso va primero para poder filtrar una familia entera con un prefijo.
-
-`TargetResource` es una sola cadena `<tipo>:<identificador>` — por ejemplo `user:3fa85f64-…` — para que el rastro sirva con cualquier tipo de recurso sin una columna por tipo.
-
-### La regla que no se puede romper
-
-**`Record` no debe llamarse por su cuenta para una acción que cambia estado.**
-
-"Toda acción queda reflejada en el registro" solo es cierto si el cambio y su entrada se confirman juntos. Quien escriba primero el cambio y después la entrada pierde la entrada cada vez que falle la segunda escritura, y el rastro queda incompleto justo cuando más importa.
-
-Por eso los repositorios que mutan estado **reciben la entrada y escriben ambas cosas en la misma transacción**. Ver `AdminRepository.ChangeRole` y `ChangeStatus` en `internal/postgres/admin_repository.go` como referencia. `Record` existe para las acciones que no tienen nada que confirmar al lado, como un inicio de sesión fallido.
-
-### Lo que falta y le corresponde al #18
-
-**Inmutabilidad a nivel de base de datos.** Hoy nada impide un `UPDATE` o un `DELETE` sobre `audit_logs`, y un rastro editable no es un rastro. La forma habitual es revocar esos permisos al rol de la aplicación y añadir una regla o trigger que los rechace.
-
-**Un lado de lectura.** Listar y filtrar por actor, acción, recurso y rango de fechas, con la misma paginación por cursor que usa el resto de la API. Hay una referencia de cómo se implementa el cursor en `AdminRepository.ListUsers`.
-
-**Retención y exportación**, según la sección 11 del enunciado.
-
-### Qué no debe llevar una entrada
-
-Credenciales, tokens ni hashes de contraseña. El registro de auditoría lo lee más gente que la tabla `users`.
-
-
-##  Contrato OpenAPI 3.1
-
-`api/openapi.yaml` describe la API completa: qué rutas existen, qué recibe cada una y qué devuelve. Es documentación en un formato estándar que las herramientas entienden, no código que se ejecute. El CI la valida con Spectral en cada `make lint`.
-
-Alrededor de ese archivo hay dos herramientas, con propósitos distintos:
-
-| Herramienta | Para qué sirve | Dónde |
+| Servicio | URL Local | Descripción / Credenciales |
 |---|---|---|
-| **Swagger** | **Leer** la API y probar peticiones desde el navegador | http://localhost:8080/api/docs |
-| **Postman** | **Ejecutar** el flujo completo de forma automatizada | `docs/postman/` |
+| **API REST (Salud)** | [`http://localhost:8080/api/v1/health`](http://localhost:8080/api/v1/health) | Endpoint de verificación rápida del backend. |
+| **Documentación Swagger UI** | [`http://localhost:8080/api/docs`](http://localhost:8080/api/docs) | Interfaz visual interactiva OpenAPI 3.1 lista para "Try it out". |
+| **Mailpit (Web UI)** | [`http://localhost:8025`](http://localhost:8025) | Bandeja de entrada visual de correos transaccionales. |
+| **MinIO Console (S3)** | [`http://localhost:9001`](http://localhost:9001) | Consola de almacenamiento de objetos (`minioadmin` / `minioadmin`). |
+| **Métricas API** | [`http://localhost:8080/api/v1/metrics`](http://localhost:8080/api/v1/metrics) | Métricas en formato estándar Prometheus. |
+| **Métricas Worker** | [`http://localhost:9090/metrics`](http://localhost:9090/metrics) | Métricas Prometheus del procesador de tareas asíncronas. |
+| **PostgreSQL 16** | `localhost:5432` | BD: `moocdb`, Usuario: `moocuser`, Contraseña: `moocpassword`. |
+| **Redis 7** | `localhost:6379` | Almacén de sesiones, rate limiting y colas Asynq. |
 
-### Swagger
+---
 
-Con el stack levantado, abre **http://localhost:8080/api/docs**.
+## Carga y Gestión de Datos Sintéticos (`make seed`)
 
-* El botón **"Try it out" funciona**. La página y los endpoints comparten origen, así que el navegador no hace una petición cruzada y no hace falta ninguna política de CORS.
+La plataforma incorpora un mecanismo de datos sintéticos determinísticos que permite poblar la base de datos con cuentas y cursos preconfigurados para pruebas funcionales.
 
-El documento crudo queda en `http://localhost:8080/api/v1/openapi.yaml`, por si quieres importarlo en otra herramienta.
+### 1. Cargar Datos
+Con los contenedores activos, ejecute:
+```bash
+make seed
+```
+*(O de forma directa: `./scripts/seed.sh --load`)*
 
-> La página carga los recursos de Swagger UI desde un CDN, así que necesita conexión a internet. Sin ella, el contrato sigue disponible en la ruta `openapi.yaml` y en el archivo del repositorio.
+### 2. Verificar Entidades Sembradas
+```bash
+make seed-status
+```
 
-### Colección de Postman
+### 3. Cuentas Preconfiguradas para Pruebas
 
-`docs/postman/` trae una colección que ejecuta el flujo completo de identidad —registro, verificación por correo, login, listado de sesiones y revocación— y comprueba cada respuesta.
+> [!IMPORTANT]
+> **Todos los usuarios de prueba comparten la contraseña:**  
+> `Password123!`
 
-Se importa en Postman y se ejecuta con el Runner, de arriba a abajo. No hay que copiar el enlace del correo a mano: la colección lo lee de la API de Mailpit.
+| Rol | Correo Electrónico | Estado | Propósito de Prueba |
+|---|---|:---:|---|
+| **Administrador** | `admin@plataforma-mooc.test` | `active` | Gestión administrativa de usuarios, roles y consulta de auditoría. |
+| **Administrador 2** | `admin.secundario@plataforma-mooc.test` | `active` | Verificación de protección del último administrador activo (409). |
+| **Profesor** | `profesor1@plataforma-mooc.test` | `active` | Autor de cursos. Flujos de creación, jerarquía y publicación. |
+| **Profesor 2** | `profesor2@plataforma-mooc.test` | `active` | Autor de cursos adicionales para aislamiento de permisos. |
+| **Estudiante 1** | `estudiante1@plataforma-mooc.test` | `active` | Estudiante con inscripción activa y avance del 50%. |
+| **Estudiante 2** | `estudiante2@plataforma-mooc.test` | `active` | Estudiante con 100% de avance e insignia digital emitida. |
+| **Estudiante Pendiente** | `estudiante.pendiente@plataforma-mooc.test` | `pending_verification` | Valida rechazo de login previo a confirmación de correo (403). |
+| **Estudiante Suspendido**| `estudiante.suspendido@plataforma-mooc.test` | `suspended` | Valida rechazo de login a cuentas suspendidas (403). |
 
-Ver `docs/postman/README.md` para el detalle y para correrla sin abrir Postman.
+### 4. Limpieza y Reinicio
+* **Limpiar tablas y vaciar Redis:** `make seed-clean`
+* **Reiniciar atómicamente al estado inicial:** `make seed-reset`
+
+*(Consulte la documentación completa en [`docs/DATOS_SINTETICOS.md`](docs/DATOS_SINTETICOS.md))*.
+
+---
+
+## Importación y Ejecución de Colecciones Postman
+
+La suite de pruebas Postman / Newman evalúa exhaustivamente el sistema con **97 casos de prueba únicos, 112 peticiones ejecutadas y 216 aserciones automáticas**.
+
+### Opción A: Ejecución Automatizada desatendida con Newman en Docker (Recomendado)
+**No requiere instalar nada en su máquina.** Se ejecuta dentro de la red de Docker Compose con un solo comando:
+
+```bash
+make test-postman
+```
+
+También puede correr colecciones de manera individual:
+* `make test-postman-identity`: Identidad, verificación en Mailpit, login, logout, revocación de sesión, rate limiting (110 aserciones).
+* `make test-postman-admin`: Administración de roles, suspensión, protección del último admin, auditoría (46 aserciones).
+* `make test-postman-authoring`: Jerarquía de 4 niveles, ETag, validación multi-error 422, inmutabilidad 409, stable_id (60 aserciones).
+
+### Opción B: Ejecución en Postman Desktop
+1. Abra **Postman Desktop**.
+2. Haga clic en **Import** y seleccione los archivos de la carpeta `docs/postman/`:
+   * `collection_api.postman_collection.json`
+   * `collection_admin.postman_collection.json`
+   * `collection_authoring.postman_collection.json`
+   * `mooc_local.postman_environment.json`
+3. En la esquina superior derecha, seleccione el entorno: **`Plataforma MOOC - Local`**.
+4. Abra una colección, entre a la pestaña **Runner** y presione **Run Collection**.
+5. Las aserciones pasarán automáticamente al 100% (los scripts extraen tokens y correos de Mailpit sin intervención manual).
+
+*(Consulte los detalles en [`docs/postman/README.md`](docs/postman/README.md))*.
+
+---
+
+## Observabilidad, Trazas y Métricas Prometheus
+
+El sistema implementa observabilidad integral nativa con **OpenTelemetry** y logs JSON estructurados (`slog`):
+
+* **Correlación Transversal de Peticiones:**  
+  Cada petición HTTP genera o recibe una cabecera `X-Request-ID`. El middleware inyecta este identificador junto al `trace_id` de OpenTelemetry en cada registro de log.
+* **Búsqueda Inmediata en Logs de Contenedor:**  
+  Dado un `request_id` devuelto en las cabeceras de respuesta de la API, localice la traza completa con:
+  ```bash
+  docker compose logs api | grep <request_id>
+  ```
+* **Métricas Prometheus para Scrapeo:**
+  * **API REST:** `GET /api/v1/metrics` (latencia `http.server.request.duration`, errores `http.server.request.errors`, saturación).
+  * **Worker Engine:** `GET :9090/metrics` (`worker.jobs.processed`, `worker.jobs.failed`, latencias de procesamiento).
+
+---
+
+## Pipeline de Calidad, Pruebas y Demos de la Etapa
+
+El archivo `Makefile` provee comandos estandarizados para asegurar la calidad de la plataforma:
+
+| Comando | Acción Realizada |
+|---|---|
+| **`make check`** | Pipeline local completo: formato (`fmt`), análisis estático (`vet`), linters (`lint`), pruebas unitarias (`test`), reversibilidad de migraciones (`test-migrations`) y compilación de binarios (`build`). |
+| **`make test-stage`** | Suite automatizada integral de la etapa: ejecuta análisis estático, migraciones, pruebas de dominio, workers con DLQ y las 3 colecciones Newman en red Docker. |
+| **`make test-e2e`** | Ejecuta la batería completa E2E contra el sistema desplegado, cosecha respuestas JSON crudas, logs y regenera el informe Markdown. |
+| **`make demo-segments-1-2`** | Ejecuta la **Demostración Interactiva en Vivo** de Identidad y Autoría (Segmentos 1 y 2 de la Sección 10.2). |
+| **`make demo-segment4`** | Ejecuta la **Demostración Automatizada del Worker** (Segmento 4: idempotencia ante doble entrega, reintentos con backoff y paso a DLQ con alertas). |
+| **`make docker-down`** | Detiene todos los contenedores de Docker Compose de forma limpia. |
+
+---
+
+## Solución de Problemas Frecuentes (Troubleshooting)
+
+* **Puerto ocupado en el host (ej. `port 8080: bind: address already in use`):**  
+  Modifique el puerto afectado en su archivo `.env` (ej. `API_PORT=8090` o `POSTGRES_PORT=5433`) y vuelva a ejecutar `docker compose up -d`.
+* **Bloqueo por Rate Limiting (`429 Too Many Requests`) durante pruebas repetitivas:**  
+  Vacíe las claves de rate limit en Redis con:  
+  `docker compose exec redis redis-cli EVAL "for _,k in ipairs(redis.call('keys','ratelimit:*')) do redis.call('del',k) end" 0`
+* **Limpiar el estado completo de la base de datos:**  
+  Ejecute `make seed-reset` para restaurar los datos determinísticos o `docker compose down -v` para recrear los volúmenes de almacenamiento desde cero.
+
+---
+
+## Índice de Documentación y Enlaces Oficiales
+
+* [Guía Detallada de Despliegue y Operación (`docs/GUIA_DE_DESPLIEGUE.md`)](file:///mnt/c/Users/User/Desktop/MBC_IV/Soluciones%20Cloud/Proyectos/P1_data/Plataforma-MOOC/docs/GUIA_DE_DESPLIEGUE.md): Manual paso a paso para personas que no participaron del desarrollo.
+* [Directrices Clave de Arquitectura (`docs/PROJECT_KEY_ASPECTS.md`)](file:///mnt/c/Users/User/Desktop/MBC_IV/Soluciones%20Cloud/Proyectos/P1_data/Plataforma-MOOC/docs/PROJECT_KEY_ASPECTS.md): Reglas no negociables y guardrails de seguridad.
+* [Plan Maestro de Pruebas de la Etapa (`docs/PLAN_DE_PRUEBAS_ETAPA.md`)](file:///mnt/c/Users/User/Desktop/MBC_IV/Soluciones%20Cloud/Proyectos/P1_data/Plataforma-MOOC/docs/PLAN_DE_PRUEBAS_ETAPA.md): Mapeo normativo Secciones 6, 9 y 10.2.
+* [Reporte de Aseguramiento de Calidad y Certificación Sección 10 (`docs/e2e/REPORTE_BUGS_Y_CALIDAD_ETAPA.md`)](file:///mnt/c/Users/User/Desktop/MBC_IV/Soluciones%20Cloud/Proyectos/P1_data/Plataforma-MOOC/docs/e2e/REPORTE_BUGS_Y_CALIDAD_ETAPA.md): Certificación formal de 100% pass y ausencia de bugs críticos.
+* [Guía de Demostración para Evaluadores: Segmentos 1 y 2 (`docs/e2e/DEMO_SEGMENTOS_1_Y_2.md`)](file:///mnt/c/Users/User/Desktop/MBC_IV/Soluciones%20Cloud/Proyectos/P1_data/Plataforma-MOOC/docs/e2e/DEMO_SEGMENTOS_1_Y_2.md): Runbook interactivo para sustentar la entrega.
+* [Catálogo de Datos Sintéticos (`docs/DATOS_SINTETICOS.md`)](file:///mnt/c/Users/User/Desktop/MBC_IV/Soluciones%20Cloud/Proyectos/P1_data/Plataforma-MOOC/docs/DATOS_SINTETICOS.md): Semillas determinísticas, credenciales y cursos.
+* [Especificación de Colecciones Postman (`docs/postman/README.md`)](file:///mnt/c/Users/User/Desktop/MBC_IV/Soluciones%20Cloud/Proyectos/P1_data/Plataforma-MOOC/docs/postman/README.md): Detalle técnico de las 97 peticiones y 216 aserciones.
