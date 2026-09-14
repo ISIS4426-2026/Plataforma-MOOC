@@ -1,4 +1,4 @@
-.PHONY: all build fmt vet lint test test-migrations demo-segment4 demo-segments-1-2 test-stage test-e2e test-postman test-postman-identity test-postman-admin test-postman-authoring seed seed-clean seed-reset seed-status check clean run-api run-worker docker-up docker-down
+.PHONY: all build fmt vet lint test test-migrations demo-segment4 demo-segments-1-2 test-stage test-e2e test-postman test-postman-identity test-postman-admin test-postman-authoring seed seed-clean seed-reset seed-status check clean run-api run-worker docker-up docker-down pdf pdf-architecture
 
 all: check
 
@@ -126,3 +126,8 @@ docker-up:
 
 docker-down:
 	@docker compose down
+
+pdf: pdf-architecture
+
+pdf-architecture:
+	@./scripts/generate_architecture_pdf.sh
