@@ -1,0 +1,31 @@
+{
+  "assertions": [
+    {
+      "assertion": "responde 400",
+      "skipped": false
+    },
+    {
+      "assertion": "el campo role se rechaza, no se ignora",
+      "skipped": false
+    }
+  ],
+  "headers": {
+    "Content-Length": "82",
+    "Content-Type": "application/json",
+    "Date": "Mon, 14 Sep 2026 03:36:47 GMT",
+    "Ratelimit-Limit": "50",
+    "Ratelimit-Remaining": "48",
+    "Ratelimit-Reset": "3600",
+    "X-Request-Id": "a52a3b94-19eb-4721-8379-d9f18de4d31f"
+  },
+  "method": "POST",
+  "response_body": {
+    "code": "invalid_body",
+    "message": "El cuerpo de la petición no es JSON válido."
+  },
+  "response_time": "6ms",
+  "status_code": 400,
+  "status_text": "Bad Request",
+  "test_name": "02 Registro rechaza intento de crear profesor",
+  "url": "/api/v1/auth/register"
+}

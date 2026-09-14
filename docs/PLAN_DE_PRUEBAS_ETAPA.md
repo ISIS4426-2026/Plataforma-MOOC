@@ -351,6 +351,26 @@ docker run --rm --network plataforma-mooc_default \
 
 ---
 
+### 4.5.1 Batería E2E Integral, Reporte Automatizado y Evidencias de Demo (Issue #27)
+
+Para dar cumplimiento estricto a los criterios de aceptación del **Issue #27** y preparar la evidencia para los **Segmentos 1 y 2 de la Sección 10.2**, la plataforma cuenta con una suite orquestada que ejecuta las colecciones contra los contenedores reales en Docker Compose (sin mocks), extrae los correos de Mailpit vía API, recopila los logs estructurados con spans OpenTelemetry y genera un reporte exhaustivo con estado `pass/fail` de cada caso.
+
+```bash
+# 1. Ejecutar la batería completa E2E y generar el reporte/evidencias
+make test-e2e
+
+# 2. Ejecutar la demostración interactiva en consola para sustentación
+make demo-segments-1-2
+```
+
+#### Artefactos y Evidencias Generadas:
+* **Reporte Maestro E2E:** [`docs/e2e/REPORTE_E2E_IDENTIDAD_Y_AUTORIA.md`](./e2e/REPORTE_E2E_IDENTIDAD_Y_AUTORIA.md) (tabla con estado `pass/fail`, latencias y aserciones de las 112 peticiones ejecutadas).
+* **Guía de Sustentación:** [`docs/e2e/DEMO_SEGMENTOS_1_Y_2.md`](./e2e/DEMO_SEGMENTOS_1_Y_2.md) (runbook detallado con comandos cURL, respuestas esperadas y referencias a la especificación).
+* **Evidencias del Segmento 1 (Identidad y Admin):** [`docs/e2e/evidencia/segmento1_identidad_admin/`](./e2e/evidencia/segmento1_identidad_admin/) (capturas de registro, correo real Mailpit, login, logout, revocación inmediata 401, rechazo de creación pública de profesor, protección del último admin 409 y logs).
+* **Evidencias del Segmento 2 (Autoría y Publicación):** [`docs/e2e/evidencia/segmento2_autoria_publicacion/`](./e2e/evidencia/segmento2_autoria_publicacion/) (capturas de jerarquía de 4 niveles, validación multi-error 422, ETag, reordenamiento con `stable_id` preservado, inmutabilidad 409, despublicación temporal MVP 5.1 y logs).
+
+---
+
 ### 4.6 Paso 5: Guía de Validación Manual Interactiva para el Equipo
 
 Para validar visualmente los flujos más relevantes de la plataforma, siga los siguientes procedimientos:

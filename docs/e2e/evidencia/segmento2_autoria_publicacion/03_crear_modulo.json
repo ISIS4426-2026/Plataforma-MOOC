@@ -1,0 +1,31 @@
+{
+  "assertions": [
+    {
+      "assertion": "responde 201",
+      "skipped": false
+    },
+    {
+      "assertion": "modulo creado con posicion 0 e identificador estable",
+      "skipped": false
+    }
+  ],
+  "headers": {
+    "Content-Length": "215",
+    "Content-Type": "application/json",
+    "Date": "Mon, 14 Sep 2026 03:36:58 GMT",
+    "X-Request-Id": "c82ac020-744b-4777-bfb0-e682aebb13ae"
+  },
+  "method": "POST",
+  "response_body": {
+    "course_id": "00f826ec-4340-4422-94ae-c07fa85ced32",
+    "id": "526f98d3-34d5-4823-bac4-3747d7e5bc10",
+    "position": 0,
+    "stable_id": "a72624ab-ea35-4098-8067-1a44aa01ef10",
+    "title": "Modulo 1: Fundamentos de Diseno de Software"
+  },
+  "response_time": "16ms",
+  "status_code": 201,
+  "status_text": "Created",
+  "test_name": "04 Crear Modulo 1 en Borrador",
+  "url": "/api/v1/courses/{{courseId}}/modules"
+}

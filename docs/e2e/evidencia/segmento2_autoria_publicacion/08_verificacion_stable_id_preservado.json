@@ -1,0 +1,54 @@
+{
+  "assertions": [
+    {
+      "assertion": "responde 200",
+      "skipped": false
+    },
+    {
+      "assertion": "reordenamiento exitoso sin huecos y stable_id intacto",
+      "skipped": false
+    }
+  ],
+  "headers": {
+    "Content-Length": "767",
+    "Content-Type": "application/json",
+    "Date": "Mon, 14 Sep 2026 03:36:59 GMT",
+    "X-Request-Id": "bb35bdec-4156-4e00-8b91-a02b3dfd6e51"
+  },
+  "method": "GET",
+  "response_body": {
+    "items": [
+      {
+        "allow_download": false,
+        "content_text": "# Arquitectura Monolitica Modular\n\nPrincipios de desacoplamiento y diseno por dominios.",
+        "id": "5dba2168-b329-464a-9bbe-d395d996f7c2",
+        "is_mandatory": true,
+        "is_visible": true,
+        "position": 0,
+        "processing_status": "completed",
+        "stable_id": "f4faa838-6347-4281-b4eb-c59ebf9fcd8d",
+        "title": "Lectura 1: Monolitos Modulares",
+        "type": "text",
+        "unit_id": "410d665e-4acb-4c1e-a65c-49246d97ca60"
+      },
+      {
+        "allow_download": false,
+        "content_text": "Evaluacion formativa de conceptos",
+        "id": "a783258a-a4eb-44d7-a351-94921cec6a5a",
+        "is_mandatory": true,
+        "is_visible": true,
+        "position": 1,
+        "processing_status": "completed",
+        "stable_id": "7c0307ec-5941-41ba-982b-f389f6d6688b",
+        "title": "Quiz Unidad 1",
+        "type": "quiz",
+        "unit_id": "410d665e-4acb-4c1e-a65c-49246d97ca60"
+      }
+    ]
+  },
+  "response_time": "6ms",
+  "status_code": 200,
+  "status_text": "OK",
+  "test_name": "14 Verificar Reordenamiento y Preservacion de Identificadores Estables",
+  "url": "/api/v1/units/{{unitId}}/resources"
+}

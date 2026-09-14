@@ -1,0 +1,28 @@
+{
+  "assertions": [
+    {
+      "assertion": "responde 403",
+      "skipped": false
+    },
+    {
+      "assertion": "codigo forbidden",
+      "skipped": false
+    }
+  ],
+  "headers": {
+    "Content-Length": "82",
+    "Content-Type": "application/json",
+    "Date": "Mon, 14 Sep 2026 03:36:59 GMT",
+    "X-Request-Id": "488eb3cc-00f5-443a-be6e-5a205506d066"
+  },
+  "method": "POST",
+  "response_body": {
+    "code": "forbidden",
+    "message": "No tienes permiso para realizar esta operación."
+  },
+  "response_time": "7ms",
+  "status_code": 403,
+  "status_text": "Forbidden",
+  "test_name": "27 No-autor intenta crear curso (espera 403)",
+  "url": "/api/v1/courses"
+}

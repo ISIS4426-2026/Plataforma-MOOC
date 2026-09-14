@@ -223,3 +223,23 @@ docker run --rm --network plataforma-mooc_default   -v "$(pwd)/docs/postman":/et
 4. Abre la colección **Plataforma MOOC - Autoria de Cursos** y entra a la pestaña **Runner** (o haz clic en el botón *Run Collection*).
 5. Selecciona ejecutar todas las peticiones en el orden original.
 6. Haz clic en **Run Plataforma MOOC - Autoria de Cursos**.
+
+---
+
+## 4. Batería E2E Integral, Reporte Automatizado y Evidencias de Demo (#27)
+
+Para ejecutar la batería completa de extremo a extremo contra la infraestructura real desplegada en Docker Compose (sin mocks), recolectar las respuestas HTTP en archivos JSON individuales, capturar correos en Mailpit, extraer logs del contenedor y generar el reporte detallado con estado pass/fail:
+
+```bash
+# Ejecución integral E2E y generación de evidencias (Segmentos 1 y 2)
+make test-e2e
+
+# Demostración interactiva en consola para sustentación de los Segmentos 1 y 2
+make demo-segments-1-2
+```
+
+### Artefactos Generados
+* **Reporte Maestro E2E:** [`docs/e2e/REPORTE_E2E_IDENTIDAD_Y_AUTORIA.md`](../e2e/REPORTE_E2E_IDENTIDAD_Y_AUTORIA.md) (tabla completa con el resultado pass/fail de cada petición y aserción).
+* **Guía de Sustentación:** [`docs/e2e/DEMO_SEGMENTOS_1_Y_2.md`](../e2e/DEMO_SEGMENTOS_1_Y_2.md) (runbook paso a paso para la demo de los Segmentos 1 y 2 de la Sección 10.2).
+* **Carpeta de Evidencias:** [`docs/e2e/evidencia/`](../e2e/evidencia/) con capturas de respuestas y logs organizados por segmento.
+

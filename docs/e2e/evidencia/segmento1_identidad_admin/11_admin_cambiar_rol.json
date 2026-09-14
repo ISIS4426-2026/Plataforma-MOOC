@@ -1,0 +1,33 @@
+{
+  "assertions": [
+    {
+      "assertion": "responde 200",
+      "skipped": false
+    },
+    {
+      "assertion": "rol actualizado exitosamente a profesor",
+      "skipped": false
+    }
+  ],
+  "headers": {
+    "Content-Length": "171",
+    "Content-Type": "application/json",
+    "Date": "Mon, 14 Sep 2026 03:36:54 GMT",
+    "X-Request-Id": "a8e912e4-8f11-4782-8e53-af2fe0b0100b"
+  },
+  "method": "PATCH",
+  "response_body": {
+    "user": {
+      "email": "estudiante1@plataforma-mooc.test",
+      "full_name": "Estudiante Juan Pérez",
+      "id": "c0000000-0000-0000-0000-000000000001",
+      "role": "profesor",
+      "status": "active"
+    }
+  },
+  "response_time": "16ms",
+  "status_code": 200,
+  "status_text": "OK",
+  "test_name": "06 Cambiar rol de estudiante a profesor",
+  "url": "/api/v1/admin/users/{{targetStudentId}}/role"
+}

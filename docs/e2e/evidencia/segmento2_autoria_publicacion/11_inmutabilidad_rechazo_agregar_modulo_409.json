@@ -1,0 +1,28 @@
+{
+  "assertions": [
+    {
+      "assertion": "responde 409",
+      "skipped": false
+    },
+    {
+      "assertion": "codigo course_immutable",
+      "skipped": false
+    }
+  ],
+  "headers": {
+    "Content-Length": "128",
+    "Content-Type": "application/json",
+    "Date": "Mon, 14 Sep 2026 03:36:59 GMT",
+    "X-Request-Id": "6050d4fa-934c-49d9-8b5d-5f12966bf6ff"
+  },
+  "method": "POST",
+  "response_body": {
+    "code": "course_immutable",
+    "message": "Una versión publicada es inmutable. Despublica el curso antes de editar su estructura."
+  },
+  "response_time": "12ms",
+  "status_code": 409,
+  "status_text": "Conflict",
+  "test_name": "18 Inmutabilidad: Rechazo al agregar modulo a curso publicado",
+  "url": "/api/v1/courses/{{courseId}}/modules"
+}

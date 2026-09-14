@@ -1,0 +1,45 @@
+{
+  "assertions": [
+    {
+      "assertion": "responde 201",
+      "skipped": false
+    },
+    {
+      "assertion": "el rol es estudiante",
+      "skipped": false
+    },
+    {
+      "assertion": "queda pendiente de verificacion",
+      "skipped": false
+    },
+    {
+      "assertion": "la respuesta no expone la contrasena",
+      "skipped": false
+    }
+  ],
+  "headers": {
+    "Content-Length": "245",
+    "Content-Type": "application/json",
+    "Date": "Mon, 14 Sep 2026 03:36:47 GMT",
+    "Ratelimit-Limit": "50",
+    "Ratelimit-Remaining": "49",
+    "Ratelimit-Reset": "3600",
+    "X-Request-Id": "1933d367-d0c3-4831-ad8a-f0394ec48130"
+  },
+  "method": "POST",
+  "response_body": {
+    "message": "Cuenta creada. Revisa tu correo para activarla.",
+    "user": {
+      "email": "postman-1789357007778@example.test",
+      "full_name": "Estudiante Postman",
+      "id": "0ca02617-38d1-4761-8b3d-77767113fe60",
+      "role": "estudiante",
+      "status": "pending_verification"
+    }
+  },
+  "response_time": "81ms",
+  "status_code": 201,
+  "status_text": "Created",
+  "test_name": "01 Registro crea estudiante pendiente",
+  "url": "/api/v1/auth/register"
+}

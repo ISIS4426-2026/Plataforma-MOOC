@@ -1,0 +1,23 @@
+{
+  "assertions": [
+    {
+      "assertion": "responde 204",
+      "skipped": false
+    },
+    {
+      "assertion": "sin cuerpo",
+      "skipped": false
+    }
+  ],
+  "headers": {
+    "Date": "Mon, 14 Sep 2026 03:36:48 GMT",
+    "X-Request-Id": "f25b9454-be1a-414d-8d13-aaa181139e57"
+  },
+  "method": "POST",
+  "response_body": "",
+  "response_time": "10ms",
+  "status_code": 204,
+  "status_text": "No Content",
+  "test_name": "18 Logout",
+  "url": "/api/v1/auth/logout"
+}

@@ -1,0 +1,28 @@
+{
+  "assertions": [
+    {
+      "assertion": "responde 409",
+      "skipped": false
+    },
+    {
+      "assertion": "codigo last_admin_protected y mensaje protector",
+      "skipped": false
+    }
+  ],
+  "headers": {
+    "Content-Length": "107",
+    "Content-Type": "application/json",
+    "Date": "Mon, 14 Sep 2026 03:36:55 GMT",
+    "X-Request-Id": "2e9fa6b1-9140-4256-b895-58878c84dd4e"
+  },
+  "method": "PATCH",
+  "response_body": {
+    "code": "last_admin_protected",
+    "message": "No es posible dejar la plataforma sin administradores activos."
+  },
+  "response_time": "10ms",
+  "status_code": 409,
+  "status_text": "Conflict",
+  "test_name": "21 Intento de degradar rol del ultimo administrador activo (espera rechazo 409)",
+  "url": "/api/v1/admin/users/{{adminPrimaryId}}/role"
+}

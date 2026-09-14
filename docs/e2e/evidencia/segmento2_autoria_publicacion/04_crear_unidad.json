@@ -1,0 +1,31 @@
+{
+  "assertions": [
+    {
+      "assertion": "responde 201",
+      "skipped": false
+    },
+    {
+      "assertion": "unidad creada con posicion 0 e identificador estable",
+      "skipped": false
+    }
+  ],
+  "headers": {
+    "Content-Length": "208",
+    "Content-Type": "application/json",
+    "Date": "Mon, 14 Sep 2026 03:36:58 GMT",
+    "X-Request-Id": "e986071d-7597-400d-b733-c8dd15be8390"
+  },
+  "method": "POST",
+  "response_body": {
+    "id": "410d665e-4acb-4c1e-a65c-49246d97ca60",
+    "module_id": "526f98d3-34d5-4823-bac4-3747d7e5bc10",
+    "position": 0,
+    "stable_id": "559d2ff9-b4f7-49cf-9b97-9858d591607a",
+    "title": "Unidad 1.1: Patrones de Arquitectura"
+  },
+  "response_time": "16ms",
+  "status_code": 201,
+  "status_text": "Created",
+  "test_name": "05 Crear Unidad 1 en Modulo 1",
+  "url": "/api/v1/modules/{{moduleId}}/units"
+}

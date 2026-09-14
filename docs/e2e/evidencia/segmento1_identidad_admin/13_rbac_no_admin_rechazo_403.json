@@ -1,0 +1,28 @@
+{
+  "assertions": [
+    {
+      "assertion": "responde 403",
+      "skipped": false
+    },
+    {
+      "assertion": "codigo forbidden",
+      "skipped": false
+    }
+  ],
+  "headers": {
+    "Content-Length": "82",
+    "Content-Type": "application/json",
+    "Date": "Mon, 14 Sep 2026 03:36:54 GMT",
+    "X-Request-Id": "7b81def9-930e-4caa-b4d1-203bfb9d8455"
+  },
+  "method": "GET",
+  "response_body": {
+    "code": "forbidden",
+    "message": "No tienes permiso para realizar esta operación."
+  },
+  "response_time": "8ms",
+  "status_code": 403,
+  "status_text": "Forbidden",
+  "test_name": "14 No-admin intenta listar usuarios",
+  "url": "/api/v1/admin/users"
+}

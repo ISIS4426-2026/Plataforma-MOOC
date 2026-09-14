@@ -1,0 +1,29 @@
+{
+  "assertions": [
+    {
+      "assertion": "responde 401 en la peticion siguiente",
+      "skipped": false
+    },
+    {
+      "assertion": "la sesion quedo invalidada",
+      "skipped": false
+    }
+  ],
+  "headers": {
+    "Content-Length": "69",
+    "Content-Type": "application/json",
+    "Date": "Mon, 14 Sep 2026 03:36:48 GMT",
+    "Www-Authenticate": "Bearer",
+    "X-Request-Id": "c1e5815a-3b29-47bb-85f3-f4c144ff063f"
+  },
+  "method": "GET",
+  "response_body": {
+    "code": "unauthorized",
+    "message": "Se requiere una sesión válida."
+  },
+  "response_time": "9ms",
+  "status_code": 401,
+  "status_text": "Unauthorized",
+  "test_name": "19 Revocacion inmediata tras logout: el token ya no sirve",
+  "url": "/api/v1/auth/sessions"
+}
