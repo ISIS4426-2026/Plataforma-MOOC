@@ -241,6 +241,7 @@ make demo-segments-1-2
 ### Artefactos Generados
 * **Reporte Maestro E2E:** [`docs/e2e/REPORTE_E2E_IDENTIDAD_Y_AUTORIA.md`](../e2e/REPORTE_E2E_IDENTIDAD_Y_AUTORIA.md) (tabla completa con el resultado pass/fail de cada petición y aserción).
 * **Guía de Sustentación:** [`docs/e2e/DEMO_SEGMENTOS_1_Y_2.md`](../e2e/DEMO_SEGMENTOS_1_Y_2.md) (runbook paso a paso para la demo de los Segmentos 1 y 2 de la Sección 10.2).
+* **Guion para el Video de Demostración:** [`docs/e2e/README_GUION_VIDEO_DEMO.md`](../e2e/README_GUION_VIDEO_DEMO.md) (libreto técnico y guía de grabación para los 9 segmentos de la Sección 10.2).
 * **Carpeta de Evidencias:** [`docs/e2e/evidencia/`](../e2e/evidencia/) con capturas de respuestas y logs organizados por segmento.
 
 ---

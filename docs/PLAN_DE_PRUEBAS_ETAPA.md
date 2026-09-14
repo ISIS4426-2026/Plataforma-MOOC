@@ -366,6 +366,7 @@ make demo-segments-1-2
 #### Artefactos y Evidencias Generadas:
 * **Reporte Maestro E2E:** [`docs/e2e/REPORTE_E2E_IDENTIDAD_Y_AUTORIA.md`](./e2e/REPORTE_E2E_IDENTIDAD_Y_AUTORIA.md) (tabla con estado `pass/fail`, latencias y aserciones de las 112 peticiones ejecutadas).
 * **Guía de Sustentación:** [`docs/e2e/DEMO_SEGMENTOS_1_Y_2.md`](./e2e/DEMO_SEGMENTOS_1_Y_2.md) (runbook detallado con comandos cURL, respuestas esperadas y referencias a la especificación).
+* **Guion para el Video de Demostración:** [`docs/e2e/README_GUION_VIDEO_DEMO.md`](./e2e/README_GUION_VIDEO_DEMO.md) (libreto técnico y guía de grabación cubriendo los 9 segmentos de la Sección 10.2).
 * **Evidencias del Segmento 1 (Identidad y Admin):** [`docs/e2e/evidencia/segmento1_identidad_admin/`](./e2e/evidencia/segmento1_identidad_admin/) (capturas de registro, correo real Mailpit, login, logout, revocación inmediata 401, rechazo de creación pública de profesor, protección del último admin 409 y logs).
 * **Evidencias del Segmento 2 (Autoría y Publicación):** [`docs/e2e/evidencia/segmento2_autoria_publicacion/`](./e2e/evidencia/segmento2_autoria_publicacion/) (capturas de jerarquía de 4 niveles, validación multi-error 422, ETag, reordenamiento con `stable_id` preservado, inmutabilidad 409, despublicación temporal MVP 5.1 y logs).
 
