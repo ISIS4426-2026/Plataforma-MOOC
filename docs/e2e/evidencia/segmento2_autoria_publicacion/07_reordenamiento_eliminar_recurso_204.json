@@ -10,12 +10,12 @@
     }
   ],
   "headers": {
-    "Date": "Mon, 14 Sep 2026 03:36:59 GMT",
-    "X-Request-Id": "01977c76-f930-4274-bc6a-4aefc5b15fcd"
+    "Date": "Mon, 14 Sep 2026 04:29:32 GMT",
+    "X-Request-Id": "2eb8b7ad-1646-459c-a0d0-e4d60f64da4a"
   },
   "method": "DELETE",
   "response_body": "",
-  "response_time": "22ms",
+  "response_time": "47ms",
   "status_code": 204,
   "status_text": "No Content",
   "test_name": "13 Reordenar: Eliminar recurso intermedio (Posicion 1)",

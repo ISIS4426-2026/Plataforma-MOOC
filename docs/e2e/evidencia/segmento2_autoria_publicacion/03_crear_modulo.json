@@ -12,18 +12,18 @@
   "headers": {
     "Content-Length": "215",
     "Content-Type": "application/json",
-    "Date": "Mon, 14 Sep 2026 03:36:58 GMT",
-    "X-Request-Id": "c82ac020-744b-4777-bfb0-e682aebb13ae"
+    "Date": "Mon, 14 Sep 2026 04:29:32 GMT",
+    "X-Request-Id": "c26177c9-3150-4d42-ae73-663cd04d1ecc"
   },
   "method": "POST",
   "response_body": {
-    "course_id": "00f826ec-4340-4422-94ae-c07fa85ced32",
-    "id": "526f98d3-34d5-4823-bac4-3747d7e5bc10",
+    "course_id": "21aa07a6-7bac-4afe-bc0f-9ee1d0846154",
+    "id": "2d1d6716-9dd8-4c9c-a9f4-03117fae34df",
     "position": 0,
-    "stable_id": "a72624ab-ea35-4098-8067-1a44aa01ef10",
+    "stable_id": "725155c0-2d2a-40a8-8d24-9b82417bd1c7",
     "title": "Modulo 1: Fundamentos de Diseno de Software"
   },
-  "response_time": "16ms",
+  "response_time": "23ms",
   "status_code": 201,
   "status_text": "Created",
   "test_name": "04 Crear Modulo 1 en Borrador",

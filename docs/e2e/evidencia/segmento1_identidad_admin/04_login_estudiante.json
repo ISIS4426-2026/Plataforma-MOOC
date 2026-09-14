@@ -20,25 +20,25 @@
   "headers": {
     "Content-Length": "271",
     "Content-Type": "application/json",
-    "Date": "Mon, 14 Sep 2026 03:36:48 GMT",
+    "Date": "Mon, 14 Sep 2026 04:29:19 GMT",
     "Ratelimit-Limit": "10",
     "Ratelimit-Remaining": "8",
     "Ratelimit-Reset": "60",
-    "X-Request-Id": "ba91f26d-85fb-4ad7-9e54-c1edcbfa8990"
+    "X-Request-Id": "31a533bc-5f52-46a0-8242-f5729c3944cc"
   },
   "method": "POST",
   "response_body": {
-    "expires_at": "2026-09-15T03:36:48.415213929Z",
-    "token": "5R6YzgMj3qcV942qlSjm7JQrLB3pTvzOEtYI0A-bR8A",
+    "expires_at": "2026-09-15T04:29:19.483630999Z",
+    "token": "Qztfda4tNSOz_BQD3pod2RU1UuOeS76ZGWAMEzSt-kg",
     "user": {
-      "email": "postman-1789357007778@example.test",
+      "email": "postman-1789360158669@example.test",
       "full_name": "Estudiante Postman",
-      "id": "0ca02617-38d1-4761-8b3d-77767113fe60",
+      "id": "1cd3c87f-0217-4426-8835-f749e317052b",
       "role": "estudiante",
       "status": "active"
     }
   },
-  "response_time": "71ms",
+  "response_time": "74ms",
   "status_code": 200,
   "status_text": "OK",
   "test_name": "10 Login exitoso tras verificar",

@@ -12,20 +12,20 @@
   "headers": {
     "Content-Length": "283",
     "Content-Type": "application/json",
-    "Date": "Mon, 14 Sep 2026 03:36:59 GMT",
-    "Etag": "\"a49286eb0f4800d1237b83c105b3405ce06df4104c824d62fbe53106d9609022\"",
-    "X-Request-Id": "5414a108-b4ff-42ab-9f50-fa0e15cfdb41"
+    "Date": "Mon, 14 Sep 2026 04:29:33 GMT",
+    "Etag": "\"c720339dc741ef5653fdba5f8a962c324fb00eefc219104468a339398c08befb\"",
+    "X-Request-Id": "103f50fc-daa1-4122-ad65-c2045d63ec81"
   },
   "method": "POST",
   "response_body": {
     "description": "Curso completo de microservicios, mensajería y resiliencia en la nube.",
-    "id": "00f826ec-4340-4422-94ae-c07fa85ced32",
-    "stable_id": "6f73c543-1a30-49fb-9a7a-1252c30e31a5",
+    "id": "21aa07a6-7bac-4afe-bc0f-9ee1d0846154",
+    "stable_id": "ea8d4d16-a7d1-418b-a687-150ec12474e6",
     "status": "unpublished",
     "title": "Arquitectura Cloud y Sistemas Distribuidos Avanzados",
     "version": 1
   },
-  "response_time": "12ms",
+  "response_time": "26ms",
   "status_code": 200,
   "status_text": "OK",
   "test_name": "23 Despublicacion temporal (Flujo MVP Seccion 5.1)",

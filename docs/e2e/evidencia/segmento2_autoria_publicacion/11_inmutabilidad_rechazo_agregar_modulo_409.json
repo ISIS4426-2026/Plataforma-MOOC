@@ -12,15 +12,15 @@
   "headers": {
     "Content-Length": "128",
     "Content-Type": "application/json",
-    "Date": "Mon, 14 Sep 2026 03:36:59 GMT",
-    "X-Request-Id": "6050d4fa-934c-49d9-8b5d-5f12966bf6ff"
+    "Date": "Mon, 14 Sep 2026 04:29:32 GMT",
+    "X-Request-Id": "c398fe5a-4371-45d6-99ca-518e95cbf1cc"
   },
   "method": "POST",
   "response_body": {
     "code": "course_immutable",
     "message": "Una versión publicada es inmutable. Despublica el curso antes de editar su estructura."
   },
-  "response_time": "12ms",
+  "response_time": "9ms",
   "status_code": 409,
   "status_text": "Conflict",
   "test_name": "18 Inmutabilidad: Rechazo al agregar modulo a curso publicado",

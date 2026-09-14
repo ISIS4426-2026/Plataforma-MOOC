@@ -243,3 +243,17 @@ make demo-segments-1-2
 * **Guía de Sustentación:** [`docs/e2e/DEMO_SEGMENTOS_1_Y_2.md`](../e2e/DEMO_SEGMENTOS_1_Y_2.md) (runbook paso a paso para la demo de los Segmentos 1 y 2 de la Sección 10.2).
 * **Carpeta de Evidencias:** [`docs/e2e/evidencia/`](../e2e/evidencia/) con capturas de respuestas y logs organizados por segmento.
 
+---
+
+## 5. Pruebas E2E Completas, Reporte de Bugs y Certificación de la Sección 10 (#28)
+
+Como cierre formal del aseguramiento de calidad de la etapa, se ejecutó la suite Postman completa contra la infraestructura en producción local (Docker Compose):
+
+* **Ejecución Consolidada:** 112 peticiones ejecutadas, 216 aserciones automáticas aprobadas, 0 fallos (100.0% de éxito).
+* **Reporte y Matriz de Bugs:** Clasificación formal de bugs por severidad (Crítica, Alta, Media, Baja), impacto, pasos de reproducción con `curl` y responsable asignado.
+* **Trazabilidad a Issues:** Seguimiento documentado de cada hallazgo crítico (con issues #12, #13, #14, #16, #19, #20 y de mejora continua #29, #30).
+* **Certificación de la Sección 10:** Auditoría formal y dictamen que certifica la **ausencia total de incumplimientos críticos** en el sistema desplegado.
+
+Consulte el documento oficial completo:  
+👉 [`docs/e2e/REPORTE_BUGS_Y_CALIDAD_ETAPA.md`](../e2e/REPORTE_BUGS_Y_CALIDAD_ETAPA.md)
+

@@ -12,20 +12,20 @@
   "headers": {
     "Content-Length": "263",
     "Content-Type": "application/json",
-    "Date": "Mon, 14 Sep 2026 03:36:59 GMT",
-    "Etag": "\"ba3ca449dcb4605b9f0c737226310b98678f3b45bef525fe7229737a351690cd\"",
-    "X-Request-Id": "3d84779f-f87a-4c0b-a9b3-d8a5d821423c"
+    "Date": "Mon, 14 Sep 2026 04:29:33 GMT",
+    "Etag": "\"f01970dae9b41ce868a08785f23c5611ad42a1aaad508280c09a29908521c9da\"",
+    "X-Request-Id": "176cebd0-468f-4d1a-871a-3ef5077458eb"
   },
   "method": "POST",
   "response_body": {
     "description": "Actualizado bajo despublicacion temporal autorizada.",
-    "id": "00f826ec-4340-4422-94ae-c07fa85ced32",
-    "stable_id": "6f73c543-1a30-49fb-9a7a-1252c30e31a5",
+    "id": "21aa07a6-7bac-4afe-bc0f-9ee1d0846154",
+    "stable_id": "ea8d4d16-a7d1-418b-a687-150ec12474e6",
     "status": "published",
     "title": "Arquitectura Cloud y Sistemas Distribuidos (Revisado)",
     "version": 1
   },
-  "response_time": "18ms",
+  "response_time": "34ms",
   "status_code": 200,
   "status_text": "OK",
   "test_name": "25 Republicar curso tras la actualizacion",

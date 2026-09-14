@@ -20,24 +20,24 @@
   "headers": {
     "Content-Length": "245",
     "Content-Type": "application/json",
-    "Date": "Mon, 14 Sep 2026 03:36:47 GMT",
+    "Date": "Mon, 14 Sep 2026 04:29:18 GMT",
     "Ratelimit-Limit": "50",
     "Ratelimit-Remaining": "49",
     "Ratelimit-Reset": "3600",
-    "X-Request-Id": "1933d367-d0c3-4831-ad8a-f0394ec48130"
+    "X-Request-Id": "f96b6324-8006-4c3d-bc92-59ffee5208b3"
   },
   "method": "POST",
   "response_body": {
     "message": "Cuenta creada. Revisa tu correo para activarla.",
     "user": {
-      "email": "postman-1789357007778@example.test",
+      "email": "postman-1789360158669@example.test",
       "full_name": "Estudiante Postman",
-      "id": "0ca02617-38d1-4761-8b3d-77767113fe60",
+      "id": "1cd3c87f-0217-4426-8835-f749e317052b",
       "role": "estudiante",
       "status": "pending_verification"
     }
   },
-  "response_time": "81ms",
+  "response_time": "129ms",
   "status_code": 201,
   "status_text": "Created",
   "test_name": "01 Registro crea estudiante pendiente",

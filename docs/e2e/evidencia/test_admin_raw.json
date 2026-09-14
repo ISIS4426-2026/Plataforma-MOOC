@@ -5,7 +5,7 @@
     },
     "item": [
       {
-        "id": "92c38225-e766-4e0e-88d7-060e23bc17d0",
+        "id": "62eedf32-9d28-4a79-ac3d-b68012ca7cc1",
         "name": "01 Login como Administrador Principal",
         "request": {
           "url": {
@@ -38,7 +38,7 @@
           {
             "listen": "test",
             "script": {
-              "id": "d37c9d9a-2e3a-45b1-9b5a-b3e8242f96a0",
+              "id": "14de6ad7-bdec-4d9c-8ed1-a290c0a48b08",
               "type": "text/javascript",
               "exec": [
                 "pm.test('responde 200', () => pm.response.to.have.status(200));",
@@ -50,13 +50,13 @@
                 "});",
                 "pm.collectionVariables.set('adminToken', body.token);"
               ],
-              "_lastExecutionId": "144c854d-a058-4d1e-bf85-8e7415beabe6"
+              "_lastExecutionId": "dcbc3dab-85e2-4263-bda2-8cd5d25a3cc6"
             }
           }
         ]
       },
       {
-        "id": "36e38a9b-ecd8-4b79-a4e4-11bcd9e48d34",
+        "id": "841088d5-e064-4d01-87c5-4532a776ad0a",
         "name": "02 Listar usuarios (Paginacion y Estructura)",
         "request": {
           "url": {
@@ -90,7 +90,7 @@
           {
             "listen": "test",
             "script": {
-              "id": "60e7bdb3-05c5-4561-85be-13206ae5596e",
+              "id": "3f3b6b23-f0aa-4b80-953f-15a50616abbc",
               "type": "text/javascript",
               "exec": [
                 "pm.test('responde 200', () => pm.response.to.have.status(200));",
@@ -106,13 +106,13 @@
                 "  pm.expect(first).to.have.property('status');",
                 "});"
               ],
-              "_lastExecutionId": "f9a27018-0414-4567-8622-0c6a7e2205f9"
+              "_lastExecutionId": "5a608a03-9397-49f6-a763-c0eabcfd1ae7"
             }
           }
         ]
       },
       {
-        "id": "77886361-4cf1-4159-b88b-ae6ccf394a77",
+        "id": "6df8f799-89f1-42cd-9928-0189256fa7f3",
         "name": "03 Filtrar usuarios por rol (profesor)",
         "request": {
           "url": {
@@ -146,7 +146,7 @@
           {
             "listen": "test",
             "script": {
-              "id": "f010bcd8-c677-4ed7-944c-b683217b0239",
+              "id": "30882a1f-92f5-4f54-80e0-38d8b966babf",
               "type": "text/javascript",
               "exec": [
                 "pm.test('responde 200', () => pm.response.to.have.status(200));",
@@ -156,13 +156,13 @@
                 "  body.items.forEach(u => pm.expect(u.role).to.eql('profesor'));",
                 "});"
               ],
-              "_lastExecutionId": "5256bf17-3693-476c-91e8-465be532e8f2"
+              "_lastExecutionId": "a29c7db9-4b73-4a54-a8a7-118a7e955da2"
             }
           }
         ]
       },
       {
-        "id": "84169074-cdd1-4f6c-9ad5-c07f9c7d266a",
+        "id": "5639cff6-a7ee-4848-ba07-d0b65914637d",
         "name": "04 Filtrar usuarios por estado (active)",
         "request": {
           "url": {
@@ -196,7 +196,7 @@
           {
             "listen": "test",
             "script": {
-              "id": "82cca081-8971-48ca-8308-f5723395ba8b",
+              "id": "ee72de96-72a7-42a3-8479-87a56505c79e",
               "type": "text/javascript",
               "exec": [
                 "pm.test('responde 200', () => pm.response.to.have.status(200));",
@@ -206,13 +206,13 @@
                 "  body.items.forEach(u => pm.expect(u.status).to.eql('active'));",
                 "});"
               ],
-              "_lastExecutionId": "9b5982f9-d432-4fab-8e2b-23e79b078297"
+              "_lastExecutionId": "34f12e47-7707-439e-abdc-10a4cb21c35a"
             }
           }
         ]
       },
       {
-        "id": "936b1b08-815b-42dd-a6e0-103e743f6cfe",
+        "id": "92e4b62c-aae6-43d1-84ee-70900172f812",
         "name": "05 Consultar detalle de usuario por ID",
         "request": {
           "url": {
@@ -242,7 +242,7 @@
           {
             "listen": "test",
             "script": {
-              "id": "33ae7257-777d-4176-a0ce-962acf2b22f6",
+              "id": "002cb37b-3b36-4342-92c7-fe6496119c4a",
               "type": "text/javascript",
               "exec": [
                 "pm.test('responde 200', () => pm.response.to.have.status(200));",
@@ -256,13 +256,13 @@
                 "  pm.collectionVariables.set('studentETag', pm.response.headers.get('ETag'));",
                 "}"
               ],
-              "_lastExecutionId": "0dd9a4e7-9564-4a22-8fa9-0b397c4e02fc"
+              "_lastExecutionId": "949aad5f-237b-48f5-b3de-ea923ea55cb2"
             }
           }
         ]
       },
       {
-        "id": "eb3e0ebd-c417-4728-8b30-7002870d5266",
+        "id": "bcef1ba2-f460-4919-b32d-a14a6f93f741",
         "name": "06 Cambiar rol de estudiante a profesor",
         "request": {
           "url": {
@@ -301,7 +301,7 @@
           {
             "listen": "test",
             "script": {
-              "id": "a19a3b30-e9a3-4c42-bba5-ae1d91649079",
+              "id": "9bfc7253-8a21-464a-93b1-a1886f6cc49d",
               "type": "text/javascript",
               "exec": [
                 "// Criterio seccion 5.1: la administracion crea o promueve profesores.",
@@ -312,13 +312,13 @@
                 "  pm.expect(body.user.role).to.eql('profesor');",
                 "});"
               ],
-              "_lastExecutionId": "8f6fd8f5-8a74-40c1-ab8f-c0ece47e2543"
+              "_lastExecutionId": "39d06432-7a9e-4e70-8cb4-4e6c0f61c8d2"
             }
           }
         ]
       },
       {
-        "id": "74c26e16-acc3-4f64-affc-cdb6b1193fc2",
+        "id": "834be693-044a-4219-a5ab-a65fe7dd6468",
         "name": "07 Verificar persistencia del nuevo rol",
         "request": {
           "url": {
@@ -348,7 +348,7 @@
           {
             "listen": "test",
             "script": {
-              "id": "01b5b689-463b-4b42-a651-19c85e5b22fc",
+              "id": "16689d60-03c6-4e66-9b28-63ed9f4955e4",
               "type": "text/javascript",
               "exec": [
                 "pm.test('responde 200', () => pm.response.to.have.status(200));",
@@ -357,13 +357,13 @@
                 "  pm.expect(body.user.role).to.eql('profesor');",
                 "});"
               ],
-              "_lastExecutionId": "ae04c9cb-af02-47b3-b96b-8e15c30a30b1"
+              "_lastExecutionId": "7763fc91-2033-4185-8c48-77823ad5acd4"
             }
           }
         ]
       },
       {
-        "id": "489f625d-91b5-46cd-9778-090c72d78be8",
+        "id": "553edc27-6008-4c26-8202-076491319051",
         "name": "08 Restaurar rol de profesor a estudiante",
         "request": {
           "url": {
@@ -402,7 +402,7 @@
           {
             "listen": "test",
             "script": {
-              "id": "d4712a48-1938-4cf0-ae9f-2755ee49644a",
+              "id": "f527042a-1aaa-4649-a298-4eac777212eb",
               "type": "text/javascript",
               "exec": [
                 "pm.test('responde 200', () => pm.response.to.have.status(200));",
@@ -411,13 +411,13 @@
                 "  pm.expect(body.user.role).to.eql('estudiante');",
                 "});"
               ],
-              "_lastExecutionId": "2c2d6d84-b43e-40bb-836a-dcab570d15c2"
+              "_lastExecutionId": "2d76484d-fb37-4bfd-a354-361737044354"
             }
           }
         ]
       },
       {
-        "id": "7f9fd57e-d093-432a-8aef-58f3b6944cca",
+        "id": "e4035554-f091-4f6d-a253-16c78d29ed31",
         "name": "09 Suspender cuenta de estudiante",
         "request": {
           "url": {
@@ -456,7 +456,7 @@
           {
             "listen": "test",
             "script": {
-              "id": "4ccdc877-6216-4c63-8fe1-e18ba00043af",
+              "id": "2756defe-db3b-449f-a02b-a4b8923a9a07",
               "type": "text/javascript",
               "exec": [
                 "pm.test('responde 200', () => pm.response.to.have.status(200));",
@@ -466,13 +466,13 @@
                 "  pm.expect(pm.response.headers.get('ETag')).to.be.a('string');",
                 "});"
               ],
-              "_lastExecutionId": "cc530adb-ebdb-4c02-bb3a-ce9e31bc1f29"
+              "_lastExecutionId": "115276ed-0b0a-485f-ae2e-1369f49fd545"
             }
           }
         ]
       },
       {
-        "id": "3e098442-1da9-4c62-9620-ce4811c75304",
+        "id": "345c6d5f-5c43-4075-8081-a7143d30c3d5",
         "name": "10 Verificar que el estudiante quedo suspendido",
         "request": {
           "url": {
@@ -502,7 +502,7 @@
           {
             "listen": "test",
             "script": {
-              "id": "635683c9-4719-47be-a7ed-bcb9ff3b4aea",
+              "id": "db616a03-4a68-4233-b1a1-1ee3e5c33bfd",
               "type": "text/javascript",
               "exec": [
                 "pm.test('responde 200', () => pm.response.to.have.status(200));",
@@ -511,13 +511,13 @@
                 "  pm.expect(body.user.status).to.eql('suspended');",
                 "});"
               ],
-              "_lastExecutionId": "91a22306-3ecf-493e-8232-a4a27c3c3fce"
+              "_lastExecutionId": "0364c7d6-1ca0-4e93-89d3-7bbf07f2ab51"
             }
           }
         ]
       },
       {
-        "id": "a9e98ccc-7f28-413f-9225-3857b4914f88",
+        "id": "57e00192-b914-46b0-ae81-7e0b9789c398",
         "name": "11 Reactivar cuenta de estudiante",
         "request": {
           "url": {
@@ -556,7 +556,7 @@
           {
             "listen": "test",
             "script": {
-              "id": "95c70b93-ea65-452c-9c29-4f49c8afdc35",
+              "id": "355b996f-5913-4bc3-a661-27ed211c0c6c",
               "type": "text/javascript",
               "exec": [
                 "pm.test('responde 200', () => pm.response.to.have.status(200));",
@@ -566,13 +566,13 @@
                 "  pm.expect(pm.response.headers.get('ETag')).to.be.a('string');",
                 "});"
               ],
-              "_lastExecutionId": "089b2e4a-4947-4078-9b5b-8319d9ecc565"
+              "_lastExecutionId": "93a12627-9924-404c-8d82-7f865bf4f4a2"
             }
           }
         ]
       },
       {
-        "id": "2380ca7d-271b-427b-8de0-6308082d6a77",
+        "id": "4fc1ae9b-18c2-446a-b49e-9e35e5a92097",
         "name": "12 Verificar que el estudiante quedo activo",
         "request": {
           "url": {
@@ -602,7 +602,7 @@
           {
             "listen": "test",
             "script": {
-              "id": "75a16581-6c6c-42d6-be63-ee185b0c0567",
+              "id": "ac87339f-57c9-405d-bc3a-fd4994b7a727",
               "type": "text/javascript",
               "exec": [
                 "pm.test('responde 200', () => pm.response.to.have.status(200));",
@@ -611,13 +611,13 @@
                 "  pm.expect(body.user.status).to.eql('active');",
                 "});"
               ],
-              "_lastExecutionId": "df6576cf-8930-4f7e-9176-4dd7b5382298"
+              "_lastExecutionId": "ec7b16f9-be7a-4c5a-b4e9-003d9eb64909"
             }
           }
         ]
       },
       {
-        "id": "6cd29773-ddc4-49fa-844b-6ada9a90ee54",
+        "id": "b04e9312-384e-42fd-b05c-461f6c2678fd",
         "name": "13 Login como usuario no-admin (Estudiante)",
         "request": {
           "url": {
@@ -650,7 +650,7 @@
           {
             "listen": "test",
             "script": {
-              "id": "55a84105-2557-419e-96a9-e043ffb80c90",
+              "id": "7f27909b-3312-41c6-96f0-88be617ad07a",
               "type": "text/javascript",
               "exec": [
                 "pm.test('responde 200', () => pm.response.to.have.status(200));",
@@ -661,13 +661,13 @@
                 "});",
                 "pm.collectionVariables.set('studentToken', body.token);"
               ],
-              "_lastExecutionId": "c565ffcf-296d-42be-a741-eb88fd9363d4"
+              "_lastExecutionId": "20646e51-91ad-4cbd-94f2-7eff2b1f5d97"
             }
           }
         ]
       },
       {
-        "id": "d796cfac-6a48-4440-bd70-14596a073de2",
+        "id": "877c137f-4b85-4074-8b50-00114bf081da",
         "name": "14 No-admin intenta listar usuarios",
         "request": {
           "url": {
@@ -696,7 +696,7 @@
           {
             "listen": "test",
             "script": {
-              "id": "bdc4ba73-a795-4b3d-9731-acfc92cc73b6",
+              "id": "be912508-616d-4ee0-9189-06522d5f767b",
               "type": "text/javascript",
               "exec": [
                 "// Criterio de aceptacion: no-admin recibe 403.",
@@ -707,13 +707,13 @@
                 "  pm.expect(body.message).to.be.a('string');",
                 "});"
               ],
-              "_lastExecutionId": "2c118e29-a1eb-47bd-abd9-00c3ad415fcc"
+              "_lastExecutionId": "f589e131-d285-45dd-8c79-cd9e86bdaa1e"
             }
           }
         ]
       },
       {
-        "id": "095d0f7b-1127-463b-b5ef-7b2a11556c98",
+        "id": "5f478ad2-f76c-453b-8d5d-6337d977c018",
         "name": "15 No-admin intenta consultar usuario por ID",
         "request": {
           "url": {
@@ -743,7 +743,7 @@
           {
             "listen": "test",
             "script": {
-              "id": "1700d2b1-f05f-448b-b578-ff57a38d26e5",
+              "id": "09d5e132-a397-4bad-a609-c8724cc785b8",
               "type": "text/javascript",
               "exec": [
                 "pm.test('responde 403', () => pm.response.to.have.status(403));",
@@ -753,13 +753,13 @@
                 "  pm.expect(body.message).to.be.a('string');",
                 "});"
               ],
-              "_lastExecutionId": "d59c0bbc-0173-428d-81b7-cc4afb2403f9"
+              "_lastExecutionId": "d7847cd9-9a97-4dc9-8a21-554b9863eda2"
             }
           }
         ]
       },
       {
-        "id": "1bde21da-12aa-4500-a6dc-e029e5fea43f",
+        "id": "8a0b6418-8524-460e-b57f-99c77e43e059",
         "name": "16 No-admin intenta cambiar un rol",
         "request": {
           "url": {
@@ -798,7 +798,7 @@
           {
             "listen": "test",
             "script": {
-              "id": "789b19c1-0e59-4514-94ce-a9a34bf74933",
+              "id": "36aa3f8b-a795-4dca-addf-cf9b6622aee0",
               "type": "text/javascript",
               "exec": [
                 "pm.test('responde 403', () => pm.response.to.have.status(403));",
@@ -808,13 +808,13 @@
                 "  pm.expect(body.message).to.be.a('string');",
                 "});"
               ],
-              "_lastExecutionId": "8721367e-261c-45a7-92fd-58f8f953e8db"
+              "_lastExecutionId": "56517f0c-9123-42ee-88b1-110699fd9347"
             }
           }
         ]
       },
       {
-        "id": "8a1dd173-e540-4195-8b03-7fc0c66f7bf7",
+        "id": "de3f5c3b-8706-4b4d-90cb-577fc90254fc",
         "name": "17 No-admin intenta suspender una cuenta",
         "request": {
           "url": {
@@ -853,7 +853,7 @@
           {
             "listen": "test",
             "script": {
-              "id": "08e67cdb-2f43-4c5e-a2d9-e58f80553813",
+              "id": "2116de91-b602-43df-a2ff-fa1bc471a07c",
               "type": "text/javascript",
               "exec": [
                 "pm.test('responde 403', () => pm.response.to.have.status(403));",
@@ -863,13 +863,13 @@
                 "  pm.expect(body.message).to.be.a('string');",
                 "});"
               ],
-              "_lastExecutionId": "b3460a08-6bae-4297-9c7c-88f92ffe99c5"
+              "_lastExecutionId": "466e788b-c85d-488a-ab6e-7ced6a56c671"
             }
           }
         ]
       },
       {
-        "id": "96308f00-dc6a-456c-983d-801630288bf9",
+        "id": "44d8eea0-33c7-480d-982c-dd9e0600c00e",
         "name": "18 Peticion sin autenticacion a listar usuarios",
         "request": {
           "url": {
@@ -892,7 +892,7 @@
           {
             "listen": "test",
             "script": {
-              "id": "62b10973-9916-4d21-ba92-ca05f344b8c4",
+              "id": "22dd471c-b6a8-4a45-ad66-79123bfecac0",
               "type": "text/javascript",
               "exec": [
                 "pm.test('responde 401', () => pm.response.to.have.status(401));",
@@ -903,13 +903,13 @@
                 "  pm.expect(body.message).to.be.a('string');",
                 "});"
               ],
-              "_lastExecutionId": "0a51d9a8-3d06-44fc-ad00-d8b106fa0b12"
+              "_lastExecutionId": "780a80bf-58f7-4d03-80c0-b7515ebe8cec"
             }
           }
         ]
       },
       {
-        "id": "0e4e94b2-d37b-4570-9b8b-9bbe5a73ff61",
+        "id": "af6bfdc5-5c21-45f8-8020-2d8ef3262ce5",
         "name": "19 Suspender al administrador secundario",
         "request": {
           "url": {
@@ -948,7 +948,7 @@
           {
             "listen": "test",
             "script": {
-              "id": "7704d061-8049-447c-8a34-6913342ff8b4",
+              "id": "53b8bb5a-a0f2-446f-a9e6-79a3b74ff155",
               "type": "text/javascript",
               "exec": [
                 "// Deja unicamente a admin@plataforma-mooc.test como administrador activo.",
@@ -959,13 +959,13 @@
                 "  pm.expect(body.user.status).to.eql('suspended');",
                 "});"
               ],
-              "_lastExecutionId": "45e05373-9275-4838-869a-df19b0aa62a3"
+              "_lastExecutionId": "e976accf-72f5-41d0-ab23-4593a21913fc"
             }
           }
         ]
       },
       {
-        "id": "47976bf3-818d-4477-86f7-fffb083873d2",
+        "id": "0ec8bc20-6870-4223-9948-698e8e4843f2",
         "name": "20 Intento de suspender al ultimo administrador activo (espera rechazo 409)",
         "request": {
           "url": {
@@ -1004,7 +1004,7 @@
           {
             "listen": "test",
             "script": {
-              "id": "7033cde4-feab-407a-a8e1-345cf30a3e7a",
+              "id": "da18546d-ad06-48bc-a4e2-e9220a804396",
               "type": "text/javascript",
               "exec": [
                 "// Criterio de aceptacion: proteccion del ultimo administrador activo.",
@@ -1015,13 +1015,13 @@
                 "  pm.expect(body.message).to.include('No es posible dejar la plataforma sin administradores activos');",
                 "});"
               ],
-              "_lastExecutionId": "5ab0a51c-94c1-483d-adc1-a8f10f65e93c"
+              "_lastExecutionId": "9cbc72ee-125d-4441-8860-fb39b11c430e"
             }
           }
         ]
       },
       {
-        "id": "9b1679db-3c1c-4777-ba8a-8f7157ab9df7",
+        "id": "d0db3a73-294b-4c20-9dfb-e22994cf3a46",
         "name": "21 Intento de degradar rol del ultimo administrador activo (espera rechazo 409)",
         "request": {
           "url": {
@@ -1060,7 +1060,7 @@
           {
             "listen": "test",
             "script": {
-              "id": "e8567f74-08a0-401b-84ff-54933beadf69",
+              "id": "18dd9fb9-8d8e-45f8-9b8c-23f1fb5fd4ca",
               "type": "text/javascript",
               "exec": [
                 "// Criterio de aceptacion: no se puede degradar al ultimo administrador.",
@@ -1071,13 +1071,13 @@
                 "  pm.expect(body.message).to.include('No es posible dejar la plataforma sin administradores activos');",
                 "});"
               ],
-              "_lastExecutionId": "643da95d-7d94-4c4a-9496-c5ed6f8d3c9e"
+              "_lastExecutionId": "0ea9fb40-5649-4c2d-8bf5-c72d532b5e24"
             }
           }
         ]
       },
       {
-        "id": "7e69244a-b927-4aac-ba1e-01bfca8a9b6d",
+        "id": "1867c5d4-0d3f-4697-888d-038b32f04ed3",
         "name": "22 Reactivar al administrador secundario",
         "request": {
           "url": {
@@ -1116,7 +1116,7 @@
           {
             "listen": "test",
             "script": {
-              "id": "31f34096-1b4d-4076-a718-537b91678edd",
+              "id": "264853d3-994d-41fe-9fea-b74a4c5ae221",
               "type": "text/javascript",
               "exec": [
                 "// Restaura el estado de la plataforma a 2 administradores activos.",
@@ -1128,13 +1128,13 @@
                 "  pm.expect(body.user.role).to.eql('administrador');",
                 "});"
               ],
-              "_lastExecutionId": "2a1dcdd4-3434-4a90-a598-887665ea4017"
+              "_lastExecutionId": "e62001f5-b338-4a97-bac8-2689f80cecb4"
             }
           }
         ]
       },
       {
-        "id": "20364a1b-dc1f-4ece-af88-a5539a0d0c77",
+        "id": "19dda78a-3e41-4da5-bf6b-3c8ed735745e",
         "name": "23 Verificar que ambos administradores continuan activos",
         "request": {
           "url": {
@@ -1168,7 +1168,7 @@
           {
             "listen": "test",
             "script": {
-              "id": "6bdfa102-7576-42e9-886c-5997c117c0c8",
+              "id": "4ac66595-dc5d-4ed2-8e0c-87aee34ecddc",
               "type": "text/javascript",
               "exec": [
                 "pm.test('responde 200', () => pm.response.to.have.status(200));",
@@ -1179,7 +1179,7 @@
                 "  pm.expect(activos).to.have.lengthOf.at.least(2);",
                 "});"
               ],
-              "_lastExecutionId": "1f01175c-e0f5-4a1b-845c-826813c86a25"
+              "_lastExecutionId": "1d1a4ce8-dc03-4801-8133-95fefcab37d1"
             }
           }
         ]
@@ -1355,7 +1355,7 @@
     ]
   },
   "globals": {
-    "id": "de29b1a2-00f5-4fa9-b0ab-d9dc7293e9cd",
+    "id": "16adb079-7c27-4674-95f8-bdc650405071",
     "values": []
   },
   "run": {
@@ -1407,10 +1407,10 @@
       }
     },
     "timings": {
-      "responseAverage": 22.391304347826086,
+      "responseAverage": 26.52173913043478,
       "responseMin": 6,
-      "responseMax": 182,
-      "responseSd": 36.20081566512577,
+      "responseMax": 166,
+      "responseSd": 34.46847275941783,
       "dnsAverage": 0,
       "dnsMin": 0,
       "dnsMax": 0,
@@ -1419,8 +1419,8 @@
       "firstByteMin": 0,
       "firstByteMax": 0,
       "firstByteSd": 0,
-      "started": 1789357013985,
-      "completed": 1789357015233
+      "started": 1789360165341,
+      "completed": 1789360166832
     },
     "executions": [
       {
@@ -1433,11 +1433,11 @@
           "eof": false,
           "bof": true,
           "cr": false,
-          "ref": "4a9b4163-8cac-4a89-a242-8c03e9f964c1",
-          "httpRequestId": "afa6a637-adf5-4db8-9a23-aa0000e01cbd"
+          "ref": "ae410bd4-1fa7-4a4c-8e20-dc0b780c25d1",
+          "httpRequestId": "0afa1ecc-6205-4ddd-924f-1b0dbed06eb8"
         },
         "item": {
-          "id": "92c38225-e766-4e0e-88d7-060e23bc17d0",
+          "id": "62eedf32-9d28-4a79-ac3d-b68012ca7cc1",
           "name": "01 Login como Administrador Principal",
           "request": {
             "url": {
@@ -1470,7 +1470,7 @@
             {
               "listen": "test",
               "script": {
-                "id": "d37c9d9a-2e3a-45b1-9b5a-b3e8242f96a0",
+                "id": "14de6ad7-bdec-4d9c-8ed1-a290c0a48b08",
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('responde 200', () => pm.response.to.have.status(200));",
@@ -1482,7 +1482,7 @@
                   "});",
                   "pm.collectionVariables.set('adminToken', body.token);"
                 ],
-                "_lastExecutionId": "144c854d-a058-4d1e-bf85-8e7415beabe6"
+                "_lastExecutionId": "dcbc3dab-85e2-4263-bda2-8cd5d25a3cc6"
               }
             }
           ]
@@ -1525,7 +1525,7 @@
             },
             {
               "key": "Postman-Token",
-              "value": "dd208623-74ef-4c30-8229-91680f40624b",
+              "value": "2b4afac8-b8e7-4253-a6de-b4b702606d7c",
               "system": true
             },
             {
@@ -1556,7 +1556,7 @@
           }
         },
         "response": {
-          "id": "bb075132-3c8c-4b95-bb74-579837497c3d",
+          "id": "bd605509-30bf-4724-961e-e8bf7d2a82d9",
           "status": "OK",
           "code": 200,
           "header": [
@@ -1578,11 +1578,11 @@
             },
             {
               "key": "X-Request-Id",
-              "value": "631a7566-453c-4f81-ab04-ec8f4ee40a66"
+              "value": "6fb090e8-70d9-40dc-b549-de18f88eb9d0"
             },
             {
               "key": "Date",
-              "value": "Mon, 14 Sep 2026 03:36:54 GMT"
+              "value": "Mon, 14 Sep 2026 04:29:25 GMT"
             },
             {
               "key": "Content-Length",
@@ -1602,49 +1602,49 @@
               34,
               58,
               34,
-              121,
+              112,
               65,
-              118,
-              116,
-              45,
-              116,
-              109,
-              110,
-              106,
-              95,
-              98,
+              111,
+              105,
+              52,
+              113,
+              66,
+              54,
+              52,
+              84,
+              52,
               53,
-              56,
-              71,
-              83,
-              71,
-              72,
-              121,
-              119,
-              102,
-              57,
-              56,
-              102,
-              71,
-              82,
-              71,
-              88,
-              107,
-              55,
-              90,
-              122,
-              80,
-              102,
-              114,
-              45,
-              109,
-              100,
-              97,
-              77,
-              75,
+              106,
+              111,
+              52,
               118,
-              101,
-              77,
+              68,
+              49,
+              90,
+              80,
+              89,
+              67,
+              121,
+              49,
+              114,
+              86,
+              45,
+              97,
+              51,
+              79,
+              90,
+              121,
+              106,
+              72,
+              65,
+              102,
+              53,
+              68,
+              85,
+              100,
+              80,
+              76,
+              69,
               34,
               44,
               34,
@@ -1673,23 +1673,23 @@
               53,
               84,
               48,
-              51,
-              58,
-              51,
-              54,
-              58,
-              53,
               52,
-              46,
-              49,
-              54,
-              54,
-              55,
+              58,
+              50,
+              57,
+              58,
+              50,
               53,
-              49,
+              46,
+              53,
+              48,
+              53,
               56,
               57,
-              50,
+              48,
+              55,
+              54,
+              57,
               90,
               34,
               44,
@@ -1866,10 +1866,10 @@
             ]
           },
           "cookie": [],
-          "responseTime": 182,
+          "responseTime": 166,
           "responseSize": 271
         },
-        "id": "92c38225-e766-4e0e-88d7-060e23bc17d0",
+        "id": "62eedf32-9d28-4a79-ac3d-b68012ca7cc1",
         "assertions": [
           {
             "assertion": "responde 200",
@@ -1883,15 +1883,15 @@
       },
       {
         "cursor": {
-          "ref": "5e37fdad-5d08-47f8-b9fb-d46f2b9a02ff",
+          "ref": "fdb896e5-537c-4f74-a463-19f376307758",
           "length": 23,
           "cycles": 1,
           "position": 1,
           "iteration": 0,
-          "httpRequestId": "844d6c27-b6d3-478b-85ab-2857b549c2fd"
+          "httpRequestId": "51dbfd09-a238-4c26-8730-b3f9eb0599fb"
         },
         "item": {
-          "id": "36e38a9b-ecd8-4b79-a4e4-11bcd9e48d34",
+          "id": "841088d5-e064-4d01-87c5-4532a776ad0a",
           "name": "02 Listar usuarios (Paginacion y Estructura)",
           "request": {
             "url": {
@@ -1925,7 +1925,7 @@
             {
               "listen": "test",
               "script": {
-                "id": "60e7bdb3-05c5-4561-85be-13206ae5596e",
+                "id": "3f3b6b23-f0aa-4b80-953f-15a50616abbc",
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('responde 200', () => pm.response.to.have.status(200));",
@@ -1941,7 +1941,7 @@
                   "  pm.expect(first).to.have.property('status');",
                   "});"
                 ],
-                "_lastExecutionId": "f9a27018-0414-4567-8622-0c6a7e2205f9"
+                "_lastExecutionId": "5a608a03-9397-49f6-a763-c0eabcfd1ae7"
               }
             }
           ]
@@ -1970,7 +1970,7 @@
           "header": [
             {
               "key": "Authorization",
-              "value": "Bearer yAvt-tmnj_b58GSGHywf98fGRGXk7ZzPfr-mdaMKveM"
+              "value": "Bearer pAoi4qB64T45jo4vD1ZPYCy1rV-a3OZyjHAf5DUdPLE"
             },
             {
               "key": "User-Agent",
@@ -1989,7 +1989,7 @@
             },
             {
               "key": "Postman-Token",
-              "value": "a8f8846d-288c-4626-a7a5-9f541af49b98",
+              "value": "209fff1d-0d71-4548-a8fd-98e51c9cf19b",
               "system": true
             },
             {
@@ -2011,7 +2011,7 @@
           "method": "GET"
         },
         "response": {
-          "id": "7b548d61-42a8-496a-bdba-612c4023c9ab",
+          "id": "a895fb3b-2f53-49bf-8733-42650135822c",
           "status": "OK",
           "code": 200,
           "header": [
@@ -2021,11 +2021,11 @@
             },
             {
               "key": "X-Request-Id",
-              "value": "c1ed1446-214e-42e3-ad1e-fb5dd6b01f67"
+              "value": "49bb0021-6808-4c09-bad5-af230d6e8814"
             },
             {
               "key": "Date",
-              "value": "Mon, 14 Sep 2026 03:36:54 GMT"
+              "value": "Mon, 14 Sep 2026 04:29:25 GMT"
             },
             {
               "key": "Content-Length",
@@ -2052,42 +2052,42 @@
               34,
               58,
               34,
-              98,
-              52,
-              56,
+              54,
+              48,
+              53,
               51,
-              98,
+              48,
+              55,
               102,
-              52,
-              101,
-              45,
               50,
-              54,
-              54,
-              101,
               45,
-              52,
-              98,
-              48,
-              55,
-              45,
-              98,
-              52,
-              55,
-              100,
-              45,
-              100,
-              48,
               50,
               56,
               54,
+              54,
+              45,
+              52,
               97,
+              101,
               50,
-              49,
-              97,
-              57,
+              45,
               98,
-              49,
+              56,
+              101,
+              48,
+              45,
+              98,
+              55,
+              98,
+              51,
+              99,
+              51,
+              51,
+              52,
+              100,
+              53,
+              53,
+              97,
               34,
               44,
               34,
@@ -2109,14 +2109,14 @@
               56,
               57,
               51,
-              53,
-              55,
-              48,
-              49,
-              48,
-              49,
-              51,
               54,
+              48,
+              49,
+              54,
+              49,
+              50,
+              48,
+              51,
               64,
               101,
               120,
@@ -2224,42 +2224,42 @@
               34,
               58,
               34,
-              48,
+              49,
               99,
-              97,
+              100,
+              51,
+              99,
+              56,
+              55,
+              102,
+              45,
               48,
               50,
-              54,
               49,
               55,
-              45,
-              51,
-              56,
-              100,
-              49,
               45,
               52,
-              55,
+              52,
+              50,
               54,
-              49,
               45,
               56,
-              98,
+              56,
               51,
-              100,
+              53,
               45,
-              55,
-              55,
-              55,
-              54,
-              55,
-              49,
-              49,
-              51,
               102,
+              55,
+              52,
+              57,
               101,
-              54,
+              51,
+              49,
+              55,
               48,
+              53,
+              50,
+              98,
               34,
               44,
               34,
@@ -2284,14 +2284,14 @@
               56,
               57,
               51,
+              54,
+              48,
+              49,
               53,
-              55,
-              48,
-              48,
-              55,
-              55,
-              55,
               56,
+              54,
+              54,
+              57,
               64,
               101,
               120,
@@ -3791,10 +3791,10 @@
             ]
           },
           "cookie": [],
-          "responseTime": 11,
+          "responseTime": 14,
           "responseSize": 1753
         },
-        "id": "36e38a9b-ecd8-4b79-a4e4-11bcd9e48d34",
+        "id": "841088d5-e064-4d01-87c5-4532a776ad0a",
         "assertions": [
           {
             "assertion": "responde 200",
@@ -3808,15 +3808,15 @@
       },
       {
         "cursor": {
-          "ref": "5d0888b2-290a-45f5-8e7c-8f1af678853a",
+          "ref": "646b049a-9711-497f-9c9b-45736db7eb7f",
           "length": 23,
           "cycles": 1,
           "position": 2,
           "iteration": 0,
-          "httpRequestId": "ad9770ca-fa0d-4000-917d-6099b773cc70"
+          "httpRequestId": "21fc3ae6-ff1e-4176-8c9d-607ce100b9a0"
         },
         "item": {
-          "id": "77886361-4cf1-4159-b88b-ae6ccf394a77",
+          "id": "6df8f799-89f1-42cd-9928-0189256fa7f3",
           "name": "03 Filtrar usuarios por rol (profesor)",
           "request": {
             "url": {
@@ -3850,7 +3850,7 @@
             {
               "listen": "test",
               "script": {
-                "id": "f010bcd8-c677-4ed7-944c-b683217b0239",
+                "id": "30882a1f-92f5-4f54-80e0-38d8b966babf",
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('responde 200', () => pm.response.to.have.status(200));",
@@ -3860,7 +3860,7 @@
                   "  body.items.forEach(u => pm.expect(u.role).to.eql('profesor'));",
                   "});"
                 ],
-                "_lastExecutionId": "5256bf17-3693-476c-91e8-465be532e8f2"
+                "_lastExecutionId": "a29c7db9-4b73-4a54-a8a7-118a7e955da2"
               }
             }
           ]
@@ -3889,7 +3889,7 @@
           "header": [
             {
               "key": "Authorization",
-              "value": "Bearer yAvt-tmnj_b58GSGHywf98fGRGXk7ZzPfr-mdaMKveM"
+              "value": "Bearer pAoi4qB64T45jo4vD1ZPYCy1rV-a3OZyjHAf5DUdPLE"
             },
             {
               "key": "User-Agent",
@@ -3908,7 +3908,7 @@
             },
             {
               "key": "Postman-Token",
-              "value": "9c90749c-5c33-4e22-8cdb-3f5e94f4eb66",
+              "value": "b347c9ff-cfc5-4fba-b732-216544bcf892",
               "system": true
             },
             {
@@ -3930,7 +3930,7 @@
           "method": "GET"
         },
         "response": {
-          "id": "086ebf30-cf1a-4380-bd04-1d719351b0de",
+          "id": "f06ef616-f276-40e6-a5c3-15925211bad0",
           "status": "OK",
           "code": 200,
           "header": [
@@ -3940,11 +3940,11 @@
             },
             {
               "key": "X-Request-Id",
-              "value": "df869877-da9e-4efc-9d94-e545ec4a7092"
+              "value": "5043dddd-2c76-4da6-8731-de2703d33f1b"
             },
             {
               "key": "Date",
-              "value": "Mon, 14 Sep 2026 03:36:54 GMT"
+              "value": "Mon, 14 Sep 2026 04:29:25 GMT"
             },
             {
               "key": "Content-Length",
@@ -4334,10 +4334,10 @@
             ]
           },
           "cookie": [],
-          "responseTime": 12,
+          "responseTime": 16,
           "responseSize": 377
         },
-        "id": "77886361-4cf1-4159-b88b-ae6ccf394a77",
+        "id": "6df8f799-89f1-42cd-9928-0189256fa7f3",
         "assertions": [
           {
             "assertion": "responde 200",
@@ -4351,15 +4351,15 @@
       },
       {
         "cursor": {
-          "ref": "c35d0fe7-e194-4014-b777-c7cb2208a575",
+          "ref": "9194dac6-91a6-4290-ae09-13360b81854f",
           "length": 23,
           "cycles": 1,
           "position": 3,
           "iteration": 0,
-          "httpRequestId": "e2437c13-3641-431b-89f5-2182f962ddc4"
+          "httpRequestId": "6156a55a-7539-4106-bbd6-53faf349b333"
         },
         "item": {
-          "id": "84169074-cdd1-4f6c-9ad5-c07f9c7d266a",
+          "id": "5639cff6-a7ee-4848-ba07-d0b65914637d",
           "name": "04 Filtrar usuarios por estado (active)",
           "request": {
             "url": {
@@ -4393,7 +4393,7 @@
             {
               "listen": "test",
               "script": {
-                "id": "82cca081-8971-48ca-8308-f5723395ba8b",
+                "id": "ee72de96-72a7-42a3-8479-87a56505c79e",
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('responde 200', () => pm.response.to.have.status(200));",
@@ -4403,7 +4403,7 @@
                   "  body.items.forEach(u => pm.expect(u.status).to.eql('active'));",
                   "});"
                 ],
-                "_lastExecutionId": "9b5982f9-d432-4fab-8e2b-23e79b078297"
+                "_lastExecutionId": "34f12e47-7707-439e-abdc-10a4cb21c35a"
               }
             }
           ]
@@ -4432,7 +4432,7 @@
           "header": [
             {
               "key": "Authorization",
-              "value": "Bearer yAvt-tmnj_b58GSGHywf98fGRGXk7ZzPfr-mdaMKveM"
+              "value": "Bearer pAoi4qB64T45jo4vD1ZPYCy1rV-a3OZyjHAf5DUdPLE"
             },
             {
               "key": "User-Agent",
@@ -4451,7 +4451,7 @@
             },
             {
               "key": "Postman-Token",
-              "value": "e9c1164a-a6ac-4e59-ab89-3b585acf69db",
+              "value": "a81947e0-1712-494c-b11d-13db03170e31",
               "system": true
             },
             {
@@ -4473,7 +4473,7 @@
           "method": "GET"
         },
         "response": {
-          "id": "a110ea84-87d4-4651-ab80-18599271485b",
+          "id": "4444dc84-6e0c-4878-b8e4-31b01af4b9cb",
           "status": "OK",
           "code": 200,
           "header": [
@@ -4483,11 +4483,11 @@
             },
             {
               "key": "X-Request-Id",
-              "value": "0cc408c0-ac34-4ac3-b924-2eaaf845f20f"
+              "value": "7f36f5b6-2f82-4e80-ba97-70ab04f44eda"
             },
             {
               "key": "Date",
-              "value": "Mon, 14 Sep 2026 03:36:54 GMT"
+              "value": "Mon, 14 Sep 2026 04:29:25 GMT"
             },
             {
               "key": "Content-Length",
@@ -4514,42 +4514,42 @@
               34,
               58,
               34,
-              48,
+              49,
               99,
-              97,
+              100,
+              51,
+              99,
+              56,
+              55,
+              102,
+              45,
               48,
               50,
-              54,
               49,
               55,
-              45,
-              51,
-              56,
-              100,
-              49,
               45,
               52,
-              55,
+              52,
+              50,
               54,
-              49,
               45,
               56,
-              98,
+              56,
               51,
-              100,
+              53,
               45,
-              55,
-              55,
-              55,
-              54,
-              55,
-              49,
-              49,
-              51,
               102,
+              55,
+              52,
+              57,
               101,
-              54,
+              51,
+              49,
+              55,
               48,
+              53,
+              50,
+              98,
               34,
               44,
               34,
@@ -4574,14 +4574,14 @@
               56,
               57,
               51,
+              54,
+              48,
+              49,
               53,
-              55,
-              48,
-              48,
-              55,
-              55,
-              55,
               56,
+              54,
+              54,
+              57,
               64,
               101,
               120,
@@ -5709,10 +5709,10 @@
             ]
           },
           "cookie": [],
-          "responseTime": 9,
+          "responseTime": 12,
           "responseSize": 1209
         },
-        "id": "84169074-cdd1-4f6c-9ad5-c07f9c7d266a",
+        "id": "5639cff6-a7ee-4848-ba07-d0b65914637d",
         "assertions": [
           {
             "assertion": "responde 200",
@@ -5726,15 +5726,15 @@
       },
       {
         "cursor": {
-          "ref": "a42c0eeb-5b63-49c9-a6ae-6966eba1b610",
+          "ref": "c39e317d-69bc-49d2-a348-17ff3103c290",
           "length": 23,
           "cycles": 1,
           "position": 4,
           "iteration": 0,
-          "httpRequestId": "b4c7cf08-b894-4f3e-88c0-9644eae3faf2"
+          "httpRequestId": "946d8e1f-5937-4fff-8a33-441bd797ac9e"
         },
         "item": {
-          "id": "936b1b08-815b-42dd-a6e0-103e743f6cfe",
+          "id": "92e4b62c-aae6-43d1-84ee-70900172f812",
           "name": "05 Consultar detalle de usuario por ID",
           "request": {
             "url": {
@@ -5764,7 +5764,7 @@
             {
               "listen": "test",
               "script": {
-                "id": "33ae7257-777d-4176-a0ce-962acf2b22f6",
+                "id": "002cb37b-3b36-4342-92c7-fe6496119c4a",
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('responde 200', () => pm.response.to.have.status(200));",
@@ -5778,7 +5778,7 @@
                   "  pm.collectionVariables.set('studentETag', pm.response.headers.get('ETag'));",
                   "}"
                 ],
-                "_lastExecutionId": "0dd9a4e7-9564-4a22-8fa9-0b397c4e02fc"
+                "_lastExecutionId": "949aad5f-237b-48f5-b3de-ea923ea55cb2"
               }
             }
           ]
@@ -5803,7 +5803,7 @@
           "header": [
             {
               "key": "Authorization",
-              "value": "Bearer yAvt-tmnj_b58GSGHywf98fGRGXk7ZzPfr-mdaMKveM"
+              "value": "Bearer pAoi4qB64T45jo4vD1ZPYCy1rV-a3OZyjHAf5DUdPLE"
             },
             {
               "key": "User-Agent",
@@ -5822,7 +5822,7 @@
             },
             {
               "key": "Postman-Token",
-              "value": "ddd9db20-45dc-4f0c-b5bc-b68f0a0b0670",
+              "value": "1899cdfa-c51f-40e7-ba2f-b8d82b0d452c",
               "system": true
             },
             {
@@ -5844,7 +5844,7 @@
           "method": "GET"
         },
         "response": {
-          "id": "6c8d8659-5042-4507-84f3-d6cffd08ceb2",
+          "id": "e320221f-c9d3-4a0e-9efa-67c2106c5449",
           "status": "OK",
           "code": 200,
           "header": [
@@ -5858,11 +5858,11 @@
             },
             {
               "key": "X-Request-Id",
-              "value": "ba256488-55b2-4808-a536-3634bbb5ada3"
+              "value": "b12ea281-3c84-4ba8-ae52-a99fcf3b28c4"
             },
             {
               "key": "Date",
-              "value": "Mon, 14 Sep 2026 03:36:54 GMT"
+              "value": "Mon, 14 Sep 2026 04:29:25 GMT"
             },
             {
               "key": "Content-Length",
@@ -6048,10 +6048,10 @@
             ]
           },
           "cookie": [],
-          "responseTime": 17,
+          "responseTime": 15,
           "responseSize": 173
         },
-        "id": "936b1b08-815b-42dd-a6e0-103e743f6cfe",
+        "id": "92e4b62c-aae6-43d1-84ee-70900172f812",
         "assertions": [
           {
             "assertion": "responde 200",
@@ -6065,15 +6065,15 @@
       },
       {
         "cursor": {
-          "ref": "88a6caf4-0393-435f-83d4-2286eb96cd55",
+          "ref": "45f11dfd-de73-435f-8874-72caf53092f1",
           "length": 23,
           "cycles": 1,
           "position": 5,
           "iteration": 0,
-          "httpRequestId": "41dc7d79-04bb-473c-bd58-8ea710dab7eb"
+          "httpRequestId": "c62cac81-fe0f-4119-a167-b671f90bf002"
         },
         "item": {
-          "id": "eb3e0ebd-c417-4728-8b30-7002870d5266",
+          "id": "bcef1ba2-f460-4919-b32d-a14a6f93f741",
           "name": "06 Cambiar rol de estudiante a profesor",
           "request": {
             "url": {
@@ -6112,7 +6112,7 @@
             {
               "listen": "test",
               "script": {
-                "id": "a19a3b30-e9a3-4c42-bba5-ae1d91649079",
+                "id": "9bfc7253-8a21-464a-93b1-a1886f6cc49d",
                 "type": "text/javascript",
                 "exec": [
                   "// Criterio seccion 5.1: la administracion crea o promueve profesores.",
@@ -6123,7 +6123,7 @@
                   "  pm.expect(body.user.role).to.eql('profesor');",
                   "});"
                 ],
-                "_lastExecutionId": "8f6fd8f5-8a74-40c1-ab8f-c0ece47e2543"
+                "_lastExecutionId": "39d06432-7a9e-4e70-8cb4-4e6c0f61c8d2"
               }
             }
           ]
@@ -6149,7 +6149,7 @@
           "header": [
             {
               "key": "Authorization",
-              "value": "Bearer yAvt-tmnj_b58GSGHywf98fGRGXk7ZzPfr-mdaMKveM"
+              "value": "Bearer pAoi4qB64T45jo4vD1ZPYCy1rV-a3OZyjHAf5DUdPLE"
             },
             {
               "key": "Content-Type",
@@ -6172,7 +6172,7 @@
             },
             {
               "key": "Postman-Token",
-              "value": "31bcb446-d4ce-4fa2-b4db-9fe3f39f0479",
+              "value": "b717dd9e-deb4-432a-ba3e-5f56ca9ac5ed",
               "system": true
             },
             {
@@ -6203,7 +6203,7 @@
           }
         },
         "response": {
-          "id": "1c669cea-1993-40c1-b145-6cc4f57759be",
+          "id": "3852ac70-f0c4-4dba-b0d3-83015f63bfae",
           "status": "OK",
           "code": 200,
           "header": [
@@ -6213,11 +6213,11 @@
             },
             {
               "key": "X-Request-Id",
-              "value": "a8e912e4-8f11-4782-8e53-af2fe0b0100b"
+              "value": "5d2bae03-aba3-49c1-8e12-1545cd36e709"
             },
             {
               "key": "Date",
-              "value": "Mon, 14 Sep 2026 03:36:54 GMT"
+              "value": "Mon, 14 Sep 2026 04:29:25 GMT"
             },
             {
               "key": "Content-Length",
@@ -6401,10 +6401,10 @@
             ]
           },
           "cookie": [],
-          "responseTime": 16,
+          "responseTime": 23,
           "responseSize": 171
         },
-        "id": "eb3e0ebd-c417-4728-8b30-7002870d5266",
+        "id": "bcef1ba2-f460-4919-b32d-a14a6f93f741",
         "assertions": [
           {
             "assertion": "responde 200",
@@ -6418,15 +6418,15 @@
       },
       {
         "cursor": {
-          "ref": "728bcff3-ac71-447b-8005-7546471c5144",
+          "ref": "22015f3d-597a-4f9b-ab1c-6deb81200394",
           "length": 23,
           "cycles": 1,
           "position": 6,
           "iteration": 0,
-          "httpRequestId": "6e4ccd27-1a1a-4697-b2a4-4323b7f469fc"
+          "httpRequestId": "762f08d5-9523-4649-887a-d7abc7213a13"
         },
         "item": {
-          "id": "74c26e16-acc3-4f64-affc-cdb6b1193fc2",
+          "id": "834be693-044a-4219-a5ab-a65fe7dd6468",
           "name": "07 Verificar persistencia del nuevo rol",
           "request": {
             "url": {
@@ -6456,7 +6456,7 @@
             {
               "listen": "test",
               "script": {
-                "id": "01b5b689-463b-4b42-a651-19c85e5b22fc",
+                "id": "16689d60-03c6-4e66-9b28-63ed9f4955e4",
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('responde 200', () => pm.response.to.have.status(200));",
@@ -6465,7 +6465,7 @@
                   "  pm.expect(body.user.role).to.eql('profesor');",
                   "});"
                 ],
-                "_lastExecutionId": "ae04c9cb-af02-47b3-b96b-8e15c30a30b1"
+                "_lastExecutionId": "7763fc91-2033-4185-8c48-77823ad5acd4"
               }
             }
           ]
@@ -6490,7 +6490,7 @@
           "header": [
             {
               "key": "Authorization",
-              "value": "Bearer yAvt-tmnj_b58GSGHywf98fGRGXk7ZzPfr-mdaMKveM"
+              "value": "Bearer pAoi4qB64T45jo4vD1ZPYCy1rV-a3OZyjHAf5DUdPLE"
             },
             {
               "key": "User-Agent",
@@ -6509,7 +6509,7 @@
             },
             {
               "key": "Postman-Token",
-              "value": "5bebc4d8-f568-43e4-aa84-2cb3dd4992bf",
+              "value": "1b2d4be9-725c-4a21-b0d8-2cacecb0769c",
               "system": true
             },
             {
@@ -6531,7 +6531,7 @@
           "method": "GET"
         },
         "response": {
-          "id": "852fd038-91b1-44b6-83d6-4a2c397a1797",
+          "id": "43783a76-e32b-40e2-90c2-4c2d010dd909",
           "status": "OK",
           "code": 200,
           "header": [
@@ -6541,15 +6541,15 @@
             },
             {
               "key": "Etag",
-              "value": "\"6f53615c8082ae62f5bdab8ccc47f38ac3ec2bfba5e5c6fbde565f2d7da63a9f\""
+              "value": "\"54d5d41bc95729c40a87a8577491297e65002e6d53ce9c6b5c9914d8126272be\""
             },
             {
               "key": "X-Request-Id",
-              "value": "d1fe4b5f-ee1d-4537-abd0-c14367ab2c6b"
+              "value": "12705691-d3d8-496e-b673-e8cf1f18799e"
             },
             {
               "key": "Date",
-              "value": "Mon, 14 Sep 2026 03:36:54 GMT"
+              "value": "Mon, 14 Sep 2026 04:29:25 GMT"
             },
             {
               "key": "Content-Length",
@@ -6733,10 +6733,10 @@
             ]
           },
           "cookie": [],
-          "responseTime": 8,
+          "responseTime": 10,
           "responseSize": 171
         },
-        "id": "74c26e16-acc3-4f64-affc-cdb6b1193fc2",
+        "id": "834be693-044a-4219-a5ab-a65fe7dd6468",
         "assertions": [
           {
             "assertion": "responde 200",
@@ -6750,15 +6750,15 @@
       },
       {
         "cursor": {
-          "ref": "0005bf0f-769e-46ff-b6fe-2f777a05cd56",
+          "ref": "38f94130-776c-4d0b-950f-cc950a973311",
           "length": 23,
           "cycles": 1,
           "position": 7,
           "iteration": 0,
-          "httpRequestId": "ae668755-cccf-4d0f-a2fd-a5e10555b170"
+          "httpRequestId": "546cd48e-67bc-4fd5-abb4-dc17978539b9"
         },
         "item": {
-          "id": "489f625d-91b5-46cd-9778-090c72d78be8",
+          "id": "553edc27-6008-4c26-8202-076491319051",
           "name": "08 Restaurar rol de profesor a estudiante",
           "request": {
             "url": {
@@ -6797,7 +6797,7 @@
             {
               "listen": "test",
               "script": {
-                "id": "d4712a48-1938-4cf0-ae9f-2755ee49644a",
+                "id": "f527042a-1aaa-4649-a298-4eac777212eb",
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('responde 200', () => pm.response.to.have.status(200));",
@@ -6806,7 +6806,7 @@
                   "  pm.expect(body.user.role).to.eql('estudiante');",
                   "});"
                 ],
-                "_lastExecutionId": "2c2d6d84-b43e-40bb-836a-dcab570d15c2"
+                "_lastExecutionId": "2d76484d-fb37-4bfd-a354-361737044354"
               }
             }
           ]
@@ -6832,7 +6832,7 @@
           "header": [
             {
               "key": "Authorization",
-              "value": "Bearer yAvt-tmnj_b58GSGHywf98fGRGXk7ZzPfr-mdaMKveM"
+              "value": "Bearer pAoi4qB64T45jo4vD1ZPYCy1rV-a3OZyjHAf5DUdPLE"
             },
             {
               "key": "Content-Type",
@@ -6855,7 +6855,7 @@
             },
             {
               "key": "Postman-Token",
-              "value": "78dda039-d169-4c89-952e-4998e5ec11ed",
+              "value": "abcaa374-dcc0-45fe-9de9-c766f794a9e5",
               "system": true
             },
             {
@@ -6886,7 +6886,7 @@
           }
         },
         "response": {
-          "id": "e9604cda-e66d-4437-aafa-625b5ea08743",
+          "id": "86e6f312-0506-41c4-ac17-f8b5fd1e37bd",
           "status": "OK",
           "code": 200,
           "header": [
@@ -6896,11 +6896,11 @@
             },
             {
               "key": "X-Request-Id",
-              "value": "9a1a63d4-ac53-4d73-913d-444277b83c75"
+              "value": "62f20989-6057-4e5e-8884-6c57531e2df4"
             },
             {
               "key": "Date",
-              "value": "Mon, 14 Sep 2026 03:36:54 GMT"
+              "value": "Mon, 14 Sep 2026 04:29:25 GMT"
             },
             {
               "key": "Content-Length",
@@ -7086,10 +7086,10 @@
             ]
           },
           "cookie": [],
-          "responseTime": 13,
+          "responseTime": 19,
           "responseSize": 173
         },
-        "id": "489f625d-91b5-46cd-9778-090c72d78be8",
+        "id": "553edc27-6008-4c26-8202-076491319051",
         "assertions": [
           {
             "assertion": "responde 200",
@@ -7103,15 +7103,15 @@
       },
       {
         "cursor": {
-          "ref": "7970761b-b470-4fea-b2e4-f93fd4932ceb",
+          "ref": "e91e1a4b-3954-4774-90f0-84b5cee474cb",
           "length": 23,
           "cycles": 1,
           "position": 8,
           "iteration": 0,
-          "httpRequestId": "648e60ee-1550-4d08-b072-1b49cda82c51"
+          "httpRequestId": "d8182d2e-b761-4f50-a6b8-810cb8fcab10"
         },
         "item": {
-          "id": "7f9fd57e-d093-432a-8aef-58f3b6944cca",
+          "id": "e4035554-f091-4f6d-a253-16c78d29ed31",
           "name": "09 Suspender cuenta de estudiante",
           "request": {
             "url": {
@@ -7150,7 +7150,7 @@
             {
               "listen": "test",
               "script": {
-                "id": "4ccdc877-6216-4c63-8fe1-e18ba00043af",
+                "id": "2756defe-db3b-449f-a02b-a4b8923a9a07",
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('responde 200', () => pm.response.to.have.status(200));",
@@ -7160,7 +7160,7 @@
                   "  pm.expect(pm.response.headers.get('ETag')).to.be.a('string');",
                   "});"
                 ],
-                "_lastExecutionId": "cc530adb-ebdb-4c02-bb3a-ce9e31bc1f29"
+                "_lastExecutionId": "115276ed-0b0a-485f-ae2e-1369f49fd545"
               }
             }
           ]
@@ -7186,7 +7186,7 @@
           "header": [
             {
               "key": "Authorization",
-              "value": "Bearer yAvt-tmnj_b58GSGHywf98fGRGXk7ZzPfr-mdaMKveM"
+              "value": "Bearer pAoi4qB64T45jo4vD1ZPYCy1rV-a3OZyjHAf5DUdPLE"
             },
             {
               "key": "Content-Type",
@@ -7209,7 +7209,7 @@
             },
             {
               "key": "Postman-Token",
-              "value": "ebe0061f-155e-477a-acf9-3454cd92f03b",
+              "value": "d7c0da20-0d53-4045-8dd9-6502dc72d828",
               "system": true
             },
             {
@@ -7240,7 +7240,7 @@
           }
         },
         "response": {
-          "id": "61a01d85-fb57-4c86-90bc-6916c3480d03",
+          "id": "abbd7aa6-940d-431e-ab76-3fd97eba7a05",
           "status": "OK",
           "code": 200,
           "header": [
@@ -7250,15 +7250,15 @@
             },
             {
               "key": "Etag",
-              "value": "\"58d1bc7c4585c80ab271ab671ae2b87f23282400ebc4c5c4c2f643ff51c24e16\""
+              "value": "\"5a9173e3e01c76f054d6022deeefda2703dc016c1c179de6cfe6c259a77be762\""
             },
             {
               "key": "X-Request-Id",
-              "value": "f2afdd9b-d0a2-410e-a62c-5f218455c9e5"
+              "value": "826a6b55-32e1-4966-b6ff-3422ef59bd75"
             },
             {
               "key": "Date",
-              "value": "Mon, 14 Sep 2026 03:36:54 GMT"
+              "value": "Mon, 14 Sep 2026 04:29:25 GMT"
             },
             {
               "key": "Content-Length",
@@ -7447,10 +7447,10 @@
             ]
           },
           "cookie": [],
-          "responseTime": 21,
+          "responseTime": 28,
           "responseSize": 176
         },
-        "id": "7f9fd57e-d093-432a-8aef-58f3b6944cca",
+        "id": "e4035554-f091-4f6d-a253-16c78d29ed31",
         "assertions": [
           {
             "assertion": "responde 200",
@@ -7464,15 +7464,15 @@
       },
       {
         "cursor": {
-          "ref": "bce72546-ebdd-4af4-b21e-6a4c36b64435",
+          "ref": "cdfc3a89-a3f8-433f-aee7-dfc9be1e17a1",
           "length": 23,
           "cycles": 1,
           "position": 9,
           "iteration": 0,
-          "httpRequestId": "f3209c06-b782-4e15-b677-c79451bd294a"
+          "httpRequestId": "8b583fde-07a1-4c23-91e7-46b06d711b92"
         },
         "item": {
-          "id": "3e098442-1da9-4c62-9620-ce4811c75304",
+          "id": "345c6d5f-5c43-4075-8081-a7143d30c3d5",
           "name": "10 Verificar que el estudiante quedo suspendido",
           "request": {
             "url": {
@@ -7502,7 +7502,7 @@
             {
               "listen": "test",
               "script": {
-                "id": "635683c9-4719-47be-a7ed-bcb9ff3b4aea",
+                "id": "db616a03-4a68-4233-b1a1-1ee3e5c33bfd",
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('responde 200', () => pm.response.to.have.status(200));",
@@ -7511,7 +7511,7 @@
                   "  pm.expect(body.user.status).to.eql('suspended');",
                   "});"
                 ],
-                "_lastExecutionId": "91a22306-3ecf-493e-8232-a4a27c3c3fce"
+                "_lastExecutionId": "0364c7d6-1ca0-4e93-89d3-7bbf07f2ab51"
               }
             }
           ]
@@ -7536,7 +7536,7 @@
           "header": [
             {
               "key": "Authorization",
-              "value": "Bearer yAvt-tmnj_b58GSGHywf98fGRGXk7ZzPfr-mdaMKveM"
+              "value": "Bearer pAoi4qB64T45jo4vD1ZPYCy1rV-a3OZyjHAf5DUdPLE"
             },
             {
               "key": "User-Agent",
@@ -7555,7 +7555,7 @@
             },
             {
               "key": "Postman-Token",
-              "value": "9301d778-43fe-47ae-a277-ec164ba18d34",
+              "value": "a0587995-b799-4fce-ae54-96924941ebc2",
               "system": true
             },
             {
@@ -7577,7 +7577,7 @@
           "method": "GET"
         },
         "response": {
-          "id": "93127c43-37ec-439a-bc69-2a52927dd682",
+          "id": "e6ca9d4f-12f6-4a09-93a4-3020fbb49bb4",
           "status": "OK",
           "code": 200,
           "header": [
@@ -7587,15 +7587,15 @@
             },
             {
               "key": "Etag",
-              "value": "\"58d1bc7c4585c80ab271ab671ae2b87f23282400ebc4c5c4c2f643ff51c24e16\""
+              "value": "\"5a9173e3e01c76f054d6022deeefda2703dc016c1c179de6cfe6c259a77be762\""
             },
             {
               "key": "X-Request-Id",
-              "value": "eb977971-5337-4c7e-8c4b-aa6645142107"
+              "value": "4b31f922-4807-4a1e-9479-40ac5d048b63"
             },
             {
               "key": "Date",
-              "value": "Mon, 14 Sep 2026 03:36:54 GMT"
+              "value": "Mon, 14 Sep 2026 04:29:26 GMT"
             },
             {
               "key": "Content-Length",
@@ -7784,10 +7784,10 @@
             ]
           },
           "cookie": [],
-          "responseTime": 13,
+          "responseTime": 12,
           "responseSize": 176
         },
-        "id": "3e098442-1da9-4c62-9620-ce4811c75304",
+        "id": "345c6d5f-5c43-4075-8081-a7143d30c3d5",
         "assertions": [
           {
             "assertion": "responde 200",
@@ -7801,15 +7801,15 @@
       },
       {
         "cursor": {
-          "ref": "3e275277-1f60-4d91-9663-b0ea9c193891",
+          "ref": "227aa00d-a545-4424-a46b-1ed24939dbfa",
           "length": 23,
           "cycles": 1,
           "position": 10,
           "iteration": 0,
-          "httpRequestId": "c343b473-bea2-4993-9169-21c865e75df6"
+          "httpRequestId": "8b62071d-c361-4542-98af-92748585c913"
         },
         "item": {
-          "id": "a9e98ccc-7f28-413f-9225-3857b4914f88",
+          "id": "57e00192-b914-46b0-ae81-7e0b9789c398",
           "name": "11 Reactivar cuenta de estudiante",
           "request": {
             "url": {
@@ -7848,7 +7848,7 @@
             {
               "listen": "test",
               "script": {
-                "id": "95c70b93-ea65-452c-9c29-4f49c8afdc35",
+                "id": "355b996f-5913-4bc3-a661-27ed211c0c6c",
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('responde 200', () => pm.response.to.have.status(200));",
@@ -7858,7 +7858,7 @@
                   "  pm.expect(pm.response.headers.get('ETag')).to.be.a('string');",
                   "});"
                 ],
-                "_lastExecutionId": "089b2e4a-4947-4078-9b5b-8319d9ecc565"
+                "_lastExecutionId": "93a12627-9924-404c-8d82-7f865bf4f4a2"
               }
             }
           ]
@@ -7884,7 +7884,7 @@
           "header": [
             {
               "key": "Authorization",
-              "value": "Bearer yAvt-tmnj_b58GSGHywf98fGRGXk7ZzPfr-mdaMKveM"
+              "value": "Bearer pAoi4qB64T45jo4vD1ZPYCy1rV-a3OZyjHAf5DUdPLE"
             },
             {
               "key": "Content-Type",
@@ -7907,7 +7907,7 @@
             },
             {
               "key": "Postman-Token",
-              "value": "301aea49-b25c-4990-8b2b-286d6c83f0ea",
+              "value": "f8e2f73d-ed5b-4e92-919c-f5bf1bc89dec",
               "system": true
             },
             {
@@ -7938,7 +7938,7 @@
           }
         },
         "response": {
-          "id": "5c005301-c1da-4216-b3ef-1c360a8e051b",
+          "id": "de6870f4-2392-40ec-8bb8-06f364830188",
           "status": "OK",
           "code": 200,
           "header": [
@@ -7948,15 +7948,15 @@
             },
             {
               "key": "Etag",
-              "value": "\"7a70574a9dc0542b05ba3dc6281dd07cce74a02242083e86cdacad7d71bb12a4\""
+              "value": "\"6cc9ac667b2f7c80a27688a7da478faea63bb6e7e01b3de739c8550bf108a560\""
             },
             {
               "key": "X-Request-Id",
-              "value": "5df41eba-3268-4dc3-9f60-405a0d5465f3"
+              "value": "ed283b3f-d87f-4814-ac60-f225e5a15643"
             },
             {
               "key": "Date",
-              "value": "Mon, 14 Sep 2026 03:36:54 GMT"
+              "value": "Mon, 14 Sep 2026 04:29:26 GMT"
             },
             {
               "key": "Content-Length",
@@ -8142,10 +8142,10 @@
             ]
           },
           "cookie": [],
-          "responseTime": 13,
+          "responseTime": 26,
           "responseSize": 173
         },
-        "id": "a9e98ccc-7f28-413f-9225-3857b4914f88",
+        "id": "57e00192-b914-46b0-ae81-7e0b9789c398",
         "assertions": [
           {
             "assertion": "responde 200",
@@ -8159,15 +8159,15 @@
       },
       {
         "cursor": {
-          "ref": "f038e1dd-db09-4068-8237-6f76b75f1ea1",
+          "ref": "646317ef-2df0-4465-9b3a-8208edc4705b",
           "length": 23,
           "cycles": 1,
           "position": 11,
           "iteration": 0,
-          "httpRequestId": "aea262b1-7701-4780-8126-9c1cdbd7d330"
+          "httpRequestId": "a7ccb09c-74c4-4207-a9c4-984e58dce4ab"
         },
         "item": {
-          "id": "2380ca7d-271b-427b-8de0-6308082d6a77",
+          "id": "4fc1ae9b-18c2-446a-b49e-9e35e5a92097",
           "name": "12 Verificar que el estudiante quedo activo",
           "request": {
             "url": {
@@ -8197,7 +8197,7 @@
             {
               "listen": "test",
               "script": {
-                "id": "75a16581-6c6c-42d6-be63-ee185b0c0567",
+                "id": "ac87339f-57c9-405d-bc3a-fd4994b7a727",
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('responde 200', () => pm.response.to.have.status(200));",
@@ -8206,7 +8206,7 @@
                   "  pm.expect(body.user.status).to.eql('active');",
                   "});"
                 ],
-                "_lastExecutionId": "df6576cf-8930-4f7e-9176-4dd7b5382298"
+                "_lastExecutionId": "ec7b16f9-be7a-4c5a-b4e9-003d9eb64909"
               }
             }
           ]
@@ -8231,7 +8231,7 @@
           "header": [
             {
               "key": "Authorization",
-              "value": "Bearer yAvt-tmnj_b58GSGHywf98fGRGXk7ZzPfr-mdaMKveM"
+              "value": "Bearer pAoi4qB64T45jo4vD1ZPYCy1rV-a3OZyjHAf5DUdPLE"
             },
             {
               "key": "User-Agent",
@@ -8250,7 +8250,7 @@
             },
             {
               "key": "Postman-Token",
-              "value": "27950f14-b7ed-4150-a026-a6c80754f27c",
+              "value": "7e35b2e4-63ff-459a-a859-b5c1eb95653a",
               "system": true
             },
             {
@@ -8272,7 +8272,7 @@
           "method": "GET"
         },
         "response": {
-          "id": "0486e476-35e1-4409-ac63-03e945f4f817",
+          "id": "e988f501-fb25-41aa-a002-c3b2923e9344",
           "status": "OK",
           "code": 200,
           "header": [
@@ -8282,15 +8282,15 @@
             },
             {
               "key": "Etag",
-              "value": "\"7a70574a9dc0542b05ba3dc6281dd07cce74a02242083e86cdacad7d71bb12a4\""
+              "value": "\"6cc9ac667b2f7c80a27688a7da478faea63bb6e7e01b3de739c8550bf108a560\""
             },
             {
               "key": "X-Request-Id",
-              "value": "47d35b28-27ff-481d-8631-20f5fc3dd0e9"
+              "value": "938bcda6-487c-4833-a0e1-40c845fac2e6"
             },
             {
               "key": "Date",
-              "value": "Mon, 14 Sep 2026 03:36:54 GMT"
+              "value": "Mon, 14 Sep 2026 04:29:26 GMT"
             },
             {
               "key": "Content-Length",
@@ -8479,7 +8479,7 @@
           "responseTime": 9,
           "responseSize": 173
         },
-        "id": "2380ca7d-271b-427b-8de0-6308082d6a77",
+        "id": "4fc1ae9b-18c2-446a-b49e-9e35e5a92097",
         "assertions": [
           {
             "assertion": "responde 200",
@@ -8493,15 +8493,15 @@
       },
       {
         "cursor": {
-          "ref": "97c442d6-294e-4fc4-b2d3-096f14f6f382",
+          "ref": "4f6adbdc-3bcf-423f-8da6-b1cf3941dc25",
           "length": 23,
           "cycles": 1,
           "position": 12,
           "iteration": 0,
-          "httpRequestId": "42c40b54-bd8d-4e75-a34e-94f08860706c"
+          "httpRequestId": "a0078f36-1590-41bf-8140-ecbe1e7473a1"
         },
         "item": {
-          "id": "6cd29773-ddc4-49fa-844b-6ada9a90ee54",
+          "id": "b04e9312-384e-42fd-b05c-461f6c2678fd",
           "name": "13 Login como usuario no-admin (Estudiante)",
           "request": {
             "url": {
@@ -8534,7 +8534,7 @@
             {
               "listen": "test",
               "script": {
-                "id": "55a84105-2557-419e-96a9-e043ffb80c90",
+                "id": "7f27909b-3312-41c6-96f0-88be617ad07a",
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('responde 200', () => pm.response.to.have.status(200));",
@@ -8545,7 +8545,7 @@
                   "});",
                   "pm.collectionVariables.set('studentToken', body.token);"
                 ],
-                "_lastExecutionId": "c565ffcf-296d-42be-a741-eb88fd9363d4"
+                "_lastExecutionId": "20646e51-91ad-4cbd-94f2-7eff2b1f5d97"
               }
             }
           ]
@@ -8588,7 +8588,7 @@
             },
             {
               "key": "Postman-Token",
-              "value": "b8c7df32-e6c4-407b-a113-e9fbef808a59",
+              "value": "813ac3dc-87dc-4861-8cad-d777fb3ca538",
               "system": true
             },
             {
@@ -8619,7 +8619,7 @@
           }
         },
         "response": {
-          "id": "ec253632-752a-4811-a2a7-5a741b52b33a",
+          "id": "1f8b1def-5a45-4d94-a2ba-34fe507be0f6",
           "status": "OK",
           "code": 200,
           "header": [
@@ -8641,11 +8641,11 @@
             },
             {
               "key": "X-Request-Id",
-              "value": "7159da0a-be77-4807-a175-190652fc7c1f"
+              "value": "3bba4253-46ba-47d6-a173-4925741c24e3"
             },
             {
               "key": "Date",
-              "value": "Mon, 14 Sep 2026 03:36:54 GMT"
+              "value": "Mon, 14 Sep 2026 04:29:26 GMT"
             },
             {
               "key": "Content-Length",
@@ -8665,49 +8665,49 @@
               34,
               58,
               34,
-              81,
-              71,
-              118,
-              79,
+              87,
+              74,
+              48,
+              107,
+              117,
+              87,
+              49,
+              86,
               79,
               84,
-              118,
-              69,
-              120,
-              101,
               73,
-              83,
-              90,
-              79,
-              57,
-              54,
-              57,
-              104,
-              81,
-              53,
-              77,
-              103,
-              120,
-              104,
-              103,
-              106,
-              83,
-              54,
-              108,
-              110,
-              45,
-              49,
-              95,
-              66,
-              121,
-              70,
-              68,
-              103,
-              73,
-              121,
-              70,
+              112,
+              48,
               52,
+              112,
+              82,
+              54,
+              120,
+              84,
+              106,
+              105,
+              54,
+              68,
+              107,
               103,
+              119,
+              75,
+              95,
+              77,
+              115,
+              82,
+              69,
+              87,
+              89,
+              78,
+              97,
+              55,
+              68,
+              52,
+              55,
+              120,
+              65,
+              111,
               34,
               44,
               34,
@@ -8736,23 +8736,23 @@
               53,
               84,
               48,
-              51,
+              52,
               58,
-              51,
+              50,
+              57,
+              58,
+              50,
               54,
-              58,
-              53,
-              52,
               46,
-              55,
-              55,
-              56,
+              50,
               53,
-              50,
-              50,
-              52,
-              49,
+              56,
               51,
+              52,
+              54,
+              55,
+              49,
+              49,
               90,
               34,
               44,
@@ -8931,10 +8931,10 @@
             ]
           },
           "cookie": [],
-          "responseTime": 69,
+          "responseTime": 90,
           "responseSize": 273
         },
-        "id": "6cd29773-ddc4-49fa-844b-6ada9a90ee54",
+        "id": "b04e9312-384e-42fd-b05c-461f6c2678fd",
         "assertions": [
           {
             "assertion": "responde 200",
@@ -8948,15 +8948,15 @@
       },
       {
         "cursor": {
-          "ref": "1a1bf77f-b937-4906-95c0-b699d123fa59",
+          "ref": "2f0b9b5b-c817-4e42-b42a-512d61a80ac1",
           "length": 23,
           "cycles": 1,
           "position": 13,
           "iteration": 0,
-          "httpRequestId": "59bfa8fb-70e1-4a2c-bc77-45485ac8dbf6"
+          "httpRequestId": "8c4290a6-2e68-48f0-91cb-ccf3376bb43e"
         },
         "item": {
-          "id": "d796cfac-6a48-4440-bd70-14596a073de2",
+          "id": "877c137f-4b85-4074-8b50-00114bf081da",
           "name": "14 No-admin intenta listar usuarios",
           "request": {
             "url": {
@@ -8985,7 +8985,7 @@
             {
               "listen": "test",
               "script": {
-                "id": "bdc4ba73-a795-4b3d-9731-acfc92cc73b6",
+                "id": "be912508-616d-4ee0-9189-06522d5f767b",
                 "type": "text/javascript",
                 "exec": [
                   "// Criterio de aceptacion: no-admin recibe 403.",
@@ -8996,7 +8996,7 @@
                   "  pm.expect(body.message).to.be.a('string');",
                   "});"
                 ],
-                "_lastExecutionId": "2c118e29-a1eb-47bd-abd9-00c3ad415fcc"
+                "_lastExecutionId": "f589e131-d285-45dd-8c79-cd9e86bdaa1e"
               }
             }
           ]
@@ -9020,7 +9020,7 @@
           "header": [
             {
               "key": "Authorization",
-              "value": "Bearer QGvOOTvExeISZO969hQ5MgxhgjS6ln-1_ByFDgIyF4g"
+              "value": "Bearer WJ0kuW1VOTIp04pR6xTji6DkgwK_MsREWYNa7D47xAo"
             },
             {
               "key": "User-Agent",
@@ -9039,7 +9039,7 @@
             },
             {
               "key": "Postman-Token",
-              "value": "208cf39f-2308-4b85-9c13-a2ca8910cf18",
+              "value": "104a3d11-8b38-4989-8f60-73e3cef5c334",
               "system": true
             },
             {
@@ -9061,7 +9061,7 @@
           "method": "GET"
         },
         "response": {
-          "id": "159e4962-75ea-45e2-802c-a81a268d2fbc",
+          "id": "4f981d1d-9da8-4282-9c92-6baa1afa3305",
           "status": "Forbidden",
           "code": 403,
           "header": [
@@ -9071,11 +9071,11 @@
             },
             {
               "key": "X-Request-Id",
-              "value": "7b81def9-930e-4caa-b4d1-203bfb9d8455"
+              "value": "98094b82-de80-4c64-85f1-cf873627953c"
             },
             {
               "key": "Date",
-              "value": "Mon, 14 Sep 2026 03:36:54 GMT"
+              "value": "Mon, 14 Sep 2026 04:29:26 GMT"
             },
             {
               "key": "Content-Length",
@@ -9170,10 +9170,10 @@
             ]
           },
           "cookie": [],
-          "responseTime": 8,
+          "responseTime": 10,
           "responseSize": 82
         },
-        "id": "d796cfac-6a48-4440-bd70-14596a073de2",
+        "id": "877c137f-4b85-4074-8b50-00114bf081da",
         "assertions": [
           {
             "assertion": "responde 403",
@@ -9187,15 +9187,15 @@
       },
       {
         "cursor": {
-          "ref": "bd4592ad-bfa2-4e58-a40b-38f08c0b7e7b",
+          "ref": "75619bf7-02af-44ce-aa22-ef29a4e14165",
           "length": 23,
           "cycles": 1,
           "position": 14,
           "iteration": 0,
-          "httpRequestId": "08195cbb-2d9e-4033-b9c8-257bbd4a64a5"
+          "httpRequestId": "504d1900-b1ef-4c94-a172-3ae100d65905"
         },
         "item": {
-          "id": "095d0f7b-1127-463b-b5ef-7b2a11556c98",
+          "id": "5f478ad2-f76c-453b-8d5d-6337d977c018",
           "name": "15 No-admin intenta consultar usuario por ID",
           "request": {
             "url": {
@@ -9225,7 +9225,7 @@
             {
               "listen": "test",
               "script": {
-                "id": "1700d2b1-f05f-448b-b578-ff57a38d26e5",
+                "id": "09d5e132-a397-4bad-a609-c8724cc785b8",
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('responde 403', () => pm.response.to.have.status(403));",
@@ -9235,7 +9235,7 @@
                   "  pm.expect(body.message).to.be.a('string');",
                   "});"
                 ],
-                "_lastExecutionId": "d59c0bbc-0173-428d-81b7-cc4afb2403f9"
+                "_lastExecutionId": "d7847cd9-9a97-4dc9-8a21-554b9863eda2"
               }
             }
           ]
@@ -9260,7 +9260,7 @@
           "header": [
             {
               "key": "Authorization",
-              "value": "Bearer QGvOOTvExeISZO969hQ5MgxhgjS6ln-1_ByFDgIyF4g"
+              "value": "Bearer WJ0kuW1VOTIp04pR6xTji6DkgwK_MsREWYNa7D47xAo"
             },
             {
               "key": "User-Agent",
@@ -9279,7 +9279,7 @@
             },
             {
               "key": "Postman-Token",
-              "value": "99ce13e8-9244-4e3e-96db-b0c4a4e75378",
+              "value": "3201eb5b-2a6f-48e5-b4cd-ad1eabf65094",
               "system": true
             },
             {
@@ -9301,7 +9301,7 @@
           "method": "GET"
         },
         "response": {
-          "id": "1c7d4c68-4556-4eaa-bcf5-f442332a8648",
+          "id": "877db184-731d-4987-b768-7dd6a4207124",
           "status": "Forbidden",
           "code": 403,
           "header": [
@@ -9311,11 +9311,11 @@
             },
             {
               "key": "X-Request-Id",
-              "value": "9bc615bd-804f-47b0-bb34-3587c06494a1"
+              "value": "1cd0de74-c0fe-4815-9865-869dd0c420a9"
             },
             {
               "key": "Date",
-              "value": "Mon, 14 Sep 2026 03:36:54 GMT"
+              "value": "Mon, 14 Sep 2026 04:29:26 GMT"
             },
             {
               "key": "Content-Length",
@@ -9410,10 +9410,10 @@
             ]
           },
           "cookie": [],
-          "responseTime": 12,
+          "responseTime": 14,
           "responseSize": 82
         },
-        "id": "095d0f7b-1127-463b-b5ef-7b2a11556c98",
+        "id": "5f478ad2-f76c-453b-8d5d-6337d977c018",
         "assertions": [
           {
             "assertion": "responde 403",
@@ -9427,15 +9427,15 @@
       },
       {
         "cursor": {
-          "ref": "1018697b-8ddc-4176-babc-4abc8883f3ea",
+          "ref": "f2dc59b4-c447-4804-ba89-fed0a9dd9b8c",
           "length": 23,
           "cycles": 1,
           "position": 15,
           "iteration": 0,
-          "httpRequestId": "bd3fea7f-35ca-46ac-b82c-75d9ed5c7462"
+          "httpRequestId": "e679a6e9-742c-4643-b556-1db2f2b9c944"
         },
         "item": {
-          "id": "1bde21da-12aa-4500-a6dc-e029e5fea43f",
+          "id": "8a0b6418-8524-460e-b57f-99c77e43e059",
           "name": "16 No-admin intenta cambiar un rol",
           "request": {
             "url": {
@@ -9474,7 +9474,7 @@
             {
               "listen": "test",
               "script": {
-                "id": "789b19c1-0e59-4514-94ce-a9a34bf74933",
+                "id": "36aa3f8b-a795-4dca-addf-cf9b6622aee0",
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('responde 403', () => pm.response.to.have.status(403));",
@@ -9484,7 +9484,7 @@
                   "  pm.expect(body.message).to.be.a('string');",
                   "});"
                 ],
-                "_lastExecutionId": "8721367e-261c-45a7-92fd-58f8f953e8db"
+                "_lastExecutionId": "56517f0c-9123-42ee-88b1-110699fd9347"
               }
             }
           ]
@@ -9510,7 +9510,7 @@
           "header": [
             {
               "key": "Authorization",
-              "value": "Bearer QGvOOTvExeISZO969hQ5MgxhgjS6ln-1_ByFDgIyF4g"
+              "value": "Bearer WJ0kuW1VOTIp04pR6xTji6DkgwK_MsREWYNa7D47xAo"
             },
             {
               "key": "Content-Type",
@@ -9533,7 +9533,7 @@
             },
             {
               "key": "Postman-Token",
-              "value": "208584f8-bc2f-4dd0-91c3-3e2497086dbd",
+              "value": "cdc53057-a50e-4e1e-ac85-0da882174835",
               "system": true
             },
             {
@@ -9564,7 +9564,7 @@
           }
         },
         "response": {
-          "id": "96e845be-64f9-4b6f-895b-41257dbf41ea",
+          "id": "17dcb7e8-c202-44f1-9abb-a16892486eaf",
           "status": "Forbidden",
           "code": 403,
           "header": [
@@ -9574,274 +9574,11 @@
             },
             {
               "key": "X-Request-Id",
-              "value": "c3d0d885-c9b4-4dc7-942e-d5d7a42794ed"
+              "value": "08056c4e-e2bc-4cf4-9fbe-b9db2217394e"
             },
             {
               "key": "Date",
-              "value": "Mon, 14 Sep 2026 03:36:54 GMT"
-            },
-            {
-              "key": "Content-Length",
-              "value": "82"
-            }
-          ],
-          "stream": {
-            "type": "Buffer",
-            "data": [
-              123,
-              34,
-              99,
-              111,
-              100,
-              101,
-              34,
-              58,
-              34,
-              102,
-              111,
-              114,
-              98,
-              105,
-              100,
-              100,
-              101,
-              110,
-              34,
-              44,
-              34,
-              109,
-              101,
-              115,
-              115,
-              97,
-              103,
-              101,
-              34,
-              58,
-              34,
-              78,
-              111,
-              32,
-              116,
-              105,
-              101,
-              110,
-              101,
-              115,
-              32,
-              112,
-              101,
-              114,
-              109,
-              105,
-              115,
-              111,
-              32,
-              112,
-              97,
-              114,
-              97,
-              32,
-              114,
-              101,
-              97,
-              108,
-              105,
-              122,
-              97,
-              114,
-              32,
-              101,
-              115,
-              116,
-              97,
-              32,
-              111,
-              112,
-              101,
-              114,
-              97,
-              99,
-              105,
-              195,
-              179,
-              110,
-              46,
-              34,
-              125,
-              10
-            ]
-          },
-          "cookie": [],
-          "responseTime": 7,
-          "responseSize": 82
-        },
-        "id": "1bde21da-12aa-4500-a6dc-e029e5fea43f",
-        "assertions": [
-          {
-            "assertion": "responde 403",
-            "skipped": false
-          },
-          {
-            "assertion": "codigo forbidden",
-            "skipped": false
-          }
-        ]
-      },
-      {
-        "cursor": {
-          "ref": "519cb518-6745-4ac4-86a2-0ba1850de2c0",
-          "length": 23,
-          "cycles": 1,
-          "position": 16,
-          "iteration": 0,
-          "httpRequestId": "e8ed0622-074a-4fe7-862b-e4395538d885"
-        },
-        "item": {
-          "id": "8a1dd173-e540-4195-8b03-7fc0c66f7bf7",
-          "name": "17 No-admin intenta suspender una cuenta",
-          "request": {
-            "url": {
-              "path": [
-                "api",
-                "v1",
-                "admin",
-                "users",
-                "{{targetStudentId}}",
-                "status"
-              ],
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "query": [],
-              "variable": []
-            },
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{studentToken}}"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "method": "PATCH",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"status\": \"suspended\"\n}"
-            }
-          },
-          "response": [],
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "id": "08e67cdb-2f43-4c5e-a2d9-e58f80553813",
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('responde 403', () => pm.response.to.have.status(403));",
-                  "const body = pm.response.json();",
-                  "pm.test('codigo forbidden', () => {",
-                  "  pm.expect(body.code).to.eql('forbidden');",
-                  "  pm.expect(body.message).to.be.a('string');",
-                  "});"
-                ],
-                "_lastExecutionId": "b3460a08-6bae-4297-9c7c-88f92ffe99c5"
-              }
-            }
-          ]
-        },
-        "request": {
-          "url": {
-            "protocol": "http",
-            "port": "8080",
-            "path": [
-              "api",
-              "v1",
-              "admin",
-              "users",
-              "c0000000-0000-0000-0000-000000000001",
-              "status"
-            ],
-            "host": [
-              "api"
-            ],
-            "query": [],
-            "variable": []
-          },
-          "header": [
-            {
-              "key": "Authorization",
-              "value": "Bearer QGvOOTvExeISZO969hQ5MgxhgjS6ln-1_ByFDgIyF4g"
-            },
-            {
-              "key": "Content-Type",
-              "value": "application/json"
-            },
-            {
-              "key": "User-Agent",
-              "value": "PostmanRuntime/7.39.0",
-              "system": true
-            },
-            {
-              "key": "Accept",
-              "value": "*/*",
-              "system": true
-            },
-            {
-              "key": "Cache-Control",
-              "value": "no-cache",
-              "system": true
-            },
-            {
-              "key": "Postman-Token",
-              "value": "1221cb19-0e80-4c1e-a588-f28c579344c1",
-              "system": true
-            },
-            {
-              "key": "Host",
-              "value": "api:8080",
-              "system": true
-            },
-            {
-              "key": "Accept-Encoding",
-              "value": "gzip, deflate, br",
-              "system": true
-            },
-            {
-              "key": "Connection",
-              "value": "keep-alive",
-              "system": true
-            },
-            {
-              "key": "Content-Length",
-              "value": "27",
-              "system": true
-            }
-          ],
-          "method": "PATCH",
-          "body": {
-            "mode": "raw",
-            "raw": "{\n  \"status\": \"suspended\"\n}"
-          }
-        },
-        "response": {
-          "id": "afd31c9a-702e-4264-a6f8-de1a81d27da8",
-          "status": "Forbidden",
-          "code": 403,
-          "header": [
-            {
-              "key": "Content-Type",
-              "value": "application/json"
-            },
-            {
-              "key": "X-Request-Id",
-              "value": "6f90a817-0997-4946-b1c4-696a5fd0ae4a"
-            },
-            {
-              "key": "Date",
-              "value": "Mon, 14 Sep 2026 03:36:54 GMT"
+              "value": "Mon, 14 Sep 2026 04:29:26 GMT"
             },
             {
               "key": "Content-Length",
@@ -9939,7 +9676,7 @@
           "responseTime": 11,
           "responseSize": 82
         },
-        "id": "8a1dd173-e540-4195-8b03-7fc0c66f7bf7",
+        "id": "8a0b6418-8524-460e-b57f-99c77e43e059",
         "assertions": [
           {
             "assertion": "responde 403",
@@ -9953,15 +9690,278 @@
       },
       {
         "cursor": {
-          "ref": "abfbc9a3-5d33-4707-ae00-967df9f49e8d",
+          "ref": "63b4d2e9-09d2-406c-b82c-61512b074929",
+          "length": 23,
+          "cycles": 1,
+          "position": 16,
+          "iteration": 0,
+          "httpRequestId": "6e36b610-4143-46c3-bc4d-19f06844b6f6"
+        },
+        "item": {
+          "id": "de3f5c3b-8706-4b4d-90cb-577fc90254fc",
+          "name": "17 No-admin intenta suspender una cuenta",
+          "request": {
+            "url": {
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "users",
+                "{{targetStudentId}}",
+                "status"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{studentToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "method": "PATCH",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"suspended\"\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "2116de91-b602-43df-a2ff-fa1bc471a07c",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 403', () => pm.response.to.have.status(403));",
+                  "const body = pm.response.json();",
+                  "pm.test('codigo forbidden', () => {",
+                  "  pm.expect(body.code).to.eql('forbidden');",
+                  "  pm.expect(body.message).to.be.a('string');",
+                  "});"
+                ],
+                "_lastExecutionId": "466e788b-c85d-488a-ab6e-7ced6a56c671"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "http",
+            "port": "8080",
+            "path": [
+              "api",
+              "v1",
+              "admin",
+              "users",
+              "c0000000-0000-0000-0000-000000000001",
+              "status"
+            ],
+            "host": [
+              "api"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer WJ0kuW1VOTIp04pR6xTji6DkgwK_MsREWYNa7D47xAo"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.0",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "2a70cb27-d3da-4290-9d5d-3d98a8d19926",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "api:8080",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            },
+            {
+              "key": "Content-Length",
+              "value": "27",
+              "system": true
+            }
+          ],
+          "method": "PATCH",
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"status\": \"suspended\"\n}"
+          }
+        },
+        "response": {
+          "id": "e416d67c-6fae-4343-a70f-2e1cc590caec",
+          "status": "Forbidden",
+          "code": 403,
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "X-Request-Id",
+              "value": "8ed32404-f76f-4b80-a840-a8709214fe1e"
+            },
+            {
+              "key": "Date",
+              "value": "Mon, 14 Sep 2026 04:29:26 GMT"
+            },
+            {
+              "key": "Content-Length",
+              "value": "82"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              99,
+              111,
+              100,
+              101,
+              34,
+              58,
+              34,
+              102,
+              111,
+              114,
+              98,
+              105,
+              100,
+              100,
+              101,
+              110,
+              34,
+              44,
+              34,
+              109,
+              101,
+              115,
+              115,
+              97,
+              103,
+              101,
+              34,
+              58,
+              34,
+              78,
+              111,
+              32,
+              116,
+              105,
+              101,
+              110,
+              101,
+              115,
+              32,
+              112,
+              101,
+              114,
+              109,
+              105,
+              115,
+              111,
+              32,
+              112,
+              97,
+              114,
+              97,
+              32,
+              114,
+              101,
+              97,
+              108,
+              105,
+              122,
+              97,
+              114,
+              32,
+              101,
+              115,
+              116,
+              97,
+              32,
+              111,
+              112,
+              101,
+              114,
+              97,
+              99,
+              105,
+              195,
+              179,
+              110,
+              46,
+              34,
+              125,
+              10
+            ]
+          },
+          "cookie": [],
+          "responseTime": 10,
+          "responseSize": 82
+        },
+        "id": "de3f5c3b-8706-4b4d-90cb-577fc90254fc",
+        "assertions": [
+          {
+            "assertion": "responde 403",
+            "skipped": false
+          },
+          {
+            "assertion": "codigo forbidden",
+            "skipped": false
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "ac29c427-5930-4bc5-a2dd-ccc69e833360",
           "length": 23,
           "cycles": 1,
           "position": 17,
           "iteration": 0,
-          "httpRequestId": "2886863e-74d4-4301-8027-1348be60d434"
+          "httpRequestId": "6886f081-9b3c-4bd9-b0bb-9bafe79cce3d"
         },
         "item": {
-          "id": "96308f00-dc6a-456c-983d-801630288bf9",
+          "id": "44d8eea0-33c7-480d-982c-dd9e0600c00e",
           "name": "18 Peticion sin autenticacion a listar usuarios",
           "request": {
             "url": {
@@ -9984,7 +9984,7 @@
             {
               "listen": "test",
               "script": {
-                "id": "62b10973-9916-4d21-ba92-ca05f344b8c4",
+                "id": "22dd471c-b6a8-4a45-ad66-79123bfecac0",
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('responde 401', () => pm.response.to.have.status(401));",
@@ -9995,7 +9995,7 @@
                   "  pm.expect(body.message).to.be.a('string');",
                   "});"
                 ],
-                "_lastExecutionId": "0a51d9a8-3d06-44fc-ad00-d8b106fa0b12"
+                "_lastExecutionId": "780a80bf-58f7-4d03-80c0-b7515ebe8cec"
               }
             }
           ]
@@ -10034,7 +10034,7 @@
             },
             {
               "key": "Postman-Token",
-              "value": "1ed9c8ad-2412-4cb4-b642-bbdb829a62af",
+              "value": "140c5c53-5b92-4e0f-b8ac-02ee0cdf647c",
               "system": true
             },
             {
@@ -10056,7 +10056,7 @@
           "method": "GET"
         },
         "response": {
-          "id": "d1c4a57c-e32f-4316-bc60-191b5bd360cc",
+          "id": "4ce7909a-4f47-4990-b547-e29e15e22711",
           "status": "Unauthorized",
           "code": 401,
           "header": [
@@ -10070,11 +10070,11 @@
             },
             {
               "key": "X-Request-Id",
-              "value": "edb057c3-de29-4318-a1f7-77f0e9edfd2f"
+              "value": "0f5aff79-ca47-4d5e-8489-4845c7ad4e0c"
             },
             {
               "key": "Date",
-              "value": "Mon, 14 Sep 2026 03:36:54 GMT"
+              "value": "Mon, 14 Sep 2026 04:29:26 GMT"
             },
             {
               "key": "Content-Length",
@@ -10159,7 +10159,7 @@
           "responseTime": 6,
           "responseSize": 69
         },
-        "id": "96308f00-dc6a-456c-983d-801630288bf9",
+        "id": "44d8eea0-33c7-480d-982c-dd9e0600c00e",
         "assertions": [
           {
             "assertion": "responde 401",
@@ -10173,15 +10173,15 @@
       },
       {
         "cursor": {
-          "ref": "7462dc48-06d6-4669-bad5-8c2b77c28543",
+          "ref": "bceaf1cd-aacc-4ae7-bcb8-c3e3328c5539",
           "length": 23,
           "cycles": 1,
           "position": 18,
           "iteration": 0,
-          "httpRequestId": "73aa7f7f-5199-4af1-8501-2750fea10187"
+          "httpRequestId": "4b725ac7-af00-40fd-a957-f37d8c470d73"
         },
         "item": {
-          "id": "0e4e94b2-d37b-4570-9b8b-9bbe5a73ff61",
+          "id": "af6bfdc5-5c21-45f8-8020-2d8ef3262ce5",
           "name": "19 Suspender al administrador secundario",
           "request": {
             "url": {
@@ -10220,7 +10220,7 @@
             {
               "listen": "test",
               "script": {
-                "id": "7704d061-8049-447c-8a34-6913342ff8b4",
+                "id": "53b8bb5a-a0f2-446f-a9e6-79a3b74ff155",
                 "type": "text/javascript",
                 "exec": [
                   "// Deja unicamente a admin@plataforma-mooc.test como administrador activo.",
@@ -10231,7 +10231,7 @@
                   "  pm.expect(body.user.status).to.eql('suspended');",
                   "});"
                 ],
-                "_lastExecutionId": "45e05373-9275-4838-869a-df19b0aa62a3"
+                "_lastExecutionId": "e976accf-72f5-41d0-ab23-4593a21913fc"
               }
             }
           ]
@@ -10257,7 +10257,7 @@
           "header": [
             {
               "key": "Authorization",
-              "value": "Bearer yAvt-tmnj_b58GSGHywf98fGRGXk7ZzPfr-mdaMKveM"
+              "value": "Bearer pAoi4qB64T45jo4vD1ZPYCy1rV-a3OZyjHAf5DUdPLE"
             },
             {
               "key": "Content-Type",
@@ -10280,7 +10280,7 @@
             },
             {
               "key": "Postman-Token",
-              "value": "d7a3c1b0-1ccf-4f1e-b6f9-bdbb3b7b6aec",
+              "value": "e4e82b5a-0704-43c9-8897-cba07f244fa1",
               "system": true
             },
             {
@@ -10311,7 +10311,7 @@
           }
         },
         "response": {
-          "id": "2fe8c480-18ae-4767-b057-5d7333373b81",
+          "id": "01731642-6542-4e2f-8785-ba16cbe7c3af",
           "status": "OK",
           "code": 200,
           "header": [
@@ -10321,15 +10321,15 @@
             },
             {
               "key": "Etag",
-              "value": "\"0f5c074b20fc88ec2fcbb27b2076426ae7e7b75be90ca989b5f4fe1333164f31\""
+              "value": "\"c87888a43dc05374b77f6bf83bd7494dec3db93798f3522c0c2551f14891af58\""
             },
             {
               "key": "X-Request-Id",
-              "value": "6d221e2b-a701-4eff-83c3-3006e66f1b3c"
+              "value": "d6f3456c-458d-4054-b7ee-54a32254a757"
             },
             {
               "key": "Date",
-              "value": "Mon, 14 Sep 2026 03:36:55 GMT"
+              "value": "Mon, 14 Sep 2026 04:29:26 GMT"
             },
             {
               "key": "Content-Length",
@@ -10528,10 +10528,10 @@
             ]
           },
           "cookie": [],
-          "responseTime": 21,
+          "responseTime": 51,
           "responseSize": 186
         },
-        "id": "0e4e94b2-d37b-4570-9b8b-9bbe5a73ff61",
+        "id": "af6bfdc5-5c21-45f8-8020-2d8ef3262ce5",
         "assertions": [
           {
             "assertion": "responde 200",
@@ -10545,15 +10545,15 @@
       },
       {
         "cursor": {
-          "ref": "d26bee76-74a4-4b67-812f-201c821298a4",
+          "ref": "d38e3e6d-1ac8-4baf-9a0e-7bf14a1e4ebf",
           "length": 23,
           "cycles": 1,
           "position": 19,
           "iteration": 0,
-          "httpRequestId": "318145c2-4866-4a9b-9c64-9d5ac14c2de2"
+          "httpRequestId": "c4e3ffcf-ddcf-484d-90e1-c28aed073b0b"
         },
         "item": {
-          "id": "47976bf3-818d-4477-86f7-fffb083873d2",
+          "id": "0ec8bc20-6870-4223-9948-698e8e4843f2",
           "name": "20 Intento de suspender al ultimo administrador activo (espera rechazo 409)",
           "request": {
             "url": {
@@ -10592,7 +10592,7 @@
             {
               "listen": "test",
               "script": {
-                "id": "7033cde4-feab-407a-a8e1-345cf30a3e7a",
+                "id": "da18546d-ad06-48bc-a4e2-e9220a804396",
                 "type": "text/javascript",
                 "exec": [
                   "// Criterio de aceptacion: proteccion del ultimo administrador activo.",
@@ -10603,7 +10603,7 @@
                   "  pm.expect(body.message).to.include('No es posible dejar la plataforma sin administradores activos');",
                   "});"
                 ],
-                "_lastExecutionId": "5ab0a51c-94c1-483d-adc1-a8f10f65e93c"
+                "_lastExecutionId": "9cbc72ee-125d-4441-8860-fb39b11c430e"
               }
             }
           ]
@@ -10629,7 +10629,7 @@
           "header": [
             {
               "key": "Authorization",
-              "value": "Bearer yAvt-tmnj_b58GSGHywf98fGRGXk7ZzPfr-mdaMKveM"
+              "value": "Bearer pAoi4qB64T45jo4vD1ZPYCy1rV-a3OZyjHAf5DUdPLE"
             },
             {
               "key": "Content-Type",
@@ -10652,7 +10652,7 @@
             },
             {
               "key": "Postman-Token",
-              "value": "a69e6ddd-8a30-4eeb-b71a-6d0873ec6a94",
+              "value": "67bceae3-c581-4a25-a88e-0981fdb04aa4",
               "system": true
             },
             {
@@ -10683,7 +10683,7 @@
           }
         },
         "response": {
-          "id": "03db14d2-f5ef-46b9-a073-3f81e6c1070b",
+          "id": "b2937fa7-cae5-4c0b-b35d-2c07cd822353",
           "status": "Conflict",
           "code": 409,
           "header": [
@@ -10693,11 +10693,11 @@
             },
             {
               "key": "X-Request-Id",
-              "value": "154b92aa-ae7e-4213-b0e9-cf7b9c94c05d"
+              "value": "8c237a56-84fd-461e-aa15-32cb36be49cc"
             },
             {
               "key": "Date",
-              "value": "Mon, 14 Sep 2026 03:36:55 GMT"
+              "value": "Mon, 14 Sep 2026 04:29:26 GMT"
             },
             {
               "key": "Content-Length",
@@ -10817,10 +10817,10 @@
             ]
           },
           "cookie": [],
-          "responseTime": 16,
+          "responseTime": 18,
           "responseSize": 107
         },
-        "id": "47976bf3-818d-4477-86f7-fffb083873d2",
+        "id": "0ec8bc20-6870-4223-9948-698e8e4843f2",
         "assertions": [
           {
             "assertion": "responde 409",
@@ -10834,15 +10834,15 @@
       },
       {
         "cursor": {
-          "ref": "7ab5c6b6-6972-48b3-9a3a-740581ac6893",
+          "ref": "88240c7c-0c90-4f7f-8cd0-e163acff338c",
           "length": 23,
           "cycles": 1,
           "position": 20,
           "iteration": 0,
-          "httpRequestId": "1fa84ec8-cda0-4b22-96a1-95d8b7e1df5d"
+          "httpRequestId": "252d3961-0dae-4987-9bfa-a077e9f10cc2"
         },
         "item": {
-          "id": "9b1679db-3c1c-4777-ba8a-8f7157ab9df7",
+          "id": "d0db3a73-294b-4c20-9dfb-e22994cf3a46",
           "name": "21 Intento de degradar rol del ultimo administrador activo (espera rechazo 409)",
           "request": {
             "url": {
@@ -10881,7 +10881,7 @@
             {
               "listen": "test",
               "script": {
-                "id": "e8567f74-08a0-401b-84ff-54933beadf69",
+                "id": "18dd9fb9-8d8e-45f8-9b8c-23f1fb5fd4ca",
                 "type": "text/javascript",
                 "exec": [
                   "// Criterio de aceptacion: no se puede degradar al ultimo administrador.",
@@ -10892,7 +10892,7 @@
                   "  pm.expect(body.message).to.include('No es posible dejar la plataforma sin administradores activos');",
                   "});"
                 ],
-                "_lastExecutionId": "643da95d-7d94-4c4a-9496-c5ed6f8d3c9e"
+                "_lastExecutionId": "0ea9fb40-5649-4c2d-8bf5-c72d532b5e24"
               }
             }
           ]
@@ -10918,7 +10918,7 @@
           "header": [
             {
               "key": "Authorization",
-              "value": "Bearer yAvt-tmnj_b58GSGHywf98fGRGXk7ZzPfr-mdaMKveM"
+              "value": "Bearer pAoi4qB64T45jo4vD1ZPYCy1rV-a3OZyjHAf5DUdPLE"
             },
             {
               "key": "Content-Type",
@@ -10941,7 +10941,7 @@
             },
             {
               "key": "Postman-Token",
-              "value": "2e52b1c6-6c64-4a02-a57f-66083aa5d9d7",
+              "value": "18a07fcb-1e78-47d8-af78-f60066761c6f",
               "system": true
             },
             {
@@ -10972,7 +10972,7 @@
           }
         },
         "response": {
-          "id": "0e91151e-fbed-4e1d-8c6d-a824f426ec63",
+          "id": "ee315862-ef88-4024-9aa0-3299a8a38f41",
           "status": "Conflict",
           "code": 409,
           "header": [
@@ -10982,11 +10982,11 @@
             },
             {
               "key": "X-Request-Id",
-              "value": "2e9fa6b1-9140-4256-b895-58878c84dd4e"
+              "value": "a86038ee-4138-4c9b-8ca6-a030b18ec5f1"
             },
             {
               "key": "Date",
-              "value": "Mon, 14 Sep 2026 03:36:55 GMT"
+              "value": "Mon, 14 Sep 2026 04:29:26 GMT"
             },
             {
               "key": "Content-Length",
@@ -11106,10 +11106,10 @@
             ]
           },
           "cookie": [],
-          "responseTime": 10,
+          "responseTime": 17,
           "responseSize": 107
         },
-        "id": "9b1679db-3c1c-4777-ba8a-8f7157ab9df7",
+        "id": "d0db3a73-294b-4c20-9dfb-e22994cf3a46",
         "assertions": [
           {
             "assertion": "responde 409",
@@ -11123,15 +11123,15 @@
       },
       {
         "cursor": {
-          "ref": "51d4163c-b951-4593-8bd8-ab17f45f40c5",
+          "ref": "2be0067c-8fae-410e-a9d0-ec68a39ad66f",
           "length": 23,
           "cycles": 1,
           "position": 21,
           "iteration": 0,
-          "httpRequestId": "28da5a93-d90c-4761-a77f-892f2f6de7ad"
+          "httpRequestId": "d9155388-f11d-4251-86b0-4ddfe33965b1"
         },
         "item": {
-          "id": "7e69244a-b927-4aac-ba1e-01bfca8a9b6d",
+          "id": "1867c5d4-0d3f-4697-888d-038b32f04ed3",
           "name": "22 Reactivar al administrador secundario",
           "request": {
             "url": {
@@ -11170,7 +11170,7 @@
             {
               "listen": "test",
               "script": {
-                "id": "31f34096-1b4d-4076-a718-537b91678edd",
+                "id": "264853d3-994d-41fe-9fea-b74a4c5ae221",
                 "type": "text/javascript",
                 "exec": [
                   "// Restaura el estado de la plataforma a 2 administradores activos.",
@@ -11182,7 +11182,7 @@
                   "  pm.expect(body.user.role).to.eql('administrador');",
                   "});"
                 ],
-                "_lastExecutionId": "2a1dcdd4-3434-4a90-a598-887665ea4017"
+                "_lastExecutionId": "e62001f5-b338-4a97-bac8-2689f80cecb4"
               }
             }
           ]
@@ -11208,7 +11208,7 @@
           "header": [
             {
               "key": "Authorization",
-              "value": "Bearer yAvt-tmnj_b58GSGHywf98fGRGXk7ZzPfr-mdaMKveM"
+              "value": "Bearer pAoi4qB64T45jo4vD1ZPYCy1rV-a3OZyjHAf5DUdPLE"
             },
             {
               "key": "Content-Type",
@@ -11231,7 +11231,7 @@
             },
             {
               "key": "Postman-Token",
-              "value": "00100efb-e6d7-4af1-92d3-624a8cf3b1a0",
+              "value": "4a65bd6a-16a7-4437-bafd-2fe687575573",
               "system": true
             },
             {
@@ -11262,7 +11262,7 @@
           }
         },
         "response": {
-          "id": "999a90ca-8385-4c9a-bf2f-e01bfd7bfc94",
+          "id": "eba8aefe-d8e8-4a80-b0ff-9582d904100e",
           "status": "OK",
           "code": 200,
           "header": [
@@ -11272,15 +11272,15 @@
             },
             {
               "key": "Etag",
-              "value": "\"380a58f6f6cbd1035e78c1acc6c06f40c136fbc5c7d61ba3954859a1a2534da7\""
+              "value": "\"268a72fe0e8c56a94dc2a8d21c78602a010d29147967fa8478e658b33ab1300f\""
             },
             {
               "key": "X-Request-Id",
-              "value": "5d772384-3ae5-4313-a792-ab2b06ea3683"
+              "value": "e0df49a1-3bf9-4678-90fa-466a926d99e1"
             },
             {
               "key": "Date",
-              "value": "Mon, 14 Sep 2026 03:36:55 GMT"
+              "value": "Mon, 14 Sep 2026 04:29:26 GMT"
             },
             {
               "key": "Content-Length",
@@ -11476,10 +11476,10 @@
             ]
           },
           "cookie": [],
-          "responseTime": 23,
+          "responseTime": 21,
           "responseSize": 183
         },
-        "id": "7e69244a-b927-4aac-ba1e-01bfca8a9b6d",
+        "id": "1867c5d4-0d3f-4697-888d-038b32f04ed3",
         "assertions": [
           {
             "assertion": "responde 200",
@@ -11493,15 +11493,15 @@
       },
       {
         "cursor": {
-          "ref": "0974e5ea-039b-48fa-ab94-6b1e18a3ea13",
+          "ref": "32bfe217-8c36-4b7b-9b80-be976396051d",
           "length": 23,
           "cycles": 1,
           "position": 22,
           "iteration": 0,
-          "httpRequestId": "6609d0f6-8bef-4910-a11f-4b81d38e0c7e"
+          "httpRequestId": "1f65c79a-fb37-4112-954c-168368b72d7b"
         },
         "item": {
-          "id": "20364a1b-dc1f-4ece-af88-a5539a0d0c77",
+          "id": "19dda78a-3e41-4da5-bf6b-3c8ed735745e",
           "name": "23 Verificar que ambos administradores continuan activos",
           "request": {
             "url": {
@@ -11535,7 +11535,7 @@
             {
               "listen": "test",
               "script": {
-                "id": "6bdfa102-7576-42e9-886c-5997c117c0c8",
+                "id": "4ac66595-dc5d-4ed2-8e0c-87aee34ecddc",
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('responde 200', () => pm.response.to.have.status(200));",
@@ -11546,7 +11546,7 @@
                   "  pm.expect(activos).to.have.lengthOf.at.least(2);",
                   "});"
                 ],
-                "_lastExecutionId": "1f01175c-e0f5-4a1b-845c-826813c86a25"
+                "_lastExecutionId": "1d1a4ce8-dc03-4801-8133-95fefcab37d1"
               }
             }
           ]
@@ -11575,7 +11575,7 @@
           "header": [
             {
               "key": "Authorization",
-              "value": "Bearer yAvt-tmnj_b58GSGHywf98fGRGXk7ZzPfr-mdaMKveM"
+              "value": "Bearer pAoi4qB64T45jo4vD1ZPYCy1rV-a3OZyjHAf5DUdPLE"
             },
             {
               "key": "User-Agent",
@@ -11594,7 +11594,7 @@
             },
             {
               "key": "Postman-Token",
-              "value": "eda88afa-3d0e-4fa2-a28e-e06d37a2fc51",
+              "value": "7c842f76-35b5-4d6e-aaed-3e1148ecc9b8",
               "system": true
             },
             {
@@ -11616,7 +11616,7 @@
           "method": "GET"
         },
         "response": {
-          "id": "a2396b65-fcaa-460b-b347-a439b7ace67b",
+          "id": "0e36ab35-c31d-4510-a849-3c402a2031bb",
           "status": "OK",
           "code": 200,
           "header": [
@@ -11626,11 +11626,11 @@
             },
             {
               "key": "X-Request-Id",
-              "value": "68a8eeee-b930-4b20-8504-d9aed5595eb0"
+              "value": "42336b20-4ea3-44d4-9468-dd711e8e256f"
             },
             {
               "key": "Date",
-              "value": "Mon, 14 Sep 2026 03:36:55 GMT"
+              "value": "Mon, 14 Sep 2026 04:29:26 GMT"
             },
             {
               "key": "Content-Length",
@@ -12042,10 +12042,10 @@
             ]
           },
           "cookie": [],
-          "responseTime": 8,
+          "responseTime": 12,
           "responseSize": 399
         },
-        "id": "20364a1b-dc1f-4ece-af88-a5539a0d0c77",
+        "id": "19dda78a-3e41-4da5-bf6b-3c8ed735745e",
         "assertions": [
           {
             "assertion": "responde 200",

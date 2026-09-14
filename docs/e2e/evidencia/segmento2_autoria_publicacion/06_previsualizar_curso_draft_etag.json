@@ -12,20 +12,20 @@
   "headers": {
     "Content-Length": "277",
     "Content-Type": "application/json",
-    "Date": "Mon, 14 Sep 2026 03:36:58 GMT",
-    "Etag": "\"b08302019f804c8369512536d65b91042285943873d5d5be61d47cbf7e1ddb29\"",
-    "X-Request-Id": "db375e90-ac54-4b01-8649-ab05bb7e4b8b"
+    "Date": "Mon, 14 Sep 2026 04:29:32 GMT",
+    "Etag": "\"da064d490cbe1450548b44374acd4f0a631c0403cccca0dadb5dfadb2dbf608a\"",
+    "X-Request-Id": "02befb1b-fa67-4842-8a70-04be907fbd23"
   },
   "method": "GET",
   "response_body": {
     "description": "Curso completo de microservicios, mensajería y resiliencia en la nube.",
-    "id": "00f826ec-4340-4422-94ae-c07fa85ced32",
-    "stable_id": "6f73c543-1a30-49fb-9a7a-1252c30e31a5",
+    "id": "21aa07a6-7bac-4afe-bc0f-9ee1d0846154",
+    "stable_id": "ea8d4d16-a7d1-418b-a687-150ec12474e6",
     "status": "draft",
     "title": "Arquitectura Cloud y Sistemas Distribuidos Avanzados",
     "version": 1
   },
-  "response_time": "12ms",
+  "response_time": "10ms",
   "status_code": 200,
   "status_text": "OK",
   "test_name": "09 Previsualizar Metadatos del Curso (GET Draft con ETag)",

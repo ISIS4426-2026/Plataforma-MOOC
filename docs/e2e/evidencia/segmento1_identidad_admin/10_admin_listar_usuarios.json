@@ -12,23 +12,23 @@
   "headers": {
     "Content-Length": "1753",
     "Content-Type": "application/json",
-    "Date": "Mon, 14 Sep 2026 03:36:54 GMT",
-    "X-Request-Id": "c1ed1446-214e-42e3-ad1e-fb5dd6b01f67"
+    "Date": "Mon, 14 Sep 2026 04:29:25 GMT",
+    "X-Request-Id": "49bb0021-6808-4c09-bad5-af230d6e8814"
   },
   "method": "GET",
   "response_body": {
     "items": [
       {
-        "email": "idem-1789357010136@example.test",
+        "email": "idem-1789360161203@example.test",
         "full_name": "Idempotencia Demo",
-        "id": "b483bf4e-266e-4b07-b47d-d0286a21a9b1",
+        "id": "605307f2-2866-4ae2-b8e0-b7b3c334d55a",
         "role": "estudiante",
         "status": "pending_verification"
       },
       {
-        "email": "postman-1789357007778@example.test",
+        "email": "postman-1789360158669@example.test",
         "full_name": "Estudiante Postman",
-        "id": "0ca02617-38d1-4761-8b3d-77767113fe60",
+        "id": "1cd3c87f-0217-4426-8835-f749e317052b",
         "role": "estudiante",
         "status": "active"
       },
@@ -94,7 +94,7 @@
       "next_cursor": null
     }
   },
-  "response_time": "11ms",
+  "response_time": "14ms",
   "status_code": 200,
   "status_text": "OK",
   "test_name": "02 Listar usuarios (Paginacion y Estructura)",

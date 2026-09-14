@@ -12,15 +12,15 @@
   "headers": {
     "Content-Length": "82",
     "Content-Type": "application/json",
-    "Date": "Mon, 14 Sep 2026 03:36:54 GMT",
-    "X-Request-Id": "7b81def9-930e-4caa-b4d1-203bfb9d8455"
+    "Date": "Mon, 14 Sep 2026 04:29:26 GMT",
+    "X-Request-Id": "98094b82-de80-4c64-85f1-cf873627953c"
   },
   "method": "GET",
   "response_body": {
     "code": "forbidden",
     "message": "No tienes permiso para realizar esta operación."
   },
-  "response_time": "8ms",
+  "response_time": "10ms",
   "status_code": 403,
   "status_text": "Forbidden",
   "test_name": "14 No-admin intenta listar usuarios",
