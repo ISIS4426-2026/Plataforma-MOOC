@@ -86,6 +86,7 @@ La solución atiende un objetivo de escala inicial de hasta **50.000 usuarios re
 │   ├── 2026-20 proyecto...pdf# Especificación técnica oficial del curso
 │   ├── DATABASE_DESIGN.md     # Modelo relacional y diagramas de base de datos
 │   ├── DATOS_SINTETICOS.md    # Catálogo detallado de entidades y semillas sintéticas
+│   ├── DOMINIO_ACADEMICO_IMPLEMENTACION.md # Autoría, jerarquía, auditoría y observabilidad: qué se hizo y por qué
 │   ├── GUIA_DE_DESPLIEGUE.md  # Guía exhaustiva de despliegue paso a paso
 │   ├── PLAN_DE_PRUEBAS_ETAPA.md # Plan de pruebas formal de la etapa (Sec. 6, 9 y 10.2)
 │   ├── PROJECT_KEY_ASPECTS.md # Directrices y guardrails arquitectónicos no negociables
@@ -306,11 +307,13 @@ El archivo `Makefile` provee comandos estandarizados para asegurar la calidad de
 
 ## Índice de Documentación y Enlaces Oficiales
 
-* [Guía Detallada de Despliegue y Operación (`docs/GUIA_DE_DESPLIEGUE.md`)](file:///mnt/c/Users/User/Desktop/MBC_IV/Soluciones%20Cloud/Proyectos/P1_data/Plataforma-MOOC/docs/GUIA_DE_DESPLIEGUE.md): Manual paso a paso para personas que no participaron del desarrollo.
-* [Directrices Clave de Arquitectura (`docs/PROJECT_KEY_ASPECTS.md`)](file:///mnt/c/Users/User/Desktop/MBC_IV/Soluciones%20Cloud/Proyectos/P1_data/Plataforma-MOOC/docs/PROJECT_KEY_ASPECTS.md): Reglas no negociables y guardrails de seguridad.
-* [Plan Maestro de Pruebas de la Etapa (`docs/PLAN_DE_PRUEBAS_ETAPA.md`)](file:///mnt/c/Users/User/Desktop/MBC_IV/Soluciones%20Cloud/Proyectos/P1_data/Plataforma-MOOC/docs/PLAN_DE_PRUEBAS_ETAPA.md): Mapeo normativo Secciones 6, 9 y 10.2.
-* [Reporte de Aseguramiento de Calidad y Certificación Sección 10 (`docs/e2e/REPORTE_BUGS_Y_CALIDAD_ETAPA.md`)](file:///mnt/c/Users/User/Desktop/MBC_IV/Soluciones%20Cloud/Proyectos/P1_data/Plataforma-MOOC/docs/e2e/REPORTE_BUGS_Y_CALIDAD_ETAPA.md): Certificación formal de 100% pass y ausencia de bugs críticos.
-* [Guía de Demostración para Evaluadores: Segmentos 1 y 2 (`docs/e2e/DEMO_SEGMENTOS_1_Y_2.md`)](file:///mnt/c/Users/User/Desktop/MBC_IV/Soluciones%20Cloud/Proyectos/P1_data/Plataforma-MOOC/docs/e2e/DEMO_SEGMENTOS_1_Y_2.md): Runbook interactivo para sustentar la entrega.
-* [Guion Técnico y Libreto del Video de Demostración (`docs/e2e/README_GUION_VIDEO_DEMO.md`)](file:///mnt/c/Users/User/Desktop/MBC_IV/Soluciones%20Cloud/Proyectos/P1_data/Plataforma-MOOC/docs/e2e/README_GUION_VIDEO_DEMO.md): Guion completo para grabación del video cubriendo los 9 segmentos de la Sección 10.2.
-* [Catálogo de Datos Sintéticos (`docs/DATOS_SINTETICOS.md`)](file:///mnt/c/Users/User/Desktop/MBC_IV/Soluciones%20Cloud/Proyectos/P1_data/Plataforma-MOOC/docs/DATOS_SINTETICOS.md): Semillas determinísticas, credenciales y cursos.
-* [Especificación de Colecciones Postman (`docs/postman/README.md`)](file:///mnt/c/Users/User/Desktop/MBC_IV/Soluciones%20Cloud/Proyectos/P1_data/Plataforma-MOOC/docs/postman/README.md): Detalle técnico de las 97 peticiones y 216 aserciones.
+* [Guía Detallada de Despliegue y Operación (`docs/GUIA_DE_DESPLIEGUE.md`)](docs/GUIA_DE_DESPLIEGUE.md): Manual paso a paso para personas que no participaron del desarrollo.
+* [Directrices Clave de Arquitectura (`docs/PROJECT_KEY_ASPECTS.md`)](docs/PROJECT_KEY_ASPECTS.md): Reglas no negociables y guardrails de seguridad.
+* [Diseño de Base de Datos (`docs/DATABASE_DESIGN.md`)](docs/DATABASE_DESIGN.md): Esquema relacional, diagrama ER y política de ordenamiento sin colisiones.
+* [Dominio Académico, Auditoría y Observabilidad — Implementación (`docs/DOMINIO_ACADEMICO_IMPLEMENTACION.md`)](docs/DOMINIO_ACADEMICO_IMPLEMENTACION.md): Qué se construyó y por qué para la autoría de cursos, su jerarquía interna, la auditoría inmutable y la observabilidad básica (issues #15–#21).
+* [Plan Maestro de Pruebas de la Etapa (`docs/PLAN_DE_PRUEBAS_ETAPA.md`)](docs/PLAN_DE_PRUEBAS_ETAPA.md): Mapeo normativo Secciones 6, 9 y 10.2.
+* [Reporte de Aseguramiento de Calidad y Certificación Sección 10 (`docs/e2e/REPORTE_BUGS_Y_CALIDAD_ETAPA.md`)](docs/e2e/REPORTE_BUGS_Y_CALIDAD_ETAPA.md): Certificación formal de 100% pass y ausencia de bugs críticos.
+* [Guía de Demostración para Evaluadores: Segmentos 1 y 2 (`docs/e2e/DEMO_SEGMENTOS_1_Y_2.md`)](docs/e2e/DEMO_SEGMENTOS_1_Y_2.md): Runbook interactivo para sustentar la entrega.
+* [Guion Técnico y Libreto del Video de Demostración (`docs/e2e/README_GUION_VIDEO_DEMO.md`)](docs/e2e/README_GUION_VIDEO_DEMO.md): Guion completo para grabación del video cubriendo los 9 segmentos de la Sección 10.2.
+* [Catálogo de Datos Sintéticos (`docs/DATOS_SINTETICOS.md`)](docs/DATOS_SINTETICOS.md): Semillas determinísticas, credenciales y cursos.
+* [Especificación de Colecciones Postman (`docs/postman/README.md`)](docs/postman/README.md): Detalle técnico de las 97 peticiones y 216 aserciones.
