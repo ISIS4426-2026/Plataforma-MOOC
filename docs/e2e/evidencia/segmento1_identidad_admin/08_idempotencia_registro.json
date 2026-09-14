@@ -1,0 +1,41 @@
+{
+  "assertions": [
+    {
+      "assertion": "responde 201",
+      "skipped": false
+    },
+    {
+      "assertion": "no viene marcada como repeticion",
+      "skipped": false
+    },
+    {
+      "assertion": "forma de usuario registrado",
+      "skipped": false
+    }
+  ],
+  "headers": {
+    "Content-Length": "241",
+    "Content-Type": "application/json",
+    "Date": "Mon, 14 Sep 2026 03:36:50 GMT",
+    "Ratelimit-Limit": "50",
+    "Ratelimit-Remaining": "46",
+    "Ratelimit-Reset": "3598",
+    "X-Request-Id": "938d83ab-ea28-4bdb-b559-fe5ff8c9b8da"
+  },
+  "method": "POST",
+  "response_body": {
+    "message": "Cuenta creada. Revisa tu correo para activarla.",
+    "user": {
+      "email": "idem-1789357010136@example.test",
+      "full_name": "Idempotencia Demo",
+      "id": "b483bf4e-266e-4b07-b47d-d0286a21a9b1",
+      "role": "estudiante",
+      "status": "pending_verification"
+    }
+  },
+  "response_time": "87ms",
+  "status_code": 201,
+  "status_text": "Created",
+  "test_name": "38 Registro con Idempotency-Key",
+  "url": "/api/v1/auth/register"
+}

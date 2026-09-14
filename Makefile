@@ -1,4 +1,4 @@
-.PHONY: all build fmt vet lint test test-migrations demo-segment4 test-stage test-postman test-postman-identity test-postman-admin test-postman-authoring seed seed-clean seed-reset seed-status check clean run-api run-worker docker-up docker-down
+.PHONY: all build fmt vet lint test test-migrations demo-segment4 demo-segments-1-2 test-stage test-e2e test-postman test-postman-identity test-postman-admin test-postman-authoring seed seed-clean seed-reset seed-status check clean run-api run-worker docker-up docker-down
 
 all: check
 
@@ -32,6 +32,14 @@ test-migrations:
 demo-segment4:
 	@echo "==> Running Segment 4 Demo (Fault Tolerance & Idempotency)..."
 	@./scripts/demo_segment4_idempotency.sh
+
+demo-segments-1-2:
+	@echo "==> Running Segments 1 & 2 Live Interactive Demo (Identity & Authoring)..."
+	@./scripts/demo_segments_1_and_2.sh
+
+test-e2e:
+	@echo "==> Running Full E2E Test Suite (Identity, Admin, Authoring) & Harvesting Evidence..."
+	@./scripts/run_e2e_identity_authoring.sh
 
 test-stage:
 	@echo "==> Running Stage Automated Test & Validation Suite..."

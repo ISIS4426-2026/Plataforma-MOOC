@@ -1,0 +1,32 @@
+{
+  "assertions": [
+    {
+      "assertion": "responde 201",
+      "skipped": false
+    },
+    {
+      "assertion": "curso creado en estado draft y version 1",
+      "skipped": false
+    }
+  ],
+  "headers": {
+    "Content-Length": "277",
+    "Content-Type": "application/json",
+    "Date": "Mon, 14 Sep 2026 03:36:58 GMT",
+    "X-Request-Id": "63bd08c5-9ce5-4741-b639-2de869608543"
+  },
+  "method": "POST",
+  "response_body": {
+    "description": "Curso completo de microservicios, mensajería y resiliencia en la nube.",
+    "id": "00f826ec-4340-4422-94ae-c07fa85ced32",
+    "stable_id": "6f73c543-1a30-49fb-9a7a-1252c30e31a5",
+    "status": "draft",
+    "title": "Arquitectura Cloud y Sistemas Distribuidos Avanzados",
+    "version": 1
+  },
+  "response_time": "19ms",
+  "status_code": 201,
+  "status_text": "Created",
+  "test_name": "02 Crear Curso en Borrador (Draft)",
+  "url": "/api/v1/courses"
+}

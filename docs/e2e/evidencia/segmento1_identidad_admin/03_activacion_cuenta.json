@@ -1,0 +1,37 @@
+{
+  "assertions": [
+    {
+      "assertion": "responde 200",
+      "skipped": false
+    },
+    {
+      "assertion": "la cuenta queda activa",
+      "skipped": false
+    }
+  ],
+  "headers": {
+    "Content-Length": "216",
+    "Content-Type": "application/json",
+    "Date": "Mon, 14 Sep 2026 03:36:48 GMT",
+    "Ratelimit-Limit": "50",
+    "Ratelimit-Remaining": "48",
+    "Ratelimit-Reset": "3600",
+    "X-Request-Id": "fee033ee-34bd-4e45-bcbd-3f4069900dd6"
+  },
+  "method": "GET",
+  "response_body": {
+    "message": "Cuenta verificada correctamente.",
+    "user": {
+      "email": "postman-1789357007778@example.test",
+      "full_name": "Estudiante Postman",
+      "id": "0ca02617-38d1-4761-8b3d-77767113fe60",
+      "role": "estudiante",
+      "status": "active"
+    }
+  },
+  "response_time": "16ms",
+  "status_code": 200,
+  "status_text": "OK",
+  "test_name": "08 Verificar activa la cuenta",
+  "url": "/api/v1/auth/verify?token={{verificationToken}}"
+}

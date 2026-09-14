@@ -1,0 +1,28 @@
+{
+  "assertions": [
+    {
+      "assertion": "responde 409",
+      "skipped": false
+    },
+    {
+      "assertion": "codigo course_immutable y mensaje explicativo",
+      "skipped": false
+    }
+  ],
+  "headers": {
+    "Content-Length": "116",
+    "Content-Type": "application/json",
+    "Date": "Mon, 14 Sep 2026 03:36:59 GMT",
+    "X-Request-Id": "08e9b084-bf52-4f0f-b3d5-6cac95aed720"
+  },
+  "method": "PUT",
+  "response_body": {
+    "code": "course_immutable",
+    "message": "Una versión publicada es inmutable. Despublica el curso antes de editarlo."
+  },
+  "response_time": "15ms",
+  "status_code": 409,
+  "status_text": "Conflict",
+  "test_name": "17 Inmutabilidad: Rechazo al editar metadatos del curso publicado",
+  "url": "/api/v1/courses/{{courseId}}"
+}

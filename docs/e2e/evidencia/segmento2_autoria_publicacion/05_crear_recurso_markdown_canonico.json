@@ -1,0 +1,37 @@
+{
+  "assertions": [
+    {
+      "assertion": "responde 201",
+      "skipped": false
+    },
+    {
+      "assertion": "recurso 1 obligatorio creado en posicion 0",
+      "skipped": false
+    }
+  ],
+  "headers": {
+    "Content-Length": "414",
+    "Content-Type": "application/json",
+    "Date": "Mon, 14 Sep 2026 03:36:58 GMT",
+    "X-Request-Id": "a628fd06-6dc0-441c-8f68-b6a3a4edd605"
+  },
+  "method": "POST",
+  "response_body": {
+    "allow_download": false,
+    "content_text": "# Arquitectura Monolitica Modular\n\nPrincipios de desacoplamiento y diseno por dominios.",
+    "id": "5dba2168-b329-464a-9bbe-d395d996f7c2",
+    "is_mandatory": true,
+    "is_visible": true,
+    "position": 0,
+    "processing_status": "completed",
+    "stable_id": "f4faa838-6347-4281-b4eb-c59ebf9fcd8d",
+    "title": "Lectura 1: Monolitos Modulares",
+    "type": "text",
+    "unit_id": "410d665e-4acb-4c1e-a65c-49246d97ca60"
+  },
+  "response_time": "17ms",
+  "status_code": 201,
+  "status_text": "Created",
+  "test_name": "06 Crear Recurso 1 (Lectura Obligatoria - Markdown Canonico)",
+  "url": "/api/v1/units/{{unitId}}/resources"
+}

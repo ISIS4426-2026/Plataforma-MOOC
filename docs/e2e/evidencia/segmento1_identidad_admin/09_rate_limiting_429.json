@@ -1,0 +1,52 @@
+{
+  "assertions": [
+    {
+      "assertion": "healthcheck responde 200",
+      "skipped": false
+    },
+    {
+      "assertion": "healthcheck estado pass",
+      "skipped": false
+    },
+    {
+      "assertion": "el limite se dispara antes de 15 intentos",
+      "skipped": false
+    },
+    {
+      "assertion": "responde 429",
+      "skipped": false
+    },
+    {
+      "assertion": "con codigo rate_limit_exceeded",
+      "skipped": false
+    },
+    {
+      "assertion": "indica cuando reintentar",
+      "skipped": false
+    },
+    {
+      "assertion": "reporta cupo agotado",
+      "skipped": false
+    }
+  ],
+  "headers": {
+    "Content-Length": "96",
+    "Content-Type": "application/json",
+    "Date": "Mon, 14 Sep 2026 03:36:50 GMT",
+    "Ratelimit-Limit": "10",
+    "Ratelimit-Remaining": "0",
+    "Ratelimit-Reset": "57",
+    "Retry-After": "57",
+    "X-Request-Id": "57a5dc81-5048-4944-84b5-86396092e5ae"
+  },
+  "method": "GET",
+  "response_body": {
+    "code": "rate_limit_exceeded",
+    "message": "Demasiadas solicitudes. Intenta de nuevo más tarde."
+  },
+  "response_time": "6ms",
+  "status_code": 429,
+  "status_text": "Too Many Requests",
+  "test_name": "43 Rate limiting: el limite de login bloquea",
+  "url": "/api/v1/health"
+}
