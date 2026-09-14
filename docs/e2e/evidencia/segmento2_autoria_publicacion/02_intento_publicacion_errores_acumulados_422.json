@@ -12,8 +12,8 @@
   "headers": {
     "Content-Length": "384",
     "Content-Type": "application/json",
-    "Date": "Mon, 14 Sep 2026 03:36:58 GMT",
-    "X-Request-Id": "7d1235f2-5a59-4cf2-ab83-27bc032e38c5"
+    "Date": "Mon, 14 Sep 2026 04:29:32 GMT",
+    "X-Request-Id": "3218918c-8612-465d-a7bc-0a7a6fbdb27e"
   },
   "method": "POST",
   "response_body": {
@@ -30,7 +30,7 @@
     ],
     "message": "El curso no cumple los requisitos de publicación."
   },
-  "response_time": "12ms",
+  "response_time": "14ms",
   "status_code": 422,
   "status_text": "Unprocessable Entity",
   "test_name": "03 Intento de publicacion con errores (espera 422 validation_failed)",

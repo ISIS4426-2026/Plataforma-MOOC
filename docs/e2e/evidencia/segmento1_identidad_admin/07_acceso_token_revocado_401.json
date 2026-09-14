@@ -12,16 +12,16 @@
   "headers": {
     "Content-Length": "69",
     "Content-Type": "application/json",
-    "Date": "Mon, 14 Sep 2026 03:36:48 GMT",
+    "Date": "Mon, 14 Sep 2026 04:29:20 GMT",
     "Www-Authenticate": "Bearer",
-    "X-Request-Id": "c1e5815a-3b29-47bb-85f3-f4c144ff063f"
+    "X-Request-Id": "4b2f669b-d807-4a6e-88bd-c827e23470f4"
   },
   "method": "GET",
   "response_body": {
     "code": "unauthorized",
     "message": "Se requiere una sesión válida."
   },
-  "response_time": "9ms",
+  "response_time": "8ms",
   "status_code": 401,
   "status_text": "Unauthorized",
   "test_name": "19 Revocacion inmediata tras logout: el token ya no sirve",

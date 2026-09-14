@@ -12,15 +12,15 @@
   "headers": {
     "Content-Length": "82",
     "Content-Type": "application/json",
-    "Date": "Mon, 14 Sep 2026 03:36:59 GMT",
-    "X-Request-Id": "488eb3cc-00f5-443a-be6e-5a205506d066"
+    "Date": "Mon, 14 Sep 2026 04:29:33 GMT",
+    "X-Request-Id": "204d97db-f848-40be-a44a-5559496472b1"
   },
   "method": "POST",
   "response_body": {
     "code": "forbidden",
     "message": "No tienes permiso para realizar esta operación."
   },
-  "response_time": "7ms",
+  "response_time": "14ms",
   "status_code": 403,
   "status_text": "Forbidden",
   "test_name": "27 No-autor intenta crear curso (espera 403)",

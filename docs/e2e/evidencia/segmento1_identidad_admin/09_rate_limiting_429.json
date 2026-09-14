@@ -32,19 +32,19 @@
   "headers": {
     "Content-Length": "96",
     "Content-Type": "application/json",
-    "Date": "Mon, 14 Sep 2026 03:36:50 GMT",
+    "Date": "Mon, 14 Sep 2026 04:29:21 GMT",
     "Ratelimit-Limit": "10",
     "Ratelimit-Remaining": "0",
     "Ratelimit-Reset": "57",
     "Retry-After": "57",
-    "X-Request-Id": "57a5dc81-5048-4944-84b5-86396092e5ae"
+    "X-Request-Id": "b5324989-eb4f-4cd1-9c93-008789a95b3d"
   },
   "method": "GET",
   "response_body": {
     "code": "rate_limit_exceeded",
     "message": "Demasiadas solicitudes. Intenta de nuevo más tarde."
   },
-  "response_time": "6ms",
+  "response_time": "7ms",
   "status_code": 429,
   "status_text": "Too Many Requests",
   "test_name": "43 Rate limiting: el limite de login bloquea",

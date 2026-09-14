@@ -12,20 +12,20 @@
   "headers": {
     "Content-Length": "281",
     "Content-Type": "application/json",
-    "Date": "Mon, 14 Sep 2026 03:36:59 GMT",
-    "Etag": "\"5c399b10fbb3bdf03899cf9e7599534720aec80c8701cdb1f05860f4a7f9ea78\"",
-    "X-Request-Id": "0c7e27e1-9ad2-4a4b-9537-135f1c9327ab"
+    "Date": "Mon, 14 Sep 2026 04:29:32 GMT",
+    "Etag": "\"d7f75b0199e0dd41f596b19d17cb5b58726d6c8a5c4bf3a0ab5152f28a166f31\"",
+    "X-Request-Id": "3b481246-8ee8-487c-8c17-9077b2f912f9"
   },
   "method": "POST",
   "response_body": {
     "description": "Curso completo de microservicios, mensajería y resiliencia en la nube.",
-    "id": "00f826ec-4340-4422-94ae-c07fa85ced32",
-    "stable_id": "6f73c543-1a30-49fb-9a7a-1252c30e31a5",
+    "id": "21aa07a6-7bac-4afe-bc0f-9ee1d0846154",
+    "stable_id": "ea8d4d16-a7d1-418b-a687-150ec12474e6",
     "status": "published",
     "title": "Arquitectura Cloud y Sistemas Distribuidos Avanzados",
     "version": 1
   },
-  "response_time": "33ms",
+  "response_time": "41ms",
   "status_code": 200,
   "status_text": "OK",
   "test_name": "15 Publicacion Exitosa del Curso",

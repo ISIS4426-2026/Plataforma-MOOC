@@ -12,15 +12,15 @@
   "headers": {
     "Content-Length": "116",
     "Content-Type": "application/json",
-    "Date": "Mon, 14 Sep 2026 03:36:59 GMT",
-    "X-Request-Id": "08e9b084-bf52-4f0f-b3d5-6cac95aed720"
+    "Date": "Mon, 14 Sep 2026 04:29:32 GMT",
+    "X-Request-Id": "2a0f3ca9-1766-41ef-a07b-6a57d3688a41"
   },
   "method": "PUT",
   "response_body": {
     "code": "course_immutable",
     "message": "Una versión publicada es inmutable. Despublica el curso antes de editarlo."
   },
-  "response_time": "15ms",
+  "response_time": "19ms",
   "status_code": 409,
   "status_text": "Conflict",
   "test_name": "17 Inmutabilidad: Rechazo al editar metadatos del curso publicado",

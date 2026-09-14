@@ -371,6 +371,18 @@ make demo-segments-1-2
 
 ---
 
+### 4.5.2 Pruebas E2E Completas, Reporte de Bugs y Certificación de la Sección 10 (Issue #28)
+
+En cumplimiento de los criterios de aceptación del **Issue #28**, se formaliza el aseguramiento de calidad mediante:
+1. **Ejecución de la totalidad de colecciones Postman** contra el sistema desplegado en Docker Compose (112 peticiones ejecutadas, 216 aserciones aprobadas, 100% PASS, cero mocks).
+2. **Reporte y Taxonomía de Bugs:** Matriz de clasificación con severidad (Crítica, Alta, Media, Baja), pasos de reproducción mediante cURL, impacto, módulo y responsable asignado.
+3. **Trazabilidad de Hallazgos Críticos:** Cada hallazgo crítico cuenta con su respectivo issue de seguimiento y suite de regresión asociada.
+4. **Certificación de la Sección 10:** Declaración formal y auditoría que confirma la **ausencia total de incumplimientos críticos**, condición indispensable de aceptación de la etapa.
+
+* **Documento Oficial de Calidad y Certificación:** [`docs/e2e/REPORTE_BUGS_Y_CALIDAD_ETAPA.md`](./e2e/REPORTE_BUGS_Y_CALIDAD_ETAPA.md).
+
+---
+
 ### 4.6 Paso 5: Guía de Validación Manual Interactiva para el Equipo
 
 Para validar visualmente los flujos más relevantes de la plataforma, siga los siguientes procedimientos:
@@ -501,3 +513,5 @@ Esta lista resume las condiciones de aceptación que los revisores deben verific
 - [x] **Protección del Último Administrador:** Bloqueo atómico contra suspensión o degradación del único administrador activo.
 - [x] **Observabilidad Completa:** Exportación de trazas OpenTelemetry, métricas Prometheus (`/api/v1/metrics` y `:9090/metrics`) y logs JSON correlacionados con `request_id` y `trace_id`.
 - [x] **Pipeline de Calidad:** Comandos `make check`, `make test`, `make test-migrations` y `make demo-segment4` ejecutando con 0 fallos.
+- [x] **Pruebas E2E Integrales (Cero Mocks):** Baterías Newman de Identidad (#24), Administración (#25) y Autoría (#26) ejecutadas al 100% sobre Docker Compose (`make test-e2e`).
+- [x] **Gestión de Bugs y Certificación Sección 10 (#28):** Taxonomía y reporte formal de bugs con trazabilidad a issues, y certificación firmada de **Ausencia Total de Incumplimientos Críticos** en [`docs/e2e/REPORTE_BUGS_Y_CALIDAD_ETAPA.md`](./e2e/REPORTE_BUGS_Y_CALIDAD_ETAPA.md).
