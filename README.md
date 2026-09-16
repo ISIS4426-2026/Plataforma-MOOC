@@ -13,6 +13,8 @@ Plataforma web de **Cursos Masivos Abiertos en Línea (MOOC)** diseñada para un
 
 Este repositorio contiene la implementación completa del backend, contratos OpenAPI 3.1, esquemas transaccionales de PostgreSQL, colas distribuidas Asynq/Redis, almacenamiento de objetos S3/MinIO, suite de observabilidad OpenTelemetry y colecciones automatizadas E2E en Postman/Newman.
 
+** Video Sustentación :  **  https://www.youtube.com/watch?v=0qUeBiy9yfE
+
 > [!TIP]
 > **¿Es su primera vez con el proyecto?**  
 > Siga la [Guía Rápida de Despliegue Paso a Paso](#guía-rápida-de-despliegue-paso-a-paso-desde-cero) para tener todo el sistema operativo con datos sintéticos y pruebas funcionales en menos de 3 minutos sin ayuda externa.  
