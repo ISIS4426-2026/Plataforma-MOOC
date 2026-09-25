@@ -112,21 +112,21 @@ VALUES
     -- Módulos de Curso 1 (Publicado)
     ('d1000000-0000-0000-0000-000000000001', 'e1000000-0000-0000-0000-000000000001',
      'd0000000-0000-0000-0000-000000000001',
-     'Módulo 1: Fundamentos de Arquitectura en la Nube', 1, '2026-09-03 08:10:00+00'),
+     'Módulo 1: Fundamentos de Arquitectura en la Nube', 0, '2026-09-03 08:10:00+00'),
 
     ('d1000000-0000-0000-0000-000000000002', 'e1000000-0000-0000-0000-000000000002',
      'd0000000-0000-0000-0000-000000000001',
-     'Módulo 2: Evaluación y Buenas Prácticas', 2, '2026-09-03 08:20:00+00'),
+     'Módulo 2: Evaluación y Buenas Prácticas', 1, '2026-09-03 08:20:00+00'),
 
     -- Módulo de Curso 2 (Borrador Completo)
     ('d1000000-0000-0000-0000-000000000003', 'e1000000-0000-0000-0000-000000000003',
      'd0000000-0000-0000-0000-000000000002',
-     'Módulo 1: Goroutines y Canales', 1, '2026-09-04 10:10:00+00'),
+     'Módulo 1: Goroutines y Canales', 0, '2026-09-04 10:10:00+00'),
 
     -- Módulo de Curso 4 (Despublicado)
     ('d1000000-0000-0000-0000-000000000004', 'e1000000-0000-0000-0000-000000000004',
      'd0000000-0000-0000-0000-000000000004',
-     'Módulo 1: Fundamentos de Contenedores', 1, '2026-09-03 14:10:00+00')
+     'Módulo 1: Fundamentos de Contenedores', 0, '2026-09-03 14:10:00+00')
 ON CONFLICT (id) DO UPDATE SET
     title = EXCLUDED.title,
     position = EXCLUDED.position;
@@ -139,21 +139,21 @@ VALUES
     -- Unidades de Curso 1
     ('d2000000-0000-0000-0000-000000000001', 'e2000000-0000-0000-0000-000000000001',
      'd1000000-0000-0000-0000-000000000001',
-     'Unidad 1.1: Patrones de Desacoplamiento y Statelessness', 1, '2026-09-03 08:15:00+00'),
+     'Unidad 1.1: Patrones de Desacoplamiento y Statelessness', 0, '2026-09-03 08:15:00+00'),
 
     ('d2000000-0000-0000-0000-000000000002', 'e2000000-0000-0000-0000-000000000002',
      'd1000000-0000-0000-0000-000000000002',
-     'Unidad 2.1: Cuestionario Diagnóstico de Arquitectura', 1, '2026-09-03 08:25:00+00'),
+     'Unidad 2.1: Cuestionario Diagnóstico de Arquitectura', 0, '2026-09-03 08:25:00+00'),
 
     -- Unidad de Curso 2
     ('d2000000-0000-0000-0000-000000000003', 'e2000000-0000-0000-0000-000000000003',
      'd1000000-0000-0000-0000-000000000003',
-     'Unidad 1.1: Sincronización Básica con Canales', 1, '2026-09-04 10:15:00+00'),
+     'Unidad 1.1: Sincronización Básica con Canales', 0, '2026-09-04 10:15:00+00'),
 
     -- Unidad de Curso 4
     ('d2000000-0000-0000-0000-000000000004', 'e2000000-0000-0000-0000-000000000004',
      'd1000000-0000-0000-0000-000000000004',
-     'Unidad 1.1: Dockerfile y Capas de Imagen', 1, '2026-09-03 14:15:00+00')
+     'Unidad 1.1: Dockerfile y Capas de Imagen', 0, '2026-09-03 14:15:00+00')
 ON CONFLICT (id) DO UPDATE SET
     title = EXCLUDED.title,
     position = EXCLUDED.position;
@@ -166,31 +166,31 @@ VALUES
     -- Recursos de Curso 1 (Publicado)
     ('d3000000-0000-0000-0000-000000000001', 'e3000000-0000-0000-0000-000000000001',
      'd2000000-0000-0000-0000-000000000001',
-     'Guía Canónica de Monolito Modular', 'text', 1, true, true, true,
+     'Guía Canónica de Monolito Modular', 'text', 0, true, true, true,
      '# Arquitectura Monolito Modular\n\nEl sistema desacopla el dominio de HTTP e infraestructura siguiendo arquitectura limpia...',
      NULL, 'completed', '2026-09-03 08:30:00+00'),
 
     ('d3000000-0000-0000-0000-000000000002', 'e3000000-0000-0000-0000-000000000002',
      'd2000000-0000-0000-0000-000000000001',
-     'Video Streaming: Workers y Asynq', 'video', 2, true, true, false,
+     'Video Streaming: Workers y Asynq', 'video', 1, true, true, false,
      NULL, 'courses/c1/video_workers_hls.m3u8', 'completed', '2026-09-03 08:35:00+00'),
 
     ('d3000000-0000-0000-0000-000000000003', 'e3000000-0000-0000-0000-000000000003',
      'd2000000-0000-0000-0000-000000000002',
-     'Quiz: Evaluación Diagnóstica de Arquitectura', 'quiz', 1, true, true, false,
+     'Quiz: Evaluación Diagnóstica de Arquitectura', 'quiz', 0, true, true, false,
      NULL, NULL, 'completed', '2026-09-03 08:40:00+00'),
 
     -- Recurso de Curso 2 (Borrador Completo)
     ('d3000000-0000-0000-0000-000000000004', 'e3000000-0000-0000-0000-000000000004',
      'd2000000-0000-0000-0000-000000000003',
-     'Introducción a Canales en Go', 'text', 1, true, true, true,
+     'Introducción a Canales en Go', 'text', 0, true, true, true,
      '# Canales en Go\n\nLos canales proveen sincronización y comunicación segura entre goroutines sin memoria compartida.',
      NULL, 'completed', '2026-09-04 10:20:00+00'),
 
     -- Recurso de Curso 4 (Despublicado)
     ('d3000000-0000-0000-0000-000000000005', 'e3000000-0000-0000-0000-000000000005',
      'd2000000-0000-0000-0000-000000000004',
-     'Manual de Seguridad en Docker', 'pdf', 1, true, true, true,
+     'Manual de Seguridad en Docker', 'pdf', 0, true, true, true,
      NULL, 'courses/c4/manual_seguridad_docker.pdf', 'completed', '2026-09-03 14:20:00+00')
 ON CONFLICT (id) DO UPDATE SET
     title = EXCLUDED.title,

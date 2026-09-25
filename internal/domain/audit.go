@@ -76,6 +76,12 @@ const (
 	AuditActionResourceCreated   AuditAction = "resource.created"
 	AuditActionResourceUpdated   AuditAction = "resource.updated"
 	AuditActionResourceDeleted   AuditAction = "resource.deleted"
+
+	// Media pipeline. MediaAttached is an authoring act by a person: an upload
+	// was confirmed against the bucket and handed to the queue. MediaProcessed
+	// is the worker reporting the outcome, so its entries carry no actor.
+	AuditActionResourceMediaAttached  AuditAction = "resource.media_attached"
+	AuditActionResourceMediaProcessed AuditAction = "resource.media_processed"
 )
 
 // AuditEntry is one immutable record of an action.

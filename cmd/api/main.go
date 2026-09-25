@@ -15,9 +15,12 @@ import (
 	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/course"
 	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/http"
 	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/mailer"
+	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/media"
 	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/observability"
 	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/postgres"
+	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/storage"
 	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/structure"
+	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/worker"
 )
 
 // serviceVersion identifies this build in traces and metrics. A constant
@@ -142,12 +145,48 @@ func run(logger *slog.Logger) error {
 		Resources: resourceRepo,
 	}, logger)
 
+	// Object storage and the queue client the media service needs. The backend
+	// is configuration, so this same code path runs against MinIO locally and
+	// the managed bucket once deployed.
+	storageProvider, err := storage.New(context.Background(), storage.Config{
+		Backend:   storage.Backend(cfg.StorageBackend),
+		Bucket:    cfg.S3Bucket,
+		Endpoint:  cfg.S3Endpoint,
+		AccessKey: cfg.S3AccessKey,
+		SecretKey: cfg.S3SecretKey,
+	})
+	if err != nil {
+		logger.Error("failed to initialise object storage", slog.String("error", err.Error()))
+		os.Exit(1)
+	}
+
+	queueClient, err := worker.NewClient(cfg.RedisURL)
+	if err != nil {
+		logger.Error("failed to initialise the task queue client", slog.String("error", err.Error()))
+		os.Exit(1)
+	}
+	defer func() { _ = queueClient.Close() }()
+
+	mediaService := media.NewService(media.Deps{
+		Courses:   courseRepo,
+		Modules:   moduleRepo,
+		Units:     unitRepo,
+		Resources: resourceRepo,
+		Storage:   storageProvider,
+		Queue:     queueClient,
+	}, media.Options{
+		UploadURLTTL:   cfg.MediaUploadURLTTL,
+		DownloadURLTTL: cfg.MediaDownloadURLTTL,
+		MaxUploadBytes: cfg.MediaMaxUploadBytes,
+	}, logger)
+
 	server := http.NewServer(cfg, http.Deps{
 		DB:               db,
 		Auth:             authService,
 		Admin:            adminService,
 		Course:           courseService,
 		Structure:        structureService,
+		Media:            mediaService,
 		Audit:            postgres.NewAuditRepository(db),
 		RateLimiter:      cache.NewRateLimiter(redisClient),
 		IdempotencyStore: cache.NewIdempotencyStore(redisClient),

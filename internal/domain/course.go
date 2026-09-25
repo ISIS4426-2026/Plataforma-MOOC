@@ -232,6 +232,26 @@ type ResourceUpdate struct {
 	AllowDownload bool
 }
 
+// ResourceProcessingStatus is where a resource sits in the media pipeline. The
+// four values match the CHECK constraint on resources.processing_status in
+// migrations/000001_init_schema.up.sql.
+//
+// A resource that carries no media is Completed from birth, since the column
+// defaults to it and there is nothing to process. Only a confirmed upload sends
+// one back to Pending.
+//
+// What the Entrega 2 statement calls the "available" state is Completed here:
+// the vocabulary predates it and course.validateForPublish already reads it,
+// so renaming the value would touch the publish rules for no gain.
+type ResourceProcessingStatus string
+
+const (
+	ResourceProcessingPending    ResourceProcessingStatus = "pending"
+	ResourceProcessingProcessing ResourceProcessingStatus = "processing"
+	ResourceProcessingCompleted  ResourceProcessingStatus = "completed"
+	ResourceProcessingFailed     ResourceProcessingStatus = "failed"
+)
+
 type ResourceRepository interface {
 	// Create inserts a new resource at the end of unit unitID.
 	Create(ctx context.Context, resource *Resource, entry *AuditEntry) error
@@ -244,4 +264,29 @@ type ResourceRepository interface {
 	Update(ctx context.Context, resourceID string, fields ResourceUpdate, entry *AuditEntry) (*Resource, error)
 
 	Delete(ctx context.Context, resourceID string, entry *AuditEntry) error
+
+	// AttachMedia records the key a confirmed upload landed at and hands the
+	// resource to the processing pipeline.
+	//
+	// It is deliberately not part of ResourceUpdate. That struct is the
+	// client-editable surface, and object_key and processing_status are kept
+	// off it on purpose. Here the status is not chosen by the caller either:
+	// it is always Pending, the pipeline's entry point. Every later transition
+	// belongs to SetProcessingStatus.
+	//
+	// Attaching media is an authoring act, so it refuses a published course
+	// with ErrCourseImmutable like the rest of the writes.
+	AttachMedia(ctx context.Context, resourceID, objectKey string, entry *AuditEntry) (*Resource, error)
+
+	// SetProcessingStatus moves a resource through the pipeline. Only the media
+	// worker calls it; no HTTP route reaches it.
+	//
+	// Unlike every other write here it does not refuse a published course.
+	// Immutability freezes *authored* content, and processing status is not
+	// authored -- it is the pipeline reporting on itself. In the ordinary flow
+	// the question never arises, because course.validateForPublish already
+	// refuses to publish while a visible resource is still processing; the
+	// exception is an invisible resource, whose transcode would otherwise be
+	// stranded in the DLQ by a publish it has nothing to do with.
+	SetProcessingStatus(ctx context.Context, resourceID string, status ResourceProcessingStatus, entry *AuditEntry) (*Resource, error)
 }

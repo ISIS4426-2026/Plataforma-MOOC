@@ -549,6 +549,100 @@ func (r *ResourceRepository) Delete(ctx context.Context, resourceID string, entr
 	return nil
 }
 
+// AttachMedia records the object key a confirmed upload landed at and moves the
+// resource to the head of the processing pipeline.
+//
+// The status is hardcoded to pending rather than taken from the caller: this is
+// the one transition a client request is allowed to cause, and letting it name
+// the target state is exactly what domain.ResourceUpdate keeps out of reach.
+func (r *ResourceRepository) AttachMedia(ctx context.Context, resourceID, objectKey string, entry *domain.AuditEntry) (*domain.Resource, error) {
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return nil, fmt.Errorf("begin transaction: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	// Attaching media is authoring, so it is refused on a published course the
+	// same way a title edit is.
+	if err := lockResourceAndCourse(ctx, tx, resourceID); err != nil {
+		return nil, err
+	}
+
+	const query = `
+		UPDATE resources
+		SET object_key = $2, processing_status = $3
+		WHERE id = $1
+		RETURNING ` + resourceColumns
+	updated, err := scanResource(tx.QueryRowContext(ctx, query,
+		resourceID, objectKey, string(domain.ResourceProcessingPending)))
+	if err != nil {
+		return nil, fmt.Errorf("attach media to resource %s: %w", resourceID, err)
+	}
+
+	if err := insertAuditEntry(ctx, tx, entry); err != nil {
+		return nil, err
+	}
+	if err := tx.Commit(); err != nil {
+		return nil, fmt.Errorf("commit media attachment: %w", err)
+	}
+	return updated, nil
+}
+
+// SetProcessingStatus is the worker's transition. See the port's comment for
+// why it locks the row without rejecting a published course.
+func (r *ResourceRepository) SetProcessingStatus(ctx context.Context, resourceID string, status domain.ResourceProcessingStatus, entry *domain.AuditEntry) (*domain.Resource, error) {
+	switch status {
+	case domain.ResourceProcessingPending, domain.ResourceProcessingProcessing,
+		domain.ResourceProcessingCompleted, domain.ResourceProcessingFailed:
+	default:
+		return nil, fmt.Errorf("unknown processing status %q: %w", status, domain.ErrInvalidInput)
+	}
+
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return nil, fmt.Errorf("begin transaction: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	if err := lockResourceForPipeline(ctx, tx, resourceID); err != nil {
+		return nil, err
+	}
+
+	const query = `
+		UPDATE resources
+		SET processing_status = $2
+		WHERE id = $1
+		RETURNING ` + resourceColumns
+	updated, err := scanResource(tx.QueryRowContext(ctx, query, resourceID, string(status)))
+	if err != nil {
+		return nil, fmt.Errorf("set processing status of resource %s: %w", resourceID, err)
+	}
+
+	if err := insertAuditEntry(ctx, tx, entry); err != nil {
+		return nil, err
+	}
+	if err := tx.Commit(); err != nil {
+		return nil, fmt.Errorf("commit processing status: %w", err)
+	}
+	return updated, nil
+}
+
+// lockResourceForPipeline takes the same row lock as lockResourceAndCourse but
+// without the published check, for the worker's own status transitions.
+func lockResourceForPipeline(ctx context.Context, tx *sql.Tx, resourceID string) error {
+	var id string
+	err := tx.QueryRowContext(ctx,
+		`SELECT id FROM resources WHERE id = $1 FOR UPDATE`, resourceID,
+	).Scan(&id)
+	if errors.Is(err, sql.ErrNoRows) {
+		return fmt.Errorf("resource %s: %w", resourceID, domain.ErrNotFound)
+	}
+	if err != nil {
+		return fmt.Errorf("lock resource %s: %w", resourceID, err)
+	}
+	return nil
+}
+
 func lockResourceAndCourse(ctx context.Context, tx *sql.Tx, resourceID string) error {
 	var status domain.CourseStatus
 	err := tx.QueryRowContext(ctx,

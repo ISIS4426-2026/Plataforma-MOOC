@@ -14,6 +14,7 @@ import (
 	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/domain"
 	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/http/handler"
 	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/http/middleware"
+	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/media"
 	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/structure"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/metric"
@@ -51,6 +52,7 @@ type Deps struct {
 	Admin            *admin.Service
 	Course           *course.Service
 	Structure        *structure.Service
+	Media            *media.Service
 	Audit            domain.AuditRepository
 	RateLimiter      domain.RateLimiter
 	IdempotencyStore domain.IdempotencyStore
@@ -88,6 +90,7 @@ func NewServer(cfg *config.Config, deps Deps, logger *slog.Logger) *Server {
 	courseHandler := handler.NewCourseHandler(deps.Course, logger)
 	structureHandler := handler.NewStructureHandler(deps.Structure, logger)
 	auditHandler := handler.NewAuditHandler(deps.Audit, logger)
+	mediaHandler := handler.NewMediaHandler(deps.Media, logger)
 
 	// requireAuth guards the endpoints that act on behalf of a signed-in user.
 	// It is applied per route rather than globally so the public endpoints stay
@@ -235,6 +238,18 @@ func NewServer(cfg *config.Config, deps Deps, logger *slog.Logger) *Server {
 	mux.Handle("PUT /api/v1/resources/{resourceID}",
 		requireAuthor(idempotent(http.HandlerFunc(structureHandler.UpdateResource)).ServeHTTP))
 	mux.Handle("DELETE /api/v1/resources/{resourceID}", requireAuthor(structureHandler.DeleteResource))
+
+	// Direct media upload (issue A2). Two calls, because the object does not
+	// exist when the URL is signed: the client authorizes, transfers straight
+	// to the bucket, then confirms. Only the confirmation touches the resource
+	// and queues the processing job, so it carries Idempotency-Key like the
+	// other writes -- a retried confirmation must not enqueue twice.
+	mux.Handle("POST /api/v1/media/presigned-url",
+		requireAuthor(idempotent(http.HandlerFunc(mediaHandler.PresignedUploadURL)).ServeHTTP))
+	mux.Handle("POST /api/v1/media/uploads/{resourceID}/complete",
+		requireAuthor(idempotent(http.HandlerFunc(mediaHandler.ConfirmUpload)).ServeHTTP))
+	mux.Handle("GET /api/v1/media/resources/{resourceID}/download-url",
+		requireAuthor(mediaHandler.DownloadURL))
 
 	// Read side of the audit trail (issue #18): administrators only, no
 	// Idempotency-Key since it is a GET with no side effect to replay.
