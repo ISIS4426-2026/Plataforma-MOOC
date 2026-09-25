@@ -238,6 +238,31 @@ func (f *fakeResourceRepo) Update(_ context.Context, resourceID string, fields d
 	return &copied, nil
 }
 
+func (f *fakeResourceRepo) AttachMedia(_ context.Context, resourceID, objectKey string, _ *domain.AuditEntry) (*domain.Resource, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	r, ok := f.resources[resourceID]
+	if !ok {
+		return nil, domain.ErrNotFound
+	}
+	r.ObjectKey = objectKey
+	r.ProcessingStatus = string(domain.ResourceProcessingPending)
+	copied := *r
+	return &copied, nil
+}
+
+func (f *fakeResourceRepo) SetProcessingStatus(_ context.Context, resourceID string, status domain.ResourceProcessingStatus, _ *domain.AuditEntry) (*domain.Resource, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	r, ok := f.resources[resourceID]
+	if !ok {
+		return nil, domain.ErrNotFound
+	}
+	r.ProcessingStatus = string(status)
+	copied := *r
+	return &copied, nil
+}
+
 func (f *fakeResourceRepo) Delete(_ context.Context, resourceID string, _ *domain.AuditEntry) error {
 	f.mu.Lock()
 	defer f.mu.Unlock()

@@ -1,0 +1,1338 @@
+{
+  "info": {
+    "name": "Plataforma MOOC - Multimedia",
+    "description": "Carga directa al almacenamiento de objetos, confirmacion e idempotencia (issue A2).\n\nEjecutar con newman DENTRO de la red de docker compose: la URL prefirmada lleva el host dentro de la firma, asi que una peticion desde el anfitrion no puede completar la transferencia. Ver docs/entrega2/NOTAS_TECNICAS.md, nota 1.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "01 Login como Profesor (autor)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"responde 200\", function () { pm.response.to.have.status(200); });",
+              "pm.test(\"devuelve token de profesor\", function () {",
+              "    var d = pm.response.json();",
+              "    pm.expect(d.user.role).to.eql(\"profesor\");",
+              "    pm.environment.set(\"professorToken\", d.token);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"{{professorEmail}}\",\n  \"password\": \"{{professorPassword}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/auth/login",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "auth",
+            "login"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "02 Crear curso en borrador",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"responde 201\", function () { pm.response.to.have.status(201); });",
+              "pm.environment.set(\"mediaCourseId\", pm.response.json().id);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{professorToken}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"Curso de prueba de multimedia\",\n  \"description\": \"Verifica carga directa, confirmacion y encolado.\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/courses",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "courses"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "03 Crear modulo",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"responde 201\", function () { pm.response.to.have.status(201); });",
+              "pm.environment.set(\"mediaModuleId\", pm.response.json().id);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{professorToken}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"Modulo 1\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/courses/{{mediaCourseId}}/modules",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "courses",
+            "{{mediaCourseId}}",
+            "modules"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "04 Crear unidad",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"responde 201\", function () { pm.response.to.have.status(201); });",
+              "pm.environment.set(\"mediaUnitId\", pm.response.json().id);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{professorToken}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"Unidad 1\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/modules/{{mediaModuleId}}/units",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "modules",
+            "{{mediaModuleId}}",
+            "units"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "05 Crear recurso de video",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"responde 201\", function () { pm.response.to.have.status(201); });",
+              "pm.test(\"nace sin objeto asociado\", function () {",
+              "    var d = pm.response.json();",
+              "    pm.expect(d.type).to.eql(\"video\");",
+              "    pm.expect(d.object_key === undefined || d.object_key === \"\").to.be.true;",
+              "    pm.environment.set(\"mediaResourceId\", d.id);",
+              "    pm.environment.set(\"mediaResourceStableId\", d.stable_id);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{professorToken}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"Clase magistral 1\",\n  \"type\": \"video\",\n  \"is_visible\": true,\n  \"is_mandatory\": true,\n  \"allow_download\": false\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/units/{{mediaUnitId}}/resources",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "units",
+            "{{mediaUnitId}}",
+            "resources"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "06 Solicitar URL prefirmada de carga",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"responde 200\", function () { pm.response.to.have.status(200); });",
+              "pm.test(\"la clave va bajo originals/<stable_id>/ y descarta el nombre del cliente\", function () {",
+              "    var d = pm.response.json();",
+              "    pm.expect(d.object_key).to.have.string(\"originals/\" + pm.environment.get(\"mediaResourceStableId\") + \"/\");",
+              "    pm.expect(d.object_key).to.not.have.string(\"clase\");",
+              "    pm.expect(d.object_key).to.have.string(\".mp4\");",
+              "});",
+              "pm.test(\"declara el metodo y el content-type que cubre la firma\", function () {",
+              "    var d = pm.response.json();",
+              "    pm.expect(d.method).to.eql(\"PUT\");",
+              "    pm.expect(d.content_type).to.eql(\"video/mp4\");",
+              "    pm.expect(d.upload_url).to.be.a(\"string\").that.is.not.empty;",
+              "    pm.environment.set(\"uploadUrl\", d.upload_url);",
+              "    pm.environment.set(\"mediaObjectKey\", d.object_key);",
+              "});",
+              "pm.test(\"vence en 24 horas, como pide el enunciado\", function () {",
+              "    var horas = (new Date(pm.response.json().expires_at) - Date.now()) / 3600000;",
+              "    pm.expect(horas).to.be.above(23);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{professorToken}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"resource_id\": \"{{mediaResourceId}}\",\n  \"filename\": \"clase.mp4\",\n  \"mime_type\": \"video/mp4\",\n  \"file_size_bytes\": 2048\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/media/presigned-url",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "media",
+            "presigned-url"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "07 Carga directa al bucket (el archivo no pasa por la API)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Newman corre dentro de la red de compose, asi que el host firmado",
+              "// (minio:9000) resuelve. Desde el host no resolveria: la firma cubre el",
+              "// host y reescribirlo la invalida. Ver docs/entrega2/NOTAS_TECNICAS.md.",
+              "pm.test(\"el bucket acepta la transferencia\", function () { pm.response.to.have.status(200); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "video/mp4",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "bytes de prueba que hacen las veces de un mp4",
+          "options": {
+            "raw": {
+              "language": "text"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{uploadUrl}}",
+          "host": [
+            "{{uploadUrl}}"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "08 Confirmar la carga",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"responde 202\", function () { pm.response.to.have.status(202); });",
+              "pm.test(\"el recurso apunta al objeto y entra a la cola\", function () {",
+              "    var d = pm.response.json();",
+              "    pm.expect(d.object_key).to.eql(pm.environment.get(\"mediaObjectKey\"));",
+              "    pm.expect(d.processing_status).to.eql(\"pending\");",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{professorToken}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"object_key\": \"{{mediaObjectKey}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/media/uploads/{{mediaResourceId}}/complete",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "media",
+            "uploads",
+            "{{mediaResourceId}}",
+            "complete"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "09 Reconfirmar la misma carga (idempotente)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// La clave de idempotencia del trabajo sale del object_key. La cola rechaza",
+              "// el segundo encolado y el servicio lo trata como exito: el trabajo ya existe.",
+              "// Una entrega duplicada no genera salidas repetidas.",
+              "pm.test(\"sigue respondiendo 202, no 500\", function () { pm.response.to.have.status(202); });",
+              "pm.test(\"el estado no cambia\", function () {",
+              "    pm.expect(pm.response.json().processing_status).to.eql(\"pending\");",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{professorToken}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"object_key\": \"{{mediaObjectKey}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/media/uploads/{{mediaResourceId}}/complete",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "media",
+            "uploads",
+            "{{mediaResourceId}}",
+            "complete"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "10 Obtener URL firmada de lectura",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"responde 200\", function () { pm.response.to.have.status(200); });",
+              "pm.test(\"apunta al objeto y vive mucho menos que la de carga\", function () {",
+              "    var d = pm.response.json();",
+              "    pm.expect(d.download_url).to.have.string(pm.environment.get(\"mediaObjectKey\"));",
+              "    var horas = (new Date(d.expires_at) - Date.now()) / 3600000;",
+              "    pm.expect(horas).to.be.below(2);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{professorToken}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/media/resources/{{mediaResourceId}}/download-url",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "media",
+            "resources",
+            "{{mediaResourceId}}",
+            "download-url"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "11 Rechazo: extension fuera de la lista permitida",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Solo sobrevive la extension del nombre, y solo si esta permitida.",
+              "pm.test(\"responde 400\", function () { pm.response.to.have.status(400); });",
+              "pm.test(\"con codigo de error invalid_input\", function () {",
+              "    pm.expect(pm.response.json().code).to.eql(\"invalid_input\");",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{professorToken}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"resource_id\": \"{{mediaResourceId}}\",\n  \"filename\": \"payload.exe\",\n  \"mime_type\": \"video/mp4\",\n  \"file_size_bytes\": 1024\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/media/presigned-url",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "media",
+            "presigned-url"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "12 Rechazo: el mime declarado no corresponde a la extension",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// El content-type va dentro de la firma; una discrepancia fallaria en el bucket.",
+              "pm.test(\"responde 400\", function () { pm.response.to.have.status(400); });",
+              "pm.test(\"con codigo de error invalid_input\", function () {",
+              "    pm.expect(pm.response.json().code).to.eql(\"invalid_input\");",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{professorToken}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"resource_id\": \"{{mediaResourceId}}\",\n  \"filename\": \"clase.mp4\",\n  \"mime_type\": \"text/html\",\n  \"file_size_bytes\": 1024\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/media/presigned-url",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "media",
+            "presigned-url"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "13 Rechazo: tamano por encima del limite",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// MEDIA_MAX_UPLOAD_MB acota lo que se autoriza a firmar.",
+              "pm.test(\"responde 400\", function () { pm.response.to.have.status(400); });",
+              "pm.test(\"con codigo de error invalid_input\", function () {",
+              "    pm.expect(pm.response.json().code).to.eql(\"invalid_input\");",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{professorToken}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"resource_id\": \"{{mediaResourceId}}\",\n  \"filename\": \"enorme.mp4\",\n  \"mime_type\": \"video/mp4\",\n  \"file_size_bytes\": 9999999999\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/media/presigned-url",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "media",
+            "presigned-url"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "14 Crear recurso de texto (no admite archivo)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"responde 201\", function () { pm.response.to.have.status(201); });",
+              "pm.environment.set(\"mediaTextResourceId\", pm.response.json().id);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{professorToken}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"Lectura complementaria\",\n  \"type\": \"text\",\n  \"content_text\": \"# Notas\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/units/{{mediaUnitId}}/resources",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "units",
+            "{{mediaUnitId}}",
+            "resources"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "15 Rechazo: un recurso de texto no acepta carga",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Los tipos sin archivo -- texto, iframe, enlace, quiz -- no tienen area en el bucket.",
+              "pm.test(\"responde 400\", function () { pm.response.to.have.status(400); });",
+              "pm.test(\"con codigo de error invalid_input\", function () {",
+              "    pm.expect(pm.response.json().code).to.eql(\"invalid_input\");",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{professorToken}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"resource_id\": \"{{mediaTextResourceId}}\",\n  \"filename\": \"clase.mp4\",\n  \"mime_type\": \"video/mp4\",\n  \"file_size_bytes\": 1024\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/media/presigned-url",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "media",
+            "presigned-url"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "16 Pedir URL para una carga que nunca se hara",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"responde 200\", function () { pm.response.to.have.status(200); });",
+              "pm.environment.set(\"claveHuerfana\", pm.response.json().object_key);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{professorToken}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"resource_id\": \"{{mediaResourceId}}\",\n  \"filename\": \"fantasma.mp4\",\n  \"mime_type\": \"video/mp4\",\n  \"file_size_bytes\": 1024\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/media/presigned-url",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "media",
+            "presigned-url"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "17 Rechazo: confirmar una carga que nunca llego",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Que el cliente diga que termino no es evidencia; responde el bucket.",
+              "pm.test(\"responde 409\", function () { pm.response.to.have.status(409); });",
+              "pm.test(\"con codigo de error upload_not_found\", function () {",
+              "    pm.expect(pm.response.json().code).to.eql(\"upload_not_found\");",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{professorToken}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"object_key\": \"{{claveHuerfana}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/media/uploads/{{mediaResourceId}}/complete",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "media",
+            "uploads",
+            "{{mediaResourceId}}",
+            "complete"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "18 Rechazo: confirmar con la clave de otro recurso",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// La clave lleva el stable_id dentro; apuntar a la de otro recurso se rechaza.",
+              "pm.test(\"responde 400\", function () { pm.response.to.have.status(400); });",
+              "pm.test(\"con codigo de error invalid_input\", function () {",
+              "    pm.expect(pm.response.json().code).to.eql(\"invalid_input\");",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{professorToken}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"object_key\": \"{{mediaObjectKey}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/media/uploads/{{mediaTextResourceId}}/complete",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "media",
+            "uploads",
+            "{{mediaTextResourceId}}",
+            "complete"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "19 Login como Estudiante",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"responde 200\", function () { pm.response.to.have.status(200); });",
+              "pm.environment.set(\"studentToken\", pm.response.json().token);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"{{studentEmail}}\",\n  \"password\": \"{{studentPassword}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/auth/login",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "auth",
+            "login"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "20 Rechazo: un estudiante no obtiene URL de carga",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// La ruta exige rol de profesor o administrador.",
+              "pm.test(\"responde 403\", function () { pm.response.to.have.status(403); });",
+              "pm.test(\"con codigo de error forbidden\", function () {",
+              "    pm.expect(pm.response.json().code).to.eql(\"forbidden\");",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{studentToken}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"resource_id\": \"{{mediaResourceId}}\",\n  \"filename\": \"clase.mp4\",\n  \"mime_type\": \"video/mp4\",\n  \"file_size_bytes\": 1024\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/media/presigned-url",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "media",
+            "presigned-url"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "21 Rechazo: peticion anonima",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Sin sesion no hay autor a quien autorizar.",
+              "pm.test(\"responde 401\", function () { pm.response.to.have.status(401); });",
+              "pm.test(\"con codigo de error unauthorized\", function () {",
+              "    pm.expect(pm.response.json().code).to.eql(\"unauthorized\");",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"resource_id\": \"{{mediaResourceId}}\",\n  \"filename\": \"clase.mp4\",\n  \"mime_type\": \"video/mp4\",\n  \"file_size_bytes\": 1024\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/media/presigned-url",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "media",
+            "presigned-url"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "22 Pedir URL sobre recurso de curso PUBLICADO",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"responde 200\", function () { pm.response.to.have.status(200); });",
+              "// Firmar no escribe nada, asi que todavia no choca con la inmutabilidad.",
+              "pm.environment.set(\"uploadUrlPublicado\", pm.response.json().upload_url);",
+              "pm.environment.set(\"clavePublicado\", pm.response.json().object_key);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{professorToken}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"resource_id\": \"{{seededPublishedVideoResourceId}}\",\n  \"filename\": \"reemplazo.mp4\",\n  \"mime_type\": \"video/mp4\",\n  \"file_size_bytes\": 1024\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/media/presigned-url",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "media",
+            "presigned-url"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "23 Cargar ese archivo al bucket",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"la transferencia en si no esta restringida\", function () { pm.response.to.have.status(200); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "video/mp4",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "bytes de prueba",
+          "options": {
+            "raw": {
+              "language": "text"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{uploadUrlPublicado}}",
+          "host": [
+            "{{uploadUrlPublicado}}"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "24 Inmutabilidad: confirmar sobre curso publicado se rechaza",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Adjuntar media es autoria: una version publicada es inmutable, igual que al editar el titulo.",
+              "pm.test(\"responde 409\", function () { pm.response.to.have.status(409); });",
+              "pm.test(\"con codigo de error course_immutable\", function () {",
+              "    pm.expect(pm.response.json().code).to.eql(\"course_immutable\");",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{professorToken}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"object_key\": \"{{clavePublicado}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/media/uploads/{{seededPublishedVideoResourceId}}/complete",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "media",
+            "uploads",
+            "{{seededPublishedVideoResourceId}}",
+            "complete"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "25 El recurso publicado quedo intacto",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"responde 200\", function () { pm.response.to.have.status(200); });",
+              "pm.test(\"conserva su objeto original y su estado\", function () {",
+              "    var r = pm.response.json().items.find(function (x) {",
+              "        return x.id === pm.environment.get(\"seededPublishedVideoResourceId\");",
+              "    });",
+              "    pm.expect(r).to.not.be.undefined;",
+              "    pm.expect(r.processing_status).to.eql(\"completed\");",
+              "    pm.expect(r.object_key).to.not.eql(pm.environment.get(\"clavePublicado\"));",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{professorToken}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/units/{{seededPublishedUnitId}}/resources",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "units",
+            "{{seededPublishedUnitId}}",
+            "resources"
+          ]
+        }
+      },
+      "response": []
+    }
+  ]
+}

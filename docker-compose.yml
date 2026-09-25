@@ -12,6 +12,12 @@ services:
       - REDIS_URL=${REDIS_URL:-redis:6379}
       - S3_ENDPOINT=${S3_ENDPOINT:-http://minio:9000}
       - S3_BUCKET=${S3_BUCKET:-mooc-storage}
+      - STORAGE_BACKEND=${STORAGE_BACKEND:-minio}
+      - S3_ACCESS_KEY=${S3_ACCESS_KEY:-${MINIO_ROOT_USER:-minioadmin}}
+      - S3_SECRET_KEY=${S3_SECRET_KEY:-${MINIO_ROOT_PASSWORD:-minioadmin}}
+      - MEDIA_UPLOAD_URL_TTL=${MEDIA_UPLOAD_URL_TTL:-24h}
+      - MEDIA_DOWNLOAD_URL_TTL=${MEDIA_DOWNLOAD_URL_TTL:-1h}
+      - MEDIA_MAX_UPLOAD_MB=${MEDIA_MAX_UPLOAD_MB:-1024}
       - DB_MAX_OPEN_CONNS=${DB_MAX_OPEN_CONNS:-25}
       - DB_MAX_IDLE_CONNS=${DB_MAX_IDLE_CONNS:-25}
       - DB_CONN_MAX_LIFETIME=${DB_CONN_MAX_LIFETIME:-5m}
@@ -39,8 +45,6 @@ services:
         condition: service_healthy
       minio:
         condition: service_healthy
-      minio-init:
-        condition: service_completed_successfully
       mailpit:
         condition: service_healthy
     healthcheck:
@@ -60,6 +64,9 @@ services:
       - REDIS_URL=${REDIS_URL:-redis:6379}
       - S3_ENDPOINT=${S3_ENDPOINT:-http://minio:9000}
       - S3_BUCKET=${S3_BUCKET:-mooc-storage}
+      - STORAGE_BACKEND=${STORAGE_BACKEND:-minio}
+      - S3_ACCESS_KEY=${S3_ACCESS_KEY:-${MINIO_ROOT_USER:-minioadmin}}
+      - S3_SECRET_KEY=${S3_SECRET_KEY:-${MINIO_ROOT_PASSWORD:-minioadmin}}
       - DB_MAX_OPEN_CONNS=${DB_MAX_OPEN_CONNS:-25}
       - DB_MAX_IDLE_CONNS=${DB_MAX_IDLE_CONNS:-25}
       - DB_CONN_MAX_LIFETIME=${DB_CONN_MAX_LIFETIME:-5m}
@@ -75,8 +82,6 @@ services:
         condition: service_healthy
       minio:
         condition: service_healthy
-      minio-init:
-        condition: service_completed_successfully
 
   postgres:
     image: postgres:16-alpine
@@ -112,17 +117,26 @@ services:
       retries: 5
       start_period: 3s
 
+  # MinIO's own public images were withdrawn: quay.io/minio/minio now answers
+  # 401 for every tag and docker.io/minio/minio returns 404. This is the same
+  # upstream server, packaged by Bitnami, pinned to an exact tag so a registry
+  # change cannot break the stack again without us choosing it.
+  #
+  # The Bitnami image brings its own entrypoint (no `command:` needed), runs as
+  # uid 1001, keeps data under /bitnami/minio/data, and creates the buckets in
+  # MINIO_DEFAULT_BUCKETS at startup -- which is why the separate minio-init
+  # service is gone.
   minio:
-    image: quay.io/minio/minio:latest
-    command: server /data --console-address ":9001"
+    image: bitnamilegacy/minio:2025.7.23-debian-12-r5
     ports:
       - "${MINIO_PORT:-9000}:9000"
       - "${MINIO_CONSOLE_PORT:-9001}:9001"
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
+      MINIO_DEFAULT_BUCKETS: ${S3_BUCKET:-mooc-storage}
     volumes:
-      - minio_data:/data
+      - minio_data:/bitnami/minio/data
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
       interval: 5s
@@ -130,23 +144,8 @@ services:
       retries: 5
       start_period: 5s
 
-  minio-init:
-    image: quay.io/minio/mc:latest
-    depends_on:
-      minio:
-        condition: service_healthy
-    entrypoint: /bin/sh
-    command: /scripts/init-minio.sh
-    volumes:
-      - ./scripts/init-minio.sh:/scripts/init-minio.sh:ro
-    environment:
-      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
-      S3_ENDPOINT: http://minio:9000
-      S3_BUCKET: ${S3_BUCKET:-mooc-storage}
-
   mailpit:
-    image: axllent/mailpit:latest
+    image: axllent/mailpit:v1.31.2
     ports:
       - "${MAILPIT_PORT:-8025}:8025"
       - "${MAILPIT_SMTP_PORT:-1025}:1025"

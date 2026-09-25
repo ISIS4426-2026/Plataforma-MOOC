@@ -172,3 +172,11 @@ func (f *fakeResourceRepo) Update(context.Context, string, domain.ResourceUpdate
 	return nil, nil
 }
 func (f *fakeResourceRepo) Delete(context.Context, string, *domain.AuditEntry) error { return nil }
+
+func (f *fakeResourceRepo) AttachMedia(context.Context, string, string, *domain.AuditEntry) (*domain.Resource, error) {
+	return nil, nil
+}
+
+func (f *fakeResourceRepo) SetProcessingStatus(context.Context, string, domain.ResourceProcessingStatus, *domain.AuditEntry) (*domain.Resource, error) {
+	return nil, nil
+}

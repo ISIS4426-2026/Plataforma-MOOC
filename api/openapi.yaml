@@ -1527,9 +1527,17 @@ paths:
     post:
       tags:
         - Media
-      summary: Request direct S3 presigned upload URL
-      description: Generate a 24h presigned URL for direct client-to-storage resumable binary upload.
+      summary: Authorize a direct upload and sign its URL
+      description: >
+        First half of the direct-upload flow. The API validates the request and
+        returns a signed URL valid for 24 hours; the client then transfers the
+        bytes straight to the bucket, so the file never passes through the API.
+
+        Nothing is written to the resource here: the object does not exist yet.
+        The resource is updated by the confirmation call.
       operationId: getPresignedUploadUrl
+      security:
+        - bearerAuth: []
       parameters:
         - $ref: '#/components/parameters/IdempotencyKey'
       requestBody:
@@ -1551,6 +1559,87 @@ paths:
           $ref: '#/components/responses/401Unauthorized'
         '403':
           $ref: '#/components/responses/403Forbidden'
+        '404':
+          $ref: '#/components/responses/404NotFound'
+
+  /media/uploads/{resource_id}/complete:
+    post:
+      tags:
+        - Media
+      summary: Confirm a finished upload and queue its processing
+      description: >
+        Second half of the direct-upload flow. The API checks the object is
+        actually in the bucket and that its size and content type are what was
+        authorized, records the key on the resource, moves it to
+        `processing_status: pending` and enqueues the media job.
+
+        A client saying the transfer finished is not evidence, so an object that
+        never landed answers 409 rather than being recorded. The job's
+        idempotency key is derived from the object key: retrying this call does
+        not produce a second job, while a genuine re-upload does.
+      operationId: confirmMediaUpload
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: resource_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConfirmUploadRequest'
+      responses:
+        '202':
+          description: Upload recorded and queued for processing.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResourceResponse'
+        '400':
+          $ref: '#/components/responses/400BadRequest'
+        '401':
+          $ref: '#/components/responses/401Unauthorized'
+        '403':
+          $ref: '#/components/responses/403Forbidden'
+        '404':
+          $ref: '#/components/responses/404NotFound'
+        '409':
+          $ref: '#/components/responses/409Conflict'
+
+  /media/resources/{resource_id}/download-url:
+    get:
+      tags:
+        - Media
+      summary: Sign a short-lived read URL for a resource's stored object
+      description: >
+        Media is served straight from object storage at this stage, with no CDN.
+        The URL is deliberately far shorter-lived than an upload URL, since a
+        leaked read URL is a copy of the content.
+      operationId: getMediaDownloadUrl
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: resource_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Signed read URL generated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DownloadUrlResponse'
+        '401':
+          $ref: '#/components/responses/401Unauthorized'
+        '403':
+          $ref: '#/components/responses/403Forbidden'
+        '404':
+          $ref: '#/components/responses/404NotFound'
 
 components:
   securitySchemes:
@@ -2383,18 +2472,33 @@ components:
     PresignedUrlRequest:
       type: object
       required:
+        - resource_id
         - filename
         - mime_type
         - file_size_bytes
       properties:
+        resource_id:
+          type: string
+          format: uuid
+          description: >
+            Resource the upload belongs to. The object key is derived from its
+            stable id, so the upload is bound to the resource from the start and
+            a key cannot be reused across resources.
         filename:
           type: string
+          description: >
+            Only the extension survives into the object key, and only if it is
+            on the accepted list. The name itself is discarded.
           example: "intro_lecture.mp4"
         mime_type:
           type: string
+          description: >
+            Must match the canonical type for the extension. It is bound into
+            the signature, so a mismatch would fail at the bucket.
           example: "video/mp4"
         file_size_bytes:
           type: integer
+          format: int64
           example: 104857600
 
     PresignedUrlResponse:
@@ -2402,14 +2506,47 @@ components:
       required:
         - upload_url
         - object_key
+        - method
+        - content_type
         - expires_at
       properties:
         upload_url:
           type: string
-          example: "https://storage.example.com/mooc-bucket/intro_lecture.mp4?X-Amz-Algorithm=..."
+          example: "https://storage.example.com/mooc-bucket/originals/44444444-.../9f2c....mp4?X-Goog-Algorithm=..."
         object_key:
           type: string
-          example: "uploads/2026/09/intro_lecture.mp4"
+          description: Hand this back to the confirmation endpoint once the transfer finishes.
+          example: "originals/44444444-4444-4444-4444-444444444444/9f2c1a80-....mp4"
+        method:
+          type: string
+          description: HTTP method the signature covers.
+          example: "PUT"
+        content_type:
+          type: string
+          description: Content-Type header the transfer must send; it is part of the signature.
+          example: "video/mp4"
+        expires_at:
+          type: string
+          format: date-time
+
+    ConfirmUploadRequest:
+      type: object
+      required:
+        - object_key
+      properties:
+        object_key:
+          type: string
+          description: The key returned by the presigned URL request.
+          example: "originals/44444444-4444-4444-4444-444444444444/9f2c1a80-....mp4"
+
+    DownloadUrlResponse:
+      type: object
+      required:
+        - download_url
+        - expires_at
+      properties:
+        download_url:
+          type: string
         expires_at:
           type: string
           format: date-time

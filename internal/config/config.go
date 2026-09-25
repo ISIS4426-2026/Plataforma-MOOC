@@ -15,6 +15,21 @@ type Config struct {
 	S3Endpoint  string
 	S3Bucket    string
 
+	// Object storage. StorageBackend picks the adapter at runtime rather than
+	// at build time, so the same binary runs against MinIO locally and against
+	// the provider's managed service once deployed -- the deployed path is then
+	// one the team has actually exercised.
+	StorageBackend string
+	S3AccessKey    string
+	S3SecretKey    string
+
+	// Media upload limits. The 24h upload window is what the specification asks
+	// for ("reanudable durante 24 horas"); a read URL is far shorter because a
+	// leaked one is a copy of the content.
+	MediaUploadURLTTL   time.Duration
+	MediaDownloadURLTTL time.Duration
+	MediaMaxUploadBytes int64
+
 	// MetricsPort is where the worker (which otherwise has no HTTP server)
 	// exposes GET /metrics for scraping (issue #21). The API mounts its own
 	// metrics endpoint on Port instead, alongside the rest of /api/v1.
@@ -82,6 +97,14 @@ func Load() *Config {
 		RedisURL:    getEnv("REDIS_URL", "localhost:6379"),
 		S3Endpoint:  getEnv("S3_ENDPOINT", "http://localhost:9000"),
 		S3Bucket:    getEnv("S3_BUCKET", "mooc-storage"),
+
+		StorageBackend: getEnv("STORAGE_BACKEND", "minio"),
+		S3AccessKey:    getEnv("S3_ACCESS_KEY", getEnv("MINIO_ROOT_USER", "minioadmin")),
+		S3SecretKey:    getEnv("S3_SECRET_KEY", getEnv("MINIO_ROOT_PASSWORD", "minioadmin")),
+
+		MediaUploadURLTTL:   getEnvDuration("MEDIA_UPLOAD_URL_TTL", 24*time.Hour),
+		MediaDownloadURLTTL: getEnvDuration("MEDIA_DOWNLOAD_URL_TTL", time.Hour),
+		MediaMaxUploadBytes: int64(getEnvInt("MEDIA_MAX_UPLOAD_MB", 1024)) << 20,
 
 		MetricsPort: getEnv("METRICS_PORT", "9090"),
 

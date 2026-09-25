@@ -2,9 +2,11 @@ package worker
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
+	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/domain"
 	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/worker/task"
 	"github.com/hibiken/asynq"
 	"github.com/redis/go-redis/v9"
@@ -149,4 +151,21 @@ func (c *Client) ReenqueueFromDLQ(ctx context.Context, queue string, taskID stri
 	}
 
 	return fmt.Errorf("failed to re-enqueue task %s from DLQ in queue %s: %w", taskID, queue, lastErr)
+}
+
+// EnqueueMediaProcessJob adapts Client to the narrow port the media service
+// declares. The service is written against plain strings so it never imports
+// asynq; this is the one place that translation lives.
+func (c *Client) EnqueueMediaProcessJob(ctx context.Context, resourceID, taskType, objectKey, idempotencyKey string) error {
+	_, err := c.EnqueueMediaProcess(ctx, resourceID, taskType, objectKey, task.WithIdempotencyKey(idempotencyKey))
+
+	// A conflicting task ID means the job is already queued -- which is exactly
+	// what an idempotent retry should produce. asynq reports it as an error
+	// because it refused to write a second task; the caller asked for the job
+	// to exist, and it does, so this is translated into a sentinel the service
+	// can treat as success instead of a 500.
+	if errors.Is(err, asynq.ErrTaskIDConflict) {
+		return fmt.Errorf("%s: %w", idempotencyKey, domain.ErrTaskAlreadyQueued)
+	}
+	return err
 }
