@@ -14,7 +14,12 @@ import (
 
 	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/config"
 	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/observability"
+	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/postgres"
+	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/storage"
+	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/transcode"
 	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/worker"
+	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/worker/handler"
+	"github.com/hibiken/asynq"
 )
 
 // serviceVersion mirrors cmd/api/main.go's constant of the same purpose.
@@ -49,7 +54,60 @@ func main() {
 		log.Fatalf("Failed to initialize observability: %v\n", err)
 	}
 
-	engine, err := worker.NewWorkerEngine(cfg, worker.WithMeter(obs.Meter))
+	// The media pipeline needs three things the ping handler does not: the
+	// bucket to read originals from and write renditions to, the database to
+	// report each transition on, and ffmpeg on PATH.
+	startupCtx, cancelStartup := context.WithTimeout(context.Background(), 10*time.Second)
+	db, err := postgres.Connect(startupCtx, cfg)
+	cancelStartup()
+	if err != nil {
+		log.Fatalf("Failed to connect to the database: %v\n", err)
+	}
+	defer func() { _ = db.Close() }()
+
+	storageProvider, err := storage.New(context.Background(), storage.Config{
+		Backend:   storage.Backend(cfg.StorageBackend),
+		Bucket:    cfg.S3Bucket,
+		Endpoint:  cfg.S3Endpoint,
+		AccessKey: cfg.S3AccessKey,
+		SecretKey: cfg.S3SecretKey,
+	})
+	if err != nil {
+		log.Fatalf("Failed to initialise object storage: %v\n", err)
+	}
+
+	runner := transcode.NewRunner()
+	if err := runner.Available(); err != nil {
+		// Better to refuse to start than to accept media jobs and fail every one
+		// of them three times over before the DLQ finally says why.
+		log.Fatalf("FFmpeg is required by the media pipeline: %v\n", err)
+	}
+
+	ladder, err := transcode.ParseLadder(cfg.MediaHLSLadder)
+	if err != nil {
+		// A malformed ladder has to stop startup. Discovering it mid-run would
+		// leave a capacity measurement describing an encoding profile nobody
+		// declared.
+		log.Fatalf("Invalid MEDIA_HLS_LADDER: %v\n", err)
+	}
+	log.Printf("Media ladder: %s\n", transcode.FormatLadder(ladder))
+
+	mediaProcessor := handler.NewMediaProcessor(
+		storageProvider,
+		postgres.NewResourceRepository(db),
+		runner,
+		handler.MediaProcessorOptions{
+			WorkDir:          cfg.MediaWorkDir,
+			MaxOriginalBytes: cfg.MediaMaxOriginalBytes,
+			Ladder:           ladder,
+		},
+		nil,
+	)
+
+	engine, err := worker.NewWorkerEngine(cfg,
+		worker.WithMeter(obs.Meter),
+		worker.WithMediaProcessor(asynq.HandlerFunc(mediaProcessor.Handle)),
+	)
 	if err != nil {
 		log.Fatalf("Failed to initialize worker engine: %v\n", err)
 	}

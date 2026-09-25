@@ -12,7 +12,18 @@ RUN CGO_ENABLED=0 GOOS=linux go build -o /app/bin/worker ./cmd/worker
 
 FROM alpine:latest
 
+# The media pipeline shells out to ffmpeg and ffprobe, so they are part of the
+# runtime image rather than a base-image assumption. ca-certificates is what
+# lets the worker reach the managed object storage over HTTPS.
+RUN apk add --no-cache ffmpeg ca-certificates
+
 WORKDIR /app
 COPY --from=builder /app/bin/worker /app/worker
+
+# Originals are downloaded and renditions written here before upload. Declaring
+# it keeps the scratch space in one known place, so disk use during a load test
+# is something that can be measured rather than guessed.
+ENV MEDIA_WORK_DIR=/tmp/mooc-media
+RUN mkdir -p /tmp/mooc-media
 
 CMD ["/app/worker"]

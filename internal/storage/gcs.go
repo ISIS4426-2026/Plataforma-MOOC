@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"time"
 
@@ -106,6 +107,37 @@ func (g *GCS) DeleteObject(ctx context.Context, objectKey string) error {
 	err := g.client.Bucket(g.bucket).Object(objectKey).Delete(ctx)
 	if err != nil && !errors.Is(err, storage.ErrObjectNotExist) {
 		return fmt.Errorf("storage: delete object: %w", err)
+	}
+	return nil
+}
+
+// GetObject opens the stored object for reading.
+func (g *GCS) GetObject(ctx context.Context, objectKey string) (io.ReadCloser, error) {
+	reader, err := g.client.Bucket(g.bucket).Object(objectKey).NewReader(ctx)
+	if errors.Is(err, storage.ErrObjectNotExist) {
+		return nil, domain.ErrObjectNotFound
+	}
+	if err != nil {
+		return nil, fmt.Errorf("storage: open object %q: %w", objectKey, err)
+	}
+	return reader, nil
+}
+
+// PutObject writes an object the worker produced.
+//
+// The writer's Close is what actually commits the upload, so its error matters
+// as much as the copy's: ignoring it would report success for bytes that never
+// landed.
+func (g *GCS) PutObject(ctx context.Context, objectKey, contentType string, r io.Reader, _ int64) error {
+	w := g.client.Bucket(g.bucket).Object(objectKey).NewWriter(ctx)
+	w.ContentType = contentType
+
+	if _, err := io.Copy(w, r); err != nil {
+		_ = w.Close()
+		return fmt.Errorf("storage: write object %q: %w", objectKey, err)
+	}
+	if err := w.Close(); err != nil {
+		return fmt.Errorf("storage: commit object %q: %w", objectKey, err)
 	}
 	return nil
 }

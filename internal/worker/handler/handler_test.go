@@ -18,15 +18,3 @@ func TestHandleTestPingTask(t *testing.T) {
 		t.Errorf("HandleTestPingTask returned error: %v", err)
 	}
 }
-
-func TestHandleMediaProcessTask(t *testing.T) {
-	mediaTask, err := task.NewMediaProcessTask("res-999", "hls_transcode", "videos/intro.mp4")
-	if err != nil {
-		t.Fatalf("failed to create media task: %v", err)
-	}
-
-	ctx := context.Background()
-	if err := HandleMediaProcessTask(ctx, mediaTask); err != nil {
-		t.Errorf("HandleMediaProcessTask returned error: %v", err)
-	}
-}

@@ -57,6 +57,51 @@ parecerá un problema de capacidad cuando es de configuración.
 
 ---
 
+## 1b. HLS multi-archivo no funciona detrás de URLs firmadas
+
+**Afecta a:** C3 (IAM del bucket), C4, H4 y H5 (escenario 2), I1 (decisiones).
+
+Corolario de la nota anterior, y se descubrió probando con un reproductor real.
+
+Un manifiesto maestro referencia sus variantes por ruta **relativa**:
+
+```
+#EXT-X-STREAM-INF:BANDWIDTH=2628000,RESOLUTION=1280x720
+720p.m3u8
+```
+
+El reproductor resuelve `720p.m3u8` contra la URL del maestro, pero **no hereda
+la query string**, que es donde va la firma. Resultado con el maestro firmado:
+
+```
+[hls] Empty segment [http://.../360p.m3u8]
+[hls] Empty segment [http://.../720p.m3u8]
+```
+
+El maestro se lee, las variantes no. Firmar cada segmento tampoco sirve: habría
+que reescribir los manifiestos en cada lectura y cada URL vencería por separado.
+
+### La decisión
+
+**El prefijo `hls/` se sirve sin firma; `originals/` sigue privado.** Es lo que
+el enunciado de la Entrega 2 permite de forma explícita —«acceso mediante URLs
+firmadas **(o no firmadas)**»— y lo que hace cualquier entrega de HLS real. Solo
+es público lo que el worker generó; lo que subió el autor no lo es.
+
+Verificado en ambas direcciones:
+
+```
+ffprobe http://.../hls/<stable_id>/master.m3u8   → h264 640x360 + aac
+                                                   h264 1280x720 + aac
+wget    http://.../originals/<stable_id>/...      → 403 Forbidden
+```
+
+En local lo aplica el servicio `minio-policy` de `docker-compose.yml`. **En C3
+hay que replicarlo en el bucket administrado**: lectura pública acotada al
+prefijo `hls/`, nunca al bucket entero.
+
+---
+
 ## 2. MinIO retiró sus imágenes públicas
 
 **Afecta a:** cualquier uso de `docker compose up`.

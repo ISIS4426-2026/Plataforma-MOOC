@@ -67,6 +67,8 @@ services:
       - STORAGE_BACKEND=${STORAGE_BACKEND:-minio}
       - S3_ACCESS_KEY=${S3_ACCESS_KEY:-${MINIO_ROOT_USER:-minioadmin}}
       - S3_SECRET_KEY=${S3_SECRET_KEY:-${MINIO_ROOT_PASSWORD:-minioadmin}}
+      - MEDIA_MAX_ORIGINAL_MB=${MEDIA_MAX_ORIGINAL_MB:-2048}
+      - MEDIA_HLS_LADDER=${MEDIA_HLS_LADDER:-}
       - DB_MAX_OPEN_CONNS=${DB_MAX_OPEN_CONNS:-25}
       - DB_MAX_IDLE_CONNS=${DB_MAX_IDLE_CONNS:-25}
       - DB_CONN_MAX_LIFETIME=${DB_CONN_MAX_LIFETIME:-5m}
@@ -143,6 +145,40 @@ services:
       timeout: 5s
       retries: 5
       start_period: 5s
+
+  # HLS is served straight from the bucket at this stage, with no CDN. A player
+  # resolves the variant playlists and segments as relative paths against the
+  # master, and a presigned URL's signature does not carry across to them -- so
+  # multi-file HLS behind signed URLs simply does not play.
+  #
+  # The derivatives prefix is therefore readable without a signature, which the
+  # delivery's statement allows explicitly ("URLs firmadas (o no firmadas)").
+  # Originals stay private: only what the worker produced is public.
+  #
+  # The image is the same one the minio service uses, which ships mc.
+  minio-policy:
+    image: bitnamilegacy/minio:2025.7.23-debian-12-r5
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: /bin/bash
+    command:
+      - -c
+      - |
+        set -e
+        mc alias set target http://minio:9000 "$${MINIO_ROOT_USER:-minioadmin}" "$${MINIO_ROOT_PASSWORD:-minioadmin}"
+        # MinIO reports healthy before MINIO_DEFAULT_BUCKETS has finished, so
+        # wait for the bucket itself rather than for the server.
+        for i in $$(seq 1 30); do
+          mc ls "target/$${S3_BUCKET:-mooc-storage}" >/dev/null 2>&1 && break
+          echo "waiting for bucket $${S3_BUCKET:-mooc-storage} ($$i/30)"
+          sleep 1
+        done
+        mc anonymous set download "target/$${S3_BUCKET:-mooc-storage}/hls"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
+      S3_BUCKET: ${S3_BUCKET:-mooc-storage}
 
   mailpit:
     image: axllent/mailpit:v1.31.2

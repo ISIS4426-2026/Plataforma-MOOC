@@ -30,6 +30,7 @@ type WorkerEngine struct {
 	delayedTaskCheckInterval time.Duration
 	taskCheckInterval        time.Duration
 	meter                    metric.Meter
+	mediaProcessor           asynq.Handler
 }
 
 // WorkerOption defines functional configuration options for WorkerEngine.
@@ -94,6 +95,15 @@ func WithTaskCheckInterval(d time.Duration) WorkerOption {
 // WithMeter enables MetricsMiddleware (issue #21: jobs processed/failed).
 // Omitting it -- as every existing test does -- leaves the worker exactly as
 // it was before this option existed, metrics included.
+// WithMediaProcessor supplies the handler for media jobs. Without it the engine
+// still starts -- a worker that only runs ping jobs is useful in tests -- but
+// media jobs fail loudly instead of silently succeeding.
+func WithMediaProcessor(h asynq.Handler) WorkerOption {
+	return func(w *WorkerEngine) {
+		w.mediaProcessor = h
+	}
+}
+
 func WithMeter(meter metric.Meter) WorkerOption {
 	return func(we *WorkerEngine) {
 		we.meter = meter
@@ -179,7 +189,7 @@ func NewWorkerEngine(cfg *config.Config, opts ...WorkerOption) (*WorkerEngine, e
 	if we.meter != nil {
 		mux.Use(MetricsMiddleware(we.meter))
 	}
-	handler.RegisterRoutes(mux)
+	handler.RegisterRoutes(mux, we.mediaProcessor)
 
 	we.server = srv
 	we.mux = mux

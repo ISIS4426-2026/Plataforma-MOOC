@@ -2,6 +2,7 @@ package domain
 
 import (
 	"context"
+	"io"
 	"time"
 )
 
@@ -30,6 +31,19 @@ type StorageProvider interface {
 	StatObject(ctx context.Context, objectKey string) (*ObjectInfo, error)
 
 	DeleteObject(ctx context.Context, objectKey string) error
+
+	// GetObject opens the stored object for reading, returning ErrObjectNotFound
+	// when the key holds nothing.
+	//
+	// Only the worker uses it, to pull an original down for transcoding. The API
+	// never does: a file that passes through the API is precisely what the
+	// direct-upload design exists to avoid.
+	GetObject(ctx context.Context, objectKey string) (io.ReadCloser, error)
+
+	// PutObject writes bytes the server itself produced -- HLS manifests and
+	// segments -- under objectKey. size may be -1 when it is not known ahead of
+	// time.
+	PutObject(ctx context.Context, objectKey, contentType string, r io.Reader, size int64) error
 }
 
 // TaskQueue abstracts asynchronous background job dispatching.
