@@ -19,6 +19,20 @@ type harness struct {
 	modules   *fakeModuleRepo
 	units     *fakeUnitRepo
 	resources *fakeResourceRepo
+	access    *fakeAccess
+}
+
+// fakeAccess stands in for enrollment.Service. The rule it implements is tested
+// there; here what matters is that structure asks it and honours the answer.
+type fakeAccess struct {
+	allow bool
+	err   error
+	asked int
+}
+
+func (f *fakeAccess) CanRead(_ context.Context, _ string, _ domain.Role, _ *domain.Course) (bool, error) {
+	f.asked++
+	return f.allow, f.err
 }
 
 func newHarness() *harness {
@@ -26,10 +40,11 @@ func newHarness() *harness {
 	modules := newFakeModuleRepo()
 	units := newFakeUnitRepo()
 	resources := newFakeResourceRepo()
+	access := &fakeAccess{allow: true}
 	svc := structure.NewService(structure.Deps{
-		Courses: courses, Modules: modules, Units: units, Resources: resources,
+		Courses: courses, Modules: modules, Units: units, Resources: resources, Access: access,
 	}, nil)
-	return &harness{svc: svc, courses: courses, modules: modules, units: units, resources: resources}
+	return &harness{svc: svc, courses: courses, modules: modules, units: units, resources: resources, access: access}
 }
 
 func (h *harness) withDraftCourse(id, authorID string) {
@@ -200,5 +215,89 @@ func TestUpdateResourceRefusesAnotherProfessorsResource(t *testing.T) {
 	_, err = h.svc.UpdateResource(context.Background(), professor("prof-2"), resource.ID, domain.ResourceUpdate{Title: "Hijacked"})
 	if !errors.Is(err, domain.ErrForbidden) {
 		t.Fatalf("expected domain.ErrForbidden, got %v", err)
+	}
+}
+
+// ---- read-side access gate (issue #111) --------------------------------
+
+// seedStructure returns a module and unit id under course-1, so the unit and
+// resource listings have a parent chain to walk up to the course.
+func seedStructure(t *testing.T, h *harness) (moduleID, unitID string) {
+	t.Helper()
+	author := professor("prof-1")
+	module, err := h.svc.CreateModule(context.Background(), author, "course-1", "Módulo 1")
+	if err != nil {
+		t.Fatalf("CreateModule: %v", err)
+	}
+	unit, err := h.svc.CreateUnit(context.Background(), author, module.ID, "Unidad 1")
+	if err != nil {
+		t.Fatalf("CreateUnit: %v", err)
+	}
+	return module.ID, unit.ID
+}
+
+// The three content listings go through the access check. Until #111 they were
+// public, which meant anyone could walk a published course's whole structure
+// without enrolling.
+func TestContentListingsHonourTheAccessCheck(t *testing.T) {
+	viewer := structure.Viewer{ID: "student-1", Role: domain.RoleStudent}
+
+	listings := map[string]func(*harness, string, string) error{
+		"modules": func(h *harness, _, _ string) error {
+			_, err := h.svc.ListModules(context.Background(), viewer, "course-1")
+			return err
+		},
+		"units": func(h *harness, moduleID, _ string) error {
+			_, err := h.svc.ListUnits(context.Background(), viewer, moduleID)
+			return err
+		},
+		"resources": func(h *harness, _, unitID string) error {
+			_, err := h.svc.ListResources(context.Background(), viewer, unitID)
+			return err
+		},
+	}
+
+	for name, call := range listings {
+		t.Run(name+" allowed", func(t *testing.T) {
+			h := newHarness()
+			h.withDraftCourse("course-1", "prof-1")
+			moduleID, unitID := seedStructure(t, h)
+			h.access.allow = true
+			h.access.asked = 0
+
+			if err := call(h, moduleID, unitID); err != nil {
+				t.Fatalf("listing: %v", err)
+			}
+			if h.access.asked != 1 {
+				t.Errorf("access was consulted %d times, want 1", h.access.asked)
+			}
+		})
+
+		t.Run(name+" denied", func(t *testing.T) {
+			h := newHarness()
+			h.withDraftCourse("course-1", "prof-1")
+			moduleID, unitID := seedStructure(t, h)
+			h.access.allow = false
+
+			if err := call(h, moduleID, unitID); !errors.Is(err, domain.ErrForbidden) {
+				t.Fatalf("error = %v, want ErrForbidden", err)
+			}
+		})
+	}
+}
+
+// A service built without its access checker must deny, not serve. Failing open
+// here would hand out course content to anyone the moment someone forgets a
+// dependency.
+func TestListingsDenyWhenNoAccessCheckerIsWired(t *testing.T) {
+	courses := newFakeCourseRepo()
+	courses.put(&domain.Course{ID: "course-1", AuthorID: "prof-1", Status: domain.CourseStatusPublished})
+	svc := structure.NewService(structure.Deps{
+		Courses: courses, Modules: newFakeModuleRepo(), Units: newFakeUnitRepo(), Resources: newFakeResourceRepo(),
+	}, nil)
+
+	_, err := svc.ListModules(context.Background(), structure.Viewer{ID: "anyone"}, "course-1")
+	if !errors.Is(err, domain.ErrForbidden) {
+		t.Fatalf("error = %v, want ErrForbidden", err)
 	}
 }

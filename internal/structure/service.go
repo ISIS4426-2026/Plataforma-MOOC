@@ -14,12 +14,31 @@ import (
 	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/domain"
 )
 
+// ContentAccess decides whether a viewer may read a course's content. It is
+// implemented by enrollment.Service, and declared here so this package does not
+// depend on it: the rule belongs to enrollment, the enforcement belongs here.
+type ContentAccess interface {
+	CanRead(ctx context.Context, viewerID string, role domain.Role, course *domain.Course) (bool, error)
+}
+
 // Deps are the ports the service depends on.
 type Deps struct {
 	Courses   domain.CourseRepository
 	Modules   domain.ModuleRepository
 	Units     domain.UnitRepository
 	Resources domain.ResourceRepository
+
+	// Access gates the read side. A nil Access denies every read rather than
+	// allowing one: a service wired without its access check should fail
+	// visibly, not serve course content to anyone who asks.
+	Access ContentAccess
+}
+
+// Viewer is who is asking to read course content. The zero value is an
+// anonymous request, which never passes the check.
+type Viewer struct {
+	ID   string
+	Role domain.Role
 }
 
 // Actor is who is performing an authoring action, and from where -- the same
@@ -62,7 +81,10 @@ func (s *Service) CreateModule(ctx context.Context, actor Actor, courseID, title
 	return module, nil
 }
 
-func (s *Service) ListModules(ctx context.Context, courseID string) ([]*domain.Module, error) {
+func (s *Service) ListModules(ctx context.Context, viewer Viewer, courseID string) ([]*domain.Module, error) {
+	if err := s.authorizeRead(ctx, viewer, courseID); err != nil {
+		return nil, err
+	}
 	return s.deps.Modules.ListByCourse(ctx, courseID)
 }
 
@@ -117,7 +139,14 @@ func (s *Service) CreateUnit(ctx context.Context, actor Actor, moduleID, title s
 	return unit, nil
 }
 
-func (s *Service) ListUnits(ctx context.Context, moduleID string) ([]*domain.Unit, error) {
+func (s *Service) ListUnits(ctx context.Context, viewer Viewer, moduleID string) ([]*domain.Unit, error) {
+	courseID, err := s.courseIDForModule(ctx, moduleID)
+	if err != nil {
+		return nil, err
+	}
+	if err := s.authorizeRead(ctx, viewer, courseID); err != nil {
+		return nil, err
+	}
 	return s.deps.Units.ListByModule(ctx, moduleID)
 }
 
@@ -148,6 +177,37 @@ func (s *Service) DeleteUnit(ctx context.Context, actor Actor, unitID string) er
 
 	entry := newEntry(actor, domain.AuditActionUnitDeleted, "unit:"+unitID)
 	return s.deps.Units.Delete(ctx, unitID, entry)
+}
+
+// courseIDForModule is the read-side counterpart of courseIDForUnit.
+func (s *Service) courseIDForModule(ctx context.Context, moduleID string) (string, error) {
+	module, err := s.deps.Modules.GetByID(ctx, moduleID)
+	if err != nil {
+		return "", err
+	}
+	return module.CourseID, nil
+}
+
+// authorizeRead is the read-side gate (issue #111). Writing is guarded by
+// authorizeOnCourse, which asks about ownership; reading asks a different
+// question -- may this person see the content at all -- and the answer depends
+// on their enrollment, which is why it is delegated.
+func (s *Service) authorizeRead(ctx context.Context, viewer Viewer, courseID string) error {
+	if s.deps.Access == nil {
+		return fmt.Errorf("structure service has no access checker wired: %w", domain.ErrForbidden)
+	}
+	course, err := s.deps.Courses.GetByID(ctx, courseID)
+	if err != nil {
+		return err
+	}
+	allowed, err := s.deps.Access.CanRead(ctx, viewer.ID, viewer.Role, course)
+	if err != nil {
+		return err
+	}
+	if !allowed {
+		return domain.ErrForbidden
+	}
+	return nil
 }
 
 func (s *Service) courseIDForUnit(ctx context.Context, unitID string) (string, error) {
@@ -206,7 +266,14 @@ func (s *Service) CreateResource(ctx context.Context, actor Actor, unitID string
 	return resource, nil
 }
 
-func (s *Service) ListResources(ctx context.Context, unitID string) ([]*domain.Resource, error) {
+func (s *Service) ListResources(ctx context.Context, viewer Viewer, unitID string) ([]*domain.Resource, error) {
+	courseID, err := s.courseIDForUnit(ctx, unitID)
+	if err != nil {
+		return nil, err
+	}
+	if err := s.authorizeRead(ctx, viewer, courseID); err != nil {
+		return nil, err
+	}
 	return s.deps.Resources.ListByUnit(ctx, unitID)
 }
 

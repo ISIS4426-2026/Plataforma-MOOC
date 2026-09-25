@@ -104,7 +104,11 @@ func (h *StructureHandler) CreateModule(w http.ResponseWriter, r *http.Request) 
 
 // ListModules handles GET /api/v1/courses/{courseID}/modules.
 func (h *StructureHandler) ListModules(w http.ResponseWriter, r *http.Request) {
-	modules, err := h.service.ListModules(r.Context(), r.PathValue("courseID"))
+	viewer, ok := h.viewer(w, r)
+	if !ok {
+		return
+	}
+	modules, err := h.service.ListModules(r.Context(), viewer, r.PathValue("courseID"))
 	if err != nil {
 		h.respondStructureError(w, r, err)
 		return
@@ -179,7 +183,11 @@ func (h *StructureHandler) CreateUnit(w http.ResponseWriter, r *http.Request) {
 
 // ListUnits handles GET /api/v1/modules/{moduleID}/units.
 func (h *StructureHandler) ListUnits(w http.ResponseWriter, r *http.Request) {
-	units, err := h.service.ListUnits(r.Context(), r.PathValue("moduleID"))
+	viewer, ok := h.viewer(w, r)
+	if !ok {
+		return
+	}
+	units, err := h.service.ListUnits(r.Context(), viewer, r.PathValue("moduleID"))
 	if err != nil {
 		h.respondStructureError(w, r, err)
 		return
@@ -277,7 +285,11 @@ func (h *StructureHandler) CreateResource(w http.ResponseWriter, r *http.Request
 
 // ListResources handles GET /api/v1/units/{unitID}/resources.
 func (h *StructureHandler) ListResources(w http.ResponseWriter, r *http.Request) {
-	resources, err := h.service.ListResources(r.Context(), r.PathValue("unitID"))
+	viewer, ok := h.viewer(w, r)
+	if !ok {
+		return
+	}
+	resources, err := h.service.ListResources(r.Context(), viewer, r.PathValue("unitID"))
 	if err != nil {
 		h.respondStructureError(w, r, err)
 		return
@@ -327,6 +339,18 @@ func (h *StructureHandler) DeleteResource(w http.ResponseWriter, r *http.Request
 
 // actor mirrors CourseHandler.actor; not shared because the two build values
 // of different package-local Actor types.
+// viewer is who is reading. The listing routes run behind requireAuth, so an
+// unauthenticated request never reaches a handler; this returning false is the
+// defence-in-depth case, not the normal one.
+func (h *StructureHandler) viewer(w http.ResponseWriter, r *http.Request) (structure.Viewer, bool) {
+	user, ok := UserFromContext(r.Context())
+	if !ok {
+		RespondWithError(w, http.StatusUnauthorized, "unauthorized", "Se requiere autenticación.", nil)
+		return structure.Viewer{}, false
+	}
+	return structure.Viewer{ID: user.ID, Role: user.Role}, true
+}
+
 func (h *StructureHandler) actor(w http.ResponseWriter, r *http.Request) (structure.Actor, bool) {
 	user, ok := UserFromContext(r.Context())
 	if !ok {
