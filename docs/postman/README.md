@@ -1,10 +1,11 @@
-# Colecciones de Postman — Identidad (#24), Administración (#25), Autoría de Cursos (#26) y Multimedia (#109)
+# Colecciones de Postman — Identidad (#24), Administración (#25), Autoría de Cursos (#26), Inscripciones (#111) y Multimedia (#109)
 
 Este documento describe la suite completa de pruebas automatizadas en **Postman / Newman** para los subsistemas de:
 1. **Identidad, Autenticación y Control de Acceso** (Issue #24).
 2. **Operaciones de Administración y Protección de Roles** (Issue #25).
 3. **Autoría de Cursos, Jerarquía, Inmutabilidad y Publicación** (Issue #26).
-4. **Carga Directa al Almacenamiento de Objetos, Confirmación e Idempotencia** (Issue #109).
+4. **Inscripción, Retiro, Reinscripción y Control de Acceso al Contenido** (Issue #111).
+5. **Carga Directa al Almacenamiento de Objetos, Confirmación e Idempotencia** (Issue #109).
 
 La suite cumple estrictamente con los criterios de evaluación de la **Sección 9**, los flujos críticos de la **Sección 10.2** del pliego de condiciones y los estándares de diseño y seguridad de [`PROJECT_KEY_ASPECTS.md`](../../PROJECT_KEY_ASPECTS.md).
 
@@ -19,12 +20,13 @@ La carpeta `docs/postman/` contiene los siguientes artefactos:
 | [`collection_api.postman_collection.json`](./collection_api.postman_collection.json) | Colección v2.1 de Postman para **Identidad y Seguridad** (Issue #24) con 44 peticiones organizadas secuencialmente, pre-request scripts y 110 aserciones automatizadas. |
 | [`collection_admin.postman_collection.json`](./collection_admin.postman_collection.json) | Colección v2.1 de Postman para **Administración** (Issue #25) con 23 peticiones organizadas secuencialmente, tests de RBAC, casos borde de último administrador y 46 aserciones automatizadas. |
 | [`collection_authoring.postman_collection.json`](./collection_authoring.postman_collection.json) | Colección v2.1 de Postman para **Autoría de Cursos** (Issue #26) con 30 peticiones organizadas secuencialmente, ciclo de vida completo de borrador a publicado, validación exhaustiva de publicación, inmutabilidad, reordenamiento con preservación de `stable_id` y 60 aserciones automatizadas. |
+| [`collection_enrollments.postman_collection.json`](./collection_enrollments.postman_collection.json) | Colección v2.1 de Postman para **Inscripciones** (Issue #111) con 20 peticiones encadenadas que recorren el estado de una misma inscripción —desde antes de existir hasta después de volver—, control de acceso al contenido y 35 aserciones automatizadas. |
 | [`collection_media.postman_collection.json`](./collection_media.postman_collection.json) | Colección v2.1 de Postman para **Multimedia** (Issue #109) con 25 peticiones organizadas secuencialmente, flujo de carga directa al bucket sin pasar por la API, confirmación idempotente, validación de extensión, MIME y tamaño, control de acceso e inmutabilidad, y 43 aserciones automatizadas. |
 | [`mooc_local.postman_environment.json`](./mooc_local.postman_environment.json) | Entorno parametrizado para ejecuciones desde Postman Desktop en la máquina host (`http://localhost:8080` y `http://localhost:8025`). |
 | [`mooc_docker.postman_environment.json`](./mooc_docker.postman_environment.json) | Entorno parametrizado para ejecuciones desatendidas en la red de Docker Compose (`http://api:8080` y `http://mailpit:8025`). |
 | [`README.md`](./README.md) | Documentación técnica integral, matrices de peticiones/aserciones y guía de ejecución. |
 
-**Total de la suite**: **122 peticiones HTTP** y **259 aserciones automatizadas** con **0 fallos**.
+**Total de la suite**: **142 peticiones HTTP** y **294 aserciones automatizadas** con **0 fallos**.
 
 ---
 
@@ -225,6 +227,13 @@ make test-postman
 ```bash
 make test-postman-authoring
 ```
+
+#### Ejecutar individualmente la suite de Inscripciones (#111):
+```bash
+make test-postman-enrollments
+```
+
+**Resultado esperado:** 20 peticiones, 35 aserciones, 0 fallos.
 
 #### Ejecutar individualmente la suite de Multimedia (#109):
 ```bash

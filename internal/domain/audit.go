@@ -77,6 +77,13 @@ const (
 	AuditActionResourceUpdated   AuditAction = "resource.updated"
 	AuditActionResourceDeleted   AuditAction = "resource.deleted"
 
+	// Enrollment. Reactivated is distinct from Created on purpose: the spec
+	// treats re-enrollment as its own event, and a trail that cannot tell a
+	// first enrollment from a return cannot answer how many students came back.
+	AuditActionEnrollmentCreated     AuditAction = "enrollment.created"
+	AuditActionEnrollmentWithdrawn   AuditAction = "enrollment.withdrawn"
+	AuditActionEnrollmentReactivated AuditAction = "enrollment.reactivated"
+
 	// Media pipeline. MediaAttached is an authoring act by a person: an upload
 	// was confirmed against the bucket and handed to the queue. MediaProcessed
 	// is the worker reporting the outcome, so its entries carry no actor.

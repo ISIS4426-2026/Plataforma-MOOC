@@ -13,6 +13,7 @@ import (
 	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/cache"
 	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/config"
 	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/course"
+	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/enrollment"
 	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/http"
 	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/mailer"
 	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/media"
@@ -138,11 +139,19 @@ func run(logger *slog.Logger) error {
 		Resources: resourceRepo,
 	}, logger)
 
+	// Enrollment owns the read-side access rule, and structure enforces it, so
+	// it is built first and handed over.
+	enrollmentService := enrollment.NewService(enrollment.Deps{
+		Courses:     courseRepo,
+		Enrollments: postgres.NewEnrollmentRepository(db),
+	}, logger)
+
 	structureService := structure.NewService(structure.Deps{
 		Courses:   courseRepo,
 		Modules:   moduleRepo,
 		Units:     unitRepo,
 		Resources: resourceRepo,
+		Access:    enrollmentService,
 	}, logger)
 
 	// Object storage and the queue client the media service needs. The backend
@@ -187,6 +196,7 @@ func run(logger *slog.Logger) error {
 		Course:           courseService,
 		Structure:        structureService,
 		Media:            mediaService,
+		Enrollment:       enrollmentService,
 		Audit:            postgres.NewAuditRepository(db),
 		RateLimiter:      cache.NewRateLimiter(redisClient),
 		IdempotencyStore: cache.NewIdempotencyStore(redisClient),

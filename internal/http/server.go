@@ -12,6 +12,7 @@ import (
 	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/config"
 	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/course"
 	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/domain"
+	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/enrollment"
 	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/http/handler"
 	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/http/middleware"
 	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/media"
@@ -53,6 +54,7 @@ type Deps struct {
 	Course           *course.Service
 	Structure        *structure.Service
 	Media            *media.Service
+	Enrollment       *enrollment.Service
 	Audit            domain.AuditRepository
 	RateLimiter      domain.RateLimiter
 	IdempotencyStore domain.IdempotencyStore
@@ -91,6 +93,7 @@ func NewServer(cfg *config.Config, deps Deps, logger *slog.Logger) *Server {
 	structureHandler := handler.NewStructureHandler(deps.Structure, logger)
 	auditHandler := handler.NewAuditHandler(deps.Audit, logger)
 	mediaHandler := handler.NewMediaHandler(deps.Media, logger)
+	enrollmentHandler := handler.NewEnrollmentHandler(deps.Enrollment, logger)
 
 	// requireAuth guards the endpoints that act on behalf of a signed-in user.
 	// It is applied per route rather than globally so the public endpoints stay
@@ -218,21 +221,21 @@ func NewServer(cfg *config.Config, deps Deps, logger *slog.Logger) *Server {
 	// under its parent's path (a module's units, a unit's resources);
 	// writes to an existing item address it directly by id, since by then
 	// its place in the hierarchy is already fixed.
-	mux.HandleFunc("GET /api/v1/courses/{courseID}/modules", structureHandler.ListModules)
+	mux.Handle("GET /api/v1/courses/{courseID}/modules", requireAuth(http.HandlerFunc(structureHandler.ListModules)))
 	mux.Handle("POST /api/v1/courses/{courseID}/modules",
 		requireAuthor(idempotent(http.HandlerFunc(structureHandler.CreateModule)).ServeHTTP))
 	mux.Handle("PUT /api/v1/modules/{moduleID}",
 		requireAuthor(idempotent(http.HandlerFunc(structureHandler.UpdateModule)).ServeHTTP))
 	mux.Handle("DELETE /api/v1/modules/{moduleID}", requireAuthor(structureHandler.DeleteModule))
 
-	mux.HandleFunc("GET /api/v1/modules/{moduleID}/units", structureHandler.ListUnits)
+	mux.Handle("GET /api/v1/modules/{moduleID}/units", requireAuth(http.HandlerFunc(structureHandler.ListUnits)))
 	mux.Handle("POST /api/v1/modules/{moduleID}/units",
 		requireAuthor(idempotent(http.HandlerFunc(structureHandler.CreateUnit)).ServeHTTP))
 	mux.Handle("PUT /api/v1/units/{unitID}",
 		requireAuthor(idempotent(http.HandlerFunc(structureHandler.UpdateUnit)).ServeHTTP))
 	mux.Handle("DELETE /api/v1/units/{unitID}", requireAuthor(structureHandler.DeleteUnit))
 
-	mux.HandleFunc("GET /api/v1/units/{unitID}/resources", structureHandler.ListResources)
+	mux.Handle("GET /api/v1/units/{unitID}/resources", requireAuth(http.HandlerFunc(structureHandler.ListResources)))
 	mux.Handle("POST /api/v1/units/{unitID}/resources",
 		requireAuthor(idempotent(http.HandlerFunc(structureHandler.CreateResource)).ServeHTTP))
 	mux.Handle("PUT /api/v1/resources/{resourceID}",
@@ -250,6 +253,26 @@ func NewServer(cfg *config.Config, deps Deps, logger *slog.Logger) *Server {
 		requireAuthor(idempotent(http.HandlerFunc(mediaHandler.ConfirmUpload)).ServeHTTP))
 	mux.Handle("GET /api/v1/media/resources/{resourceID}/download-url",
 		requireAuthor(mediaHandler.DownloadURL))
+
+	// Enrollment (issue #111). Enrolling and withdrawing act on the caller's own
+	// enrollment, so they need a session but no particular role. Both carry
+	// Idempotency-Key like the other writes, even though the service is already
+	// idempotent -- a retried enrollment should replay its recorded answer
+	// rather than re-run and re-audit.
+	mux.Handle("POST /api/v1/courses/{courseID}/enrollments",
+		requireAuth(idempotent(http.HandlerFunc(enrollmentHandler.Enroll))))
+	mux.Handle("DELETE /api/v1/courses/{courseID}/enrollments",
+		requireAuth(idempotent(http.HandlerFunc(enrollmentHandler.Withdraw))))
+	mux.Handle("GET /api/v1/courses/{courseID}/enrollments/me",
+		requireAuth(http.HandlerFunc(enrollmentHandler.Status)))
+	mux.Handle("GET /api/v1/me/enrollments",
+		requireAuth(http.HandlerFunc(enrollmentHandler.Mine)))
+
+	// The roster is the author's view of who is taking their course, so it is
+	// restricted to professors and administrators and checked again by owner in
+	// the service.
+	mux.Handle("GET /api/v1/courses/{courseID}/enrollments",
+		requireAuthor(enrollmentHandler.Roster))
 
 	// Read side of the audit trail (issue #18): administrators only, no
 	// Idempotency-Key since it is a GET with no side effect to replay.
