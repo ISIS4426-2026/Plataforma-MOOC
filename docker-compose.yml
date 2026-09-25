@@ -131,8 +131,10 @@ services:
   minio:
     image: bitnamilegacy/minio:2025.7.23-debian-12-r5
     ports:
+      # Solo la API S3. MinIO retiró la consola web del servidor comunitario, así
+      # que publicar 9001 solo produce un ERR_EMPTY_RESPONSE en el navegador.
+      # Para inspeccionar el bucket: docker compose exec minio mc ls ...
       - "${MINIO_PORT:-9000}:9000"
-      - "${MINIO_CONSOLE_PORT:-9001}:9001"
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}

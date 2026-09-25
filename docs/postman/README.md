@@ -1,9 +1,10 @@
-# Colecciones de Postman — Identidad (#24), Administración (#25) y Autoría de Cursos (#26)
+# Colecciones de Postman — Identidad (#24), Administración (#25), Autoría de Cursos (#26) y Multimedia (#109)
 
 Este documento describe la suite completa de pruebas automatizadas en **Postman / Newman** para los subsistemas de:
 1. **Identidad, Autenticación y Control de Acceso** (Issue #24).
 2. **Operaciones de Administración y Protección de Roles** (Issue #25).
 3. **Autoría de Cursos, Jerarquía, Inmutabilidad y Publicación** (Issue #26).
+4. **Carga Directa al Almacenamiento de Objetos, Confirmación e Idempotencia** (Issue #109).
 
 La suite cumple estrictamente con los criterios de evaluación de la **Sección 9**, los flujos críticos de la **Sección 10.2** del pliego de condiciones y los estándares de diseño y seguridad de [`PROJECT_KEY_ASPECTS.md`](../../PROJECT_KEY_ASPECTS.md).
 
@@ -18,11 +19,12 @@ La carpeta `docs/postman/` contiene los siguientes artefactos:
 | [`collection_api.postman_collection.json`](./collection_api.postman_collection.json) | Colección v2.1 de Postman para **Identidad y Seguridad** (Issue #24) con 44 peticiones organizadas secuencialmente, pre-request scripts y 110 aserciones automatizadas. |
 | [`collection_admin.postman_collection.json`](./collection_admin.postman_collection.json) | Colección v2.1 de Postman para **Administración** (Issue #25) con 23 peticiones organizadas secuencialmente, tests de RBAC, casos borde de último administrador y 46 aserciones automatizadas. |
 | [`collection_authoring.postman_collection.json`](./collection_authoring.postman_collection.json) | Colección v2.1 de Postman para **Autoría de Cursos** (Issue #26) con 30 peticiones organizadas secuencialmente, ciclo de vida completo de borrador a publicado, validación exhaustiva de publicación, inmutabilidad, reordenamiento con preservación de `stable_id` y 60 aserciones automatizadas. |
+| [`collection_media.postman_collection.json`](./collection_media.postman_collection.json) | Colección v2.1 de Postman para **Multimedia** (Issue #109) con 25 peticiones organizadas secuencialmente, flujo de carga directa al bucket sin pasar por la API, confirmación idempotente, validación de extensión, MIME y tamaño, control de acceso e inmutabilidad, y 43 aserciones automatizadas. |
 | [`mooc_local.postman_environment.json`](./mooc_local.postman_environment.json) | Entorno parametrizado para ejecuciones desde Postman Desktop en la máquina host (`http://localhost:8080` y `http://localhost:8025`). |
 | [`mooc_docker.postman_environment.json`](./mooc_docker.postman_environment.json) | Entorno parametrizado para ejecuciones desatendidas en la red de Docker Compose (`http://api:8080` y `http://mailpit:8025`). |
 | [`README.md`](./README.md) | Documentación técnica integral, matrices de peticiones/aserciones y guía de ejecución. |
 
-**Total de la suite**: **97 peticiones HTTP** y **216 aserciones automatizadas** con **0 fallos**.
+**Total de la suite**: **122 peticiones HTTP** y **259 aserciones automatizadas** con **0 fallos**.
 
 ---
 
@@ -142,6 +144,29 @@ Una vez que un curso alcanza el estado `published`, cualquier intento de mutaci�
 
 ---
 
+### 3.4 Subsistema de Multimedia y Carga Directa (#109)
+
+#### A. Autorización y Emisión de la URL Prefirmada (Criterio 1)
+1. **Clave derivada del `stable_id`:** `POST /api/v1/media/presigned-url` devuelve una clave bajo `originals/<stable_id>/`. El nombre de archivo del cliente **no sobrevive**: solo su extensión, y solo si está en la lista permitida. La colección afirma que la clave no contiene el nombre original.
+2. **Contrato de transferencia explícito:** la respuesta declara `method`, `content_type` y `expires_at`. El content-type va dentro de la firma, así que una discrepancia haría fallar la carga en el bucket.
+3. **Vigencia de 24 horas**, como pide el enunciado del proyecto para la carga reanudable.
+
+#### B. Transferencia Directa y Confirmación (Criterio 2)
+1. **El archivo no pasa por la API:** la petición `PUT` va contra el bucket con la URL firmada. Es lo que mantiene un video de 500 MB fuera de la memoria del servidor web.
+2. **La confirmación verifica, no confía:** `POST /api/v1/media/uploads/{resourceId}/complete` consulta el objeto en el bucket antes de registrarlo. Una carga que nunca llegó devuelve `409 upload_not_found`.
+3. **Idempotencia del reintento:** una segunda confirmación de la misma carga devuelve `202`, no `500`, y no encola un segundo trabajo. La clave de idempotencia se deriva del `object_key`, así que una resubida genuina —que aterriza en una clave nueva— sí genera trabajo.
+
+#### C. Validación de Entrada (Criterio 3)
+Cuatro rechazos con `400 invalid_input`: extensión fuera de la lista permitida, MIME declarado que no corresponde a la extensión, tamaño por encima de `MEDIA_MAX_UPLOAD_MB`, y un recurso de tipo `text`, que no admite archivo.
+
+#### D. Control de Acceso e Inmutabilidad (Criterio 4)
+1. Un `estudiante` solicitando URL de carga -> `403 forbidden`.
+2. Una petición anónima -> `401 unauthorized`.
+3. Confirmar una clave emitida para **otro** recurso -> `400 invalid_input`; la clave lleva el `stable_id` dentro.
+4. **Inmutabilidad:** firmar y cargar sobre un recurso de curso publicado se permite —firmar no escribe nada—, pero confirmar devuelve `409 course_immutable` y el recurso publicado queda intacto.
+
+---
+
 ## 4. Matriz de Peticiones y Aserciones Automáticas
 
 ### 4.1 Colección de Autoría de Cursos (#26) — 30 Peticiones / 60 Aserciones
@@ -201,6 +226,13 @@ make test-postman
 make test-postman-authoring
 ```
 
+#### Ejecutar individualmente la suite de Multimedia (#109):
+```bash
+make test-postman-media
+```
+
+**Resultado esperado:** 25 peticiones, 43 aserciones, 0 fallos.
+
 O directamente mediante Docker con la imagen oficial de Newman:
 ```bash
 docker run --rm --network plataforma-mooc_default   -v "$(pwd)/docs/postman":/etc/newman postman/newman:alpine   run /etc/newman/collection_authoring.postman_collection.json   -e /etc/newman/mooc_docker.postman_environment.json
@@ -223,6 +255,19 @@ docker run --rm --network plataforma-mooc_default   -v "$(pwd)/docs/postman":/et
 4. Abre la colección **Plataforma MOOC - Autoria de Cursos** y entra a la pestaña **Runner** (o haz clic en el botón *Run Collection*).
 5. Selecciona ejecutar todas las peticiones en el orden original.
 6. Haz clic en **Run Plataforma MOOC - Autoria de Cursos**.
+
+> **Para la colección de Multimedia (#109), cualquier cliente que corra en tu máquina** —Postman
+> Desktop, o newman instalado por npm— necesita un paso extra: agregar `127.0.0.1 minio` al
+> archivo de hosts.
+>
+> Lo que decide no es qué cliente uses, sino desde dónde corre. La URL prefirmada lleva el host
+> dentro de la firma, así que `minio:9000` también tiene que resolver en el anfitrión; el puerto ya
+> está publicado. Sin esa entrada pasan 18 de las 25 peticiones y fallan las 7 que dependen de la
+> transferencia directa. **No hace falta cuando newman corre dentro de la red de Compose**, como en
+> la Opción 1: allí el nombre ya resuelve.
+>
+> Paso a paso, verificación y solución de problemas en
+> [`docs/entrega2/EJECUCION_PRUEBAS_MULTIMEDIA.md`](../entrega2/EJECUCION_PRUEBAS_MULTIMEDIA.md).
 
 ---
 

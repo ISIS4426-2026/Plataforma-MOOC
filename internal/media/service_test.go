@@ -420,3 +420,56 @@ func TestConfirmUploadReportsARealEnqueueFailure(t *testing.T) {
 		t.Fatal("expected a real enqueue failure to be reported")
 	}
 }
+
+// Regression: confirming again after the worker has finished must not send the
+// resource back to pending. The queue would drop the re-enqueued job as a
+// duplicate, leaving the resource stuck at pending forever while its
+// derivatives sit in the bucket, produced and unreachable.
+func TestConfirmUploadDoesNotUndoAFinishedUpload(t *testing.T) {
+	h := newHarness(t, domain.ResourceTypeVideo)
+	key := uploadAndLand(t, h, "clase.mp4", "video/mp4", 2<<20)
+
+	if _, err := h.svc.ConfirmUpload(context.Background(), author(), resourceID, key); err != nil {
+		t.Fatalf("first ConfirmUpload: %v", err)
+	}
+
+	// The worker finishes and reports the outcome.
+	h.resources.resource.ProcessingStatus = string(domain.ResourceProcessingCompleted)
+
+	updated, err := h.svc.ConfirmUpload(context.Background(), author(), resourceID, key)
+	if err != nil {
+		t.Fatalf("re-confirming a finished upload: %v", err)
+	}
+	if got, want := updated.ProcessingStatus, string(domain.ResourceProcessingCompleted); got != want {
+		t.Errorf("processing status = %q, want %q -- the resource was sent back to pending", got, want)
+	}
+	if got := len(h.resources.attachedKeys()); got != 1 {
+		t.Errorf("AttachMedia ran %d times, want 1; the second confirmation rewrote the resource", got)
+	}
+	if got := len(h.queue.enqueued()); got != 1 {
+		t.Errorf("%d jobs enqueued, want 1", got)
+	}
+}
+
+// A genuine re-upload lands on a new key and must still be processed, even
+// though the resource is currently completed.
+func TestConfirmUploadAcceptsANewObjectOnACompletedResource(t *testing.T) {
+	h := newHarness(t, domain.ResourceTypeVideo)
+	first := uploadAndLand(t, h, "clase.mp4", "video/mp4", 2<<20)
+	if _, err := h.svc.ConfirmUpload(context.Background(), author(), resourceID, first); err != nil {
+		t.Fatalf("first ConfirmUpload: %v", err)
+	}
+	h.resources.resource.ProcessingStatus = string(domain.ResourceProcessingCompleted)
+
+	second := uploadAndLand(t, h, "clase.mp4", "video/mp4", 2<<20)
+	updated, err := h.svc.ConfirmUpload(context.Background(), author(), resourceID, second)
+	if err != nil {
+		t.Fatalf("confirming a re-upload: %v", err)
+	}
+	if got, want := updated.ProcessingStatus, string(domain.ResourceProcessingPending); got != want {
+		t.Errorf("processing status = %q, want %q", got, want)
+	}
+	if got := len(h.queue.enqueued()); got != 2 {
+		t.Errorf("%d jobs enqueued, want 2", got)
+	}
+}

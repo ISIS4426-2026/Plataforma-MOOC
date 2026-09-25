@@ -31,3 +31,7 @@ vendor/
 
 # Docker volumes / local data
 local_data/
+
+# Video de prueba generado con ffmpeg para el flujo de multimedia
+clase.mp4
+clase_test.mp4
