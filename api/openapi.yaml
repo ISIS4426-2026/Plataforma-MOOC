@@ -2676,7 +2676,7 @@ components:
         withdrawn_at:
           type: string
           format: date-time
-          description: Absent while the enrollment is active; kept as the record of the last withdrawal.
+          description: Present only while the enrollment is withdrawn; cleared when the student returns. The history of withdrawals lives in the audit trail.
 
     EnrollmentListResponse:
       type: object

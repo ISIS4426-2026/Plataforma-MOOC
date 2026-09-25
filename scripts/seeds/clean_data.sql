@@ -14,6 +14,7 @@ TRUNCATE TABLE
     units,
     modules,
     courses,
+    enrollments,
     student_progress,
     progress_events,
     badges,

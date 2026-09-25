@@ -61,7 +61,8 @@ func (r *EnrollmentRepository) Enroll(ctx context.Context, studentID, courseStab
 		VALUES ($1, $2, 'active')
 		ON CONFLICT (student_id, course_stable_id) DO UPDATE
 		SET status       = 'active',
-		    enrolled_at  = CASE WHEN enrollments.status = 'withdrawn' THEN NOW() ELSE enrollments.enrolled_at END
+		    enrolled_at  = CASE WHEN enrollments.status = 'withdrawn' THEN NOW() ELSE enrollments.enrolled_at END,
+		    withdrawn_at = NULL
 		RETURNING ` + enrollmentColumns
 
 	enrollment, err := scanEnrollment(tx.QueryRowContext(ctx, query, studentID, courseStableID))

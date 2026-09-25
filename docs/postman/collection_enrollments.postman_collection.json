@@ -100,7 +100,52 @@
       "response": []
     },
     {
-      "name": "03 El catalogo es publico",
+      "name": "03 Preparacion: dejar al estudiante sin inscripcion activa",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"queda sin inscripcion activa (200 al retirarse, 404 si nunca se inscribio)\", function () {",
+              "    pm.expect([200, 404]).to.include(pm.response.code);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{studentToken}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/courses/{{seededPublishedCourseId}}/enrollments",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "courses",
+            "{{seededPublishedCourseId}}",
+            "enrollments"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "04 El catalogo es publico",
       "event": [
         {
           "listen": "test",
@@ -131,7 +176,7 @@
       "response": []
     },
     {
-      "name": "04 Rechazo: contenido sin sesion",
+      "name": "05 Rechazo: contenido sin sesion",
       "event": [
         {
           "listen": "test",
@@ -167,7 +212,7 @@
       "response": []
     },
     {
-      "name": "05 Rechazo: estudiante NO inscrito pide el contenido",
+      "name": "06 Rechazo: estudiante NO inscrito pide el contenido",
       "event": [
         {
           "listen": "test",
@@ -209,7 +254,7 @@
       "response": []
     },
     {
-      "name": "06 Antes de inscribirse, el estado dice que no",
+      "name": "07 Antes de inscribirse, el estado dice que no",
       "event": [
         {
           "listen": "test",
@@ -217,11 +262,11 @@
             "type": "text/javascript",
             "exec": [
               "pm.test(\"responde 200\", function () { pm.response.to.have.status(200); });",
-              "// Nunca haberse inscrito es una respuesta, no un 404.",
-              "pm.test(\"enrolled es false y no hay inscripcion\", function () {",
-              "    var d = pm.response.json();",
-              "    pm.expect(d.enrolled).to.eql(false);",
-              "    pm.expect(d.enrollment).to.be.undefined;",
+              "// No estar inscrito es una respuesta, no un 404. Se afirma sobre enrolled y",
+              "// no sobre la ausencia del registro: tras una corrida previa el registro",
+              "// existe, retirado, y eso tambien es \"no inscrito\".",
+              "pm.test(\"enrolled es false\", function () {",
+              "    pm.expect(pm.response.json().enrolled).to.eql(false);",
               "});"
             ]
           }
@@ -254,7 +299,7 @@
       "response": []
     },
     {
-      "name": "07 Rechazo: inscripcion en un curso en BORRADOR",
+      "name": "08 Rechazo: inscripcion en un curso en BORRADOR",
       "event": [
         {
           "listen": "test",
@@ -301,7 +346,7 @@
       "response": []
     },
     {
-      "name": "08 Rechazo: el autor no se inscribe en su propio curso",
+      "name": "09 Rechazo: el autor no se inscribe en su propio curso",
       "event": [
         {
           "listen": "test",
@@ -348,22 +393,25 @@
       "response": []
     },
     {
-      "name": "09 Inscripcion en el curso publicado",
+      "name": "10 Inscripcion en el curso publicado",
       "event": [
         {
           "listen": "test",
           "script": {
             "type": "text/javascript",
             "exec": [
+              "// La captura va fuera de pm.test a proposito: dentro, una asercion que",
+              "// falle corta el callback y la variable nunca se fija, convirtiendo un",
+              "// fallo en seis en cascada.",
+              "pm.environment.set(\"enrollmentId\", pm.response.json().id);",
               "pm.test(\"responde 200\", function () { pm.response.to.have.status(200); });",
               "// 200 y no 201: la operacion es idempotente, y decir \"creado\" cuando no se",
               "// creo nada seria una mentira sobre la que el cliente puede actuar.",
-              "pm.test(\"queda activa y sobre el stable_id del curso\", function () {",
+              "pm.test(\"queda activa, sobre el stable_id del curso y sin fecha de retiro\", function () {",
               "    var d = pm.response.json();",
               "    pm.expect(d.status).to.eql(\"active\");",
               "    pm.expect(d.course_stable_id).to.be.a(\"string\").that.is.not.empty;",
               "    pm.expect(d.withdrawn_at).to.be.undefined;",
-              "    pm.environment.set(\"enrollmentId\", d.id);",
               "});"
             ]
           }
@@ -400,7 +448,7 @@
       "response": []
     },
     {
-      "name": "10 Ahora si ve el contenido",
+      "name": "11 Ahora si ve el contenido",
       "event": [
         {
           "listen": "test",
@@ -441,7 +489,7 @@
       "response": []
     },
     {
-      "name": "11 Inscribirse de nuevo devuelve la misma inscripcion",
+      "name": "12 Inscribirse de nuevo devuelve la misma inscripcion",
       "event": [
         {
           "listen": "test",
@@ -491,7 +539,7 @@
       "response": []
     },
     {
-      "name": "12 Aparece en mis inscripciones",
+      "name": "13 Aparece en mis inscripciones",
       "event": [
         {
           "listen": "test",
@@ -532,7 +580,7 @@
       "response": []
     },
     {
-      "name": "13 Retiro del curso",
+      "name": "14 Retiro del curso",
       "event": [
         {
           "listen": "test",
@@ -582,7 +630,7 @@
       "response": []
     },
     {
-      "name": "14 Tras retirarse, pierde el acceso",
+      "name": "15 Tras retirarse, pierde el acceso",
       "event": [
         {
           "listen": "test",
@@ -624,7 +672,7 @@
       "response": []
     },
     {
-      "name": "15 Reinscripcion: vuelve la misma, no una nueva",
+      "name": "16 Reinscripcion: vuelve la misma, no una nueva",
       "event": [
         {
           "listen": "test",
@@ -675,7 +723,7 @@
       "response": []
     },
     {
-      "name": "16 El acceso vuelve con ella",
+      "name": "17 El acceso vuelve con ella",
       "event": [
         {
           "listen": "test",
@@ -713,7 +761,7 @@
       "response": []
     },
     {
-      "name": "17 El estado ahora dice que si",
+      "name": "18 El estado ahora dice que si",
       "event": [
         {
           "listen": "test",
@@ -757,7 +805,7 @@
       "response": []
     },
     {
-      "name": "18 El autor lee su propio BORRADOR sin inscribirse",
+      "name": "19 El autor lee su propio BORRADOR sin inscribirse",
       "event": [
         {
           "listen": "test",
@@ -797,7 +845,7 @@
       "response": []
     },
     {
-      "name": "19 El autor lee la lista de inscritos",
+      "name": "20 El autor lee la lista de inscritos",
       "event": [
         {
           "listen": "test",
@@ -839,7 +887,7 @@
       "response": []
     },
     {
-      "name": "20 Rechazo: un estudiante no lee la lista de inscritos",
+      "name": "21 Rechazo: un estudiante no lee la lista de inscritos",
       "event": [
         {
           "listen": "test",

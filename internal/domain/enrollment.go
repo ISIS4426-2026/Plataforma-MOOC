@@ -31,9 +31,11 @@ type Enrollment struct {
 	Status         EnrollmentStatus `json:"status"`
 	EnrolledAt     time.Time        `json:"enrolled_at"`
 
-	// WithdrawnAt is nil while the enrollment is active. It survives a
-	// re-enrollment as the record of the last withdrawal, since the history is
-	// the point of not deleting the row.
+	// WithdrawnAt is set only while the enrollment is withdrawn, and cleared
+	// when the student returns: an active enrollment carrying a withdrawal date
+	// is a row that contradicts itself, and a client would have to know which
+	// field wins. The history of comings and goings lives in audit_logs, which
+	// is the append-only trail built for it.
 	WithdrawnAt *time.Time `json:"withdrawn_at,omitempty"`
 }
 
