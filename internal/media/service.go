@@ -215,6 +215,23 @@ func (s *Service) ConfirmUpload(ctx context.Context, actor Actor, resourceID, ob
 		return nil, fmt.Errorf("object key %q was not issued for this resource: %w", objectKey, domain.ErrInvalidInput)
 	}
 
+	// This upload has already been through the pipeline. Re-attaching would send
+	// processing_status back to pending, and the queue would then drop the job as
+	// a duplicate -- leaving the resource stuck at pending forever with its
+	// derivatives sitting in the bucket, produced and unreachable.
+	//
+	// So a repeated confirmation of a finished upload answers with the resource
+	// as it stands. A re-upload is a different object key and does not take this
+	// path.
+	if resource.ProcessingStatus == string(domain.ResourceProcessingCompleted) &&
+		resource.ObjectKey == objectKey {
+		s.logger.InfoContext(ctx, "upload already confirmed and processed; nothing to do",
+			slog.String("resource_id", resourceID),
+			slog.String("object_key", objectKey),
+		)
+		return resource, nil
+	}
+
 	info, err := s.deps.Storage.StatObject(ctx, objectKey)
 	if err != nil {
 		return nil, err

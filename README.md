@@ -122,7 +122,6 @@ La solución atiende un objetivo de escala inicial de hasta **50.000 usuarios re
 │   ├── demo_segments_1_and_2.sh
 │   ├── generate_e2e_report.go
 │   ├── init-db.sh             # Aplicador automático de migraciones en PostgreSQL
-│   ├── init-minio.sh          # Aprovisionador del bucket S3 en MinIO
 │   ├── lint.sh                # Linter estático (Go fmt, vet, golangci-lint, Spectral)
 │   ├── run_e2e_identity_authoring.sh # Ejecutor E2E y cosechador de evidencias
 │   ├── seed.sh                # Script CLI de carga, limpieza y status de datos
@@ -183,7 +182,7 @@ docker compose ps
 | **API REST (Salud)** | [`http://localhost:8080/api/v1/health`](http://localhost:8080/api/v1/health) | Endpoint de verificación rápida del backend. |
 | **Documentación Swagger UI** | [`http://localhost:8080/api/docs`](http://localhost:8080/api/docs) | Interfaz visual interactiva OpenAPI 3.1 lista para "Try it out". |
 | **Mailpit (Web UI)** | [`http://localhost:8025`](http://localhost:8025) | Bandeja de entrada visual de correos transaccionales. |
-| **MinIO Console (S3)** | [`http://localhost:9001`](http://localhost:9001) | Consola de almacenamiento de objetos (`minioadmin` / `minioadmin`). |
+| **MinIO (API S3)** | `http://localhost:9000` | Almacenamiento de objetos (`minioadmin` / `minioadmin`). **Sin consola web:** MinIO la retiró del servidor comunitario. Para inspeccionar el bucket use `mc` — ver [`docs/entrega2/EJECUCION_PRUEBAS_MULTIMEDIA.md`](docs/entrega2/EJECUCION_PRUEBAS_MULTIMEDIA.md). |
 | **Métricas API** | [`http://localhost:8080/api/v1/metrics`](http://localhost:8080/api/v1/metrics) | Métricas en formato estándar Prometheus. |
 | **Métricas Worker** | [`http://localhost:9090/metrics`](http://localhost:9090/metrics) | Métricas Prometheus del procesador de tareas asíncronas. |
 | **PostgreSQL 16** | `localhost:5432` | BD: `moocdb`, Usuario: `moocuser`, Contraseña: `moocpassword`. |
@@ -234,7 +233,7 @@ make seed-status
 
 ## Importación y Ejecución de Colecciones Postman
 
-La suite de pruebas Postman / Newman evalúa exhaustivamente el sistema con **97 casos de prueba únicos, 112 peticiones ejecutadas y 216 aserciones automáticas**.
+La suite de pruebas Postman / Newman evalúa exhaustivamente el sistema con **122 casos de prueba únicos, 137 peticiones ejecutadas y 259 aserciones automáticas**.
 
 ### Opción A: Ejecución Automatizada desatendida con Newman en Docker (Recomendado)
 **No requiere instalar nada en su máquina.** Se ejecuta dentro de la red de Docker Compose con un solo comando:
@@ -247,6 +246,7 @@ También puede correr colecciones de manera individual:
 * `make test-postman-identity`: Identidad, verificación en Mailpit, login, logout, revocación de sesión, rate limiting (110 aserciones).
 * `make test-postman-admin`: Administración de roles, suspensión, protección del último admin, auditoría (46 aserciones).
 * `make test-postman-authoring`: Jerarquía de 4 niveles, ETag, validación multi-error 422, inmutabilidad 409, stable_id (60 aserciones).
+* `make test-postman-media`: Carga directa al almacenamiento de objetos, confirmación idempotente, URLs firmadas, inmutabilidad 409 (43 aserciones).
 
 ### Opción B: Ejecución en Postman Desktop
 1. Abra **Postman Desktop**.
@@ -254,10 +254,19 @@ También puede correr colecciones de manera individual:
    * `collection_api.postman_collection.json`
    * `collection_admin.postman_collection.json`
    * `collection_authoring.postman_collection.json`
+   * `collection_media.postman_collection.json`
    * `mooc_local.postman_environment.json`
 3. En la esquina superior derecha, seleccione el entorno: **`Plataforma MOOC - Local`**.
 4. Abra una colección, entre a la pestaña **Runner** y presione **Run Collection**.
 5. Las aserciones pasarán automáticamente al 100% (los scripts extraen tokens y correos de Mailpit sin intervención manual).
+
+> **Para la colección de multimedia, cualquier cliente que corra en su máquina** —Postman Desktop, o
+> newman instalado por npm— necesita `127.0.0.1 minio` en su archivo de hosts. Lo que decide es desde
+> dónde corre, no qué cliente use: la URL prefirmada lleva el host dentro de la firma, así que
+> `minio:9000` también tiene que resolver en el anfitrión; el puerto ya está publicado. Sin esa entrada
+> fallan las 7 peticiones de carga directa y el resto pasa. No hace falta cuando newman corre dentro de
+> la red de Compose, como en la Opción A.
+> Paso a paso en [`docs/entrega2/EJECUCION_PRUEBAS_MULTIMEDIA.md`](docs/entrega2/EJECUCION_PRUEBAS_MULTIMEDIA.md).
 
 *(Consulte los detalles en [`docs/postman/README.md`](docs/postman/README.md))*.
 

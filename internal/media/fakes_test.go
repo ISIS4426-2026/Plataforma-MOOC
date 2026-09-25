@@ -2,6 +2,8 @@ package media
 
 import (
 	"context"
+	"io"
+	"strings"
 	"sync"
 	"time"
 
@@ -125,6 +127,29 @@ func (f *fakeStorage) StatObject(_ context.Context, objectKey string) (*domain.O
 		return nil, domain.ErrObjectNotFound
 	}
 	return info, nil
+}
+
+// GetObject and PutObject exist so the double still satisfies the storage port;
+// the media service never calls them -- pulling bytes through the API is what
+// the direct-upload design avoids, and only the worker does it.
+func (f *fakeStorage) GetObject(_ context.Context, objectKey string) (io.ReadCloser, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	if _, ok := f.objects[objectKey]; !ok {
+		return nil, domain.ErrObjectNotFound
+	}
+	return io.NopCloser(strings.NewReader("")), nil
+}
+
+func (f *fakeStorage) PutObject(_ context.Context, objectKey, contentType string, r io.Reader, _ int64) error {
+	n, err := io.Copy(io.Discard, r)
+	if err != nil {
+		return err
+	}
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.objects[objectKey] = &domain.ObjectInfo{Key: objectKey, SizeBytes: n, ContentType: contentType}
+	return nil
 }
 
 func (f *fakeStorage) DeleteObject(_ context.Context, objectKey string) error {

@@ -48,7 +48,7 @@ test-stage:
 test-postman-identity:
 	@echo "==> Running Identity Postman/Newman automated integration tests..."
 	@docker compose exec -T redis redis-cli EVAL "for _,k in ipairs(redis.call('keys','ratelimit:*')) do redis.call('del',k) end" 0 >/dev/null 2>&1 || true
-	@docker run --rm --network plataforma-mooc_default \
+	@MSYS_NO_PATHCONV=1 docker run --rm --network plataforma-mooc_default \
 		-v "$$(pwd)/docs/postman":/etc/newman postman/newman:alpine \
 		run /etc/newman/collection_api.postman_collection.json \
 		-e /etc/newman/mooc_docker.postman_environment.json
@@ -56,7 +56,7 @@ test-postman-identity:
 test-postman-admin:
 	@echo "==> Running Administration Postman/Newman automated integration tests..."
 	@docker compose exec -T redis redis-cli EVAL "for _,k in ipairs(redis.call('keys','ratelimit:*')) do redis.call('del',k) end" 0 >/dev/null 2>&1 || true
-	@docker run --rm --network plataforma-mooc_default \
+	@MSYS_NO_PATHCONV=1 docker run --rm --network plataforma-mooc_default \
 		-v "$$(pwd)/docs/postman":/etc/newman postman/newman:alpine \
 		run /etc/newman/collection_admin.postman_collection.json \
 		-e /etc/newman/mooc_docker.postman_environment.json
@@ -64,7 +64,7 @@ test-postman-admin:
 test-postman-authoring:
 	@echo "==> Running Course Authoring Postman/Newman automated integration tests..."
 	@docker compose exec -T redis redis-cli EVAL "for _,k in ipairs(redis.call('keys','ratelimit:*')) do redis.call('del',k) end" 0 >/dev/null 2>&1 || true
-	@docker run --rm --network plataforma-mooc_default \
+	@MSYS_NO_PATHCONV=1 docker run --rm --network plataforma-mooc_default \
 		-v "$$(pwd)/docs/postman":/etc/newman postman/newman:alpine \
 		run /etc/newman/collection_authoring.postman_collection.json \
 		-e /etc/newman/mooc_docker.postman_environment.json
@@ -72,7 +72,10 @@ test-postman-authoring:
 test-postman-media:
 	@echo "==> Running Media direct-upload Postman/Newman automated integration tests..."
 	@docker compose exec -T redis redis-cli EVAL "for _,k in ipairs(redis.call('keys','ratelimit:*')) do redis.call('del',k) end" 0 >/dev/null 2>&1 || true
-	@docker run --rm --network plataforma-mooc_default 		-v "$$(pwd)/docs/postman":/etc/newman postman/newman:alpine 		run /etc/newman/collection_media.postman_collection.json 		-e /etc/newman/mooc_docker.postman_environment.json
+	@MSYS_NO_PATHCONV=1 docker run --rm --network plataforma-mooc_default \
+		-v "$$(pwd)/docs/postman":/etc/newman postman/newman:alpine \
+		run /etc/newman/collection_media.postman_collection.json \
+		-e /etc/newman/mooc_docker.postman_environment.json
 
 test-postman: test-postman-identity test-postman-admin test-postman-authoring test-postman-media
 

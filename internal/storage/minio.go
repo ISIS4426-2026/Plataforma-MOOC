@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"strings"
@@ -103,6 +104,39 @@ func (m *MinIO) DeleteObject(ctx context.Context, objectKey string) error {
 	err := m.client.RemoveObject(ctx, m.bucket, objectKey, minio.RemoveObjectOptions{})
 	if err != nil && minio.ToErrorResponse(err).StatusCode != http.StatusNotFound {
 		return fmt.Errorf("storage: delete object: %w", err)
+	}
+	return nil
+}
+
+// GetObject opens the stored object for reading.
+func (m *MinIO) GetObject(ctx context.Context, objectKey string) (io.ReadCloser, error) {
+	obj, err := m.client.GetObject(ctx, m.bucket, objectKey, minio.GetObjectOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("storage: open object %q: %w", objectKey, err)
+	}
+	// GetObject is lazy: it does not talk to the server until the first read, so
+	// a missing key would otherwise surface as a read error much later, far from
+	// the call that caused it.
+	if _, err := obj.Stat(); err != nil {
+		_ = obj.Close()
+		if minio.ToErrorResponse(err).StatusCode == http.StatusNotFound {
+			return nil, domain.ErrObjectNotFound
+		}
+		return nil, fmt.Errorf("storage: open object %q: %w", objectKey, err)
+	}
+	return obj, nil
+}
+
+// PutObject writes an object the worker produced.
+func (m *MinIO) PutObject(ctx context.Context, objectKey, contentType string, r io.Reader, size int64) error {
+	if size <= 0 {
+		size = -1 // minio-go streams with an unknown length when size is negative.
+	}
+	_, err := m.client.PutObject(ctx, m.bucket, objectKey, r, size, minio.PutObjectOptions{
+		ContentType: contentType,
+	})
+	if err != nil {
+		return fmt.Errorf("storage: write object %q: %w", objectKey, err)
 	}
 	return nil
 }

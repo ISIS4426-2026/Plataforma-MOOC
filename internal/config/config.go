@@ -30,6 +30,20 @@ type Config struct {
 	MediaDownloadURLTTL time.Duration
 	MediaMaxUploadBytes int64
 
+	// Worker-side media processing. MediaWorkDir is where originals are
+	// downloaded and renditions written; empty uses the system temp directory.
+	// MediaMaxOriginalBytes is the worker's own guard, separate from the upload
+	// cap, because a signed upload cannot be size-limited at the bucket and the
+	// VM only has 30 GiB of disk.
+	MediaWorkDir          string
+	MediaMaxOriginalBytes int64
+
+	// MediaHLSLadder declares the renditions to produce, as
+	// `height:videoKbps:audioKbps` entries. It is configurable because a
+	// capacity run has to be able to change the encoding cost and say exactly
+	// what it changed; empty uses the default ladder.
+	MediaHLSLadder string
+
 	// MetricsPort is where the worker (which otherwise has no HTTP server)
 	// exposes GET /metrics for scraping (issue #21). The API mounts its own
 	// metrics endpoint on Port instead, alongside the rest of /api/v1.
@@ -105,6 +119,10 @@ func Load() *Config {
 		MediaUploadURLTTL:   getEnvDuration("MEDIA_UPLOAD_URL_TTL", 24*time.Hour),
 		MediaDownloadURLTTL: getEnvDuration("MEDIA_DOWNLOAD_URL_TTL", time.Hour),
 		MediaMaxUploadBytes: int64(getEnvInt("MEDIA_MAX_UPLOAD_MB", 1024)) << 20,
+
+		MediaWorkDir:          getEnv("MEDIA_WORK_DIR", ""),
+		MediaMaxOriginalBytes: int64(getEnvInt("MEDIA_MAX_ORIGINAL_MB", 2048)) << 20,
+		MediaHLSLadder:        getEnv("MEDIA_HLS_LADDER", ""),
 
 		MetricsPort: getEnv("METRICS_PORT", "9090"),
 
