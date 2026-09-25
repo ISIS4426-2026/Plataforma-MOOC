@@ -1,0 +1,884 @@
+{
+  "info": {
+    "name": "Plataforma MOOC - Inscripciones",
+    "description": "Inscripcion, retiro y reinscripcion, y el control de acceso al contenido del curso que se deriva de ellas (issue #111).\n\nEl orden importa: las peticiones encadenan el estado de una misma inscripcion, desde antes de existir hasta despues de volver.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "01 Login como Estudiante",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"responde 200\", function () { pm.response.to.have.status(200); });",
+              "pm.environment.set(\"studentToken\", pm.response.json().token);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"{{studentEmail}}\",\n  \"password\": \"{{studentPassword}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/auth/login",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "auth",
+            "login"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "02 Login como Profesor (autor del curso publicado)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"responde 200\", function () { pm.response.to.have.status(200); });",
+              "pm.environment.set(\"professorToken\", pm.response.json().token);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"{{professorEmail}}\",\n  \"password\": \"{{professorPassword}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/auth/login",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "auth",
+            "login"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "03 El catalogo es publico",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Navegar el catalogo no exige sesion; lo que exige inscripcion es el contenido.",
+              "pm.test(\"responde 200 sin autenticacion\", function () { pm.response.to.have.status(200); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/courses",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "courses"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "04 Rechazo: contenido sin sesion",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Sin sesion no hay a quien comprobarle la inscripcion.",
+              "pm.test(\"responde 401\", function () { pm.response.to.have.status(401); });",
+              "pm.test(\"con codigo de error unauthorized\", function () {",
+              "    pm.expect(pm.response.json().code).to.eql(\"unauthorized\");",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/courses/{{seededPublishedCourseId}}/modules",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "courses",
+            "{{seededPublishedCourseId}}",
+            "modules"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "05 Rechazo: estudiante NO inscrito pide el contenido",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Criterio de aceptacion: un no inscrito recibe 403.",
+              "pm.test(\"responde 403\", function () { pm.response.to.have.status(403); });",
+              "pm.test(\"con codigo de error forbidden\", function () {",
+              "    pm.expect(pm.response.json().code).to.eql(\"forbidden\");",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{studentToken}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/courses/{{seededPublishedCourseId}}/modules",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "courses",
+            "{{seededPublishedCourseId}}",
+            "modules"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "06 Antes de inscribirse, el estado dice que no",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"responde 200\", function () { pm.response.to.have.status(200); });",
+              "// Nunca haberse inscrito es una respuesta, no un 404.",
+              "pm.test(\"enrolled es false y no hay inscripcion\", function () {",
+              "    var d = pm.response.json();",
+              "    pm.expect(d.enrolled).to.eql(false);",
+              "    pm.expect(d.enrollment).to.be.undefined;",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{studentToken}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/courses/{{seededPublishedCourseId}}/enrollments/me",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "courses",
+            "{{seededPublishedCourseId}}",
+            "enrollments",
+            "me"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "07 Rechazo: inscripcion en un curso en BORRADOR",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Criterio de aceptacion: solo un curso publicado acepta inscripciones.",
+              "pm.test(\"responde 409\", function () { pm.response.to.have.status(409); });",
+              "pm.test(\"con codigo de error course_not_published\", function () {",
+              "    pm.expect(pm.response.json().code).to.eql(\"course_not_published\");",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{studentToken}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/courses/{{seededDraftCourseId}}/enrollments",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "courses",
+            "{{seededDraftCourseId}}",
+            "enrollments"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "08 Rechazo: el autor no se inscribe en su propio curso",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// El autor ya lee su curso por serlo; inscribirlo lo pondria en su propia lista.",
+              "pm.test(\"responde 403\", function () { pm.response.to.have.status(403); });",
+              "pm.test(\"con codigo de error forbidden\", function () {",
+              "    pm.expect(pm.response.json().code).to.eql(\"forbidden\");",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{professorToken}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/courses/{{seededPublishedCourseId}}/enrollments",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "courses",
+            "{{seededPublishedCourseId}}",
+            "enrollments"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "09 Inscripcion en el curso publicado",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"responde 200\", function () { pm.response.to.have.status(200); });",
+              "// 200 y no 201: la operacion es idempotente, y decir \"creado\" cuando no se",
+              "// creo nada seria una mentira sobre la que el cliente puede actuar.",
+              "pm.test(\"queda activa y sobre el stable_id del curso\", function () {",
+              "    var d = pm.response.json();",
+              "    pm.expect(d.status).to.eql(\"active\");",
+              "    pm.expect(d.course_stable_id).to.be.a(\"string\").that.is.not.empty;",
+              "    pm.expect(d.withdrawn_at).to.be.undefined;",
+              "    pm.environment.set(\"enrollmentId\", d.id);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{studentToken}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/courses/{{seededPublishedCourseId}}/enrollments",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "courses",
+            "{{seededPublishedCourseId}}",
+            "enrollments"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "10 Ahora si ve el contenido",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"responde 200\", function () { pm.response.to.have.status(200); });",
+              "pm.test(\"devuelve los modulos del curso\", function () {",
+              "    pm.expect(pm.response.json().items).to.be.an(\"array\");",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{studentToken}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/courses/{{seededPublishedCourseId}}/modules",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "courses",
+            "{{seededPublishedCourseId}}",
+            "modules"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "11 Inscribirse de nuevo devuelve la misma inscripcion",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"responde 200\", function () { pm.response.to.have.status(200); });",
+              "// Criterio de aceptacion: una inscripcion duplicada devuelve la existente,",
+              "// no crea una segunda ni falla.",
+              "pm.test(\"es la misma inscripcion, no una nueva\", function () {",
+              "    var d = pm.response.json();",
+              "    pm.expect(d.id).to.eql(pm.environment.get(\"enrollmentId\"));",
+              "    pm.expect(d.status).to.eql(\"active\");",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{studentToken}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/courses/{{seededPublishedCourseId}}/enrollments",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "courses",
+            "{{seededPublishedCourseId}}",
+            "enrollments"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "12 Aparece en mis inscripciones",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"responde 200\", function () { pm.response.to.have.status(200); });",
+              "pm.test(\"contiene la inscripcion recien creada\", function () {",
+              "    var ids = pm.response.json().items.map(function (e) { return e.id; });",
+              "    pm.expect(ids).to.include(pm.environment.get(\"enrollmentId\"));",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{studentToken}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/me/enrollments",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "me",
+            "enrollments"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "13 Retiro del curso",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"responde 200\", function () { pm.response.to.have.status(200); });",
+              "// El registro se conserva: es lo que permite volver sin perder el progreso.",
+              "pm.test(\"queda retirada, con la fecha y el mismo id\", function () {",
+              "    var d = pm.response.json();",
+              "    pm.expect(d.status).to.eql(\"withdrawn\");",
+              "    pm.expect(d.withdrawn_at).to.be.a(\"string\").that.is.not.empty;",
+              "    pm.expect(d.id).to.eql(pm.environment.get(\"enrollmentId\"));",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{studentToken}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/courses/{{seededPublishedCourseId}}/enrollments",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "courses",
+            "{{seededPublishedCourseId}}",
+            "enrollments"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "14 Tras retirarse, pierde el acceso",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Retirarse tiene que cerrar la puerta, o seria cosmetico.",
+              "pm.test(\"responde 403\", function () { pm.response.to.have.status(403); });",
+              "pm.test(\"con codigo de error forbidden\", function () {",
+              "    pm.expect(pm.response.json().code).to.eql(\"forbidden\");",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{studentToken}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/courses/{{seededPublishedCourseId}}/modules",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "courses",
+            "{{seededPublishedCourseId}}",
+            "modules"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "15 Reinscripcion: vuelve la misma, no una nueva",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"responde 200\", function () { pm.response.to.have.status(200); });",
+              "// Seccion 5.1 del enunciado: reinscripcion conservando progreso. El progreso",
+              "// se llavea por (estudiante, course_stable_id), el mismo par que la inscripcion,",
+              "// asi que revivir la fila es lo que lo conserva.",
+              "pm.test(\"vuelve a activa reutilizando el registro\", function () {",
+              "    var d = pm.response.json();",
+              "    pm.expect(d.status).to.eql(\"active\");",
+              "    pm.expect(d.id).to.eql(pm.environment.get(\"enrollmentId\"));",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{studentToken}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/courses/{{seededPublishedCourseId}}/enrollments",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "courses",
+            "{{seededPublishedCourseId}}",
+            "enrollments"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "16 El acceso vuelve con ella",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"responde 200\", function () { pm.response.to.have.status(200); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{studentToken}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/courses/{{seededPublishedCourseId}}/modules",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "courses",
+            "{{seededPublishedCourseId}}",
+            "modules"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "17 El estado ahora dice que si",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"responde 200\", function () { pm.response.to.have.status(200); });",
+              "pm.test(\"enrolled es true y trae la inscripcion\", function () {",
+              "    var d = pm.response.json();",
+              "    pm.expect(d.enrolled).to.eql(true);",
+              "    pm.expect(d.enrollment.id).to.eql(pm.environment.get(\"enrollmentId\"));",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{studentToken}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/courses/{{seededPublishedCourseId}}/enrollments/me",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "courses",
+            "{{seededPublishedCourseId}}",
+            "enrollments",
+            "me"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "18 El autor lee su propio BORRADOR sin inscribirse",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"responde 200\", function () { pm.response.to.have.status(200); });",
+              "// La regresion que mas importaba no introducir: cerrar el contenido no puede",
+              "// dejar a un autor fuera de su propio curso sin publicar."
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{professorToken}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/courses/{{seededDraftCourseId}}/modules",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "courses",
+            "{{seededDraftCourseId}}",
+            "modules"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "19 El autor lee la lista de inscritos",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"responde 200\", function () { pm.response.to.have.status(200); });",
+              "pm.test(\"incluye al estudiante inscrito\", function () {",
+              "    var ids = pm.response.json().items.map(function (e) { return e.id; });",
+              "    pm.expect(ids).to.include(pm.environment.get(\"enrollmentId\"));",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{professorToken}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/courses/{{seededPublishedCourseId}}/enrollments",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "courses",
+            "{{seededPublishedCourseId}}",
+            "enrollments"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "20 Rechazo: un estudiante no lee la lista de inscritos",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// La lista identifica a quienes toman el curso; no es de dominio publico.",
+              "pm.test(\"responde 403\", function () { pm.response.to.have.status(403); });",
+              "pm.test(\"con codigo de error forbidden\", function () {",
+              "    pm.expect(pm.response.json().code).to.eql(\"forbidden\");",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{studentToken}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/courses/{{seededPublishedCourseId}}/enrollments",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "courses",
+            "{{seededPublishedCourseId}}",
+            "enrollments"
+          ]
+        }
+      },
+      "response": []
+    }
+  ]
+}

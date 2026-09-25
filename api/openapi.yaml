@@ -36,6 +36,8 @@ tags:
     description: Heartbeat tracking, dwell time, and server-validated course progress.
   - name: Badges
     description: Digital completion badges emission, retrieval, and public privacy-preserving verification.
+  - name: Enrollments
+    description: Enrolling, withdrawing and returning to a course, and the access it grants to its content.
   - name: Media
     description: Direct presigned S3 upload URLs and async media processing orchestration.
 
@@ -974,8 +976,13 @@ paths:
       tags:
         - Modules
       summary: List modules and resources of a course
-      description: Retrieve ordered structural modules, units, and resource metadata for a course.
+      description: >
+        Retrieve ordered structural modules for a course. Requires an active
+        enrollment; the course's author and administrators may read it without
+        one. The catalog endpoints stay public -- this is the content behind it.
       operationId: getCourseModules
+      security:
+        - bearerAuth: []
       parameters:
         - name: course_id
           in: path
@@ -1117,7 +1124,12 @@ paths:
       tags:
         - Modules
       summary: List units of a module
+      description: >
+        List a module's units, ordered by position. Requires an active enrollment;
+        the course's author and administrators may read it without one.
       operationId: listModuleUnits
+      security:
+        - bearerAuth: []
       parameters:
         - name: module_id
           in: path
@@ -1248,7 +1260,12 @@ paths:
       tags:
         - Modules
       summary: List resources of a unit
+      description: >
+        List a unit's resources, ordered by position. Requires an active enrollment;
+        the course's author and administrators may read it without one.
       operationId: listUnitResources
+      security:
+        - bearerAuth: []
       parameters:
         - name: unit_id
           in: path
@@ -1522,6 +1539,170 @@ paths:
                 $ref: '#/components/schemas/BadgeVerificationResponse'
         '404':
           $ref: '#/components/responses/404NotFound'
+
+  /courses/{course_id}/enrollments:
+    post:
+      tags:
+        - Enrollments
+      summary: Enrol the caller in a course
+      description: >
+        Signs the authenticated user up for a published course, which is what
+        grants them access to its content.
+
+        Idempotent, and answers 200 rather than 201 for that reason: enrolling
+        again returns the existing enrollment instead of creating a second one,
+        so reporting "created" would be a lie the client may act on. A student
+        who had withdrawn is reactivated, keeping the progress they had.
+      operationId: enrolInCourse
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: course_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '200':
+          description: The caller is enrolled.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EnrollmentResponse'
+        '401':
+          $ref: '#/components/responses/401Unauthorized'
+        '403':
+          description: An author cannot enrol in their own course.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          $ref: '#/components/responses/404NotFound'
+        '409':
+          description: The course is a draft or unpublished, so it accepts no enrollments.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    delete:
+      tags:
+        - Enrollments
+      summary: Withdraw the caller from a course
+      description: >
+        Marks the enrollment withdrawn and closes access to the content. The
+        record is kept and so is the student's progress, so re-enrolling later
+        resumes where they left off rather than starting over.
+
+        Allowed whatever the course's status: a student enrolled in a course
+        that was later unpublished must still be able to leave it.
+      operationId: withdrawFromCourse
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: course_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '200':
+          description: The enrollment is withdrawn.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EnrollmentResponse'
+        '401':
+          $ref: '#/components/responses/401Unauthorized'
+        '404':
+          description: The course does not exist, or the caller never enrolled in it.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    get:
+      tags:
+        - Enrollments
+      summary: List a course's roster
+      description: >
+        Who is taking the course, withdrawals included. Restricted to the
+        course's author and to administrators: it is a list of identified
+        students, which is nobody else's business.
+      operationId: listCourseEnrollments
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: course_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: The course's enrollments, most recent first.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EnrollmentListResponse'
+        '401':
+          $ref: '#/components/responses/401Unauthorized'
+        '403':
+          $ref: '#/components/responses/403Forbidden'
+        '404':
+          $ref: '#/components/responses/404NotFound'
+
+  /courses/{course_id}/enrollments/me:
+    get:
+      tags:
+        - Enrollments
+      summary: Report the caller's enrollment in a course
+      description: >
+        Answers whether the caller may currently reach the course's content.
+
+        A caller who never enrolled gets `enrolled: false` and no enrollment
+        object, not a 404: the course exists and the question has an answer.
+      operationId: getMyEnrollmentInCourse
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: course_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: The caller's standing with the course.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EnrollmentStatusResponse'
+        '401':
+          $ref: '#/components/responses/401Unauthorized'
+        '404':
+          $ref: '#/components/responses/404NotFound'
+
+  /me/enrollments:
+    get:
+      tags:
+        - Enrollments
+      summary: List the caller's enrollments
+      description: >
+        Every course the caller has enrolled in, withdrawals included, most
+        recent first. Withdrawn entries are kept so the history -- and the
+        progress behind it -- stays visible.
+      operationId: listMyEnrollments
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: The caller's enrollments.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EnrollmentListResponse'
+        '401':
+          $ref: '#/components/responses/401Unauthorized'
 
   /media/presigned-url:
     post:
@@ -2468,6 +2649,55 @@ components:
         revoked:
           type: boolean
           example: false
+
+    EnrollmentResponse:
+      type: object
+      required: [id, student_id, course_stable_id, status, enrolled_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+        student_id:
+          type: string
+          format: uuid
+        course_stable_id:
+          type: string
+          format: uuid
+          description: >
+            The course's stable id, not its row id. Enrollments key on it, like
+            progress and badges do, so a student keeps their place across a new
+            published version of the course.
+        status:
+          type: string
+          enum: [active, withdrawn]
+        enrolled_at:
+          type: string
+          format: date-time
+        withdrawn_at:
+          type: string
+          format: date-time
+          description: Absent while the enrollment is active; kept as the record of the last withdrawal.
+
+    EnrollmentListResponse:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/EnrollmentResponse'
+
+    EnrollmentStatusResponse:
+      type: object
+      required: [enrolled]
+      properties:
+        enrolled:
+          type: boolean
+          description: True only when an enrollment exists and is active.
+        enrollment:
+          allOf:
+            - $ref: '#/components/schemas/EnrollmentResponse'
+          description: Absent when the caller never enrolled.
 
     PresignedUrlRequest:
       type: object
