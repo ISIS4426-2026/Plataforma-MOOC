@@ -19,6 +19,7 @@ import (
 	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/media"
 	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/observability"
 	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/postgres"
+	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/progress"
 	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/storage"
 	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/structure"
 	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/worker"
@@ -141,9 +142,18 @@ func run(logger *slog.Logger) error {
 
 	// Enrollment owns the read-side access rule, and structure enforces it, so
 	// it is built first and handed over.
+	enrollmentRepo := postgres.NewEnrollmentRepository(db)
 	enrollmentService := enrollment.NewService(enrollment.Deps{
 		Courses:     courseRepo,
-		Enrollments: postgres.NewEnrollmentRepository(db),
+		Enrollments: enrollmentRepo,
+	}, logger)
+
+	// Progress requires an active enrollment to record anything, so it reads the
+	// same repository rather than keeping a second notion of who is enrolled.
+	progressService := progress.NewService(progress.Deps{
+		Progress:    postgres.NewProgressRepository(db),
+		Badges:      postgres.NewBadgeRepository(db),
+		Enrollments: enrollmentRepo,
 	}, logger)
 
 	structureService := structure.NewService(structure.Deps{
@@ -197,6 +207,7 @@ func run(logger *slog.Logger) error {
 		Structure:        structureService,
 		Media:            mediaService,
 		Enrollment:       enrollmentService,
+		Progress:         progressService,
 		Audit:            postgres.NewAuditRepository(db),
 		RateLimiter:      cache.NewRateLimiter(redisClient),
 		IdempotencyStore: cache.NewIdempotencyStore(redisClient),

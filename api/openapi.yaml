@@ -1436,10 +1436,24 @@ paths:
       tags:
         - Progress
       summary: Record consumption heartbeat
-      description: Record active student consumption time and progress heartbeat for server-side validation.
+      description: >
+        Records that the caller spent time on a resource, and optionally that they
+        finished it. Returns the recomputed progress for the whole course, because
+        learning where the student now stands is the point of sending a heartbeat.
+
+        Idempotent, and safe to retry. Progress is a set of completed resources
+        recomputed on every report, never a counter that is incremented, so the
+        same heartbeat arriving twice leaves the percentage unchanged. It carries
+        no Idempotency-Key for that reason: there is no double application to
+        guard against, and these arrive by the thousand under load.
+
+        Requires an active enrollment, which excludes the course's author and
+        administrators. They can read the course without enrolling, but crediting
+        them with progress would end up issuing a badge for a course to its own
+        author.
       operationId: sendProgressHeartbeat
-      parameters:
-        - $ref: '#/components/parameters/IdempotencyKey'
+      security:
+        - bearerAuth: []
       requestBody:
         required: true
         content:
@@ -1457,14 +1471,45 @@ paths:
           $ref: '#/components/responses/400BadRequest'
         '401':
           $ref: '#/components/responses/401Unauthorized'
+        '403':
+          description: The caller has no active enrollment in the course.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: No such resource.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: The course is a draft or unpublished, so no progress accrues in it.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
   /progress/courses/{course_id}:
     get:
       tags:
         - Progress
       summary: Get student progress for a course
-      description: Retrieve verified student progress percentage and completed resource stable IDs for a course.
+      description: >
+        How far the caller has got: which resources they have completed, how many
+        of the course's mandatory ones that is, and the percentage between them.
+
+        The counts cover only the resources that are both mandatory and visible.
+        An optional resource should not stand between a student and completing the
+        course, and a hidden one cannot be reached at all.
+
+        No enrollment is required. It is the caller's own record, so it reveals
+        nothing they are not entitled to, and a student who withdrew has every
+        reason to look at what they had done. A student who never reported anything
+        gets a progress of zero rather than a 404.
       operationId: getCourseProgress
+      security:
+        - bearerAuth: []
       parameters:
         - name: course_id
           in: path
@@ -1490,8 +1535,24 @@ paths:
       tags:
         - Badges
       summary: Retrieve earned digital badge
-      description: Get metadata for an earned digital badge including verification status. Supports conditional GET.
+      description: >
+        The badge as its own resource, for the student who earned it. Supports
+        conditional GET: the entity tag changes when the badge is revoked, so a
+        cached copy cannot outlive the credential it represents.
+
+        A session is required, unlike public verification. This response carries
+        the verification code -- the shareable half of the credential -- and
+        serving that to anyone who knows a badge id would make the id the
+        credential and undo the point of having an unguessable code.
+
+        A badge belonging to someone else answers 404, not 403. Answering
+        "forbidden" would confirm that the id names a real badge, and whoever
+        learned an id could then present the badge behind it as their own.
+        Administrators are the exception: the audit trail already records every
+        issuance, so withholding the badge itself would protect nothing.
       operationId: getBadgeById
+      security:
+        - bearerAuth: []
       parameters:
         - name: badge_id
           in: path
@@ -1513,15 +1574,36 @@ paths:
                 $ref: '#/components/schemas/BadgeResponse'
         '304':
           $ref: '#/components/responses/304NotModified'
+        '401':
+          $ref: '#/components/responses/401Unauthorized'
         '404':
-          $ref: '#/components/responses/404NotFound'
+          description: >
+            No such badge, or it belongs to another student. The two are
+            deliberately indistinguishable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
   /badges/verify/{verification_code}:
     get:
       tags:
         - Badges
       summary: Public privacy-preserving badge verification
-      description: Publicly verify digital badge authenticity without revealing student personal identity or email.
+      description: >
+        Confirms that a badge is genuine and says what it certifies. Public and
+        unauthenticated on purpose: a credential nobody can check without an
+        account is not verifiable, and the unguessable code in the path is what
+        limits the answer to whoever was handed the badge.
+
+        It reveals nothing about the student -- no name, no email, no identifiers.
+        A verifier learns that the code corresponds to a real, unrevoked badge for
+        a named course, issued on a given date; whoever handed them the code is the
+        one claiming to have earned it.
+
+        A revoked badge still resolves, reporting `valid: false`. Hiding it would
+        be indistinguishable from a forgery, which is the opposite of what
+        verification is for.
       operationId: verifyBadgePublic
       parameters:
         - name: verification_code
@@ -2571,64 +2653,185 @@ components:
     ProgressHeartbeatRequest:
       type: object
       required:
-        - course_id
-        - resource_stable_id
-        - dwell_time_seconds
+        - resource_id
       properties:
-        course_id:
+        resource_id:
           type: string
           format: uuid
-        resource_stable_id:
-          type: string
-          format: uuid
+          description: >
+            The resource row id, the way every other route addresses resources.
+
+            The course is derived from it rather than named alongside it: a client
+            that could name the course itself could claim progress on one it never
+            opened, and the server would have to check the two agreed anyway. The
+            row id also pins down which version of the course this is, which a
+            stable id cannot -- the same stable id appears in every version.
         dwell_time_seconds:
           type: integer
+          minimum: 0
+          maximum: 3600
+          default: 0
           example: 30
+          description: >
+            Seconds spent on the resource since the last heartbeat. Capped at one
+            hour per report: heartbeats are periodic, so any one of them covers
+            seconds or minutes, and the time is summed rather than recomputed from
+            anything the server observed.
+        completed:
+          type: boolean
+          default: false
+          description: >
+            Whether the student finished the resource. Time on its own is evidence
+            of activity, not of completion, so a heartbeat with this false records
+            the time and advances the percentage not at all.
 
     ProgressResponse:
       type: object
       required:
-        - course_id
+        - course_stable_id
         - percentage
         - completed_resource_stable_ids
+        - completed_count
+        - total_count
+        - is_approved
       properties:
-        course_id:
+        course_stable_id:
           type: string
           format: uuid
+          description: >
+            The stable id of the course, not the row id of one of its versions.
+            Progress keys on it, which is what makes it survive the publication of
+            a new version.
         percentage:
           type: number
           format: float
+          minimum: 0
+          maximum: 100
           example: 45.0
         completed_resource_stable_ids:
           type: array
+          description: >
+            Stable ids of the resources the student has completed. A set: recording
+            the same resource twice leaves it unchanged.
           items:
             type: string
             format: uuid
+        completed_count:
+          type: integer
+          example: 3
+          description: >
+            How many of the mandatory, visible resources of the course the student
+            has completed. Reported alongside the percentage so a client can show
+            "3 of 8" without inverting a rounded number.
+
+            It can be lower than the length of completed_resource_stable_ids: that
+            set survives course versions, so it may name a resource this version no
+            longer has, and such a leftover is deliberately not counted.
+        total_count:
+          type: integer
+          example: 8
+          description: >
+            The mandatory, visible resources of the course. Zero for a course with
+            no such resources, in which case the percentage is zero and no badge is
+            issued: a credential for an empty course certifies nothing.
+        is_approved:
+          type: boolean
+          description: >
+            True once every mandatory, visible resource is completed. Quizzes are
+            not part of this condition yet; when server-side grading lands, approval
+            gains a second term.
+        updated_at:
+          type: string
+          format: date-time
+          description: Absent until the first heartbeat of the student.
+        badge:
+          allOf:
+            - $ref: '#/components/schemas/EarnedBadge'
+          description: >
+            Present once the student has earned the badge of the course, on every
+            response and not only on the one that issued it, so a client that
+            retried does not have to infer its credential from a missing field.
+
+    EarnedBadge:
+      type: object
+      required:
+        - id
+        - verification_code
+        - verification_url
+        - issued_at
+        - revoked
+      description: >
+        The view a student has of a badge they earned, as it appears inside their
+        progress. Distinct from BadgeResponse, which is the standalone badge
+        resource.
+      properties:
+        id:
+          type: string
+          format: uuid
+        verification_code:
+          type: string
+          format: uuid
+          description: >
+            The public half of the credential: the value the student hands to
+            anyone who wants to check it.
+        verification_url:
+          type: string
+          format: uri
+          description: >
+            The address that resolves the code. Same value BadgeResponse carries,
+            so a client does not have to build it twice.
+        issued_at:
+          type: string
+          format: date-time
+        revoked:
+          type: boolean
 
     BadgeResponse:
       type: object
       required:
         - id
-        - course_id
+        - course_stable_id
         - issued_at
         - verification_code
         - verification_url
+        - revoked
+      description: >
+        A badge as its own resource. Carries no storage key: that names an object
+        the student has no business addressing.
       properties:
         id:
           type: string
           format: uuid
-        course_id:
+        course_stable_id:
           type: string
           format: uuid
+          description: >
+            The stable id of the course the badge certifies, not the row id of one
+            of its versions. A badge keys on it and so survives new versions.
         issued_at:
           type: string
           format: date-time
         verification_code:
           type: string
-          example: "a8f3d9b1c0e"
+          format: uuid
+          description: >
+            The public half of the credential: the value the student hands to
+            anyone who wants to check it.
         verification_url:
           type: string
-          example: "https://mooc-platform.example.com/badges/verify/a8f3d9b1c0e"
+          format: uri
+          example: "http://localhost:8080/api/v1/badges/verify/8f0c1e2a-3b4c-5d6e-7f80-91a2b3c4d5e6"
+          description: >
+            The address that resolves the code, built against the public origin of
+            the platform -- the same one activation and password-reset links are
+            built against. It points at the verification endpoint of the API,
+            because that is what exists and answers.
+
+            Empty when no public origin is configured: a link pointing at a host
+            nobody configured is worse than none, and the code alone still
+            verifies.
+        revoked:
+          type: boolean
 
     BadgeVerificationResponse:
       type: object
@@ -2636,13 +2839,25 @@ components:
         - valid
         - course_title
         - issued_at
+        - revoked
+      description: >
+        Everything public verification answers, and deliberately nothing else. No
+        field here identifies the student: that is what makes the endpoint safe to
+        leave unauthenticated.
       properties:
         valid:
           type: boolean
           example: true
+          description: >
+            Whether the badge still certifies anything. False for a revoked badge,
+            which resolves rather than disappearing.
         course_title:
           type: string
           example: "Introducción a Arquitectura Cloud"
+          description: >
+            The course as it is called now. A badge keys on the stable id of the
+            course and survives new versions, so the title a verifier should see is
+            the current one, not the one in force when the badge was issued.
         issued_at:
           type: string
           format: date-time

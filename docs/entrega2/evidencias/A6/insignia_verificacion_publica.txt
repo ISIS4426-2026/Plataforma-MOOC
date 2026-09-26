@@ -1,0 +1,43 @@
+Criterio de aceptacion 3 del issue #113, y el GET condicional de /badges/{badge_id}
+================================================================================
+
+El token de sesion se obtuvo antes y aqui aparece como <TOKEN>: ninguna
+credencial se escribe en la evidencia.
+
+1) La insignia como recurso propio, con ETag
+   GET /api/v1/badges/cf66d00b-124c-4f68-81d9-7598f785de7f   (con sesion del estudiante)
+
+{
+    "id": "cf66d00b-124c-4f68-81d9-7598f785de7f",
+    "course_stable_id": "e0000000-0000-0000-0000-000000000001",
+    "verification_code": "bb4018e5-4d8e-496a-b73b-86665920386c",
+    "verification_url": "http://localhost:8080/api/v1/badges/verify/bb4018e5-4d8e-496a-b73b-86665920386c",
+    "issued_at": "2026-09-26T00:21:22Z",
+    "revoked": false
+}
+
+   ETag: "57d43d0d0380a672f6c3d8e835e9282b440e705f20ac0115ea69b2032e8e34d3"
+
+2) GET condicional: el ETag que coincide ahorra el cuerpo
+   If-None-Match con el ETag correcto  -> HTTP 304
+   If-None-Match con un ETag distinto  -> HTTP 200
+   Sin If-None-Match                   -> HTTP 200
+
+3) La insignia de otro no se distingue de una que no existe
+   Sin sesion                          -> HTTP 401
+   Con sesion de otro usuario          -> HTTP 404
+   Un id inexistente                   -> HTTP 404
+
+4) Verificacion publica: el enlace de la insignia, SIN cabecera Authorization
+   http://localhost:8080/api/v1/badges/verify/bb4018e5-4d8e-496a-b73b-86665920386c
+
+{
+    "course_title": "Arquitectura Cloud y Sistemas Distribuidos",
+    "issued_at": "2026-09-26T00:21:22Z",
+    "revoked": false,
+    "valid": true
+}
+
+   No aparece ningun dato del estudiante: ni nombre, ni correo, ni ids.
+
+5) Un codigo que no existe            -> HTTP 404

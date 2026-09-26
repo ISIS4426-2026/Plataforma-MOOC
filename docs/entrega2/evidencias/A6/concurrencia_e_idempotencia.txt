@@ -1,0 +1,34 @@
+Criterios de aceptacion 1 y 2 del issue #113
+===========================================
+
+1) Latidos repetidos no inflan el avance.
+2) N latidos concurrentes dejan un estado consistente.
+
+--- Con el candado FOR UPDATE en su lugar (estado entregado) ---
+
+=== RUN   TestProgressRepositoryRepeatedHeartbeatsDoNotInflate
+--- PASS: TestProgressRepositoryRepeatedHeartbeatsDoNotInflate (0.94s)
+=== RUN   TestProgressRepositoryConcurrentHeartbeatsAreConsistent
+--- PASS: TestProgressRepositoryConcurrentHeartbeatsAreConsistent (0.99s)
+=== RUN   TestProgressRepositoryCountsOnlyMandatoryVisibleResources
+--- PASS: TestProgressRepositoryCountsOnlyMandatoryVisibleResources (0.78s)
+=== RUN   TestProgressRepositoryStaleCompletedIDDoesNotCount
+--- PASS: TestProgressRepositoryStaleCompletedIDDoesNotCount (0.79s)
+PASS
+ok  	github.com/ISIS4426-2026/Plataforma-MOOC/internal/postgres	4.575s
+
+--- Quitando deliberadamente el FOR UPDATE, para mostrar que la prueba
+    de concurrencia detecta la perdida de actualizaciones y no pasa por
+    casualidad. Este cambio NO esta en el codigo entregado. ---
+
+--- FAIL: TestProgressRepositoryConcurrentHeartbeatsAreConsistent (1.13s)
+    progress_repository_test.go:224: CompletedCount = 3 after 8 concurrent heartbeats, want 8
+    progress_repository_test.go:228: PercentCompleted = 37.5, want 100
+    progress_repository_test.go:231: CompletedResources has 3 entries, want 8
+FAIL
+FAIL	github.com/ISIS4426-2026/Plataforma-MOOC/internal/postgres	1.896s
+FAIL
+
+--- Candado restaurado; la prueba vuelve a pasar ---
+
+ok  	github.com/ISIS4426-2026/Plataforma-MOOC/internal/postgres	1.437s

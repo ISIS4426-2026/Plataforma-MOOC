@@ -1,0 +1,1606 @@
+{
+  "info": {
+    "name": "Plataforma MOOC - Progreso e Insignias",
+    "description": "Latidos de progreso, el porcentaje que se deriva de ellos y la insignia verificable que emite completar un curso (issue #113).\n\nEl orden importa: las peticiones encadenan el avance de un mismo estudiante en un mismo curso, desde antes de inscribirse hasta despues de volver.\n\nLa coleccion es re-ejecutable, y a proposito NO reinicia el progreso: la seccion 5.1 del enunciado pide que sobreviva al retiro y a la reinscripcion, asi que lo que se comprueba son invariantes que se cumplen en cualquier corrida, no un 0% de partida.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "01 Login como Estudiante",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"responde 200\", function () { pm.response.to.have.status(200); });",
+              "pm.environment.set(\"studentToken\", pm.response.json().token);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"{{studentEmail}}\",\n  \"password\": \"{{studentPassword}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/auth/login",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "auth",
+            "login"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "02 Login como Profesor (autor del curso publicado)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"responde 200\", function () { pm.response.to.have.status(200); });",
+              "pm.environment.set(\"professorToken\", pm.response.json().token);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"{{professorEmail}}\",\n  \"password\": \"{{professorPassword}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/auth/login",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "auth",
+            "login"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "03 Login como Administrador",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"responde 200\", function () { pm.response.to.have.status(200); });",
+              "pm.environment.set(\"adminToken\", pm.response.json().token);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"{{adminEmail}}\",\n  \"password\": \"{{adminPassword}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/auth/login",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "auth",
+            "login"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "04 Preparacion: dejar al estudiante sin inscripcion activa",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"queda sin inscripcion activa (200 al retirarse, 404 si nunca se inscribio)\", function () {",
+              "    pm.expect([200, 404]).to.include(pm.response.code);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{studentToken}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/courses/{{seededPublishedCourseId}}/enrollments",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "courses",
+            "{{seededPublishedCourseId}}",
+            "enrollments"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "05 Recorrer el curso y recolectar sus recursos obligatorios",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "var base = pm.environment.get(\"baseUrl\");",
+              "var auth = { Authorization: \"Bearer \" + pm.environment.get(\"professorToken\") };",
+              "var ids = [];",
+              "var modules = pm.response.json().items || [];",
+              "var pendingUnits = modules.length;",
+              "",
+              "// El denominador del servidor son los recursos obligatorios y visibles.",
+              "// Aqui se filtra igual, para que las dos cuentas sean comparables.",
+              "function collectResources(unitId, done) {",
+              "    pm.sendRequest({ url: base + \"/api/v1/units/\" + unitId + \"/resources\", method: \"GET\", header: auth },",
+              "        function (err, res) {",
+              "            if (!err && res.code === 200) {",
+              "                (res.json().items || []).forEach(function (r) {",
+              "                    if (r.is_mandatory && r.is_visible) { ids.push(r.id); }",
+              "                });",
+              "            }",
+              "            done();",
+              "        });",
+              "}",
+              "",
+              "function finish() {",
+              "    // Las variables se fijan antes de cualquier asercion: si una falla",
+              "    // dentro del callback, lo que sigue en el callback no se ejecuta.",
+              "    pm.environment.set(\"mandatoryResourceIds\", JSON.stringify(ids));",
+              "    pm.environment.set(\"mandatoryCount\", String(ids.length));",
+              "    pm.environment.set(\"mandatoryIndex\", \"0\");",
+              "    pm.environment.set(\"firstResourceId\", ids[0]);",
+              "    pm.test(\"el curso tiene al menos un recurso obligatorio\", function () {",
+              "        pm.expect(ids.length).to.be.above(0);",
+              "    });",
+              "}",
+              "",
+              "pm.test(\"responde 200\", function () { pm.response.to.have.status(200); });",
+              "if (pendingUnits === 0) { finish(); }",
+              "modules.forEach(function (m) {",
+              "    pm.sendRequest({ url: base + \"/api/v1/modules/\" + m.id + \"/units\", method: \"GET\", header: auth },",
+              "        function (err, res) {",
+              "            var units = (!err && res.code === 200) ? (res.json().items || []) : [];",
+              "            var pendingResources = units.length;",
+              "            if (pendingResources === 0 && --pendingUnits === 0) { finish(); }",
+              "            units.forEach(function (u) {",
+              "                collectResources(u.id, function () {",
+              "                    if (--pendingResources === 0 && --pendingUnits === 0) { finish(); }",
+              "                });",
+              "            });",
+              "        });",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{professorToken}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/courses/{{seededPublishedCourseId}}/modules",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "courses",
+            "{{seededPublishedCourseId}}",
+            "modules"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "06 Recolectar un recurso del curso en BORRADOR",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Para comprobar mas abajo que no se acumula progreso en un curso que",
+              "// nadie ha publicado hace falta un recurso suyo, y solo su autor puede",
+              "// verlo.",
+              "var base = pm.environment.get(\"baseUrl\");",
+              "var auth = { Authorization: \"Bearer \" + pm.environment.get(\"professorToken\") };",
+              "var modules = pm.response.json().items || [];",
+              "pm.test(\"responde 200\", function () { pm.response.to.have.status(200); });",
+              "if (modules.length > 0) {",
+              "    pm.sendRequest({ url: base + \"/api/v1/modules/\" + modules[0].id + \"/units\", method: \"GET\", header: auth },",
+              "        function (err, res) {",
+              "            var units = (!err && res.code === 200) ? (res.json().items || []) : [];",
+              "            if (units.length === 0) { return; }",
+              "            pm.sendRequest({ url: base + \"/api/v1/units/\" + units[0].id + \"/resources\", method: \"GET\", header: auth },",
+              "                function (err2, res2) {",
+              "                    var resources = (!err2 && res2.code === 200) ? (res2.json().items || []) : [];",
+              "                    if (resources.length === 0) { return; }",
+              "                    pm.environment.set(\"draftResourceId\", resources[0].id);",
+              "                });",
+              "        });",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{professorToken}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/courses/{{seededDraftCourseId}}/modules",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "courses",
+            "{{seededDraftCourseId}}",
+            "modules"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "07 Rechazo: latido sin sesion",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Sin sesion no hay a quien acreditarle el progreso.",
+              "pm.test(\"responde 401\", function () { pm.response.to.have.status(401); });",
+              "pm.test(\"con codigo de error unauthorized\", function () {",
+              "    pm.expect(pm.response.json().code).to.eql(\"unauthorized\");",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"resource_id\": \"{{firstResourceId}}\",\n  \"dwell_time_seconds\": 30,\n  \"completed\": true\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/progress/heartbeat",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "progress",
+            "heartbeat"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "08 Rechazo: latido sin inscripcion activa",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Criterio del issue: registrar progreso exige inscripcion activa.",
+              "pm.test(\"responde 403\", function () { pm.response.to.have.status(403); });",
+              "pm.test(\"con codigo de error forbidden\", function () {",
+              "    pm.expect(pm.response.json().code).to.eql(\"forbidden\");",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{studentToken}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"resource_id\": \"{{firstResourceId}}\",\n  \"dwell_time_seconds\": 30,\n  \"completed\": true\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/progress/heartbeat",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "progress",
+            "heartbeat"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "09 Inscripcion en el curso publicado",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"responde 200\", function () { pm.response.to.have.status(200); });",
+              "pm.test(\"queda inscrito\", function () {",
+              "    pm.expect(pm.response.json().status).to.eql(\"active\");",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{studentToken}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/courses/{{seededPublishedCourseId}}/enrollments",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "courses",
+            "{{seededPublishedCourseId}}",
+            "enrollments"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "10 Estado del progreso al empezar",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "var d = pm.response.json();",
+              "// Se guarda como linea base en lugar de exigir 0: el progreso sobrevive a",
+              "// las corridas anteriores, que es justamente lo que el enunciado pide.",
+              "pm.environment.set(\"baselineCompleted\", String(d.completed_count));",
+              "pm.test(\"responde 200\", function () { pm.response.to.have.status(200); });",
+              "pm.test(\"el total coincide con los recursos obligatorios recorridos\", function () {",
+              "    pm.expect(d.total_count).to.eql(parseInt(pm.environment.get(\"mandatoryCount\"), 10));",
+              "});",
+              "pm.test(\"el porcentaje es coherente con las cuentas\", function () {",
+              "    var expected = Math.round(d.completed_count / d.total_count * 10000) / 100;",
+              "    pm.expect(d.percentage).to.eql(expected);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{studentToken}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/progress/courses/{{seededPublishedCourseId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "progress",
+            "courses",
+            "{{seededPublishedCourseId}}"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "11 Rechazo: tiempo de permanencia fuera de rango",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Un latido es periodico: nadie reporta un ano de estudio en una peticion. El tiempo se suma tal cual, asi que se acota.",
+              "pm.test(\"responde 400\", function () { pm.response.to.have.status(400); });",
+              "pm.test(\"con codigo de error invalid_input\", function () {",
+              "    pm.expect(pm.response.json().code).to.eql(\"invalid_input\");",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{studentToken}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"resource_id\": \"{{firstResourceId}}\",\n  \"dwell_time_seconds\": 999999,\n  \"completed\": true\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/progress/heartbeat",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "progress",
+            "heartbeat"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "12 Rechazo: latido sin recurso",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Sin recurso no hay nada que acreditar.",
+              "pm.test(\"responde 400\", function () { pm.response.to.have.status(400); });",
+              "pm.test(\"con codigo de error invalid_input\", function () {",
+              "    pm.expect(pm.response.json().code).to.eql(\"invalid_input\");",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{studentToken}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"dwell_time_seconds\": 30,\n  \"completed\": true\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/progress/heartbeat",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "progress",
+            "heartbeat"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "13 Latido sin completar: cuenta el tiempo, no el avance",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"responde 200\", function () { pm.response.to.have.status(200); });",
+              "// El tiempo de permanencia es evidencia de actividad, no de haber",
+              "// terminado. Queda registrado en progress_events y no mueve el avance.",
+              "pm.test(\"el avance no cambia\", function () {",
+              "    pm.expect(pm.response.json().completed_count).to.eql(parseInt(pm.environment.get(\"baselineCompleted\"), 10));",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{studentToken}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"resource_id\": \"{{firstResourceId}}\",\n  \"dwell_time_seconds\": 45,\n  \"completed\": false\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/progress/heartbeat",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "progress",
+            "heartbeat"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "14 Latido que completa un recurso",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "var d = pm.response.json();",
+              "pm.environment.set(\"countAfterFirst\", String(d.completed_count));",
+              "pm.test(\"responde 200\", function () { pm.response.to.have.status(200); });",
+              "pm.test(\"el recurso queda en el conjunto de completados\", function () {",
+              "    pm.expect(d.completed_resource_stable_ids).to.be.an(\"array\").that.is.not.empty;",
+              "    pm.expect(d.completed_count).to.be.above(0);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{studentToken}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"resource_id\": \"{{firstResourceId}}\",\n  \"dwell_time_seconds\": 60,\n  \"completed\": true\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/progress/heartbeat",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "progress",
+            "heartbeat"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "15 El mismo latido repetido no infla el avance",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"responde 200\", function () { pm.response.to.have.status(200); });",
+              "// Primer criterio de aceptacion del issue. El avance es un conjunto que",
+              "// se recalcula, no un contador que se incrementa, y de ahi que repetir el",
+              "// mismo recurso no sume dos veces.",
+              "pm.test(\"el avance es el mismo que tras el primer latido\", function () {",
+              "    var d = pm.response.json();",
+              "    pm.expect(d.completed_count).to.eql(parseInt(pm.environment.get(\"countAfterFirst\"), 10));",
+              "    var unique = d.completed_resource_stable_ids.filter(function (id, i, all) { return all.indexOf(id) === i; });",
+              "    pm.expect(unique.length).to.eql(d.completed_resource_stable_ids.length);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{studentToken}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"resource_id\": \"{{firstResourceId}}\",\n  \"dwell_time_seconds\": 60,\n  \"completed\": true\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/progress/heartbeat",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "progress",
+            "heartbeat"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "16 Completar cada recurso obligatorio",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "var ids = JSON.parse(pm.environment.get(\"mandatoryResourceIds\") || \"[]\");",
+              "var i = parseInt(pm.environment.get(\"mandatoryIndex\") || \"0\", 10);",
+              "pm.environment.set(\"currentResourceId\", ids[i]);"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "var ids = JSON.parse(pm.environment.get(\"mandatoryResourceIds\") || \"[]\");",
+              "var next = parseInt(pm.environment.get(\"mandatoryIndex\") || \"0\", 10) + 1;",
+              "pm.environment.set(\"mandatoryIndex\", String(next));",
+              "pm.test(\"responde 200\", function () { pm.response.to.have.status(200); });",
+              "if (next < ids.length) {",
+              "    postman.setNextRequest(\"16 Completar cada recurso obligatorio\");",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{studentToken}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"resource_id\": \"{{currentResourceId}}\",\n  \"dwell_time_seconds\": 45,\n  \"completed\": true\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/progress/heartbeat",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "progress",
+            "heartbeat"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "17 El curso queda completo y emite la insignia",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "var d = pm.response.json();",
+              "// La captura primero, por lo de siempre: si una asercion falla, lo que",
+              "// sigue en el callback no corre y la insignia quedaria sin codigo.",
+              "if (d.badge) {",
+              "    pm.environment.set(\"badgeCode\", d.badge.verification_code);",
+              "    pm.environment.set(\"badgeId\", d.badge.id);",
+              "}",
+              "pm.test(\"responde 200\", function () { pm.response.to.have.status(200); });",
+              "pm.test(\"llega al 100% y queda aprobado\", function () {",
+              "    pm.expect(d.completed_count).to.eql(d.total_count);",
+              "    pm.expect(d.percentage).to.eql(100);",
+              "    pm.expect(d.is_approved).to.eql(true);",
+              "});",
+              "pm.test(\"trae la insignia con su codigo de verificacion\", function () {",
+              "    pm.expect(d.badge, \"no se emitio insignia al completar el curso\").to.be.an(\"object\");",
+              "    pm.expect(d.badge.verification_code).to.be.a(\"string\").that.is.not.empty;",
+              "    pm.expect(d.badge.revoked).to.eql(false);",
+              "});",
+              "pm.test(\"la insignia no expone la ruta de almacenamiento\", function () {",
+              "    // Una llave de objeto es un detalle interno; no sale al cliente.",
+              "    pm.expect(d.badge).to.not.have.property(\"image_key\");",
+              "});",
+              "pm.test(\"trae el enlace de verificacion ya armado\", function () {",
+              "    // Se construye contra el origen publico de la plataforma, el mismo",
+              "    // contra el que se arman los enlaces de activacion, asi que no tiene",
+              "    // por que coincidir con baseUrl: este entorno habla con el contenedor.",
+              "    pm.expect(d.badge.verification_url).to.be.a(\"string\").that.is.not.empty;",
+              "    pm.expect(d.badge.verification_url).to.have.string(\"/api/v1/badges/verify/\" + d.badge.verification_code);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{studentToken}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/progress/courses/{{seededPublishedCourseId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "progress",
+            "courses",
+            "{{seededPublishedCourseId}}"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "18 Verificar la insignia sin autenticacion",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"responde 200\", function () { pm.response.to.have.status(200); });",
+              "// Tercer criterio de aceptacion: el codigo resuelve sin sesion. Notese que",
+              "// esta peticion no lleva cabecera Authorization.",
+              "pm.test(\"la insignia es valida y dice que certifica\", function () {",
+              "    var d = pm.response.json();",
+              "    pm.expect(d.valid).to.eql(true);",
+              "    pm.expect(d.revoked).to.eql(false);",
+              "    pm.expect(d.course_title).to.be.a(\"string\").that.is.not.empty;",
+              "    pm.expect(d.issued_at).to.be.a(\"string\").that.is.not.empty;",
+              "});",
+              "pm.test(\"no revela nada del estudiante\", function () {",
+              "    // El spec llama a este endpoint verificacion publica que preserva la",
+              "    // privacidad: quien verifica aprende que el codigo corresponde a una",
+              "    // insignia real de este curso, y nada sobre quien la obtuvo.",
+              "    var d = pm.response.json();",
+              "    [\"student_name\", \"student_id\", \"email\", \"full_name\", \"image_key\"].forEach(function (field) {",
+              "        pm.expect(d).to.not.have.property(field);",
+              "    });",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/badges/verify/{{badgeCode}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "badges",
+            "verify",
+            "{{badgeCode}}"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "19 Rechazo: codigo de verificacion inexistente",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Un codigo que no existe no certifica nada.",
+              "pm.test(\"responde 404\", function () { pm.response.to.have.status(404); });",
+              "pm.test(\"con codigo de error not_found\", function () {",
+              "    pm.expect(pm.response.json().code).to.eql(\"not_found\");",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/badges/verify/00000000-0000-0000-0000-000000000000",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "badges",
+            "verify",
+            "00000000-0000-0000-0000-000000000000"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "20 La insignia como recurso, leida por su dueno",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// El ETag se guarda antes de las aserciones: lo necesita la peticion",
+              "// siguiente, y si una asercion falla el resto del bloque no corre.",
+              "pm.environment.set(\"badgeETag\", pm.response.headers.get(\"ETag\"));",
+              "pm.test(\"responde 200\", function () { pm.response.to.have.status(200); });",
+              "pm.test(\"trae un ETag para el GET condicional\", function () {",
+              "    pm.expect(pm.response.headers.get(\"ETag\")).to.be.a(\"string\").that.is.not.empty;",
+              "});",
+              "pm.test(\"dice que certifica y como verificarla\", function () {",
+              "    var d = pm.response.json();",
+              "    pm.expect(d.id).to.eql(pm.environment.get(\"badgeId\"));",
+              "    pm.expect(d.verification_code).to.eql(pm.environment.get(\"badgeCode\"));",
+              "    pm.expect(d.course_stable_id).to.be.a(\"string\").that.is.not.empty;",
+              "    pm.expect(d.revoked).to.eql(false);",
+              "    pm.expect(d.verification_url).to.have.string(\"/api/v1/badges/verify/\" + d.verification_code);",
+              "});",
+              "pm.test(\"no expone la ruta de almacenamiento\", function () {",
+              "    // La imagen vive en un objeto que el estudiante no tiene por que",
+              "    // direccionar, y todavia no se genera ninguna.",
+              "    pm.expect(pm.response.json()).to.not.have.property(\"image_key\");",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{studentToken}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/badges/{{badgeId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "badges",
+            "{{badgeId}}"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "21 GET condicional: sin cambios responde 304",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// El ETag cambia si la insignia se revoca, asi que una copia en cache no",
+              "// puede sobrevivir a la revocacion de la credencial que representa.",
+              "pm.test(\"responde 304 sin cuerpo\", function () {",
+              "    pm.response.to.have.status(304);",
+              "    pm.expect(pm.response.text()).to.be.empty;",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{studentToken}}",
+            "type": "text"
+          },
+          {
+            "key": "If-None-Match",
+            "value": "{{badgeETag}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/badges/{{badgeId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "badges",
+            "{{badgeId}}"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "22 Rechazo: la insignia sin sesion",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// A diferencia de la verificacion publica, este recurso lleva el codigo de verificacion: servirlo a quien conozca un id convertiria el id en la credencial.",
+              "pm.test(\"responde 401\", function () { pm.response.to.have.status(401); });",
+              "pm.test(\"con codigo de error unauthorized\", function () {",
+              "    pm.expect(pm.response.json().code).to.eql(\"unauthorized\");",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/badges/{{badgeId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "badges",
+            "{{badgeId}}"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "23 Rechazo: la insignia de otro es 404, no 403",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Responder 403 confirmaria que el id nombra una insignia real, y quien lo aprendiera podria presentarla como suya.",
+              "pm.test(\"responde 404\", function () { pm.response.to.have.status(404); });",
+              "pm.test(\"con codigo de error not_found\", function () {",
+              "    pm.expect(pm.response.json().code).to.eql(\"not_found\");",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{professorToken}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/badges/{{badgeId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "badges",
+            "{{badgeId}}"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "24 El administrador si lee cualquier insignia",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"responde 200\", function () { pm.response.to.have.status(200); });",
+              "// La excepcion: el rastro de auditoria ya registra cada emision, asi que",
+              "// negarle la insignia no protegeria nada.",
+              "pm.test(\"es la misma insignia\", function () {",
+              "    pm.expect(pm.response.json().id).to.eql(pm.environment.get(\"badgeId\"));",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{adminToken}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/badges/{{badgeId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "badges",
+            "{{badgeId}}"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "25 Rechazo: el autor no acumula progreso en su propio curso",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// El autor lee su curso por serlo, sin inscribirse. Acreditarle progreso terminaria emitiendole una insignia de su propio curso.",
+              "pm.test(\"responde 403\", function () { pm.response.to.have.status(403); });",
+              "pm.test(\"con codigo de error forbidden\", function () {",
+              "    pm.expect(pm.response.json().code).to.eql(\"forbidden\");",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{professorToken}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"resource_id\": \"{{firstResourceId}}\",\n  \"dwell_time_seconds\": 30,\n  \"completed\": true\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/progress/heartbeat",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "progress",
+            "heartbeat"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "26 Rechazo: progreso en un curso en BORRADOR",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Un borrador no esta en oferta; el progreso solo se acumula sobre contenido publicado.",
+              "pm.test(\"responde 409\", function () { pm.response.to.have.status(409); });",
+              "pm.test(\"con codigo de error course_not_published\", function () {",
+              "    pm.expect(pm.response.json().code).to.eql(\"course_not_published\");",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{studentToken}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"resource_id\": \"{{draftResourceId}}\",\n  \"dwell_time_seconds\": 30,\n  \"completed\": true\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/progress/heartbeat",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "progress",
+            "heartbeat"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "27 Retiro del curso",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"responde 200\", function () { pm.response.to.have.status(200); });",
+              "pm.test(\"queda retirado\", function () {",
+              "    pm.expect(pm.response.json().status).to.eql(\"withdrawn\");",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{studentToken}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/courses/{{seededPublishedCourseId}}/enrollments",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "courses",
+            "{{seededPublishedCourseId}}",
+            "enrollments"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "28 El progreso sobrevive al retiro",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"responde 200\", function () { pm.response.to.have.status(200); });",
+              "// Seccion 5.1 del enunciado: reinscripcion conservando progreso. Retirarse",
+              "// cierra el acceso al contenido, no borra lo que el estudiante hizo.",
+              "pm.test(\"sigue completo y con su insignia\", function () {",
+              "    var d = pm.response.json();",
+              "    pm.expect(d.percentage).to.eql(100);",
+              "    pm.expect(d.is_approved).to.eql(true);",
+              "    pm.expect(d.badge.verification_code).to.eql(pm.environment.get(\"badgeCode\"));",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{studentToken}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/progress/courses/{{seededPublishedCourseId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "progress",
+            "courses",
+            "{{seededPublishedCourseId}}"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "29 Rechazo: latido tras retirarse",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Retirarse tiene que detener la acumulacion, o seria cosmetico.",
+              "pm.test(\"responde 403\", function () { pm.response.to.have.status(403); });",
+              "pm.test(\"con codigo de error forbidden\", function () {",
+              "    pm.expect(pm.response.json().code).to.eql(\"forbidden\");",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{studentToken}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"resource_id\": \"{{firstResourceId}}\",\n  \"dwell_time_seconds\": 30,\n  \"completed\": true\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/progress/heartbeat",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "progress",
+            "heartbeat"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "30 Reinscripcion: el progreso sigue intacto",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"responde 200\", function () { pm.response.to.have.status(200); });",
+              "pm.test(\"vuelve a quedar activo\", function () {",
+              "    pm.expect(pm.response.json().status).to.eql(\"active\");",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{studentToken}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/courses/{{seededPublishedCourseId}}/enrollments",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "courses",
+            "{{seededPublishedCourseId}}",
+            "enrollments"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "31 Tras volver, el avance esta donde lo dejo",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"responde 200\", function () { pm.response.to.have.status(200); });",
+              "pm.test(\"sigue al 100% y con la misma insignia\", function () {",
+              "    var d = pm.response.json();",
+              "    pm.expect(d.percentage).to.eql(100);",
+              "    pm.expect(d.badge.verification_code).to.eql(pm.environment.get(\"badgeCode\"));",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{studentToken}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/progress/courses/{{seededPublishedCourseId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "progress",
+            "courses",
+            "{{seededPublishedCourseId}}"
+          ]
+        }
+      },
+      "response": []
+    }
+  ]
+}
