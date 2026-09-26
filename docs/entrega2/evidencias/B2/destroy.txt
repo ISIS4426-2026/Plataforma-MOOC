@@ -1,0 +1,223 @@
+google_project_service.required["iamcredentials.googleapis.com"]: Refreshing state... [id=plataforma-mooc-entrega2/iamcredentials.googleapis.com]
+google_project_service.required["servicenetworking.googleapis.com"]: Refreshing state... [id=plataforma-mooc-entrega2/servicenetworking.googleapis.com]
+google_project_service.required["compute.googleapis.com"]: Refreshing state... [id=plataforma-mooc-entrega2/compute.googleapis.com]
+google_project_service.required["storage.googleapis.com"]: Refreshing state... [id=plataforma-mooc-entrega2/storage.googleapis.com]
+google_service_account.web_server: Refreshing state... [id=projects/plataforma-mooc-entrega2/serviceAccounts/sa-web-server@plataforma-mooc-entrega2.iam.gserviceaccount.com]
+google_project_service.required["sqladmin.googleapis.com"]: Refreshing state... [id=plataforma-mooc-entrega2/sqladmin.googleapis.com]
+google_service_account.worker_server: Refreshing state... [id=projects/plataforma-mooc-entrega2/serviceAccounts/sa-worker-server@plataforma-mooc-entrega2.iam.gserviceaccount.com]
+google_project_service.required["iam.googleapis.com"]: Refreshing state... [id=plataforma-mooc-entrega2/iam.googleapis.com]
+google_service_account_iam_member.web_server_can_sign: Refreshing state... [id=projects/plataforma-mooc-entrega2/serviceAccounts/sa-web-server@plataforma-mooc-entrega2.iam.gserviceaccount.com/roles/iam.serviceAccountTokenCreator/serviceAccount:sa-web-server@plataforma-mooc-entrega2.iam.gserviceaccount.com]
+google_project_iam_member.common["web-cloudsql.client"]: Refreshing state... [id=plataforma-mooc-entrega2/roles/cloudsql.client/serviceAccount:sa-web-server@plataforma-mooc-entrega2.iam.gserviceaccount.com]
+google_project_iam_member.common["web-monitoring.metricWriter"]: Refreshing state... [id=plataforma-mooc-entrega2/roles/monitoring.metricWriter/serviceAccount:sa-web-server@plataforma-mooc-entrega2.iam.gserviceaccount.com]
+google_project_iam_member.common["worker-cloudsql.client"]: Refreshing state... [id=plataforma-mooc-entrega2/roles/cloudsql.client/serviceAccount:sa-worker-server@plataforma-mooc-entrega2.iam.gserviceaccount.com]
+google_project_iam_member.common["web-logging.logWriter"]: Refreshing state... [id=plataforma-mooc-entrega2/roles/logging.logWriter/serviceAccount:sa-web-server@plataforma-mooc-entrega2.iam.gserviceaccount.com]
+google_project_iam_member.common["worker-monitoring.metricWriter"]: Refreshing state... [id=plataforma-mooc-entrega2/roles/monitoring.metricWriter/serviceAccount:sa-worker-server@plataforma-mooc-entrega2.iam.gserviceaccount.com]
+google_project_iam_member.common["worker-logging.logWriter"]: Refreshing state... [id=plataforma-mooc-entrega2/roles/logging.logWriter/serviceAccount:sa-worker-server@plataforma-mooc-entrega2.iam.gserviceaccount.com]
+
+Terraform used the selected providers to generate the following execution
+plan. Resource actions are indicated with the following symbols:
+  - destroy
+
+Terraform will perform the following actions:
+
+  # google_project_iam_member.common["web-cloudsql.client"] will be destroyed
+  - resource "google_project_iam_member" "common" {
+      - etag    = "BwZcaUFo9hc=" -> null
+      - id      = "plataforma-mooc-entrega2/roles/cloudsql.client/serviceAccount:sa-web-server@plataforma-mooc-entrega2.iam.gserviceaccount.com" -> null
+      - member  = "serviceAccount:sa-web-server@plataforma-mooc-entrega2.iam.gserviceaccount.com" -> null
+      - project = "plataforma-mooc-entrega2" -> null
+      - role    = "roles/cloudsql.client" -> null
+    }
+
+  # google_project_iam_member.common["web-logging.logWriter"] will be destroyed
+  - resource "google_project_iam_member" "common" {
+      - etag    = "BwZcaUFo9hc=" -> null
+      - id      = "plataforma-mooc-entrega2/roles/logging.logWriter/serviceAccount:sa-web-server@plataforma-mooc-entrega2.iam.gserviceaccount.com" -> null
+      - member  = "serviceAccount:sa-web-server@plataforma-mooc-entrega2.iam.gserviceaccount.com" -> null
+      - project = "plataforma-mooc-entrega2" -> null
+      - role    = "roles/logging.logWriter" -> null
+    }
+
+  # google_project_iam_member.common["web-monitoring.metricWriter"] will be destroyed
+  - resource "google_project_iam_member" "common" {
+      - etag    = "BwZcaUFo9hc=" -> null
+      - id      = "plataforma-mooc-entrega2/roles/monitoring.metricWriter/serviceAccount:sa-web-server@plataforma-mooc-entrega2.iam.gserviceaccount.com" -> null
+      - member  = "serviceAccount:sa-web-server@plataforma-mooc-entrega2.iam.gserviceaccount.com" -> null
+      - project = "plataforma-mooc-entrega2" -> null
+      - role    = "roles/monitoring.metricWriter" -> null
+    }
+
+  # google_project_iam_member.common["worker-cloudsql.client"] will be destroyed
+  - resource "google_project_iam_member" "common" {
+      - etag    = "BwZcaUFo9hc=" -> null
+      - id      = "plataforma-mooc-entrega2/roles/cloudsql.client/serviceAccount:sa-worker-server@plataforma-mooc-entrega2.iam.gserviceaccount.com" -> null
+      - member  = "serviceAccount:sa-worker-server@plataforma-mooc-entrega2.iam.gserviceaccount.com" -> null
+      - project = "plataforma-mooc-entrega2" -> null
+      - role    = "roles/cloudsql.client" -> null
+    }
+
+  # google_project_iam_member.common["worker-logging.logWriter"] will be destroyed
+  - resource "google_project_iam_member" "common" {
+      - etag    = "BwZcaUFo9hc=" -> null
+      - id      = "plataforma-mooc-entrega2/roles/logging.logWriter/serviceAccount:sa-worker-server@plataforma-mooc-entrega2.iam.gserviceaccount.com" -> null
+      - member  = "serviceAccount:sa-worker-server@plataforma-mooc-entrega2.iam.gserviceaccount.com" -> null
+      - project = "plataforma-mooc-entrega2" -> null
+      - role    = "roles/logging.logWriter" -> null
+    }
+
+  # google_project_iam_member.common["worker-monitoring.metricWriter"] will be destroyed
+  - resource "google_project_iam_member" "common" {
+      - etag    = "BwZcaUFo9hc=" -> null
+      - id      = "plataforma-mooc-entrega2/roles/monitoring.metricWriter/serviceAccount:sa-worker-server@plataforma-mooc-entrega2.iam.gserviceaccount.com" -> null
+      - member  = "serviceAccount:sa-worker-server@plataforma-mooc-entrega2.iam.gserviceaccount.com" -> null
+      - project = "plataforma-mooc-entrega2" -> null
+      - role    = "roles/monitoring.metricWriter" -> null
+    }
+
+  # google_project_service.required["compute.googleapis.com"] will be destroyed
+  - resource "google_project_service" "required" {
+      - deletion_policy    = "DELETE" -> null
+      - disable_on_destroy = false -> null
+      - id                 = "plataforma-mooc-entrega2/compute.googleapis.com" -> null
+      - project            = "plataforma-mooc-entrega2" -> null
+      - service            = "compute.googleapis.com" -> null
+    }
+
+  # google_project_service.required["iam.googleapis.com"] will be destroyed
+  - resource "google_project_service" "required" {
+      - deletion_policy    = "DELETE" -> null
+      - disable_on_destroy = false -> null
+      - id                 = "plataforma-mooc-entrega2/iam.googleapis.com" -> null
+      - project            = "plataforma-mooc-entrega2" -> null
+      - service            = "iam.googleapis.com" -> null
+    }
+
+  # google_project_service.required["iamcredentials.googleapis.com"] will be destroyed
+  - resource "google_project_service" "required" {
+      - deletion_policy    = "DELETE" -> null
+      - disable_on_destroy = false -> null
+      - id                 = "plataforma-mooc-entrega2/iamcredentials.googleapis.com" -> null
+      - project            = "plataforma-mooc-entrega2" -> null
+      - service            = "iamcredentials.googleapis.com" -> null
+    }
+
+  # google_project_service.required["servicenetworking.googleapis.com"] will be destroyed
+  - resource "google_project_service" "required" {
+      - deletion_policy    = "DELETE" -> null
+      - disable_on_destroy = false -> null
+      - id                 = "plataforma-mooc-entrega2/servicenetworking.googleapis.com" -> null
+      - project            = "plataforma-mooc-entrega2" -> null
+      - service            = "servicenetworking.googleapis.com" -> null
+    }
+
+  # google_project_service.required["sqladmin.googleapis.com"] will be destroyed
+  - resource "google_project_service" "required" {
+      - deletion_policy    = "DELETE" -> null
+      - disable_on_destroy = false -> null
+      - id                 = "plataforma-mooc-entrega2/sqladmin.googleapis.com" -> null
+      - project            = "plataforma-mooc-entrega2" -> null
+      - service            = "sqladmin.googleapis.com" -> null
+    }
+
+  # google_project_service.required["storage.googleapis.com"] will be destroyed
+  - resource "google_project_service" "required" {
+      - deletion_policy    = "DELETE" -> null
+      - disable_on_destroy = false -> null
+      - id                 = "plataforma-mooc-entrega2/storage.googleapis.com" -> null
+      - project            = "plataforma-mooc-entrega2" -> null
+      - service            = "storage.googleapis.com" -> null
+    }
+
+  # google_service_account.web_server will be destroyed
+  - resource "google_service_account" "web_server" {
+      - account_id      = "sa-web-server" -> null
+      - deletion_policy = "DELETE" -> null
+      - description     = "Identidad de la VM que ejecuta la API. Firma URLs y lee objetos; no escribe derivados." -> null
+      - disabled        = false -> null
+      - display_name    = "Web Server: API modular y proxy inverso" -> null
+      - email           = "sa-web-server@plataforma-mooc-entrega2.iam.gserviceaccount.com" -> null
+      - id              = "projects/plataforma-mooc-entrega2/serviceAccounts/sa-web-server@plataforma-mooc-entrega2.iam.gserviceaccount.com" -> null
+      - member          = "serviceAccount:sa-web-server@plataforma-mooc-entrega2.iam.gserviceaccount.com" -> null
+      - name            = "projects/plataforma-mooc-entrega2/serviceAccounts/sa-web-server@plataforma-mooc-entrega2.iam.gserviceaccount.com" -> null
+      - project         = "plataforma-mooc-entrega2" -> null
+      - unique_id       = "102465921586868718848" -> null
+    }
+
+  # google_service_account.worker_server will be destroyed
+  - resource "google_service_account" "worker_server" {
+      - account_id      = "sa-worker-server" -> null
+      - deletion_policy = "DELETE" -> null
+      - description     = "Identidad de la VM que procesa multimedia. Escribe derivados; no firma URLs." -> null
+      - disabled        = false -> null
+      - display_name    = "Worker Server: workers, FFmpeg y la cola asynq" -> null
+      - email           = "sa-worker-server@plataforma-mooc-entrega2.iam.gserviceaccount.com" -> null
+      - id              = "projects/plataforma-mooc-entrega2/serviceAccounts/sa-worker-server@plataforma-mooc-entrega2.iam.gserviceaccount.com" -> null
+      - member          = "serviceAccount:sa-worker-server@plataforma-mooc-entrega2.iam.gserviceaccount.com" -> null
+      - name            = "projects/plataforma-mooc-entrega2/serviceAccounts/sa-worker-server@plataforma-mooc-entrega2.iam.gserviceaccount.com" -> null
+      - project         = "plataforma-mooc-entrega2" -> null
+      - unique_id       = "110145455864731127417" -> null
+    }
+
+  # google_service_account_iam_member.web_server_can_sign will be destroyed
+  - resource "google_service_account_iam_member" "web_server_can_sign" {
+      - etag               = "BwZcaUBAeuM=" -> null
+      - id                 = "projects/plataforma-mooc-entrega2/serviceAccounts/sa-web-server@plataforma-mooc-entrega2.iam.gserviceaccount.com/roles/iam.serviceAccountTokenCreator/serviceAccount:sa-web-server@plataforma-mooc-entrega2.iam.gserviceaccount.com" -> null
+      - member             = "serviceAccount:sa-web-server@plataforma-mooc-entrega2.iam.gserviceaccount.com" -> null
+      - role               = "roles/iam.serviceAccountTokenCreator" -> null
+      - service_account_id = "projects/plataforma-mooc-entrega2/serviceAccounts/sa-web-server@plataforma-mooc-entrega2.iam.gserviceaccount.com" -> null
+    }
+
+Plan: 0 to add, 0 to change, 15 to destroy.
+
+Changes to Outputs:
+  - enabled_services              = [
+      - "compute.googleapis.com",
+      - "iam.googleapis.com",
+      - "iamcredentials.googleapis.com",
+      - "servicenetworking.googleapis.com",
+      - "sqladmin.googleapis.com",
+      - "storage.googleapis.com",
+    ] -> null
+  - project_id                    = "plataforma-mooc-entrega2" -> null
+  - region                        = "us-east1" -> null
+  - web_server_service_account    = "sa-web-server@plataforma-mooc-entrega2.iam.gserviceaccount.com" -> null
+  - worker_server_service_account = "sa-worker-server@plataforma-mooc-entrega2.iam.gserviceaccount.com" -> null
+  - zone                          = "us-east1-b" -> null
+
+Do you really want to destroy all resources?
+  Terraform will destroy all your managed infrastructure, as shown above.
+  There is no undo. Only 'yes' will be accepted to confirm.
+
+  Enter a value: 
+google_project_service.required["sqladmin.googleapis.com"]: Destroying... [id=plataforma-mooc-entrega2/sqladmin.googleapis.com]
+google_project_service.required["servicenetworking.googleapis.com"]: Destroying... [id=plataforma-mooc-entrega2/servicenetworking.googleapis.com]
+google_project_service.required["storage.googleapis.com"]: Destroying... [id=plataforma-mooc-entrega2/storage.googleapis.com]
+google_project_iam_member.common["web-cloudsql.client"]: Destroying... [id=plataforma-mooc-entrega2/roles/cloudsql.client/serviceAccount:sa-web-server@plataforma-mooc-entrega2.iam.gserviceaccount.com]
+google_project_service.required["iam.googleapis.com"]: Destroying... [id=plataforma-mooc-entrega2/iam.googleapis.com]
+google_project_iam_member.common["web-monitoring.metricWriter"]: Destroying... [id=plataforma-mooc-entrega2/roles/monitoring.metricWriter/serviceAccount:sa-web-server@plataforma-mooc-entrega2.iam.gserviceaccount.com]
+google_service_account_iam_member.web_server_can_sign: Destroying... [id=projects/plataforma-mooc-entrega2/serviceAccounts/sa-web-server@plataforma-mooc-entrega2.iam.gserviceaccount.com/roles/iam.serviceAccountTokenCreator/serviceAccount:sa-web-server@plataforma-mooc-entrega2.iam.gserviceaccount.com]
+google_project_iam_member.common["worker-logging.logWriter"]: Destroying... [id=plataforma-mooc-entrega2/roles/logging.logWriter/serviceAccount:sa-worker-server@plataforma-mooc-entrega2.iam.gserviceaccount.com]
+google_project_iam_member.common["worker-monitoring.metricWriter"]: Destroying... [id=plataforma-mooc-entrega2/roles/monitoring.metricWriter/serviceAccount:sa-worker-server@plataforma-mooc-entrega2.iam.gserviceaccount.com]
+google_project_service.required["compute.googleapis.com"]: Destroying... [id=plataforma-mooc-entrega2/compute.googleapis.com]
+google_project_service.required["iam.googleapis.com"]: Destruction complete after 0s
+google_project_service.required["sqladmin.googleapis.com"]: Destruction complete after 0s
+google_project_service.required["compute.googleapis.com"]: Destruction complete after 0s
+google_project_service.required["storage.googleapis.com"]: Destruction complete after 0s
+google_project_service.required["servicenetworking.googleapis.com"]: Destruction complete after 0s
+google_project_service.required["iamcredentials.googleapis.com"]: Destroying... [id=plataforma-mooc-entrega2/iamcredentials.googleapis.com]
+google_project_iam_member.common["web-logging.logWriter"]: Destroying... [id=plataforma-mooc-entrega2/roles/logging.logWriter/serviceAccount:sa-web-server@plataforma-mooc-entrega2.iam.gserviceaccount.com]
+google_project_iam_member.common["worker-cloudsql.client"]: Destroying... [id=plataforma-mooc-entrega2/roles/cloudsql.client/serviceAccount:sa-worker-server@plataforma-mooc-entrega2.iam.gserviceaccount.com]
+google_project_service.required["iamcredentials.googleapis.com"]: Destruction complete after 0s
+google_service_account_iam_member.web_server_can_sign: Destruction complete after 5s
+google_project_iam_member.common["worker-cloudsql.client"]: Destruction complete after 8s
+google_project_iam_member.common["web-cloudsql.client"]: Destruction complete after 9s
+google_project_iam_member.common["web-monitoring.metricWriter"]: Destruction complete after 9s
+google_project_iam_member.common["worker-monitoring.metricWriter"]: Destruction complete after 9s
+google_project_iam_member.common["worker-logging.logWriter"]: Destruction complete after 9s
+google_project_iam_member.common["web-logging.logWriter"]: Destruction complete after 10s
+google_service_account.web_server: Destroying... [id=projects/plataforma-mooc-entrega2/serviceAccounts/sa-web-server@plataforma-mooc-entrega2.iam.gserviceaccount.com]
+google_service_account.worker_server: Destroying... [id=projects/plataforma-mooc-entrega2/serviceAccounts/sa-worker-server@plataforma-mooc-entrega2.iam.gserviceaccount.com]
+google_service_account.web_server: Destruction complete after 0s
+google_service_account.worker_server: Destruction complete after 0s
+
+Destroy complete! Resources: 15 destroyed.

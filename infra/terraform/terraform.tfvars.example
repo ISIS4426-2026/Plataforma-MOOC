@@ -1,0 +1,19 @@
+# Plantilla de terraform.tfvars  (issue #115)
+#
+# NO HACE FALTA crear un terraform.tfvars para trabajar con normalidad: el
+# proyecto, la region y la zona ya vienen con valor por defecto en variables.tf,
+# y son precisamente las decisiones fijadas en B1. Eso es a proposito -- si cada
+# integrante tuviera que configurarlas en un archivo que no se versiona, podrian
+# divergir sin que nadie se entere.
+#
+# La contrasena de la base NO va aqui. Va por entorno:
+#
+#     export TF_VAR_db_password='...'
+#
+# Este archivo solo existe para el caso excepcional de levantar un entorno
+# aparte -- por ejemplo, probar contra un proyecto distinto sin tocar el de la
+# entrega. Copialo a terraform.tfvars, que esta en .gitignore.
+
+# project_id = "otro-proyecto-de-pruebas"
+# region     = "us-east1"
+# zone       = "us-east1-b"

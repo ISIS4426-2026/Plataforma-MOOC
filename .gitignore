@@ -35,3 +35,28 @@ local_data/
 # Video de prueba generado con ffmpeg para el flujo de multimedia
 clase.mp4
 clase_test.mp4
+
+# Terraform (issue #115)
+#
+# El estado contiene la contrasena de la base en claro: vive en el bucket
+# privado y versionado, nunca aqui.
+.terraform/
+.terraform.lock.hcl.bak
+*.tfstate
+*.tfstate.*
+crash.log
+crash.*.log
+terraform.tfvars
+*.auto.tfvars
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+.terraformrc
+terraform.rc
+
+# Llaves de cuentas de servicio: no deben existir, y si alguien genera una por
+# error, que al menos no llegue al repositorio.
+*-sa-key.json
+*service-account*.json
+application_default_credentials.json
