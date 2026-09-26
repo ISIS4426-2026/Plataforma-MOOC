@@ -1,0 +1,14 @@
+ROLE                           MEMBERS
+roles/cloudsql.client          serviceAccount:sa-web-server@plataforma-mooc-entrega2.iam.gserviceaccount.com
+roles/cloudsql.client          serviceAccount:sa-worker-server@plataforma-mooc-entrega2.iam.gserviceaccount.com
+roles/logging.logWriter        serviceAccount:sa-web-server@plataforma-mooc-entrega2.iam.gserviceaccount.com
+roles/logging.logWriter        serviceAccount:sa-worker-server@plataforma-mooc-entrega2.iam.gserviceaccount.com
+roles/monitoring.metricWriter  serviceAccount:sa-web-server@plataforma-mooc-entrega2.iam.gserviceaccount.com
+roles/monitoring.metricWriter  serviceAccount:sa-worker-server@plataforma-mooc-entrega2.iam.gserviceaccount.com
+bindings:
+- members:
+  - serviceAccount:sa-web-server@plataforma-mooc-entrega2.iam.gserviceaccount.com
+  role: roles/iam.serviceAccountTokenCreator
+etag: BwZcaUBAeuM=
+version: 1
+etag: ACAB

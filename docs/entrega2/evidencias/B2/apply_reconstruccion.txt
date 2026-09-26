@@ -1,0 +1,227 @@
+
+Terraform used the selected providers to generate the following execution
+plan. Resource actions are indicated with the following symbols:
+  + create
+
+Terraform will perform the following actions:
+
+  # google_project_iam_member.common["web-cloudsql.client"] will be created
+  + resource "google_project_iam_member" "common" {
+      + etag    = (known after apply)
+      + id      = (known after apply)
+      + member  = "serviceAccount:sa-web-server@plataforma-mooc-entrega2.iam.gserviceaccount.com"
+      + project = "plataforma-mooc-entrega2"
+      + role    = "roles/cloudsql.client"
+    }
+
+  # google_project_iam_member.common["web-logging.logWriter"] will be created
+  + resource "google_project_iam_member" "common" {
+      + etag    = (known after apply)
+      + id      = (known after apply)
+      + member  = "serviceAccount:sa-web-server@plataforma-mooc-entrega2.iam.gserviceaccount.com"
+      + project = "plataforma-mooc-entrega2"
+      + role    = "roles/logging.logWriter"
+    }
+
+  # google_project_iam_member.common["web-monitoring.metricWriter"] will be created
+  + resource "google_project_iam_member" "common" {
+      + etag    = (known after apply)
+      + id      = (known after apply)
+      + member  = "serviceAccount:sa-web-server@plataforma-mooc-entrega2.iam.gserviceaccount.com"
+      + project = "plataforma-mooc-entrega2"
+      + role    = "roles/monitoring.metricWriter"
+    }
+
+  # google_project_iam_member.common["worker-cloudsql.client"] will be created
+  + resource "google_project_iam_member" "common" {
+      + etag    = (known after apply)
+      + id      = (known after apply)
+      + member  = "serviceAccount:sa-worker-server@plataforma-mooc-entrega2.iam.gserviceaccount.com"
+      + project = "plataforma-mooc-entrega2"
+      + role    = "roles/cloudsql.client"
+    }
+
+  # google_project_iam_member.common["worker-logging.logWriter"] will be created
+  + resource "google_project_iam_member" "common" {
+      + etag    = (known after apply)
+      + id      = (known after apply)
+      + member  = "serviceAccount:sa-worker-server@plataforma-mooc-entrega2.iam.gserviceaccount.com"
+      + project = "plataforma-mooc-entrega2"
+      + role    = "roles/logging.logWriter"
+    }
+
+  # google_project_iam_member.common["worker-monitoring.metricWriter"] will be created
+  + resource "google_project_iam_member" "common" {
+      + etag    = (known after apply)
+      + id      = (known after apply)
+      + member  = "serviceAccount:sa-worker-server@plataforma-mooc-entrega2.iam.gserviceaccount.com"
+      + project = "plataforma-mooc-entrega2"
+      + role    = "roles/monitoring.metricWriter"
+    }
+
+  # google_project_service.required["compute.googleapis.com"] will be created
+  + resource "google_project_service" "required" {
+      + deletion_policy    = "DELETE"
+      + disable_on_destroy = false
+      + id                 = (known after apply)
+      + project            = "plataforma-mooc-entrega2"
+      + service            = "compute.googleapis.com"
+    }
+
+  # google_project_service.required["iam.googleapis.com"] will be created
+  + resource "google_project_service" "required" {
+      + deletion_policy    = "DELETE"
+      + disable_on_destroy = false
+      + id                 = (known after apply)
+      + project            = "plataforma-mooc-entrega2"
+      + service            = "iam.googleapis.com"
+    }
+
+  # google_project_service.required["iamcredentials.googleapis.com"] will be created
+  + resource "google_project_service" "required" {
+      + deletion_policy    = "DELETE"
+      + disable_on_destroy = false
+      + id                 = (known after apply)
+      + project            = "plataforma-mooc-entrega2"
+      + service            = "iamcredentials.googleapis.com"
+    }
+
+  # google_project_service.required["servicenetworking.googleapis.com"] will be created
+  + resource "google_project_service" "required" {
+      + deletion_policy    = "DELETE"
+      + disable_on_destroy = false
+      + id                 = (known after apply)
+      + project            = "plataforma-mooc-entrega2"
+      + service            = "servicenetworking.googleapis.com"
+    }
+
+  # google_project_service.required["sqladmin.googleapis.com"] will be created
+  + resource "google_project_service" "required" {
+      + deletion_policy    = "DELETE"
+      + disable_on_destroy = false
+      + id                 = (known after apply)
+      + project            = "plataforma-mooc-entrega2"
+      + service            = "sqladmin.googleapis.com"
+    }
+
+  # google_project_service.required["storage.googleapis.com"] will be created
+  + resource "google_project_service" "required" {
+      + deletion_policy    = "DELETE"
+      + disable_on_destroy = false
+      + id                 = (known after apply)
+      + project            = "plataforma-mooc-entrega2"
+      + service            = "storage.googleapis.com"
+    }
+
+  # google_service_account.web_server will be created
+  + resource "google_service_account" "web_server" {
+      + account_id      = "sa-web-server"
+      + deletion_policy = "DELETE"
+      + description     = "Identidad de la VM que ejecuta la API. Firma URLs y lee objetos; no escribe derivados."
+      + disabled        = false
+      + display_name    = "Web Server: API modular y proxy inverso"
+      + email           = "sa-web-server@plataforma-mooc-entrega2.iam.gserviceaccount.com"
+      + id              = (known after apply)
+      + member          = "serviceAccount:sa-web-server@plataforma-mooc-entrega2.iam.gserviceaccount.com"
+      + name            = (known after apply)
+      + project         = "plataforma-mooc-entrega2"
+      + unique_id       = (known after apply)
+    }
+
+  # google_service_account.worker_server will be created
+  + resource "google_service_account" "worker_server" {
+      + account_id      = "sa-worker-server"
+      + deletion_policy = "DELETE"
+      + description     = "Identidad de la VM que procesa multimedia. Escribe derivados; no firma URLs."
+      + disabled        = false
+      + display_name    = "Worker Server: workers, FFmpeg y la cola asynq"
+      + email           = "sa-worker-server@plataforma-mooc-entrega2.iam.gserviceaccount.com"
+      + id              = (known after apply)
+      + member          = "serviceAccount:sa-worker-server@plataforma-mooc-entrega2.iam.gserviceaccount.com"
+      + name            = (known after apply)
+      + project         = "plataforma-mooc-entrega2"
+      + unique_id       = (known after apply)
+    }
+
+  # google_service_account_iam_member.web_server_can_sign will be created
+  + resource "google_service_account_iam_member" "web_server_can_sign" {
+      + etag               = (known after apply)
+      + id                 = (known after apply)
+      + member             = "serviceAccount:sa-web-server@plataforma-mooc-entrega2.iam.gserviceaccount.com"
+      + role               = "roles/iam.serviceAccountTokenCreator"
+      + service_account_id = (known after apply)
+    }
+
+Plan: 15 to add, 0 to change, 0 to destroy.
+
+Changes to Outputs:
+  + enabled_services              = [
+      + "compute.googleapis.com",
+      + "iam.googleapis.com",
+      + "iamcredentials.googleapis.com",
+      + "servicenetworking.googleapis.com",
+      + "sqladmin.googleapis.com",
+      + "storage.googleapis.com",
+    ]
+  + project_id                    = "plataforma-mooc-entrega2"
+  + region                        = "us-east1"
+  + web_server_service_account    = "sa-web-server@plataforma-mooc-entrega2.iam.gserviceaccount.com"
+  + worker_server_service_account = "sa-worker-server@plataforma-mooc-entrega2.iam.gserviceaccount.com"
+  + zone                          = "us-east1-b"
+
+Do you want to perform these actions?
+  Terraform will perform the actions described above.
+  Only 'yes' will be accepted to approve.
+
+  Enter a value: 
+google_project_service.required["iamcredentials.googleapis.com"]: Creating...
+google_project_service.required["compute.googleapis.com"]: Creating...
+google_project_service.required["sqladmin.googleapis.com"]: Creating...
+google_project_service.required["servicenetworking.googleapis.com"]: Creating...
+google_service_account.web_server: Creating...
+google_service_account.worker_server: Creating...
+google_project_service.required["iam.googleapis.com"]: Creating...
+google_project_service.required["storage.googleapis.com"]: Creating...
+google_project_service.required["iam.googleapis.com"]: Creation complete after 5s [id=plataforma-mooc-entrega2/iam.googleapis.com]
+google_project_service.required["iamcredentials.googleapis.com"]: Creation complete after 5s [id=plataforma-mooc-entrega2/iamcredentials.googleapis.com]
+google_project_service.required["storage.googleapis.com"]: Creation complete after 5s [id=plataforma-mooc-entrega2/storage.googleapis.com]
+google_project_service.required["servicenetworking.googleapis.com"]: Creation complete after 5s [id=plataforma-mooc-entrega2/servicenetworking.googleapis.com]
+google_project_service.required["sqladmin.googleapis.com"]: Creation complete after 5s [id=plataforma-mooc-entrega2/sqladmin.googleapis.com]
+google_project_service.required["compute.googleapis.com"]: Creation complete after 5s [id=plataforma-mooc-entrega2/compute.googleapis.com]
+google_service_account.web_server: Still creating... 10s elapsed]
+google_service_account.worker_server: Still creating... 10s elapsed]
+google_service_account.worker_server: Creation complete after 12s [id=projects/plataforma-mooc-entrega2/serviceAccounts/sa-worker-server@plataforma-mooc-entrega2.iam.gserviceaccount.com]
+google_service_account.web_server: Creation complete after 15s [id=projects/plataforma-mooc-entrega2/serviceAccounts/sa-web-server@plataforma-mooc-entrega2.iam.gserviceaccount.com]
+google_service_account_iam_member.web_server_can_sign: Creating...
+google_project_iam_member.common["worker-monitoring.metricWriter"]: Creating...
+google_project_iam_member.common["web-monitoring.metricWriter"]: Creating...
+google_project_iam_member.common["worker-cloudsql.client"]: Creating...
+google_project_iam_member.common["worker-logging.logWriter"]: Creating...
+google_project_iam_member.common["web-cloudsql.client"]: Creating...
+google_project_iam_member.common["web-logging.logWriter"]: Creating...
+google_service_account_iam_member.web_server_can_sign: Creation complete after 5s [id=projects/plataforma-mooc-entrega2/serviceAccounts/sa-web-server@plataforma-mooc-entrega2.iam.gserviceaccount.com/roles/iam.serviceAccountTokenCreator/serviceAccount:sa-web-server@plataforma-mooc-entrega2.iam.gserviceaccount.com]
+google_project_iam_member.common["web-logging.logWriter"]: Creation complete after 9s [id=plataforma-mooc-entrega2/roles/logging.logWriter/serviceAccount:sa-web-server@plataforma-mooc-entrega2.iam.gserviceaccount.com]
+google_project_iam_member.common["web-monitoring.metricWriter"]: Creation complete after 9s [id=plataforma-mooc-entrega2/roles/monitoring.metricWriter/serviceAccount:sa-web-server@plataforma-mooc-entrega2.iam.gserviceaccount.com]
+google_project_iam_member.common["web-cloudsql.client"]: Creation complete after 10s [id=plataforma-mooc-entrega2/roles/cloudsql.client/serviceAccount:sa-web-server@plataforma-mooc-entrega2.iam.gserviceaccount.com]
+google_project_iam_member.common["worker-logging.logWriter"]: Creation complete after 10s [id=plataforma-mooc-entrega2/roles/logging.logWriter/serviceAccount:sa-worker-server@plataforma-mooc-entrega2.iam.gserviceaccount.com]
+google_project_iam_member.common["worker-monitoring.metricWriter"]: Creation complete after 10s [id=plataforma-mooc-entrega2/roles/monitoring.metricWriter/serviceAccount:sa-worker-server@plataforma-mooc-entrega2.iam.gserviceaccount.com]
+google_project_iam_member.common["worker-cloudsql.client"]: Still creating... 10s elapsed]
+google_project_iam_member.common["worker-cloudsql.client"]: Creation complete after 11s [id=plataforma-mooc-entrega2/roles/cloudsql.client/serviceAccount:sa-worker-server@plataforma-mooc-entrega2.iam.gserviceaccount.com]
+
+Apply complete! Resources: 15 added, 0 changed, 0 destroyed.
+
+Outputs:
+
+enabled_services = tolist([
+  "compute.googleapis.com",
+  "iam.googleapis.com",
+  "iamcredentials.googleapis.com",
+  "servicenetworking.googleapis.com",
+  "sqladmin.googleapis.com",
+  "storage.googleapis.com",
+])
+project_id = "plataforma-mooc-entrega2"
+region = "us-east1"
+web_server_service_account = "sa-web-server@plataforma-mooc-entrega2.iam.gserviceaccount.com"
+worker_server_service_account = "sa-worker-server@plataforma-mooc-entrega2.iam.gserviceaccount.com"
+zone = "us-east1-b"

@@ -7,6 +7,36 @@ on:
     branches: ["*"]
 
 jobs:
+  terraform:
+    name: Terraform Format & Validate
+    runs-on: ubuntu-latest
+
+    # Se ejecuta en paralelo con el trabajo de Go: no comparten nada, y una
+    # configuracion de Terraform rota no deberia esperar a que terminen las
+    # pruebas de integracion para delatarse.
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          # La misma version que fija versions.tf. Si alguien la sube en el
+          # codigo y se olvida aqui, este trabajo lo detecta.
+          terraform_version: 1.16.4
+
+      - name: Check formatting
+        run: terraform -chdir=infra/terraform fmt -check -recursive -diff
+
+      - name: Initialize without backend
+        # Sin backend porque el bucket del estado exige credenciales, y este
+        # trabajo no las tiene ni debe tenerlas: valida la sintaxis y el
+        # esquema del proveedor, no toca infraestructura real.
+        run: terraform -chdir=infra/terraform init -backend=false -input=false
+
+      - name: Validate configuration
+        run: terraform -chdir=infra/terraform validate
+
   ci:
     name: Build, Lint, Migrations & Unit Tests
     runs-on: ubuntu-latest
