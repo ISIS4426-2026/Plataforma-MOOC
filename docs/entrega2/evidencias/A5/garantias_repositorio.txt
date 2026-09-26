@@ -1,0 +1,39 @@
+Los tres criterios de aceptacion del issue #112, en la capa que los garantiza
+============================================================================
+
+--- Con la restriccion UNIQUE (quiz_id, student_id, attempt) en su lugar ---
+
+=== RUN   TestQuizRepositoryStudentViewNeverCarriesTheKey
+--- PASS: TestQuizRepositoryStudentViewNeverCarriesTheKey (1.03s)
+=== RUN   TestQuizRepositoryGradesOnTheServer
+--- PASS: TestQuizRepositoryGradesOnTheServer (1.07s)
+=== RUN   TestQuizRepositoryIgnoresOptionsFromAnotherQuiz
+--- PASS: TestQuizRepositoryIgnoresOptionsFromAnotherQuiz (1.19s)
+=== RUN   TestQuizRepositoryRefusesBeyondTheAttemptLimit
+--- PASS: TestQuizRepositoryRefusesBeyondTheAttemptLimit (1.04s)
+=== RUN   TestQuizRepositoryConcurrentSubmissionsRespectTheLimit
+--- PASS: TestQuizRepositoryConcurrentSubmissionsRespectTheLimit (1.08s)
+=== RUN   TestQuizRepositoryEmptyQuizDoesNotPass
+--- PASS: TestQuizRepositoryEmptyQuizDoesNotPass (1.00s)
+=== RUN   TestQuizRepositoryRefusesASecondQuizOnTheSameResource
+--- PASS: TestQuizRepositoryRefusesASecondQuizOnTheSameResource (1.16s)
+=== RUN   TestQuizRepositoryOptionOrderIsStable
+--- PASS: TestQuizRepositoryOptionOrderIsStable (1.51s)
+ok  	github.com/ISIS4426-2026/Plataforma-MOOC/internal/postgres	10.149s
+
+--- Quitando la restriccion, para mostrar que la prueba de concurrencia
+    detecta la perdida del limite. Este cambio NO esta en el codigo entregado.
+
+--- FAIL: TestQuizRepositoryConcurrentSubmissionsRespectTheLimit (1.03s)
+    quiz_repository_test.go:302: 6 envíos tuvieron éxito con un límite de 3 intentos
+    quiz_repository_test.go:310: quedaron 6 envíos registrados con un límite de 3
+    quiz_repository_test.go:316: el intento 2 aparece dos veces
+    quiz_repository_test.go:316: el intento 2 aparece dos veces
+    quiz_repository_test.go:316: el intento 1 aparece dos veces
+FAIL
+FAIL	github.com/ISIS4426-2026/Plataforma-MOOC/internal/postgres	1.568s
+FAIL
+
+--- Restriccion restaurada ---
+
+ok  	github.com/ISIS4426-2026/Plataforma-MOOC/internal/postgres	1.591s

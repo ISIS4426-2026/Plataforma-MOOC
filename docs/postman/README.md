@@ -1,4 +1,4 @@
-# Colecciones de Postman — Identidad (#24), Administración (#25), Autoría de Cursos (#26), Inscripciones (#111), Progreso e Insignias (#113) y Multimedia (#109)
+# Colecciones de Postman — Identidad (#24), Administración (#25), Autoría de Cursos (#26), Inscripciones (#111), Progreso e Insignias (#113), Quizzes (#112) y Multimedia (#109)
 
 Este documento describe la suite completa de pruebas automatizadas en **Postman / Newman** para los subsistemas de:
 1. **Identidad, Autenticación y Control de Acceso** (Issue #24).
@@ -6,7 +6,8 @@ Este documento describe la suite completa de pruebas automatizadas en **Postman 
 3. **Autoría de Cursos, Jerarquía, Inmutabilidad y Publicación** (Issue #26).
 4. **Inscripción, Retiro, Reinscripción y Control de Acceso al Contenido** (Issue #111).
 5. **Progreso, Tiempo de Permanencia e Insignias Verificables** (Issue #113).
-6. **Carga Directa al Almacenamiento de Objetos, Confirmación e Idempotencia** (Issue #109).
+6. **Quizzes: Autoría, Calificación en Servidor e Intentos Idempotentes** (Issue #112).
+7. **Carga Directa al Almacenamiento de Objetos, Confirmación e Idempotencia** (Issue #109).
 
 La suite cumple estrictamente con los criterios de evaluación de la **Sección 9**, los flujos críticos de la **Sección 10.2** del pliego de condiciones y los estándares de diseño y seguridad de [`PROJECT_KEY_ASPECTS.md`](../../PROJECT_KEY_ASPECTS.md).
 
@@ -23,12 +24,13 @@ La carpeta `docs/postman/` contiene los siguientes artefactos:
 | [`collection_authoring.postman_collection.json`](./collection_authoring.postman_collection.json) | Colección v2.1 de Postman para **Autoría de Cursos** (Issue #26) con 30 peticiones organizadas secuencialmente, ciclo de vida completo de borrador a publicado, validación exhaustiva de publicación, inmutabilidad, reordenamiento con preservación de `stable_id` y 60 aserciones automatizadas. |
 | [`collection_enrollments.postman_collection.json`](./collection_enrollments.postman_collection.json) | Colección v2.1 de Postman para **Inscripciones** (Issue #111) con 21 peticiones encadenadas que recorren el estado de una misma inscripción —desde antes de existir hasta después de volver—, control de acceso al contenido y 36 aserciones automatizadas. |
 | [`collection_progress.postman_collection.json`](./collection_progress.postman_collection.json) | Colección v2.1 de Postman para **Progreso e Insignias** (Issue #113) con 31 peticiones que recorren el curso descubriendo sus recursos, comprueban que repetir un latido no infla el avance, completan el curso, leen la insignia como recurso con GET condicional (ETag/304) y la verifican sin autenticación. 64 aserciones automatizadas. |
+| [`collection_quizzes.postman_collection.json`](./collection_quizzes.postman_collection.json) | Colección v2.1 de Postman para **Quizzes** (Issue #112) con 28 peticiones que montan su propio curso y cuestionario, comprueban que la clave de respuestas no aparece en ninguna respuesta al estudiante, que un reenvío con la misma clave de idempotencia no gasta un intento y que superar el límite responde 409. 56 aserciones automatizadas. |
 | [`collection_media.postman_collection.json`](./collection_media.postman_collection.json) | Colección v2.1 de Postman para **Multimedia** (Issue #109) con 25 peticiones organizadas secuencialmente, flujo de carga directa al bucket sin pasar por la API, confirmación idempotente, validación de extensión, MIME y tamaño, control de acceso e inmutabilidad, y 43 aserciones automatizadas. |
 | [`mooc_local.postman_environment.json`](./mooc_local.postman_environment.json) | Entorno parametrizado para ejecuciones desde Postman Desktop en la máquina host (`http://localhost:8080` y `http://localhost:8025`). |
 | [`mooc_docker.postman_environment.json`](./mooc_docker.postman_environment.json) | Entorno parametrizado para ejecuciones desatendidas en la red de Docker Compose (`http://api:8080` y `http://mailpit:8025`). |
 | [`README.md`](./README.md) | Documentación técnica integral, matrices de peticiones/aserciones y guía de ejecución. |
 
-**Total de la suite**: **166 peticiones HTTP** definidas (197 ejecutadas) y **359 aserciones automatizadas** con **0 fallos**.
+**Total de la suite**: **194 peticiones HTTP** definidas (225 ejecutadas) y **415 aserciones automatizadas** con **0 fallos**.
 
 ---
 
@@ -270,6 +272,23 @@ La coleccion cubre las dos caras de la insignia:
   origen publico de la plataforma (`APP_BASE_URL`), el mismo contra el que se
   arman los enlaces de activacion. Por eso no coincide con `baseUrl` en el
   entorno de Docker: ese entorno habla con el contenedor.
+
+#### Ejecutar individualmente la suite de Quizzes (#112):
+```bash
+make test-postman-quizzes
+```
+
+**Resultado esperado:** 28 peticiones, 56 aserciones, 0 fallos.
+
+La colección **monta su propio curso y cuestionario** en cada corrida, y es a
+propósito: los intentos de un quiz se agotan, así que reutilizar el sembrado
+haría que la segunda ejecución no pudiera presentar nada. Con un curso nuevo los
+intentos siempre empiezan en cero y la colección es re-ejecutable sin reiniciar
+la base.
+
+La comprobación de que la clave no se filtra no se hace campo por campo sino
+sobre el **texto crudo** de la respuesta —`pm.expect(pm.response.text()).to.not.include("is_correct")`—,
+que es la única forma de afirmar que no está en ninguna parte.
 
 #### Ejecutar individualmente la suite de Multimedia (#109):
 ```bash

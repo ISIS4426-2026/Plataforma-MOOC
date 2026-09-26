@@ -174,6 +174,19 @@ func (s *Service) CanRead(ctx context.Context, viewerID string, role domain.Role
 	return s.deps.Enrollments.IsActive(ctx, viewerID, course.StableID)
 }
 
+// IsActiveIn answers whether a student may currently work through a course.
+//
+// It is the narrow question CanRead answers for content, exposed on its own
+// because presenting a quiz is not reading content: an author may read their
+// own course without enrolling, but must not be graded in it. Callers that need
+// that distinction ask this instead of CanRead.
+func (s *Service) IsActiveIn(ctx context.Context, studentID, courseStableID string) (bool, error) {
+	if studentID == "" {
+		return false, nil
+	}
+	return s.deps.Enrollments.IsActive(ctx, studentID, courseStableID)
+}
+
 // newEntry builds the audit record. The action is left to the repository, which
 // is the only layer that knows whether an enrollment was created or reactivated.
 func newEntry(actor Actor, target string) *domain.AuditEntry {
