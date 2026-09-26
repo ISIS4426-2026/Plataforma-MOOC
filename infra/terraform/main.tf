@@ -35,6 +35,12 @@ locals {
     # Conexion privada hacia Cloud SQL, que necesita C1 para no exponer la base
     # a internet.
     "servicenetworking.googleapis.com",
+
+    # Almacen de secretos. B4 lo usara para que la aplicacion lea sus
+    # credenciales en tiempo de ejecucion; mientras tanto ya sirve como el sitio
+    # donde el equipo comparte la contrasena de la base, con el mismo IAM que
+    # gobierna todo lo demas y dejando registro de quien la lee.
+    "secretmanager.googleapis.com",
   ]
 }
 

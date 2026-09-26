@@ -97,10 +97,68 @@ averiguar quién tiene copias.
 
 ## La contraseña de la base
 
-Se comparte por un gestor de contraseñas, **nunca por el repositorio ni por
-chat**. El issue **B4** (#117) la moverá a Secret Manager; hasta entonces se
-gestiona fuera de banda.
+Se guarda en **Secret Manager, en el mismo proyecto**. No en un gestor externo,
+y desde luego no en el repositorio ni por chat.
 
-Recuerda que el estado de Terraform **la contiene en claro**. Por eso el bucket
-se creó con prevención de acceso público y solo el equipo tiene permiso sobre
-él.
+La razón no es solo comodidad: si cada integrante guardara su propia copia,
+bastaría una errata para que dos personas tuvieran valores distintos, y a partir
+de C1 cada `apply` cambiaría la contraseña de la base por la de quien lo
+ejecutó. Leyéndola de una única fuente, eso no puede pasar.
+
+Ventaja adicional sobre cualquier herramienta externa: no hay cuentas nuevas
+que crear, el control de acceso es el IAM que ya se repartió, y queda registro
+de quién la leyó.
+
+### Crearla, una vez
+
+Requiere que `terraform apply` haya habilitado `secretmanager.googleapis.com`.
+
+```bash
+# Generar y guardar en un solo paso, sin que pase por el historial del shell
+openssl rand -base64 24 | tr -d '\n' | gcloud secrets create db-password \
+  --project=plataforma-mooc-entrega2 \
+  --replication-policy=user-managed --locations=us-east1 \
+  --data-file=-
+```
+
+El `tr -d` quita el salto de línea final: sin él, la contraseña llevaría un
+carácter invisible al final y las conexiones fallarían por una razón muy difícil
+de ver.
+
+Comprueba que quedó bien:
+
+```bash
+gcloud secrets versions access latest --secret=db-password \
+  --project=plataforma-mooc-entrega2
+```
+
+### Dar acceso al equipo
+
+```bash
+CORREO="companero@gmail.com"
+
+gcloud secrets add-iam-policy-binding db-password \
+  --project=plataforma-mooc-entrega2 \
+  --member="user:${CORREO}" \
+  --role="roles/secretmanager.secretAccessor"
+```
+
+### Rotarla
+
+Si alguna vez hace falta, se añade una versión nueva; las anteriores quedan
+archivadas:
+
+```bash
+openssl rand -base64 24 | tr -d '\n' | gcloud secrets versions add db-password \
+  --project=plataforma-mooc-entrega2 --data-file=-
+```
+
+Ojo: **rotarla no cambia la contraseña de la base**. Hay que volver a aplicar
+Terraform para que el cambio llegue a PostgreSQL, y avisar al equipo, porque la
+aplicación desplegada seguirá usando la anterior hasta que se reinicie.
+
+### Y una advertencia que no cambia
+
+El estado de Terraform **contiene la contraseña en claro**. Por eso el bucket se
+creó con prevención de acceso público y solo el equipo tiene permiso sobre él.
+Secret Manager es de dónde se lee, no un sustituto de esa precaución.
