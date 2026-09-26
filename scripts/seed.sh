@@ -127,16 +127,20 @@ cmd_status() {
 
     echo -e "  ${BOLD}Cursos:${NC}   Total: ${total_courses} (Publicados: ${published_courses} | Borradores: ${draft_courses} | Despublicados: ${unpub_courses})"
 
-    local modules units resources quizzes badges audit_logs
+    local modules units resources quizzes badges audit_logs enrollments progress events
     modules=$(run_psql_query "SELECT COUNT(*) FROM modules;")
     units=$(run_psql_query "SELECT COUNT(*) FROM units;")
     resources=$(run_psql_query "SELECT COUNT(*) FROM resources;")
     quizzes=$(run_psql_query "SELECT COUNT(*) FROM quizzes;")
     badges=$(run_psql_query "SELECT COUNT(*) FROM badges;")
     audit_logs=$(run_psql_query "SELECT COUNT(*) FROM audit_logs;")
+    enrollments=$(run_psql_query "SELECT COUNT(*) FROM enrollments WHERE status = 'active';")
+    progress=$(run_psql_query "SELECT COUNT(*) FROM student_progress;")
+    events=$(run_psql_query "SELECT COUNT(*) FROM progress_events;")
 
     echo -e "  ${BOLD}Jerarquía:${NC} Módulos: ${modules} | Unidades: ${units} | Recursos: ${resources}"
     echo -e "  ${BOLD}Evaluación:${NC} Quizzes: ${quizzes} | Insignias Emitidas: ${badges}"
+    echo -e "  ${BOLD}Avance:${NC}    Inscripciones activas: ${enrollments} | Estudiantes con progreso: ${progress} | Latidos: ${events}"
     echo -e "  ${BOLD}Auditoría:${NC}  Registros inmutables: ${audit_logs}"
     echo -e "${BLUE}------------------------------------------------------------------------${NC}"
 }

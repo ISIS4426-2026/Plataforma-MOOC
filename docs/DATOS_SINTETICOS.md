@@ -28,8 +28,8 @@ Todos los usuarios de prueba tienen configurada la contraseña: **`Password123!`
 | **Administrador** | `admin.secundario@plataforma-mooc.test` | `active` | `a0000000-0000-0000-0000-000000000002` | Permite probar la protección del último administrador activo (`last_admin_protected`). |
 | **Profesor** | `profesor1@plataforma-mooc.test` | `active` | `b0000000-0000-0000-0000-000000000001` | Autor del Curso Publicado y del Borrador Completo. Pruebas de autoría y publicación. |
 | **Profesor** | `profesor2@plataforma-mooc.test` | `active` | `b0000000-0000-0000-0000-000000000002` | Autor del Borrador Incompleto y Curso Despublicado. Pruebas de aislamiento de propiedad. |
-| **Estudiante** | `estudiante1@plataforma-mooc.test` | `active` | `c0000000-0000-0000-0000-000000000001` | Estudiante activo con inscripción y 50% de avance en el curso publicado. |
-| **Estudiante** | `estudiante2@plataforma-mooc.test` | `active` | `c0000000-0000-0000-0000-000000000002` | Estudiante que ha completado y aprobado el curso, con una insignia digital emitida. |
+| **Estudiante** | `estudiante1@plataforma-mooc.test` | `active` | `c0000000-0000-0000-0000-000000000001` | Estudiante activo, inscrito en el curso publicado y con 1 de sus 3 recursos obligatorios completado (33.33%). |
+| **Estudiante** | `estudiante2@plataforma-mooc.test` | `active` | `c0000000-0000-0000-0000-000000000002` | Estudiante inscrito que completó y aprobó el curso, con una insignia digital emitida y verificable. |
 | **Estudiante** | `estudiante.pendiente@plataforma-mooc.test` | `pending_verification` | `c0000000-0000-0000-0000-000000000003` | Verificación de rechazo de login (403 `email_not_verified`) antes de activar el correo. |
 | **Estudiante** | `estudiante.suspendido@plataforma-mooc.test` | `suspended` | `c0000000-0000-0000-0000-000000000004` | Verificación de rechazo de login (403 `account_suspended`) para cuentas sancionadas. |
 
@@ -51,12 +51,59 @@ Todos los usuarios de prueba tienen configurada la contraseña: **`Password123!`
 * **Pregunta 2 (`fb...02`):** *¿Cómo se valida y computa el progreso de los estudiantes en la plataforma?*
   * Opción Correcta (`fc...04`): *Estrictamente en servidor mediante heartbeats verificados, permanencia y eventos*.
 
+### Inscripciones
+
+Ambos estudiantes con avance están **inscritos y activos** en el curso publicado
+(`e0000000-0000-0000-0000-000000000001`). No es un detalle decorativo: desde el
+issue #111 el contenido del curso exige inscripción activa, así que sin ella un
+estudiante con progreso no podría leer el contenido que completó ni reportar un
+latido más.
+
+| Estudiante | Estado | Inscrito el |
+| :--- | :--- | :--- |
+| `estudiante1` (`c0…01`) | `active` | 2026-09-04 09:00 UTC |
+| `estudiante2` (`c0…02`) | `active` | 2026-09-04 09:30 UTC |
+
+Los otros dos estudiantes —pendiente de verificación y suspendido— no tienen
+inscripción ni avance: existen para probar el rechazo de login.
+
 ### Avance Estudiantil e Insignia Emitida
-* **Estudiante 1:** Progreso de 50% registrado en `student_progress` para el curso `e0000000-0000-0000-0000-000000000001`.
-* **Estudiante 2:** Progreso del 100% (`is_approved = true`) con insignia digital emitida en `badges`:
+
+El curso publicado tiene **3 recursos obligatorios y visibles**, que es el
+denominador del porcentaje. La API lo recalcula en cada lectura contra los
+recursos que el curso tiene en ese momento, así que los valores guardados aquí
+coinciden con lo que `GET /api/v1/progress/courses/{course_id}` reporta.
+
+* **Estudiante 1:** 1 de 3 recursos completados — **33.33%**, `is_approved = false`.
+  Dos latidos en `progress_events`: uno de permanencia sin completar y otro que
+  cierra el recurso.
+* **Estudiante 2:** 3 de 3 — **100%**, `is_approved = true`, tres latidos, y la
+  insignia que emitió esa aprobación:
   * **Insignia ID:** `fe000000-0000-0000-0000-000000000001`
   * **Código de Verificación Pública:** `fe100000-0000-0000-0000-000000000001`
-  * **Clave de Imagen en Objeto:** `badges/arquitectura-cloud-fe100000.png`
+  * **Clave de Imagen en Objeto:** `badges/e0000000-0000-0000-0000-000000000001/c0000000-0000-0000-0000-000000000002.png`
+    — derivada de `(curso, estudiante)`, igual que `domain.BadgeImageKey`. El objeto
+    no existe: la generación de la imagen quedó fuera del alcance del issue #113.
+
+El código de verificación resuelve sin autenticación, que es el punto de una
+credencial verificable:
+
+```bash
+curl -s http://localhost:8080/api/v1/badges/verify/fe100000-0000-0000-0000-000000000001
+```
+
+```json
+{
+  "valid": true,
+  "course_title": "Arquitectura Cloud y Sistemas Distribuidos",
+  "issued_at": "2026-09-05T16:05:00Z",
+  "revoked": false
+}
+```
+
+La respuesta no dice quién obtuvo la insignia, y es deliberado: el contrato de
+OpenAPI describe este endpoint como verificación pública que preserva la
+privacidad.
 
 ---
 

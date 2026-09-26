@@ -250,15 +250,74 @@ ON CONFLICT (id) DO UPDATE SET
     is_correct = EXCLUDED.is_correct;
 
 -- ----------------------------------------------------------------------------
--- 7. PROGRESO DE ESTUDIANTES (Progreso Validado e Insignias)
+-- 7. INSCRIPCIONES (Issue #111)
 -- ----------------------------------------------------------------------------
+-- Van antes del progreso porque lo sostienen: desde que el contenido del curso
+-- exige inscripcion activa, un estudiante con avance y sin inscripcion es un
+-- estado que se contradice -- no podria leer el contenido que supuestamente
+-- completo, ni reportar un latido mas.
+--
+-- Son exactamente dos, una por cada estudiante con progreso sembrado. Los otros
+-- dos estudiantes (pendiente de verificacion y suspendido) no tienen avance, y
+-- darles una inscripcion seria inventar datos en lugar de respaldarlos.
+--
+-- El conflicto se resuelve sobre (student_id, course_stable_id) y no sobre el id:
+-- es la llave que de verdad colisiona cuando la semilla se carga sobre una base
+-- donde alguien ya se inscribio por la API con otro id.
+INSERT INTO enrollments (id, student_id, course_stable_id, status, enrolled_at, withdrawn_at)
+VALUES
+    -- Estudiante 1: inscrito y avanzando
+    ('fc100000-0000-0000-0000-000000000001', 'c0000000-0000-0000-0000-000000000001',
+     'e0000000-0000-0000-0000-000000000001', 'active', '2026-09-04 09:00:00+00', NULL),
+
+    -- Estudiante 2: inscrito, y por eso pudo completar el curso y recibir la insignia
+    ('fc100000-0000-0000-0000-000000000002', 'c0000000-0000-0000-0000-000000000002',
+     'e0000000-0000-0000-0000-000000000001', 'active', '2026-09-04 09:30:00+00', NULL)
+ON CONFLICT (student_id, course_stable_id) DO UPDATE SET
+    status = 'active',
+    enrolled_at = EXCLUDED.enrolled_at,
+    withdrawn_at = NULL;
+
+-- ----------------------------------------------------------------------------
+-- 8. PROGRESO DE ESTUDIANTES (Progreso Validado e Insignias)
+-- ----------------------------------------------------------------------------
+-- Los latidos son el registro de hechos y student_progress la proyeccion que se
+-- deriva de ellos, asi que se siembran los dos: una proyeccion sin los
+-- latidos que la produjeron contradice el diseno que la API implementa.
+INSERT INTO progress_events (id, student_id, course_stable_id, resource_stable_id, dwell_time_seconds, completed, created_at)
+VALUES
+    -- Estudiante 1: leyo la guia y la termino
+    ('fc200000-0000-0000-0000-000000000001', 'c0000000-0000-0000-0000-000000000001',
+     'e0000000-0000-0000-0000-000000000001', 'e3000000-0000-0000-0000-000000000001',
+     180, false, '2026-09-05 14:55:00+00'),
+    ('fc200000-0000-0000-0000-000000000002', 'c0000000-0000-0000-0000-000000000001',
+     'e0000000-0000-0000-0000-000000000001', 'e3000000-0000-0000-0000-000000000001',
+     120, true, '2026-09-05 15:00:00+00'),
+
+    -- Estudiante 2: recorrio los tres recursos obligatorios
+    ('fc200000-0000-0000-0000-000000000003', 'c0000000-0000-0000-0000-000000000002',
+     'e0000000-0000-0000-0000-000000000001', 'e3000000-0000-0000-0000-000000000001',
+     240, true, '2026-09-05 15:30:00+00'),
+    ('fc200000-0000-0000-0000-000000000004', 'c0000000-0000-0000-0000-000000000002',
+     'e0000000-0000-0000-0000-000000000001', 'e3000000-0000-0000-0000-000000000002',
+     600, true, '2026-09-05 15:45:00+00'),
+    ('fc200000-0000-0000-0000-000000000005', 'c0000000-0000-0000-0000-000000000002',
+     'e0000000-0000-0000-0000-000000000001', 'e3000000-0000-0000-0000-000000000003',
+     300, true, '2026-09-05 16:00:00+00')
+ON CONFLICT (id) DO NOTHING;
+
 INSERT INTO student_progress (id, student_id, course_stable_id, completed_resources, percent_completed, is_approved, updated_at)
 VALUES
-    -- Estudiante 1: 50% de avance
+    -- Estudiante 1: 1 de los 3 recursos obligatorios del curso.
+    --
+    -- 33.33 y no 50.00: la API recalcula el porcentaje en cada lectura contra los
+    -- recursos obligatorios y visibles que el curso tiene, y el curso sembrado
+    -- tiene tres. Un numero guardado que no coincide con el que la API reporta no
+    -- se sostiene como evidencia.
     ('fd000000-0000-0000-0000-000000000001', 'c0000000-0000-0000-0000-000000000001',
      'e0000000-0000-0000-0000-000000000001',
      '["e3000000-0000-0000-0000-000000000001"]'::jsonb,
-     50.00, false, '2026-09-05 15:00:00+00'),
+     33.33, false, '2026-09-05 15:00:00+00'),
 
     -- Estudiante 2: 100% completado y aprobado
     ('fd000000-0000-0000-0000-000000000002', 'c0000000-0000-0000-0000-000000000002',
@@ -277,14 +336,18 @@ VALUES
     ('fe000000-0000-0000-0000-000000000001', 'c0000000-0000-0000-0000-000000000002',
      'e0000000-0000-0000-0000-000000000001',
      'fe100000-0000-0000-0000-000000000001',
-     'badges/arquitectura-cloud-fe100000.png', false, '2026-09-05 16:05:00+00')
+     -- La llave se deriva de (curso, estudiante), como hace domain.BadgeImageKey.
+     -- Escribirla a mano con otra forma es justamente la deriva que esa funcion
+     -- existe para evitar.
+     'badges/e0000000-0000-0000-0000-000000000001/c0000000-0000-0000-0000-000000000002.png',
+     false, '2026-09-05 16:05:00+00')
 ON CONFLICT (id) DO UPDATE SET
     verification_code = EXCLUDED.verification_code,
     image_key = EXCLUDED.image_key,
     is_revoked = EXCLUDED.is_revoked;
 
 -- ----------------------------------------------------------------------------
--- 8. REGISTROS DE AUDITORÍA INMUTABLE INICIALES
+-- 9. REGISTROS DE AUDITORÍA INMUTABLE INICIALES
 -- ----------------------------------------------------------------------------
 INSERT INTO audit_logs (id, actor_id, action, target_resource, details, ip_address, user_agent, created_at)
 VALUES
