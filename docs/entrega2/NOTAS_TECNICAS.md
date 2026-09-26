@@ -18,12 +18,12 @@ salieron de errores que costaron una tarde y se habrían evitado leyéndolas.
 | 6 | El contenido del curso dejó de ser público | G1, G2, G3, H2, H3 |
 | 7 | La semilla tenía progreso sin inscripciones, y porcentajes que no cuadraban — **resuelto** | G1, G3, H2, H3 |
 | 8 | El contrato de OpenAPI ya documenta lo que falta construir | A5, G2, I1 |
-| 9 | `APP_BASE_URL` ahora también arma los enlaces de verificación | D2, D3, D4, F1, I1 |
+| 9 | `APP_BASE_URL` ahora también arma los enlaces de verificación | D2, D3, G4, F1, I1 |
 | 10 | Las tablas del estudiante no tienen clave ajena al curso, a propósito | C1, C2, I1 |
-| 11 | Los latidos no pasan por el limitador, y los pools no están acotados | B4, C1, D4, H1, H2, H3 |
+| 11 | Los latidos no pasan por el limitador, y los pools no están acotados | B4, C1, G4, H1, H2, H3 |
 | 12 | Dos trampas del entorno local | todos |
 | 13 | Reproducir videos completos en las pruebas cuesta más que las dos VMs | B1, C3, H2, H4, H5 |
-| 14 | Tres cosas que GCP decidió por nosotros al habilitar las APIs | B3, D2, D4, E1, F1 |
+| 14 | Tres cosas que GCP decidió por nosotros al habilitar las APIs | B3, D2, G4, E1, F1 |
 
 ---
 
@@ -345,7 +345,7 @@ aprobación gana un segundo término, y eso toca `resourceCounts.approved()` en
 
 ## 9. `APP_BASE_URL` ahora también arma los enlaces de verificación
 
-**Afecta a:** D2 y D3 (proxy inverso y HTTPS), D4, F1 (SMTP), I1.
+**Afecta a:** D2 y D3 (proxy inverso y HTTPS), G4, F1 (SMTP), I1.
 
 Hasta A6, `APP_BASE_URL` solo aparecía en los correos de activación y de
 recuperación de contraseña. Ahora también construye el `verification_url` que
@@ -396,7 +396,7 @@ Dos consecuencias:
 
 ## 11. Los latidos no pasan por el limitador, y los pools no están acotados
 
-**Afecta a:** B4 (configuración), C1 (Cloud SQL), D4 (seguridad tras el proxy),
+**Afecta a:** B4 (configuración), C1 (Cloud SQL), G4 (verificacion de red y seguridad),
 H1, H2 y H3 (escenario 1).
 
 **El limitador de tasa cubre tres rutas, no todas.** Se aplica por ruta a login,
@@ -411,7 +411,7 @@ limitRecovery := middleware.RateLimit(..., "recovery", ...)
 
 Para el escenario 1 eso es conveniente: los latidos no se van a estrangular y lo
 que se mida será la plataforma. Pero también significa que **nada acota el volumen
-de latidos** salvo el tope de 3600 s de permanencia por reporte. Si D4 agrega
+de latidos** salvo el tope de 3600 s de permanencia por reporte. Si G4 exige
 limitación en el proxy, el camino del latido hay que exceptuarlo o dimensionarlo a
 conciencia, o el informe de capacidad medirá el proxy en lugar de la API.
 
@@ -517,7 +517,7 @@ contrasten con el consumo observado.
 
 ## 14. Tres cosas que GCP decidió por nosotros al habilitar las APIs
 
-**Afecta a:** B3 (VPC y firewall), D2 y E1 (las VMs), D4 (verificación de
+**Afecta a:** B3 (VPC y firewall), D2 y E1 (las VMs), G4 (verificación de
 seguridad), F1 (SMTP).
 
 Aparecieron al mirar la consola después del primer `terraform apply` de B2.
@@ -538,7 +538,7 @@ se cree en esa red lo estaría.
 
 **Lo que toca hacer en B3:** crear la VPC propia con solo la subred que la
 entrega necesita, y **eliminar la red `default` con sus reglas**. Si se deja,
-D4 —la verificación de red y seguridad del despliegue— va a encontrar
+G4 —la verificación de red y seguridad del despliegue— va a encontrar
 exactamente eso, y con razón.
 
 Conviene además que el Terraform de B3 sea explícito al respecto en lugar de
@@ -576,7 +576,7 @@ quién escribe si la VM puede hacer cualquier cosa.
 
 **Lo que toca en D2 y E1:** adjuntar explícitamente `sa-web-server` y
 `sa-worker-server` a sus respectivas instancias, y no dar por bueno el valor por
-defecto. Y en **D4**, comprobarlo: mirar qué cuenta lleva adjunta cada VM, no
+defecto. Y en **G4**, comprobarlo: mirar qué cuenta lleva adjunta cada VM, no
 solo qué cuentas existen.
 
 Si al final ninguna VM la usa, lo más limpio es **quitarle el rol de Editor** a
