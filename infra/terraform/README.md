@@ -117,6 +117,14 @@ export TF_VAR_db_password='...'   # la misma para todo el equipo; pedírsela a q
 Va por entorno y nunca por el repositorio. En Windows con PowerShell:
 `$env:TF_VAR_db_password = '...'`.
 
+> **Tiene que ser exactamente la misma para los cuatro.** No es una
+> recomendación de orden: si cada uno exporta una distinta, a partir de C1 cada
+> `apply` cambiará la contraseña de la base por la de quien lo ejecutó y
+> **romperá las conexiones de la aplicación**. El vaivén sería difícil de
+> diagnosticar, porque el código es idéntico para todos y lo que difiere es el
+> entorno. Se comparte por un gestor de contraseñas; la reparte quien administra
+> el proyecto.
+
 ---
 
 > **¿Eres quien administra el proyecto de GCP?** El bootstrap del bucket de
@@ -181,7 +189,7 @@ realista de corromperlo.
 **Si el estado se corrompiera**, el bucket tiene versionado: la versión anterior
 sigue ahí y se puede restaurar.
 
-### Las cuatro reglas
+### Las cinco reglas
 
 1. **Nunca editar el estado a mano** ni descargarlo al repositorio. Contiene la
    contraseña de la base en claro.
@@ -192,6 +200,9 @@ sigue ahí y se puede restaurar.
 3. **Un `apply` a la vez.** El bloqueo lo impone, pero avisar en el chat evita
    la espera.
 4. **`git pull` antes de planificar.** Siempre.
+5. **La misma `TF_VAR_db_password` para los cuatro.** Si un `plan` propone
+   cambiar la contraseña de la base sin que nadie haya tocado el código, es esto:
+   alguien tiene exportada otra. No apliques — pregunta en el chat del equipo.
 
 ---
 
