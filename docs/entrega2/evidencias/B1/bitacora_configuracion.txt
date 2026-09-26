@@ -1,0 +1,169 @@
+1. Revisa las fechas de expiración de los cuatro cupones — primero que todo
+Es lo único que puede invalidar el plan secuencial. Los cupones educativos caducan, y guardando tres en reserva el cuarto puede vencer antes de que llegues a usarlo. Si alguna fecha cae antes del cierre de la entrega, ese cupón se redime antes aunque el anterior no esté agotado, o se pierde.
+Rta: End date: Aug 19 2027
+Resultado> ProjectId: plataforma-mooc-entrega2
+
+2. Crea el presupuesto excluyendo los créditos promocionales
+Este es el ajuste que más importa acertar, y es fácil equivocarse porque el valor por defecto juega en contra:
+- Monto: 50 USD, no 200. Los 200 son el acumulado del semestre, no un saldo — el techo en cualquier momento es 50.
+- Cálculo del costo: excluyendo créditos. Si los incluye, el cupón absorbe el consumo, el costo «después de créditos» se queda cerca de cero y las alertas no se disparan hasta que el crédito ya se agotó, o sea justo cuando dejan de servir.
+- Umbrales 25 / 50 / 80 / 100 %, con los cuatro correos.
+Ojo con dos cosas que un presupuesto de GCP no hace: no corta el gasto (solo notifica), y el indicador real de cuánto cupón queda es la página de créditos de la cuenta de facturación, no el presupuesto. Esa página es la que te dice cuándo toca redimir el siguiente.
+Rta: Presupuesto y alertas:Dos ajustes de este formulario no vienen por defecto y, si se dejan como están, el presupuesto no avisa de nada.
+-Project-Billing-Billing Account:Billing Account for Education ->Budgets and caps ->Create new
+
+* Define:
+  - Alerts only (available to all services)
+  - Name: Entrega 2 - cupon activo
+* Scope:
+  -Time range: Custom range (Budgets begin and end on dates set by you)
+  -Start date: Today, no End Date
+  -Read-only for project users: desmarcado
+  -Projects: All projects - Seleccionar: plataforma-mooc-entrega2
+  -Services: All services
+  -Savings: desmarcar las dos casillas — Savings programs y Other savings (Te enterarías cuando ya no quedara crédito. Desmarcadas, mide el consumo bruto contra los 50 USD)
+* Amount:
+  -Budget type: Specified amount
+  -Target Amount: $50 (Son los 50 USD del cupón activo, no los 200 acumulados: 200 es el total del semestre, pero el techo en cualquier momento es un cupón)
+*Actions: Umbrales
+  -Los umbrales se aplicaron correctamente-referencia imagen de Budget-Actions
+    Añade un umbral temprano. Clic en + Add threshold y ponlo en:
+    - Percent of budget: 25 % → se autocompletará en $12,50
+    - Trigger on: Actual
+    (Con el primer aviso al 50 % ya te habrías gastado la mitad del cupón antes de enterarte. Al 25 % todavía hay margen para corregir la política de apagado.)
+    (25%=$12.5, 50%=$25,90%=$45,100%=$50)
+  -Notifications:
+    -Email alerts to billing admins and users: marcado (Yo)
+    -Email alerts to project owners: desmarcado (Compañeros owner en el proyecto)
+     (Para que a tus tres compañeros les lleguen las alertas por la primera casilla, dales el rol Billing Account Costs Manager en la cuenta de facturación (Billing → Account management → Add principal). Eso puede esperar a después de crear el presupuesto.)
+     (Rol compañeros- Costs Manager.)
+
+Click Finish
+
+3. Averigua qué pasa cuando el crédito llega a cero
+Depende de si la cuenta tiene un método de pago asociado: sin él los servicios se suspenden, con él empiezan los cargos reales. Conviene saberlo antes de la primera corrida larga — una suspensión a mitad de una prueba de capacidad invalida la corrida, y un cargo real sale del bolsillo de alguien.
+Rta: Esto decide si una corrida de capacidad puede quedarse a medias, y es mejor saberlo ahora que a los 20 minutos de una prueba.
+- Si NO hay método de pago: al agotarse el crédito, Google suspende los recursos. Nadie paga nada, pero una corrida en curso se corta en seco y esa medición se pierde.
+- Si SÍ hay método de pago: al agotarse el crédito, empiezan los cargos reales a esa tarjeta. Nada se suspende, y el aviso llega por correo cuando ya se está cobrando.
+Rta:
+regla en la política de apagado: no iniciar una corrida larga con menos crédito del que va a consumir
+
+4. Crea el proyecto y corre la calculadora
+- Un proyecto dedicado a la entrega, para que el consumo sea atribuible. Luego abre la calculadora con la configuración exacta de docs/entrega2/evidencias/B1/README.md —cinco líneas— y mándame el desglose. Faltan 9 celdas: discos, Cloud SQL y su almacenamiento, IP estática, egreso y Cloud NAT. Las dos líneas de VM ya están estimadas (12,23 USD/mes cada una), así que sirven para verificar que la calculadora coincide.
+- Para Cloud SQL prueba 1 vCPU dedicada / 3,75 GB, zona única, sin réplicas, 10 GiB SSD. Los perfiles de núcleo compartido (db-f1-micro, db-g1-small) están excluidos del SLA y Google los documenta como instancias de prueba; con CPU compartida lo que mediría el informe de capacidad serían sus créditos de ráfaga.
+
+ - Compute engine: (web server 1vm, and worker server 1vm)
+   -e2-highcpu-2: 2vcpu, Ram 2Gib, price with 30gib disk size: $39.11/month, number of instances:1, total instance usage time:730h/month, zone:us-east-1:south carolina
+
+ - Cloud Sql for postgresql: 49.31 + 1.70almacenamiento
+   -Region: us-east-1:south carolina
+   -Cloud SQL Edition: Enterprise
+   -Number of instances:1
+   -Total instance usage time: 730h/month
+   Select Cloud SQL machine configuration
+    -General purpose - machine type: db-lightweight-1: vCPUs: 1, RAM: 3.75 GiB, price: $51.01/month
+    -number of vCpus:1, Sobre 1 vCPU: es el mínimo dedicado defendible. Descartamos los de núcleo compartido
+    -Amount of memory: 3.75GiB
+   -Storage (Provisioned Amount): 10GiB, Sobre los 10 GiB: el conjunto sintético completo son unos pocos MB, y 10 GiB es el mínimo razonable. Cloud SQL puede crecer el disco automáticamente si hiciera falta, así que no hay riesgo de quedarse corto durante una corrida.
+   -Storage type: SSD
+   -Committed use discount: None ✓ — un compromiso de 1 o 3 años no tiene sentido para una entrega de semanas.
+   -Enable High Availability configuration desactivado ✓ — esto es lo que materializa el «zona única, sin réplicas» que exige el enunciado. Si lo activas, duplica el costo y además incumple el alcance.
+
+ - Cloud Storage: $0.08/month
+   -Location type: Region
+   -Location: us-east-1:south carolina
+   -Storage class: standard storage
+   -Total amount of storage: 3GiB
+   -Data Transfer within Google Cloud: déjalo vacío. Eso es tráfico entre regiones de GCP, y como el bucket y las dos VMs van todos en us-east1, el tráfico de la API y el worker contra el bucket es intrarregional y no se factura. Es una de las razones por las que conviene que todo viva en la misma región, y lo voy a anotar en el documento
+   - "Class A" operations per month (million) │ 0.001 (= 1 000 operaciones)
+   - "Class B" operations per month (million) │ 0.25 (= 250 000 operaciones)
+Qué son las clases A y B
+Cloud Storage no cobra solo por guardar bytes: también cobra por cada llamada a su API, y las divide en dos grupos según lo que cuestan de servir.
+- Clase A — las que escriben o listan. Subir un objeto, copiarlo, listar el contenido de un bucket. Cuestan 0,05 USD por cada 10 000.
+- Clase B — las que leen. Descargar un objeto, consultar sus metadatos. Cuestan 0,004 USD por cada 10 000, unas doce veces menos.
+En nuestro sistema eso se traduce muy concretamente:
+- Clase A son las escrituras del worker al transcodificar. Por cada video: el original que sube el autor, el master.m3u8, las dos playlists de variante y cada segmento HLS. Sembrar los tres perfiles de medios son 852 objetos, o sea 852 operaciones de clase A — dentro de la capa gratuita.
+- Clase B son las lecturas. Reproducir un video es un GET por el manifiesto y uno por cada segmento: una reproducción completa del video de 10 minutos son 204 operaciones de clase B. Por eso puse 250 000, que da margen para las pruebas funcionales.
+
+Por qué 3 GiB
+No es un número redondo al azar; sale del cálculo que está en el §3 del documento. Los tres perfiles de medios que va a sembrar G1 ocupan:
+┌────────┬──────────┬──────────┬───────────────┬──────────┐
+│ Perfil │ Duración │ Original │ Derivados HLS │  Total   │
+├────────┼──────────┼──────────┼───────────────┼──────────┤
+│ Corto  │ 2 min    │ 75 MB    │ 53 MB         │ 128 MB   │
+├────────┼──────────┼──────────┼───────────────┼──────────┤
+│ Medio  │ 10 min   │ 375 MB   │ 264 MB        │ 639 MB   │
+├────────┼──────────┼──────────┼───────────────┼──────────┤
+│ Largo  │ 30 min   │ 1 125 MB │ 792 MB        │ 1 918 MB │
+├────────┼──────────┼──────────┼───────────────┼──────────┤
+│        │          │          │               │ 2,62 GiB
+
+
+-Source Region y destination region: North America
+Esos dos pertenecen al campo de arriba, Data Transfer within Google Cloud, y como lo dejamos vacío, no aplican. Puedes ignorarlos tal como están.
+Ese campo es para tráfico entre ubicaciones de Google Cloud — por ejemplo, un bucket en us-east1 leído por una VM en Europa. En nuestro caso el bucket y las dos VMs viven todos en us-east1, así que el tráfico entre la API, el worker y el bucket es intrarregional y no se factura. Por eso va en cero, y por eso conviene que todo esté en la misma región: mover el bucket a otra región convertiría en facturable cada lectura que hace el worker al transcodificar.
+No lo confundas con el egreso a internet, que es cosa distinta y es la línea que sigue: eso es el tráfico que sale de Google hacia el navegador de un estudiante o hacia tu máquina con JMeter. Ese sí se cobra, y es donde está el riesgo de los 192 GB.
+
+Total price: $0.08/month
+
+* Queda demostrado el punto: el almacenamiento de objetos es ruido frente al cómputo, y la política de apagado debe concentrarse en las VMs y la base.
+
+ - Networking
+  Ip address:    Price: $3.65/month
+   - Region: South carolina
+   - Static IP addresses (assigned but unused): 0
+   - Number of IP addresses in use on standard VM instances: 2
+   - Number of IP addresses in use on Spot VM instances: 0
+
+   Esa separación entre «assigned but unused» y «in use» es justo lo que quería para la política de apagado. Cuando tengas el número con 2 en uso, haz la prueba inversa un momento: pon 2 en assigned but unused y 0 en in use, y anota ese monto. Eso es lo que costarán las IP con las VMs apagadas, y es el dato que respalda la advertencia de que apagar no es lo mismo que no gastar. Luego devuélvelo a 0 / 2
+   Price encendidas:Static IP addresses (assigned but unused) 0 y Number of IP addresses in use on standard VM instances:2, y Number of IP addresses in use on Spot VM instances:0, price: $3.65/month
+   Price apagadas: Static IP addresses (assigned but unused) 2 y Number of IP addresses in use on standard VM instances:0, y Number of IP addresses in use on Spot VM instances:0, price: $14.59/month
+
+  Nat Gateway: price: $4.90/month - Descartado ante ip address.
+   - Cloud NAT type: Public NAT-
+   - Number of assigned VM instances │ 1 (solo el worker)
+   - Amount of data processed        │ 5 GiB
+   - Number of IP addresses used     │ 1 (déjalo)
+
+  Data transfer: $0.76/month
+   Internet dat transfer:
+    - Network service tier │ Premium tier (déjalo)
+    - Amount of data       │ 5 — y cambia la unidad de TiB a GiB
+    - Source Location      │ South Carolina (us-east1) 
+    - Destination Location │ South America (déjalo)  
+    El destino ya está bien: nuestros usuarios virtuales y tu máquina con JMeter están en Colombia, y el egreso hacia Sudamérica es más caro que hacia Norteamérica. Dejarlo en South America es lo honesto.
+    Sobre el Premium tier: el Standard es más barato pero enruta peor y sin SLA. Para una prueba que mide latencia, cambiar de tier alteraría lo que estamos midiendo. Se queda en Premium, y lo anoto como palanca de costo si hiciera falta.
+   Internal data transfer:
+    -Network traffic type: Intra-region
+    -Amount of data:0
+    -Region:North America
+
+Conclusion:
+Un cupón paga ~11 días de operación continua. Los cuatro, poco más de mes y medio. Eso convierte la política de apagado de «buena práctica» en la condición para terminar la entrega.
+Apagarlo todo no baja de 22,37 USD/mes, y 14,59 de esos son las dos IP ociosas — que cuestan cuatro veces más apagadas (14,59) que encendidas (3,65), porque Google penaliza las direcciones reservadas sin usar. Liberándolas el costo fijo baja a 7,78. Es justo lo que el enunciado pide revisar cuando advierte que detener una instancia no elimina todos sus costos
+
+Link share calculator: https://cloud.google.com/products/calculator?dl=CjhDaVEwTVRWbE9HRTJaUzB6TVRFNExUUTBZalV0WWpNeE15MDRObUZsWlRKbE1tWmhPVGdRQVE9PRAOGiRFNDVDOUIwOS1EODRDLTRGRTUtOTk5MC0xRkZCMDk1NTU4QjI
+Total price: $133.73/month
+
+
+5. Mide la latencia hacia us-east1
+Un ping o traceroute desde la máquina donde correrá JMeter, guardado en evidencias/B1/latencia_us-east1.txt. Es un dato que el informe de capacidad necesita igual, y si contradijera el supuesto de que el tráfico hacia Sudamérica se enruta vía Miami, la región hay que revisarla antes de la primera corrida — no después, porque la configuración efectiva no puede cambiar a mitad de camino.
+Rta: 
+           Región            │      Latencia      │
+├──────────────────────────────┼────────────────────┤
+│ us-east1 (South Carolina)    │ 74 ms ← la nuestra │
+├──────────────────────────────┼────────────────────┤
+│ us-east4 (North Virginia)    │ 93 ms              │
+├──────────────────────────────┼────────────────────┤
+│ us-east5 (Columbus)          │ 113 ms             │
+├──────────────────────────────┼────────────────────┤
+│ us-central1 (Iowa)           │ 114 ms             │
+├──────────────────────────────┼────────────────────┤
+│ northamerica-south1 (México) │ 123 ms             │
+├──────────────────────────────┼────────────────────┤
+│ us-west3 (Salt Lake City)    │ 128 ms
+├──────────────────────────────┼────────────────────┤
+│ southamerica-east1(São Paulo)│ 178 ms             │
+├──────────────────────────────┼────────────────────┤
+
+La mejor por latencia hacia Bogota, 74ms
