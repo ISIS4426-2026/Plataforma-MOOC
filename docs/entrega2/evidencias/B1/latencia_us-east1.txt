@@ -1,0 +1,55 @@
+Latencia hacia las regiones de Google Cloud — medición para el issue B1 (#114)
+==============================================================================
+
+Fecha        : 2026-09-26
+Origen       : Bogotá, Colombia
+Herramienta  : gcping.com (HTTPS desde el navegador, latencia mediana)
+Duración     : ~1 minuto de mediciones continuas
+Máquina      : la misma que ejecutará el generador de carga (ver nota al final)
+
+Resultado, ordenado de menor a mayor
+------------------------------------
+
+    Región                        Ubicación            Latencia mediana
+    ----------------------------  -------------------  ----------------
+    us-east1                      South Carolina                 74 ms   <-- ELEGIDA
+    us-east4                      North Virginia                 93 ms
+    us-east5                      Columbus                      113 ms
+    us-central1                   Iowa                          114 ms
+    northamerica-northeast1       Montréal                      116 ms
+    northamerica-south1           México                        123 ms
+    us-west3                      Salt Lake City                128 ms
+    southamerica-east1            São Paulo                     178 ms
+
+Qué confirma
+------------
+
+La región elegida, us-east1, se justificó con dos argumentos. Esta medición
+cierra el segundo:
+
+1. COSTO — verificado con la calculadora: us-east1 está en el nivel de precios
+   más bajo, mientras que southamerica-east1 tiene sobreprecio.
+
+2. LATENCIA — verificado aquí: us-east1 no solo "no está más lejos" que São
+   Paulo, es la región con MENOR latencia medida desde Bogotá, de todas las
+   disponibles. São Paulo responde a 178 ms, 2,4 veces peor.
+
+La cercanía geográfica no predice la latencia de red. El dato que mejor lo
+ilustra no es São Paulo sino México (northamerica-south1): a 123 ms, peor que
+Carolina del Sur pese a estar mucho más cerca de Colombia. Es coherente con que
+el tráfico desde Colombia hacia el sur se enrute por Miami.
+
+Conclusión: us-east1 es simultáneamente la opción más barata y la más rápida.
+No hay compromiso que resolver entre costo y latencia.
+
+Pendiente para H1
+-----------------
+
+Falta caracterizar la máquina que ejecutará el generador de carga: CPU, memoria
+y, sobre todo, ancho de banda de subida y bajada del enlace. El enunciado exige
+registrar la ubicación y los recursos del generador y verificar que no limite los
+resultados; si el cuello de botella fuera el enlace doméstico, el informe estaría
+midiendo la conexión de la casa y no la plataforma.
+
+Basta con una prueba de velocidad y anotar el resultado junto a estos números
+antes de la primera corrida.

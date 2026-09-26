@@ -22,6 +22,7 @@ salieron de errores que costaron una tarde y se habrían evitado leyéndolas.
 | 10 | Las tablas del estudiante no tienen clave ajena al curso, a propósito | C1, C2, I1 |
 | 11 | Los latidos no pasan por el limitador, y los pools no están acotados | B4, C1, D4, H1, H2, H3 |
 | 12 | Dos trampas del entorno local | todos |
+| 13 | Reproducir videos completos en las pruebas cuesta más que las dos VMs | B1, C3, H2, H4, H5 |
 
 ---
 
@@ -463,3 +464,50 @@ bash ./scripts/seed.sh --reset
 Los objetivos de newman sí funcionan porque ejecutan `docker run` sin pasar por un
 script —eso sí, todos llevan `MSYS_NO_PATHCONV=1`, sin el cual Git Bash reescribe
 `/etc/newman` a una ruta de Windows y newman falla con `ENOENT`.
+
+---
+
+## 13. Reproducir videos completos en las pruebas cuesta más que las dos VMs
+
+**Afecta a:** B1 (estimación), C3 (IAM del bucket), H2 y H4 (planes de carga),
+H5 (ejecución del escenario 2).
+
+Salió al estimar costos en B1, y es el único renglón de la estimación que puede
+descarrilar el crédito.
+
+El prefijo `hls/` se sirve **sin firma y con lectura pública** (nota 1b), porque
+un reproductor no hereda la *query string* al resolver las variantes del
+manifiesto. La consecuencia de costo es directa: **cada reproducción completa es
+transferencia de salida a internet**, y el generador de carga corre fuera de la
+nube, así que todo lo que descargue sale por el enlace facturado.
+
+Las cuentas, con la escalera declarada —360p a 800+96 kbps y 720p a
+2500+128 kbps, segmentos de 6 s—:
+
+```
+reproducción íntegra en 720p de un video de 10 min  ≈ 197 MB
+mil reproducciones íntegras                         ≈ 192 GB de egreso
+```
+
+A cualquier precio plausible de transferencia, esos 192 GB cuestan bastante más
+que las dos máquinas virtuales juntas operando 24×7 (24,46 USD/mes con
+`e2-small`). Y con 50 USD de cupón por integrante, no es un detalle contable: es
+la diferencia entre poder repetir los niveles de carga o no.
+
+### Lo que eso obliga en los planes de carga
+
+* **El escenario 1 no necesita descargar video.** Es actividad académica:
+  catálogo, inscripción, lectura de contenido, progreso y quizzes. Pedir el
+  manifiesto es parte del recorrido; descargar todos los segmentos no lo es.
+* **El escenario 2 mide subida y procesamiento**, no reproducción. Lo que se
+  observa es el *throughput* del worker —videos por minuto, según la aclaración
+  del docente— y la profundidad de la cola, no cuántos MB bajó el cliente.
+* Si un recorrido tiene que probar reproducción, basta con el manifiesto y los
+  **primeros segmentos**, y hay que declararlo en el plan. Descargar videos
+  enteros a escala convierte una prueba de capacidad en una factura de
+  transferencia, y además mide el enlace doméstico del generador en lugar de la
+  plataforma.
+
+Conviene medir el egreso acumulado durante las corridas y contrastarlo con lo
+estimado, que es justo lo que el enunciado pide al exigir que los costos se
+contrasten con el consumo observado.

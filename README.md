@@ -332,5 +332,6 @@ El archivo `Makefile` provee comandos estandarizados para asegurar la calidad de
 * [Guion Técnico y Libreto del Video de Demostración (`docs/e2e/README_GUION_VIDEO_DEMO.md`)](docs/e2e/README_GUION_VIDEO_DEMO.md): Guion completo para grabación del video cubriendo los 9 segmentos de la Sección 10.2.
 * [Catálogo de Datos Sintéticos (`docs/DATOS_SINTETICOS.md`)](docs/DATOS_SINTETICOS.md): Semillas determinísticas, credenciales y cursos.
 * [Especificación de Colecciones Postman (`docs/postman/README.md`)](docs/postman/README.md): Detalle técnico de las 166 peticiones y 359 aserciones.
+* [Configuración Efectiva y Marco de Costos (`docs/entrega2/CONFIGURACION_Y_COSTOS.md`)](docs/entrega2/CONFIGURACION_Y_COSTOS.md): Proveedor, región, perfiles de VM, estimación fechada, presupuesto y política de encendido y apagado.
 * [Notas Técnicas de la Entrega 2 (`docs/entrega2/NOTAS_TECNICAS.md`)](docs/entrega2/NOTAS_TECNICAS.md): Hallazgos que afectan a más de un issue, con el issue al que le toca resolver cada uno. **Conviene leerlo antes de empezar un issue y revisarlo al cerrarlo.**
 * [Ejecución de las Pruebas de Multimedia (`docs/entrega2/EJECUCION_PRUEBAS_MULTIMEDIA.md`)](docs/entrega2/EJECUCION_PRUEBAS_MULTIMEDIA.md): Paso a paso de la carga directa al bucket y la lectura de un manifiesto HLS.
