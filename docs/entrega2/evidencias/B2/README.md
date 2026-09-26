@@ -38,6 +38,9 @@ Los tres criterios de aceptación del issue, verificados sobre el proyecto
 | `iam_cuentas.txt` | Las políticas de IAM, del proyecto y de la cuenta del web server |
 | `destroy.txt` | `Destroy complete! Resources: 15 destroyed` |
 | `apply_reconstruccion.txt` | La reconstrucción posterior al destroy |
+| `consola/cuentas_de_servicio.png` | Las dos cuentas en la consola, ambas con **«No keys»** |
+| `consola/iam_proyecto.png` | La política de IAM del proyecto, con los roles de las cuentas y los del equipo |
+| `consola/bucket_estado.png` | El bucket del estado, región `us-east1` y **Not public** |
 
 Los 15 recursos son 6 APIs habilitadas, 2 cuentas de servicio, 6 asignaciones de
 rol a nivel de proyecto y 1 sobre la propia cuenta.

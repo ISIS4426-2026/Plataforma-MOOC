@@ -23,6 +23,7 @@ salieron de errores que costaron una tarde y se habrían evitado leyéndolas.
 | 11 | Los latidos no pasan por el limitador, y los pools no están acotados | B4, C1, D4, H1, H2, H3 |
 | 12 | Dos trampas del entorno local | todos |
 | 13 | Reproducir videos completos en las pruebas cuesta más que las dos VMs | B1, C3, H2, H4, H5 |
+| 14 | Tres cosas que GCP decidió por nosotros al habilitar las APIs | B3, D2, D4, E1, F1 |
 
 ---
 
@@ -511,3 +512,73 @@ la diferencia entre poder repetir los niveles de carga o no.
 Conviene medir el egreso acumulado durante las corridas y contrastarlo con lo
 estimado, que es justo lo que el enunciado pide al exigir que los costos se
 contrasten con el consumo observado.
+
+---
+
+## 14. Tres cosas que GCP decidió por nosotros al habilitar las APIs
+
+**Afecta a:** B3 (VPC y firewall), D2 y E1 (las VMs), D4 (verificación de
+seguridad), F1 (SMTP).
+
+Aparecieron al mirar la consola después del primer `terraform apply` de B2.
+Ninguna la creó nuestro Terraform: son comportamientos del proveedor que
+conviene conocer antes de tropezar con ellos.
+
+### La red `default` se crea sola, y viene abierta
+
+Habilitar `compute.googleapis.com` hace que GCP cree una red llamada `default`
+en modo automático, con **una subred en cada región del mundo** —42 en el
+proyecto— y un juego de reglas de firewall por defecto. Entre esas reglas hay
+una que **permite SSH desde `0.0.0.0/0`**.
+
+Es decir: al habilitar la API de cómputo, el proyecto quedó con una red global y
+una puerta de SSH abierta a internet que nadie decidió abrir. Todavía no hay
+ninguna VM detrás, así que no hay nada expuesto, pero la primera instancia que
+se cree en esa red lo estaría.
+
+**Lo que toca hacer en B3:** crear la VPC propia con solo la subred que la
+entrega necesita, y **eliminar la red `default` con sus reglas**. Si se deja,
+D4 —la verificación de red y seguridad del despliegue— va a encontrar
+exactamente eso, y con razón.
+
+Conviene además que el Terraform de B3 sea explícito al respecto en lugar de
+confiar en que alguien se acuerde de borrarla a mano: lo que no está en el
+código vuelve a aparecer en el siguiente `apply` sobre un proyecto limpio.
+
+### El puerto 25 saliente está bloqueado y no se puede abrir
+
+La consola lo anuncia sin que se lo pidan: *«SMTP port 25 disallowed in this
+project»*. Google bloquea el tráfico saliente por el puerto 25 en Compute
+Engine y **no ofrece forma de desbloquearlo**; es una medida antispam de la
+plataforma, no una regla de firewall que podamos cambiar.
+
+**Lo que significa para F1** (sustituir Mailpit por SMTP en la nube): el
+proveedor que se elija tiene que hablar por **587 (STARTTLS) o 465 (TLS
+implícito)**, nunca por 25. La mayoría los ofrece, pero hay que configurarlo
+explícitamente.
+
+El modo en que esto falla es especialmente molesto: la conexión no se rechaza,
+se queda esperando hasta agotar el tiempo. Si los correos de verificación dejan
+de llegar sin un error claro en los registros, esta es la primera sospecha.
+
+### La cuenta de servicio por defecto de Compute Engine tiene rol de Editor
+
+Junto con la API de cómputo aparece una tercera cuenta de servicio que nadie
+creó, `PROJECT_NUMBER-compute@developer.gserviceaccount.com`, y en la política
+de IAM del proyecto figura con **rol `Editor`**.
+
+Importa porque **es la que GCP adjunta a cualquier VM que se cree sin
+especificar otra**. Una instancia creada sin cuenta explícita —desde la consola,
+desde `gcloud`, o desde un Terraform que se olvide del campo— queda con permiso
+de Editor sobre todo el proyecto. Eso anula de un plumazo la separación entre la
+cuenta de la API y la del worker que B2 construyó: daría igual quién firma y
+quién escribe si la VM puede hacer cualquier cosa.
+
+**Lo que toca en D2 y E1:** adjuntar explícitamente `sa-web-server` y
+`sa-worker-server` a sus respectivas instancias, y no dar por bueno el valor por
+defecto. Y en **D4**, comprobarlo: mirar qué cuenta lleva adjunta cada VM, no
+solo qué cuentas existen.
+
+Si al final ninguna VM la usa, lo más limpio es **quitarle el rol de Editor** a
+esa cuenta por defecto. No se puede borrar mientras la API esté habilitada, pero
+sí dejarla sin permisos.
