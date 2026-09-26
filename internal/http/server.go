@@ -16,6 +16,7 @@ import (
 	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/http/handler"
 	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/http/middleware"
 	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/media"
+	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/progress"
 	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/structure"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/metric"
@@ -55,6 +56,7 @@ type Deps struct {
 	Structure        *structure.Service
 	Media            *media.Service
 	Enrollment       *enrollment.Service
+	Progress         *progress.Service
 	Audit            domain.AuditRepository
 	RateLimiter      domain.RateLimiter
 	IdempotencyStore domain.IdempotencyStore
@@ -94,6 +96,7 @@ func NewServer(cfg *config.Config, deps Deps, logger *slog.Logger) *Server {
 	auditHandler := handler.NewAuditHandler(deps.Audit, logger)
 	mediaHandler := handler.NewMediaHandler(deps.Media, logger)
 	enrollmentHandler := handler.NewEnrollmentHandler(deps.Enrollment, logger)
+	progressHandler := handler.NewProgressHandler(deps.Progress, cfg.AppBaseURL, logger)
 
 	// requireAuth guards the endpoints that act on behalf of a signed-in user.
 	// It is applied per route rather than globally so the public endpoints stay
@@ -273,6 +276,36 @@ func NewServer(cfg *config.Config, deps Deps, logger *slog.Logger) *Server {
 	// the service.
 	mux.Handle("GET /api/v1/courses/{courseID}/enrollments",
 		requireAuthor(enrollmentHandler.Roster))
+
+	// Progress and badges (issue #113). A heartbeat reports the caller's own
+	// activity, so it needs a session but no particular role; the active
+	// enrollment it also requires is checked in the service.
+	//
+	// No Idempotency-Key on the heartbeat. The other writes carry one so a retry
+	// replays its recorded answer instead of acting twice, but a heartbeat is
+	// already idempotent by construction -- the projection is recomputed, never
+	// incremented -- and these arrive by the thousand under load, which is a poor
+	// reason to fill the idempotency store.
+	mux.Handle("POST /api/v1/progress/heartbeat",
+		requireAuth(http.HandlerFunc(progressHandler.Heartbeat)))
+	mux.Handle("GET /api/v1/progress/courses/{courseID}",
+		requireAuth(http.HandlerFunc(progressHandler.Course)))
+
+	// Badge verification is the one public route that answers about a named
+	// person. It is deliberately unauthenticated: a credential nobody can check
+	// without an account is not verifiable, and the unguessable code in the path
+	// is what limits the answer to whoever was handed the badge.
+	mux.HandleFunc("GET /api/v1/badges/verify/{verification_code}", progressHandler.VerifyBadge)
+
+	// A badge as its own resource, for the student who earned it. It needs a
+	// session even though verification does not: this response carries the
+	// verification code, and handing that to anyone who knows a badge id would
+	// make the id the credential.
+	//
+	// No conflict with the verification route above: that one has three path
+	// segments after /badges and this has one, so the mux never has to choose.
+	mux.Handle("GET /api/v1/badges/{badge_id}",
+		requireAuth(http.HandlerFunc(progressHandler.GetBadge)))
 
 	// Read side of the audit trail (issue #18): administrators only, no
 	// Idempotency-Key since it is a GET with no side effect to replay.

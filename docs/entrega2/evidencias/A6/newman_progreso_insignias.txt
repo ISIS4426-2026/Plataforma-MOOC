@@ -1,0 +1,205 @@
+==> Running Progress & Badges Postman/Newman automated integration tests...
+newman
+
+Plataforma MOOC - Progreso e Insignias
+
+→ 01 Login como Estudiante
+  POST http://api:8080/api/v1/auth/login [200 OK, 500B, 148ms]
+  ✓  responde 200
+
+→ 02 Login como Profesor (autor del curso publicado)
+  POST http://api:8080/api/v1/auth/login [200 OK, 494B, 78ms]
+  ✓  responde 200
+
+→ 03 Login como Administrador
+  POST http://api:8080/api/v1/auth/login [200 OK, 498B, 80ms]
+  ✓  responde 200
+
+→ 04 Preparacion: dejar al estudiante sin inscripcion activa
+  DELETE http://api:8080/api/v1/courses/d0000000-0000-0000-0000-000000000001/enrollments [404 Not Found, 231B, 12ms]
+  ✓  queda sin inscripcion activa (200 al retirarse, 404 si nunca se inscribio)
+
+→ 05 Recorrer el curso y recolectar sus recursos obligatorios
+  GET http://api:8080/api/v1/courses/d0000000-0000-0000-0000-000000000001/modules [200 OK, 608B, 10ms]
+  ✓  responde 200
+  GET http://api:8080/api/v1/modules/d1000000-0000-0000-0000-000000000001/units   GET http://api:8080/api/v1/modules/d1000000-0000-0000-0000-000000000002/units [200 OK, 400B, 15ms]
+  GET http://api:8080/api/v1/units/d2000000-0000-0000-0000-000000000001/resources [200 OK, 988B, 15ms]
+[200 OK, 398B, 42ms]
+  GET http://api:8080/api/v1/units/d2000000-0000-0000-0000-000000000002/resources [200 OK, 496B, 14ms]
+  ✓  el curso tiene al menos un recurso obligatorio
+
+→ 06 Recolectar un recurso del curso en BORRADOR
+  GET http://api:8080/api/v1/courses/d0000000-0000-0000-0000-000000000002/modules [200 OK, 376B, 11ms]
+  ✓  responde 200
+  GET http://api:8080/api/v1/modules/d1000000-0000-0000-0000-000000000003/units [200 OK, 392B, 8ms]
+  GET http://api:8080/api/v1/units/d2000000-0000-0000-0000-000000000003/resources [200 OK, 616B, 8ms]
+
+→ 07 Rechazo: latido sin sesion
+  POST http://api:8080/api/v1/progress/heartbeat [401 Unauthorized, 265B, 18ms]
+  ✓  responde 401
+  ✓  con codigo de error unauthorized
+
+→ 08 Rechazo: latido sin inscripcion activa
+  POST http://api:8080/api/v1/progress/heartbeat [403 Forbidden, 249B, 23ms]
+  ✓  responde 403
+  ✓  con codigo de error forbidden
+
+→ 09 Inscripcion en el curso publicado
+  POST http://api:8080/api/v1/courses/d0000000-0000-0000-0000-000000000001/enrollments [200 OK, 372B, 14ms]
+  ✓  responde 200
+  ✓  queda inscrito
+
+→ 10 Estado del progreso al empezar
+  GET http://api:8080/api/v1/progress/courses/d0000000-0000-0000-0000-000000000001 [200 OK, 405B, 18ms]
+  ✓  responde 200
+  ✓  el total coincide con los recursos obligatorios recorridos
+  ✓  el porcentaje es coherente con las cuentas
+
+→ 11 Rechazo: tiempo de permanencia fuera de rango
+  POST http://api:8080/api/v1/progress/heartbeat [400 Bad Request, 242B, 7ms]
+  ✓  responde 400
+  ✓  con codigo de error invalid_input
+
+→ 12 Rechazo: latido sin recurso
+  POST http://api:8080/api/v1/progress/heartbeat [400 Bad Request, 242B, 4ms]
+  ✓  responde 400
+  ✓  con codigo de error invalid_input
+
+→ 13 Latido sin completar: cuenta el tiempo, no el avance
+  POST http://api:8080/api/v1/progress/heartbeat [200 OK, 405B, 24ms]
+  ✓  responde 200
+  ✓  el avance no cambia
+
+→ 14 Latido que completa un recurso
+  POST http://api:8080/api/v1/progress/heartbeat [200 OK, 405B, 22ms]
+  ✓  responde 200
+  ✓  el recurso queda en el conjunto de completados
+
+→ 15 El mismo latido repetido no infla el avance
+  POST http://api:8080/api/v1/progress/heartbeat [200 OK, 405B, 14ms]
+  ✓  responde 200
+  ✓  el avance es el mismo que tras el primer latido
+
+→ 16 Completar cada recurso obligatorio
+  POST http://api:8080/api/v1/progress/heartbeat [200 OK, 405B, 12ms]
+  ✓  responde 200
+  ┌
+  │ 'Using "postman.setNextRequest" is deprecated. Use "pm
+  │ .execution.setNextRequest()" instead.'
+  └
+
+Attempting to set next request to 16 Completar cada recurso obligatorio
+
+→ 16 Completar cada recurso obligatorio
+  POST http://api:8080/api/v1/progress/heartbeat [200 OK, 444B, 12ms]
+  ✓  responde 200
+  ┌
+  │ 'Using "postman.setNextRequest" is deprecated. Use "pm
+  │ .execution.setNextRequest()" instead.'
+  └
+
+Attempting to set next request to 16 Completar cada recurso obligatorio
+
+→ 16 Completar cada recurso obligatorio
+  POST http://api:8080/api/v1/progress/heartbeat [200 OK, 745B, 25ms]
+  ✓  responde 200
+
+→ 17 El curso queda completo y emite la insignia
+  GET http://api:8080/api/v1/progress/courses/d0000000-0000-0000-0000-000000000001 [200 OK, 745B, 8ms]
+  ✓  responde 200
+  ✓  llega al 100% y queda aprobado
+  ✓  trae la insignia con su codigo de verificacion
+  ✓  la insignia no expone la ruta de almacenamiento
+  ✓  trae el enlace de verificacion ya armado
+
+→ 18 Verificar la insignia sin autenticacion
+  GET http://api:8080/api/v1/badges/verify/bb4018e5-4d8e-496a-b73b-86665920386c [200 OK, 287B, 6ms]
+  ✓  responde 200
+  ✓  la insignia es valida y dice que certifica
+  ✓  no revela nada del estudiante
+
+→ 19 Rechazo: codigo de verificacion inexistente
+  GET http://api:8080/api/v1/badges/verify/00000000-0000-0000-0000-000000000000 [404 Not Found, 257B, 6ms]
+  ✓  responde 404
+  ✓  con codigo de error not_found
+
+→ 20 La insignia como recurso, leida por su dueno
+  GET http://api:8080/api/v1/badges/cf66d00b-124c-4f68-81d9-7598f785de7f [200 OK, 550B, 8ms]
+  ✓  responde 200
+  ✓  trae un ETag para el GET condicional
+  ✓  dice que certifica y como verificarla
+  ✓  no expone la ruta de almacenamiento
+
+→ 21 GET condicional: sin cambios responde 304
+  GET http://api:8080/api/v1/badges/cf66d00b-124c-4f68-81d9-7598f785de7f [304 Not Modified, 192B, 11ms]
+  ✓  responde 304 sin cuerpo
+
+→ 22 Rechazo: la insignia sin sesion
+  GET http://api:8080/api/v1/badges/cf66d00b-124c-4f68-81d9-7598f785de7f [401 Unauthorized, 265B, 5ms]
+  ✓  responde 401
+  ✓  con codigo de error unauthorized
+
+→ 23 Rechazo: la insignia de otro es 404, no 403
+  GET http://api:8080/api/v1/badges/cf66d00b-124c-4f68-81d9-7598f785de7f [404 Not Found, 233B, 9ms]
+  ✓  responde 404
+  ✓  con codigo de error not_found
+
+→ 24 El administrador si lee cualquier insignia
+  GET http://api:8080/api/v1/badges/cf66d00b-124c-4f68-81d9-7598f785de7f [200 OK, 550B, 9ms]
+  ✓  responde 200
+  ✓  es la misma insignia
+
+→ 25 Rechazo: el autor no acumula progreso en su propio curso
+  POST http://api:8080/api/v1/progress/heartbeat [403 Forbidden, 249B, 12ms]
+  ✓  responde 403
+  ✓  con codigo de error forbidden
+
+→ 26 Rechazo: progreso en un curso en BORRADOR
+  POST http://api:8080/api/v1/progress/heartbeat [409 Conflict, 269B, 11ms]
+  ✓  responde 409
+  ✓  con codigo de error course_not_published
+
+→ 27 Retiro del curso
+  DELETE http://api:8080/api/v1/courses/d0000000-0000-0000-0000-000000000001/enrollments [200 OK, 413B, 41ms]
+  ✓  responde 200
+  ✓  queda retirado
+
+→ 28 El progreso sobrevive al retiro
+  GET http://api:8080/api/v1/progress/courses/d0000000-0000-0000-0000-000000000001 [200 OK, 745B, 14ms]
+  ✓  responde 200
+  ✓  sigue completo y con su insignia
+
+→ 29 Rechazo: latido tras retirarse
+  POST http://api:8080/api/v1/progress/heartbeat [403 Forbidden, 249B, 15ms]
+  ✓  responde 403
+  ✓  con codigo de error forbidden
+
+→ 30 Reinscripcion: el progreso sigue intacto
+  POST http://api:8080/api/v1/courses/d0000000-0000-0000-0000-000000000001/enrollments [200 OK, 372B, 32ms]
+  ✓  responde 200
+  ✓  vuelve a quedar activo
+
+→ 31 Tras volver, el avance esta donde lo dejo
+  GET http://api:8080/api/v1/progress/courses/d0000000-0000-0000-0000-000000000001 [200 OK, 745B, 15ms]
+  ✓  responde 200
+  ✓  sigue al 100% y con la misma insignia
+
+┌─────────────────────────┬───────────────────┬──────────────────┐
+│                         │          executed │           failed │
+├─────────────────────────┼───────────────────┼──────────────────┤
+│              iterations │                 1 │                0 │
+├─────────────────────────┼───────────────────┼──────────────────┤
+│                requests │                39 │                0 │
+├─────────────────────────┼───────────────────┼──────────────────┤
+│            test-scripts │                33 │                0 │
+├─────────────────────────┼───────────────────┼──────────────────┤
+│      prerequest-scripts │                 3 │                0 │
+├─────────────────────────┼───────────────────┼──────────────────┤
+│              assertions │                64 │                0 │
+├─────────────────────────┴───────────────────┴──────────────────┤
+│ total run duration: 2s                                         │
+├────────────────────────────────────────────────────────────────┤
+│ total data received: 9.92kB (approx)                           │
+├────────────────────────────────────────────────────────────────┤
+│ average response time: 21ms [min: 4ms, max: 148ms, s.d.: 26ms] │
+└────────────────────────────────────────────────────────────────┘

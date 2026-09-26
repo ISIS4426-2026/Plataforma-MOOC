@@ -1,11 +1,12 @@
-# Colecciones de Postman — Identidad (#24), Administración (#25), Autoría de Cursos (#26), Inscripciones (#111) y Multimedia (#109)
+# Colecciones de Postman — Identidad (#24), Administración (#25), Autoría de Cursos (#26), Inscripciones (#111), Progreso e Insignias (#113) y Multimedia (#109)
 
 Este documento describe la suite completa de pruebas automatizadas en **Postman / Newman** para los subsistemas de:
 1. **Identidad, Autenticación y Control de Acceso** (Issue #24).
 2. **Operaciones de Administración y Protección de Roles** (Issue #25).
 3. **Autoría de Cursos, Jerarquía, Inmutabilidad y Publicación** (Issue #26).
 4. **Inscripción, Retiro, Reinscripción y Control de Acceso al Contenido** (Issue #111).
-5. **Carga Directa al Almacenamiento de Objetos, Confirmación e Idempotencia** (Issue #109).
+5. **Progreso, Tiempo de Permanencia e Insignias Verificables** (Issue #113).
+6. **Carga Directa al Almacenamiento de Objetos, Confirmación e Idempotencia** (Issue #109).
 
 La suite cumple estrictamente con los criterios de evaluación de la **Sección 9**, los flujos críticos de la **Sección 10.2** del pliego de condiciones y los estándares de diseño y seguridad de [`PROJECT_KEY_ASPECTS.md`](../../PROJECT_KEY_ASPECTS.md).
 
@@ -20,13 +21,14 @@ La carpeta `docs/postman/` contiene los siguientes artefactos:
 | [`collection_api.postman_collection.json`](./collection_api.postman_collection.json) | Colección v2.1 de Postman para **Identidad y Seguridad** (Issue #24) con 44 peticiones organizadas secuencialmente, pre-request scripts y 110 aserciones automatizadas. |
 | [`collection_admin.postman_collection.json`](./collection_admin.postman_collection.json) | Colección v2.1 de Postman para **Administración** (Issue #25) con 23 peticiones organizadas secuencialmente, tests de RBAC, casos borde de último administrador y 46 aserciones automatizadas. |
 | [`collection_authoring.postman_collection.json`](./collection_authoring.postman_collection.json) | Colección v2.1 de Postman para **Autoría de Cursos** (Issue #26) con 30 peticiones organizadas secuencialmente, ciclo de vida completo de borrador a publicado, validación exhaustiva de publicación, inmutabilidad, reordenamiento con preservación de `stable_id` y 60 aserciones automatizadas. |
-| [`collection_enrollments.postman_collection.json`](./collection_enrollments.postman_collection.json) | Colección v2.1 de Postman para **Inscripciones** (Issue #111) con 20 peticiones encadenadas que recorren el estado de una misma inscripción —desde antes de existir hasta después de volver—, control de acceso al contenido y 35 aserciones automatizadas. |
+| [`collection_enrollments.postman_collection.json`](./collection_enrollments.postman_collection.json) | Colección v2.1 de Postman para **Inscripciones** (Issue #111) con 21 peticiones encadenadas que recorren el estado de una misma inscripción —desde antes de existir hasta después de volver—, control de acceso al contenido y 36 aserciones automatizadas. |
+| [`collection_progress.postman_collection.json`](./collection_progress.postman_collection.json) | Colección v2.1 de Postman para **Progreso e Insignias** (Issue #113) con 31 peticiones que recorren el curso descubriendo sus recursos, comprueban que repetir un latido no infla el avance, completan el curso, leen la insignia como recurso con GET condicional (ETag/304) y la verifican sin autenticación. 64 aserciones automatizadas. |
 | [`collection_media.postman_collection.json`](./collection_media.postman_collection.json) | Colección v2.1 de Postman para **Multimedia** (Issue #109) con 25 peticiones organizadas secuencialmente, flujo de carga directa al bucket sin pasar por la API, confirmación idempotente, validación de extensión, MIME y tamaño, control de acceso e inmutabilidad, y 43 aserciones automatizadas. |
 | [`mooc_local.postman_environment.json`](./mooc_local.postman_environment.json) | Entorno parametrizado para ejecuciones desde Postman Desktop en la máquina host (`http://localhost:8080` y `http://localhost:8025`). |
 | [`mooc_docker.postman_environment.json`](./mooc_docker.postman_environment.json) | Entorno parametrizado para ejecuciones desatendidas en la red de Docker Compose (`http://api:8080` y `http://mailpit:8025`). |
 | [`README.md`](./README.md) | Documentación técnica integral, matrices de peticiones/aserciones y guía de ejecución. |
 
-**Total de la suite**: **142 peticiones HTTP** y **294 aserciones automatizadas** con **0 fallos**.
+**Total de la suite**: **166 peticiones HTTP** definidas (197 ejecutadas) y **359 aserciones automatizadas** con **0 fallos**.
 
 ---
 
@@ -233,7 +235,41 @@ make test-postman-authoring
 make test-postman-enrollments
 ```
 
-**Resultado esperado:** 20 peticiones, 35 aserciones, 0 fallos.
+**Resultado esperado:** 21 peticiones, 36 aserciones, 0 fallos.
+
+#### Ejecutar individualmente la suite de Progreso e Insignias (#113):
+```bash
+make test-postman-progress
+```
+
+**Resultado esperado:** 31 peticiones definidas (39 ejecutadas, porque un paso se
+repite hasta cubrir todos los recursos obligatorios y el recorrido del curso baja
+por módulos y unidades), 64 aserciones, 0 fallos.
+
+La coleccion **no reinicia el progreso** antes de correr, y es deliberado: la
+seccion 5.1 del enunciado pide que el progreso sobreviva al retiro y a la
+reinscripcion, asi que exigir un 0% de partida afirmaria lo contrario. Lo que se
+comprueba son invariantes que se cumplen en cualquier corrida, y por eso es
+re-ejecutable sin reiniciar la base.
+
+Los ids de los recursos no estan codificados a mano: la coleccion baja por
+modulos, unidades y recursos igual que lo haria un reproductor, con la sesion del
+**autor**, porque el estudiante todavia no esta inscrito y sin inscripcion el
+contenido esta cerrado. Eso tambien convierte el `total_count` que reporta el
+servidor en algo verificable contra una cuenta calculada aparte.
+
+La coleccion cubre las dos caras de la insignia:
+
+* `GET /badges/{badge_id}` — el recurso propio del estudiante, con ETag y GET
+  condicional. Exige sesion, responde **404 y no 403** para la insignia de otro
+  (un 403 confirmaria que el id nombra una insignia real), y el administrador es
+  la excepcion porque el rastro de auditoria ya registra cada emision.
+* `GET /badges/verify/{verification_code}` — la verificacion publica, sin sesion
+  y sin revelar nada del estudiante. El `verification_url` que viene en la
+  respuesta de la insignia apunta exactamente ahi, y se construye contra el
+  origen publico de la plataforma (`APP_BASE_URL`), el mismo contra el que se
+  arman los enlaces de activacion. Por eso no coincide con `baseUrl` en el
+  entorno de Docker: ese entorno habla con el contenedor.
 
 #### Ejecutar individualmente la suite de Multimedia (#109):
 ```bash

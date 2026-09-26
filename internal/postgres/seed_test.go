@@ -157,6 +157,73 @@ func TestSyntheticDataSeed(t *testing.T) {
 		t.Errorf("expected 1 badge for student 2, got %d (err: %v)", badgeCount, err)
 	}
 
+	// 6b. Every seeded progress row is backed by an active enrollment.
+	//
+	// Since issue #111 gated course content behind enrollment, a student with
+	// progress and no enrollment is a state that contradicts itself: they could
+	// not read the content they supposedly completed, nor report one more
+	// heartbeat. The seed used to be in exactly that state.
+	var unbacked int
+	err = db.QueryRowContext(ctx, `
+		SELECT COUNT(*)
+		FROM student_progress sp
+		WHERE NOT EXISTS (
+			SELECT 1 FROM enrollments e
+			WHERE e.student_id = sp.student_id
+			  AND e.course_stable_id = sp.course_stable_id
+			  AND e.status = 'active'
+		)`).Scan(&unbacked)
+	if err != nil {
+		t.Fatalf("failed to check enrollments backing progress: %v", err)
+	}
+	if unbacked != 0 {
+		t.Errorf("%d seeded progress rows have no active enrollment behind them", unbacked)
+	}
+
+	// 6c. The stored percentages agree with what the API would compute.
+	//
+	// The API derives the percentage on every read, from the mandatory visible
+	// resources the course has now. A stored number that disagrees is not a
+	// second opinion, it is stale -- and it does not hold up as evidence when a
+	// reviewer compares the database against a response.
+	rows, err := db.QueryContext(ctx, `
+		SELECT sp.student_id,
+		       sp.percent_completed,
+		       ROUND(
+		           COUNT(*) FILTER (WHERE r.stable_id::text = ANY(
+		               SELECT jsonb_array_elements_text(sp.completed_resources)))::numeric
+		           * 100 / NULLIF(COUNT(*), 0), 2) AS derived
+		FROM student_progress sp
+		JOIN courses c  ON c.stable_id = sp.course_stable_id
+		JOIN modules m  ON m.course_id = c.id
+		JOIN units u    ON u.module_id = m.id
+		JOIN resources r ON r.unit_id = u.id AND r.is_mandatory AND r.is_visible
+		GROUP BY sp.student_id, sp.percent_completed, sp.completed_resources`)
+	if err != nil {
+		t.Fatalf("failed to recompute seeded percentages: %v", err)
+	}
+	defer func() { _ = rows.Close() }()
+
+	checked := 0
+	for rows.Next() {
+		var studentID string
+		var stored, derived float64
+		if err := rows.Scan(&studentID, &stored, &derived); err != nil {
+			t.Fatalf("failed to scan percentage row: %v", err)
+		}
+		if stored != derived {
+			t.Errorf("student %s: seed stores %.2f%% but the course's resources give %.2f%%",
+				studentID, stored, derived)
+		}
+		checked++
+	}
+	if err := rows.Err(); err != nil {
+		t.Fatalf("failed to iterate percentage rows: %v", err)
+	}
+	if checked == 0 {
+		t.Error("no seeded progress rows were checked; the query stopped matching the seed")
+	}
+
 	// 7. Validate Idempotent re-run of Seed
 	if _, err := db.ExecContext(ctx, string(seedSQL)); err != nil {
 		t.Fatalf("seed re-execution must be idempotent: %v", err)

@@ -89,6 +89,16 @@ const (
 	// is the worker reporting the outcome, so its entries carry no actor.
 	AuditActionResourceMediaAttached  AuditAction = "resource.media_attached"
 	AuditActionResourceMediaProcessed AuditAction = "resource.media_processed"
+
+	// Progress and badges (issue #113). Heartbeats are not audited: they arrive
+	// by the thousand and are already a permanent record in progress_events, so
+	// copying them here would bury every other action in noise.
+	//
+	// What is audited are the two events that change a student's standing --
+	// completing a course and being issued its credential -- because those are
+	// what anyone auditing the platform would come looking for.
+	AuditActionCourseCompleted AuditAction = "progress.course_completed"
+	AuditActionBadgeIssued     AuditAction = "badge.issued"
 )
 
 // AuditEntry is one immutable record of an action.
