@@ -1,0 +1,104 @@
+================================================================================
+EVIDENCIA C3: PERMISOS IAM DIFERENCIADOS POR COMPONENTE
+================================================================================
+Criterio: La cuenta de la API no puede escribir en el prefijo de derivados (hls/)
+          El worker escribe derivados y no puede escribir en originales ni documentos.
+Fecha de ejecucion: 2026-09-27
+Bucket: plataforma-mooc-entrega2-media (us-east1)
+Cuenta API:    sa-web-server@plataforma-mooc-entrega2.iam.gserviceaccount.com
+Cuenta Worker: sa-worker-server@plataforma-mooc-entrega2.iam.gserviceaccount.com
+================================================================================
+
+--- 1. COMPROBACION CUENTA API (sa-web-server) ---
+
+>> Intentando escribir en el prefijo de derivados: hls/test_api_forbidden.txt
+{
+  "error": {
+    "code": 403,
+    "message": "sa-web-server@plataforma-mooc-entrega2.iam.gserviceaccount.com does not have storage.objects.create access to the Google Cloud Storage object. Permission 'storage.objects.create' denied on resource '//storage.googleapis.com/projects/_/buckets/plataforma-mooc-entrega2-media/objects/hls/test_api_forbidden.txt' (or it may not exist).",
+    "errors": [
+      {
+        "message": "sa-web-server@plataforma-mooc-entrega2.iam.gserviceaccount.com does not have storage.objects.create access to the Google Cloud Storage object. Permission 'storage.objects.create' denied on resource '//storage.googleapis.com/projects/_/buckets/plataforma-mooc-entrega2-media/objects/hls/test_api_forbidden.txt' (or it may not exist).",
+        "domain": "global",
+        "reason": "forbidden"
+      }
+    ]
+  }
+}
+
+HTTP Status: 403
+
+>> Intentando escribir en el prefijo permitido: originals/test_api_allowed.txt
+{
+  "kind": "storage#object",
+  "id": "plataforma-mooc-entrega2-media/originals/test_api_allowed.txt/1790478395851580",
+  "selfLink": "https://www.googleapis.com/storage/v1/b/plataforma-mooc-entrega2-media/o/originals%2Ftest_api_allowed.txt",
+  "mediaLink": "https://storage.googleapis.com/download/storage/v1/b/plataforma-mooc-entrega2-media/o/originals%2Ftest_api_allowed.txt?generation=1790478395851580&alt=media",
+  "name": "originals/test_api_allowed.txt",
+  "bucket": "plataforma-mooc-entrega2-media",
+  "generation": "1790478395851580",
+  "metageneration": "1",
+  "contentType": "text/plain",
+  "storageClass": "STANDARD",
+  "size": "47",
+  "md5Hash": "m98sOi3ID98uKvfW5Ucuyg==",
+  "crc32c": "ra87cA==",
+  "etag": "CLyGjebjjZcDEAE=",
+  "timeCreated": "2026-09-27T03:06:35.858Z",
+  "updated": "2026-09-27T03:06:35.858Z",
+  "timeStorageClassUpdated": "2026-09-27T03:06:35.858Z",
+  "timeFinalized": "2026-09-27T03:06:35.858Z"
+}
+
+HTTP Status: 200
+
+--- 2. COMPROBACION CUENTA WORKER (sa-worker-server) ---
+
+>> Intentando escribir en el prefijo de derivados: hls/test_worker_allowed.m3u8
+{
+  "kind": "storage#object",
+  "id": "plataforma-mooc-entrega2-media/hls/test_worker_allowed.m3u8/1790478396249248",
+  "selfLink": "https://www.googleapis.com/storage/v1/b/plataforma-mooc-entrega2-media/o/hls%2Ftest_worker_allowed.m3u8",
+  "mediaLink": "https://storage.googleapis.com/download/storage/v1/b/plataforma-mooc-entrega2-media/o/hls%2Ftest_worker_allowed.m3u8?generation=1790478396249248&alt=media",
+  "name": "hls/test_worker_allowed.m3u8",
+  "bucket": "plataforma-mooc-entrega2-media",
+  "generation": "1790478396249248",
+  "metageneration": "1",
+  "contentType": "text/plain",
+  "storageClass": "STANDARD",
+  "size": "40",
+  "md5Hash": "PdPxkX+o1fO8OWSbPox/zQ==",
+  "crc32c": "3zkoNg==",
+  "etag": "CKCppebjjZcDEAE=",
+  "timeCreated": "2026-09-27T03:06:36.255Z",
+  "updated": "2026-09-27T03:06:36.255Z",
+  "timeStorageClassUpdated": "2026-09-27T03:06:36.255Z",
+  "timeFinalized": "2026-09-27T03:06:36.255Z"
+}
+
+HTTP Status: 200
+
+>> Intentando escribir en el prefijo de originales: originals/test_worker_forbidden.txt
+{
+  "error": {
+    "code": 403,
+    "message": "sa-worker-server@plataforma-mooc-entrega2.iam.gserviceaccount.com does not have storage.objects.create access to the Google Cloud Storage object. Permission 'storage.objects.create' denied on resource '//storage.googleapis.com/projects/_/buckets/plataforma-mooc-entrega2-media/objects/originals/test_worker_forbidden.txt' (or it may not exist).",
+    "errors": [
+      {
+        "message": "sa-worker-server@plataforma-mooc-entrega2.iam.gserviceaccount.com does not have storage.objects.create access to the Google Cloud Storage object. Permission 'storage.objects.create' denied on resource '//storage.googleapis.com/projects/_/buckets/plataforma-mooc-entrega2-media/objects/originals/test_worker_forbidden.txt' (or it may not exist).",
+        "domain": "global",
+        "reason": "forbidden"
+      }
+    ]
+  }
+}
+
+HTTP Status: 403
+
+================================================================================
+CONCLUSION:
+1. sa-web-server recibe 403 Forbidden al escribir en hls/ (Criterio de aceptacion 1 cumplido).
+2. sa-web-server recibe 200 OK al escribir en originals/ (Permite cargas directas de originales).
+3. sa-worker-server recibe 200 OK al escribir en hls/ (Permite escribir derivados HLS).
+4. sa-worker-server recibe 403 Forbidden al escribir en originals/ (No puede alterar originales).
+================================================================================

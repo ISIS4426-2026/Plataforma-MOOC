@@ -64,6 +64,18 @@ output "private_vpc_connection_id" {
   value       = google_service_networking_connection.private_vpc_connection.id
 }
 
+# --- Almacenamiento de objetos (issue #120, C3) ------------------------------
+
+output "storage_bucket_name" {
+  description = "Nombre del bucket de Cloud Storage para persistencia multimedia y documentos (C3)."
+  value       = google_storage_bucket.media.name
+}
+
+output "storage_bucket_url" {
+  description = "URL gs:// del bucket de Cloud Storage (C3)."
+  value       = google_storage_bucket.media.url
+}
+
 # --- Base de datos administrada (issue #118, C1) -----------------------------
 #
 # Nada de lo que sale por aqui es secreto. La contrasena no es una salida a

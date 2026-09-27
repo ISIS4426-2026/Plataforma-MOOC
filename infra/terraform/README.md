@@ -18,7 +18,8 @@ perfiles y presupuesto— están justificadas en
 | Habilitación de APIs del proyecto | **Despliegue de contenedores** — eso es Docker Compose sobre las VMs |
 | Cuentas de servicio por componente, con IAM diferenciado | Imágenes, migraciones o datos sembrados |
 | *(B3)* VPC, subredes y firewall | Configuración interna del sistema operativo |
-| *(C1)* Cloud SQL · *(C3)* bucket · *(D2, E1)* VMs | |
+| *(C3)* Bucket Cloud Storage, prefijos, IAM por componente y CORS | |
+| *(C1)* Cloud SQL · *(D2, E1)* VMs | |
 
 Terraform define **qué recursos existen**. Lo que corre dentro de ellos se
 despliega aparte. Mezclar ambas cosas haría que un cambio de versión de la
@@ -436,9 +437,10 @@ hay que concederlo.
 | `versions.tf` | Versiones fijadas y backend del estado remoto |
 | `variables.tf` | Proyecto, región, zona y la contraseña de la base |
 | `main.tf` | Proveedor y APIs habilitadas |
-| `service_accounts.tf` | Las dos cuentas de servicio y su IAM diferenciado |
-| `network.tf` | *(B3)* VPC, subred, rango privado, NAT y firewall |
-| `database.tf` | *(C1)* Cloud SQL: instancia privada, base y usuario |
+| `service_accounts.tf` | Las dos cuentas de servicio y su IAM base |
+| `network.tf` | VPC, subred, rango privado reservado, NAT y firewall |
+| `database.tf` | Cloud SQL: instancia privada, base y usuario |
+| `storage.tf` | Bucket, prefijos, IAM por componente y CORS |
 | `outputs.tf` | Lo que consumen los issues siguientes |
 | `ADMINISTRACION.md` | Tareas de una sola vez: bootstrap del estado, accesos del equipo y cierre de la entrega |
 
@@ -454,7 +456,8 @@ permisos del otro.
 | Conectarse a Cloud SQL | ✅ | ✅ |
 | Escribir logs y métricas | ✅ | ✅ |
 | **Firmar URLs** | ✅ | ❌ |
-| **Escribir derivados en el bucket** | ❌ *(C3)* | ✅ *(C3)* |
+| **Escribir derivados en el bucket (`hls/`)** | ❌ *(denegado por IAM)* | ✅ *(autorizado por IAM)* |
+| **Escribir originales, docs y miniaturas** | ✅ *(autorizado por IAM)* | ❌ *(denegado por IAM)* |
 
 El permiso de firma merece una nota. `internal/storage/gcs.go` firma con las
 credenciales por defecto y **sin archivo de llave**; desde una VM no hay clave
@@ -464,4 +467,6 @@ Credentials. Eso exige `roles/iam.serviceAccountTokenCreator`, y se concede
 misma y como nadie más. A nivel de proyecto podría suplantar también a la del
 worker, que es justo la separación que estas dos cuentas existen para mantener.
 
-Los permisos sobre el bucket se conceden en **C3**, cuando el bucket exista.
+Los permisos sobre el bucket se gestionan en `storage.tf` mediante condiciones
+CEL que aseguran que el worker solo pueda escribir en `hls/` y la API solo en
+originales, documentos y miniaturas.

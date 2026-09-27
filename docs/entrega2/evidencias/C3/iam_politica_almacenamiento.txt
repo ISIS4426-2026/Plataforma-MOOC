@@ -1,0 +1,73 @@
+================================================================================
+EVIDENCIA C3: POLITICA IAM Y DETALLES DEL BUCKET EN GOOGLE CLOUD STORAGE
+================================================================================
+Bucket: plataforma-mooc-entrega2-media (us-east1)
+================================================================================
+
+--- 1. POLITICA DE IAM DEL BUCKET ---
+bindings:
+- members:
+  - projectEditor:plataforma-mooc-entrega2
+  - projectOwner:plataforma-mooc-entrega2
+  role: roles/storage.legacyBucketOwner
+- members:
+  - projectViewer:plataforma-mooc-entrega2
+  role: roles/storage.legacyBucketReader
+- members:
+  - projectEditor:plataforma-mooc-entrega2
+  - projectOwner:plataforma-mooc-entrega2
+  role: roles/storage.legacyObjectOwner
+- members:
+  - projectViewer:plataforma-mooc-entrega2
+  role: roles/storage.legacyObjectReader
+- condition:
+    description: La cuenta de la API solo puede crear objetos en originals, documents
+      y thumbnails, nunca en derivados HLS
+    expression: |
+      resource.type == "storage.googleapis.com/Object" && (
+        resource.name.startsWith("projects/_/buckets/plataforma-mooc-entrega2-media/objects/originals/") ||
+        resource.name.startsWith("projects/_/buckets/plataforma-mooc-entrega2-media/objects/documents/") ||
+        resource.name.startsWith("projects/_/buckets/plataforma-mooc-entrega2-media/objects/thumbnails/")
+      )
+    title: api_deny_derivatives_write
+  members:
+  - serviceAccount:sa-web-server@plataforma-mooc-entrega2.iam.gserviceaccount.com
+  role: roles/storage.objectCreator
+- condition:
+    description: El worker solo puede crear, actualizar y gestionar objetos bajo el
+      prefijo hls/
+    expression: |
+      resource.type == "storage.googleapis.com/Object" &&
+      resource.name.startsWith("projects/_/buckets/plataforma-mooc-entrega2-media/objects/hls/")
+    title: worker_write_derivatives_only
+  members:
+  - serviceAccount:sa-worker-server@plataforma-mooc-entrega2.iam.gserviceaccount.com
+  role: roles/storage.objectUser
+- members:
+  - serviceAccount:sa-web-server@plataforma-mooc-entrega2.iam.gserviceaccount.com
+  - serviceAccount:sa-worker-server@plataforma-mooc-entrega2.iam.gserviceaccount.com
+  role: roles/storage.objectViewer
+etag: CAU=
+
+--- 2. DETALLES DE CONFIGURACION DEL BUCKET ---
+cors_config:
+- maxAgeSeconds: 3600
+  method:
+  - GET
+  - HEAD
+  - PUT
+  - OPTIONS
+  origin:
+  - '*'
+  responseHeader:
+  - '*'
+lifecycle_config:
+  rule:
+  - action:
+      type: AbortIncompleteMultipartUpload
+    condition:
+      age: 1
+location: US-EAST1
+name: plataforma-mooc-entrega2-media
+public_access_prevention: enforced
+uniform_bucket_level_access: true
