@@ -1,0 +1,33 @@
+# Copias de seguridad - issue #119 (C2)
+# Fecha: 2026-09-27 14:09 UTC
+#
+# Leido de GCP con gcloud. Ninguna credencial aparece en este archivo.
+
+=== 1. Configuracion de copias automaticas (declarada en C1, database.tf) ===
++-----------+-------------+-----------+-------+
+| ACTIVADAS | VENTANA_UTC | RETENCION |  PITR |
++-----------+-------------+-----------+-------+
+| True      | 03:00       | 3         | False |
++-----------+-------------+-----------+-------+
+
+PITR desactivado a proposito: guarda el registro de escritura de forma
+continua y su coste crece con la actividad. Para un ejercicio academico la
+copia diaria es suficiente.
+
+=== 2. La copia manual bajo demanda ===
++---------------+-----------+------------+-------------------------------+----------------------------------------------------+
+|       ID      |    TYPE   |   STATUS   |       WINDOW_START_TIME       |                    DESCRIPTION                     |
++---------------+-----------+------------+-------------------------------+----------------------------------------------------+
+| 1790517759710 | ON_DEMAND | SUCCESSFUL | 2026-09-27T14:02:39.710+00:00 | C2 - copia manual previa al ensayo de restauracion |
++---------------+-----------+------------+-------------------------------+----------------------------------------------------+
+
+Duracion medida de 'gcloud sql backups create': 82 s.
+
+=== 3. Por que solo hay una copia ===
+La instancia se creo el 2026-09-27 a las 04:14 UTC y la ventana automatica
+es a las 03:00 UTC, que ese dia ya habia pasado. La primera copia automatica
+cae el 2026-09-28 a las 03:00 UTC.
+
+Que la unica copia existente sea la manual no es un defecto de la
+configuracion: es la consecuencia de la hora a la que se creo la instancia,
+y se comprueba con este mismo comando al dia siguiente.

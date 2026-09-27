@@ -1,0 +1,63 @@
+# Tiempos de recreacion medidos - issue #119 (C2)
+# Fecha: 2026-09-27, entre las 14:02 y las 14:52 UTC
+#
+# Medidos con `date` alrededor de cada comando, no estimados. Region us-east1,
+# instancia db-custom-1-3840 (1 vCPU, 3,75 GiB), 10 GiB SSD, base de ~52 filas.
+#
+# Que la base sea pequena importa para leer estos numeros: los tiempos estan
+# dominados por el aprovisionamiento de la plataforma, no por el volumen de
+# datos. Con una base grande, restaurar crecera; aprovisionar no.
+
+=== Operaciones individuales ===
+
+  Copia bajo demanda (gcloud sql backups create)          82 s
+  Copia bajo demanda, segunda medicion                    81 s
+  Aprovisionar una instancia nueva                       204 s   (3 min 24 s)
+  Restaurar una copia sobre una instancia existente      324 s   (5 min 24 s)
+  Migrar las 7 migraciones + sembrar, dentro de la VPC      6 s
+  Borrar una instancia                                   144 s   (2 min 24 s)
+
+  Las dos copias dieron 82 y 81 s, asi que el numero es estable.
+
+=== Los dos caminos para volver a tener la base en pie ===
+
+  A. RECREAR DESDE EL CODIGO
+     aprovisionar (204) + migrar y sembrar (6)          =  210 s   (3 min 30 s)
+
+  B. RESTAURAR DESDE UNA COPIA
+     aprovisionar (204) + restaurar (324)               =  528 s   (8 min 48 s)
+
+=== La conclusion, que no es la esperada ===
+
+Recrear desde el codigo es **2,5 veces mas rapido** que aprovisionar y restaurar
+una copia. Y no es una casualidad de esta medicion: restaurar arrastra el estado
+completo de la instancia, mientras que aplicar siete migraciones y una semilla
+determinista sobre una base vacia son segundos.
+
+Eso cambia cual es el procedimiento de recuperacion por defecto:
+
+  * Para el entorno de la entrega --datos sinteticos, reproducibles desde
+    `migrations/` y `scripts/seeds/`-- el camino es **A**. La copia de seguridad
+    no aporta nada que el repositorio no tenga, y tarda el doble.
+
+  * La copia de seguridad importa para lo que **no se puede regenerar**: los
+    datos que deje una corrida de carga y que alimenten el informe de capacidad.
+    Ahi el repositorio no sirve, porque esos datos no estan en el.
+
+Dicho de otro modo: el respaldo de este proyecto es el repositorio, y las copias
+de Cloud SQL cubren la ventana en la que eso deja de ser cierto.
+
+=== Para el cierre de la entrega (issue #133, I6) ===
+
+  Borrar la instancia                                    144 s
+  Volver a tenerla con datos (camino A)                  210 s
+  ------------------------------------------------------------
+  Ciclo completo de eliminacion y recreacion            ~354 s   (unos 6 min)
+
+A eso hay que sumar lo que no se midio aqui porque depende de quien lo ejecute:
+`terraform plan` y su lectura, y la creacion del host temporal con su
+`apt-get install postgresql-client`. Con margen, **10 minutos** es una cifra
+defendible para anunciar en una sustentacion.
+
+Los tiempos NO incluyen desplegar la aplicacion sobre las VMs (issues #123 y
+#125). Esto es solo la base de datos.

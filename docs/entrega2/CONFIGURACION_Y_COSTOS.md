@@ -469,17 +469,8 @@ con lo que reciben las alertas sin configurar canales.
    malos: que la corrida se corte a mitad —perdiendo la medición— o que el
    consumo se desborde hacia cargos reales. Si el saldo no alcanza, primero se
    redime el siguiente cupón.
-5. **Cloud SQL:** antes de detener o suspender la instancia hay que consultar las
-   condiciones del proveedor sobre duración de la suspensión, reactivación
-   automática y cargos que siguen corriendo, e incorporarlas aquí.
-   **Mecanismo, desde C1:** la instancia lleva `activation_policy` como variable
-   en `infra/terraform/database.tf`, así que detenerla y reanudarla es un cambio
-   de código y un `apply`, no un clic. Se hizo variable de código y no de entorno
-   para que el `apply` de quien no la exportara no volviera a encenderla en
-   silencio. Detenida se deja de pagar cómputo y se siguen pagando el
-   almacenamiento y las copias; **la magnitud del ahorro hay que contrastarla
-   contra el informe de facturación tras la primera parada**, que es lo que esta
-   regla pide y lo único que no se puede afirmar sin medirlo.
+5. **Cloud SQL — suspender la instancia.** Resuelto en **C2** (#119); las
+   condiciones del proveedor están abajo, en su propio apartado.
 6. **Al cerrar la entrega** (issue I6), se elimina la instancia de base de datos
    administrada, conservando antes los respaldos, los datos sintéticos y los
    scripts necesarios para reconstruirla. Se documenta qué recursos se conservan,
@@ -532,3 +523,87 @@ En la práctica, para esta entrega:
 * Las capturas y salidas que sí se versionan se revisan antes: identificadores de
   proyecto y de recursos son aceptables; tokens, llaves y cadenas de conexión con
   contraseña, no.
+
+---
+
+## Suspender la instancia de base de datos: las condiciones del proveedor
+
+Issue **C2** (#119). La regla 5 de operación pedía consultar y registrar aquí las
+condiciones antes de detener la instancia, porque es la palanca de coste más
+grande que tenemos: **la base es el componente más caro después de las dos VMs**,
+y el crédito por integrante son 50 USD.
+
+### El mecanismo
+
+`infra/terraform/database.tf` expone `db_activation_policy`, con `ALWAYS` y
+`NEVER`. Detener la instancia es un cambio de código y un `apply`, no un clic en
+la consola.
+
+Que sea variable **de código y no de entorno** es deliberado: si viviera en el
+entorno de cada uno, el `apply` de quien no la exportara volvería a encender la
+instancia en silencio y el aviso llegaría en la factura.
+
+### Qué se deja de pagar, y qué no
+
+La documentación de Google es explícita:
+
+> «Stopping an instance suspends instance charges. The instance data is
+> unaffected, and charges for storage and IP addresses continue to apply.»
+>
+> — [Start, stop, and restart instances](https://docs.cloud.google.com/sql/docs/postgres/start-stop-restart-instance)
+
+Traducido a nuestra estimación:
+
+| Concepto | 24×7 | Detenida |
+| :--- | ---: | ---: |
+| Cómputo — 1 vCPU / 3,75 GiB | 49,31 USD | **0,00** |
+| Almacenamiento SSD 10 GiB | 1,70 USD | 1,70 USD |
+| **Total** | **51,01 USD** | **1,70 USD** |
+
+**Detener la instancia ahorra el 97 % de su coste.** Es la diferencia entre que un
+cupón de 50 USD dure un mes o dure el semestre, y por eso la instancia debería
+existir para las corridas y estar detenida el resto del tiempo.
+
+La cifra hay que seguir contrastándola con el informe de facturación tras la
+primera parada real; lo que ya no es una suposición es **qué** se deja de pagar.
+
+### La consecuencia que no está en la página de precios
+
+**Mientras la instancia está detenida, las copias automáticas no se ejecutan.**
+Se registran como omitidas:
+
+> «When a Cloud SQL instance stopped running since the last successful backup, a
+> new automated backup isn't created», con estado `STATUS_SKIPPED` en los
+> registros de auditoría.
+>
+> — [View audit logs for automated backups](https://docs.cloud.google.com/sql/docs/postgres/backup-recovery/view-audit-logs-for-automated-backups)
+
+Para esta entrega es aceptable, y conviene decir por qué en lugar de dejarlo
+implícito: **los datos son sintéticos y reproducibles**. El esquema sale de
+`migrations/` y los datos de `scripts/seeds/`, así que una base perdida se
+reconstruye con `scripts/recrear-entorno.sh`. No hay nada que solo exista en la
+base.
+
+Eso deja de ser cierto en el momento en que una corrida genere datos que haya que
+conservar para el informe. **Antes de detener la instancia después de un
+escenario de carga, tomar una copia manual** —`gcloud sql backups create`, 82 s
+medidos— o exportar a un bucket. Si se detiene sin hacerlo, la ventana automática
+no lo va a cubrir.
+
+### Lo que la documentación no dice
+
+Dos cosas que buscamos y no están documentadas, así que **no se pueden dar por
+supuestas**:
+
+* Si Google reactiva por su cuenta una instancia detenida, y en qué
+  circunstancias.
+* Si hay un límite de tiempo para dejarla detenida.
+
+Lo que sí está documentado es un caso de parada automática distinto: una instancia
+a punto de quedarse sin espacio **se detiene sola** para evitar pérdida de datos, y
+vuelve a detenerse a las 24 horas si el problema persiste. Contra eso ya hay
+defensa desde C1: `disk_autoresize` activo con techo en 20 GiB.
+
+La conclusión práctica: **al reanudar para una corrida, comprobar el estado antes
+de dar por hecho que sigue detenida**, y al revés. Un `gcloud sql instances
+describe --format='value(state,settings.activationPolicy)'` cuesta un segundo.

@@ -311,13 +311,37 @@ el esquema. Hay que volver a migrar desde una VM, con
 `scripts/migrate.sh` — el procedimiento está en
 [`README.md`](./README.md#las-migraciones-no-las-hace-terraform).
 
-### Qué sobrevive al `destroy`
+### Qué sobrevive al `destroy`, y cuánto cuesta
+
+Medido el 2026-09-27 (issue **C2**, #119). Los tamaños son reales, leídos con
+`gcloud`; los precios son los de lista de `us-east1` y hay que contrastarlos con
+el informe de facturación.
+
+| Recurso | Tamaño medido | Coste/mes | Por qué se conserva |
+| :--- | :--- | :--- | :--- |
+| Bucket del estado de Terraform | 79,77 KiB | ~0,00 USD | Se creó fuera de Terraform; si `destroy` se lo llevara, se llevaría el registro de lo que hay que reconstruir |
+| Bucket de multimedia (C3) | 4 B (solo los prefijos) | ~0,00 USD | Lo gestiona `storage.tf`; con datos reales sí crecería |
+| Artifact Registry (D1) | 106,39 MB | **0,00 USD** | Por debajo del medio gigabyte gratuito. Conservar las imágenes es lo que hace rápida la recreación |
+| Secret Manager | 1 secreto, 1 versión activa | ~0,06 USD | Su ciclo de vida lo gobierna este documento, no el código |
+| VPC, subred, firewall, rango reservado | — | 0,00 USD | No se factura su existencia |
+| Cloud NAT | — | ~0,00 USD **sin VMs** | Se factura por instancia-hora y por datos; con cero VMs no cobra |
+| APIs habilitadas | — | 0,00 USD | Habilitar una API no cuesta; solo los recursos que se creen con ella |
+
+**Total conservado: del orden de 0,06 USD al mes.**
+
+La conclusión es robusta aunque los precios unitarios varíen, porque **todas las
+cantidades están órdenes de magnitud por debajo de los umbrales de pago**: 106 MB
+frente a los 500 MB gratuitos del registro, kilobytes frente a gigabytes en los
+buckets. Lo único que factura de verdad es la instancia de base de datos, y es
+precisamente lo que se elimina.
+
+### Lo que NO sobrevive, y hay que tener en cuenta
 
 | | |
 | :--- | :--- |
-| El bucket del estado de Terraform | Se creó fuera de Terraform, a propósito |
-| Los secretos de Secret Manager | Los gestiona este documento, no el código |
-| Las APIs habilitadas | `disable_on_destroy = false`; apagarlas no ahorra nada |
+| **Las copias de seguridad** | Se van con la instancia. Si hace falta conservar los datos, exportar antes a un bucket |
+| El esquema y los datos | Terraform recrea la base vacía, nunca el esquema. Hay que volver a migrar y sembrar |
+| El nombre de la instancia | Google lo reserva **siete días**. Subir `db_instance_generation` |
 
-Nada de eso cuesta dinero apreciable, y conservarlo es lo que permite volver a
-levantar el entorno para la sustentación.
+El primero es el que sorprende: una copia de seguridad no es un respaldo si vive
+dentro de lo que vas a borrar.
