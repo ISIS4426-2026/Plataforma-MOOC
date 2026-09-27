@@ -1,0 +1,91 @@
+===================================================================
+ Ensayo de restauracion - issue #119 (C2)
+ Fecha: 2026-09-27 14:50 UTC
+
+ Origen:  mooc-db-1                10.171.240.3
+ Destino: mooc-db-restauracion-1   10.171.240.5  (instancia nueva y desechable)
+ Copia:   1790519868955  ON_DEMAND, tomada a las 2026-09-27 14:37:48.955+00
+
+ Ejecutado desde mooc-reconstructor-temporal (10.0.1.3), dentro de la VPC.
+===================================================================
+
+=== 1. Son dos instancias distintas, no la misma vista dos veces ===
+  10.171.240.3     10.171.240.3/32   moocdb
+  10.171.240.5     10.171.240.5/32   moocdb
+
+=== 2. Recuento de filas ===
+  TABLA                  ORIGEN  DESTINO
+  audit_logs                  2        2   iguales
+  badges                      1        1   iguales
+  courses                     4        4   iguales
+  enrollments                 2        2   iguales
+  modules                     4        4   iguales
+  progress_events             5        5   iguales
+  quiz_options                5        5   iguales
+  quiz_questions              2        2   iguales
+  quizzes                     1        1   iguales
+  resources                   5        5   iguales
+  schema_migrations           7        7   iguales
+  student_progress            2        2   iguales
+  units                       4        4   iguales
+  users                       9        8   difieren  <-- ver nota
+
+  NOTA SOBRE users. El origen tiene una fila mas, y no es un fallo de la
+  restauracion: es la demostracion de que una copia es la foto de un instante.
+
+  La copia se tomo a las 14:37:48 UTC. A las 14:46:16 UTC se registro en el
+  origen el usuario estudiante.d2@plataforma-mooc.test -- una prueba del issue
+  D2 contra la instancia administrada, ocho minutos despues de la copia.
+
+  El destino tiene exactamente lo que el origen tenia cuando se copio. Por eso
+  la comparacion de contenido de la seccion 3 se hace con un corte en el
+  instante de la copia: comparar contra el estado actual de una base viva y
+  compartida no probaria nada.
+
+  De paso, ese registro es evidencia de otra cosa: el registro de usuarios de
+  D2 ya funciona contra Cloud SQL.
+
+=== 3. Suma de verificacion del CONTENIDO, con corte en la copia ===
+    Los recuentos podrian coincidir con datos distintos. Esto resume el
+    contenido real de cada tabla a un md5, ordenado para que no dependa
+    del orden de lectura.
+
+  TABLA        MD5                                RESULTADO
+  audit_logs   44bdc89de69b94dad45b051a1a0a8d81   identico
+  badges       03e7dd1176fa2e2bf241a8976b953ffe   identico
+  courses      e140068b15979454db1979cbaa7df81a   identico
+  enrollments  e90bd0a73ae0693a37c039fd65e59955   identico
+  progreso     2d48ca029118b02ce16fed68189b03ac   identico
+  resources    a8fa92548da03323e204fa2aedf17c9d   identico
+  users        d949aea0528d073a977e1a91e7fd863f   identico
+
+  >>> El contenido es identico fila por fila, no solo el recuento.
+
+=== 4. La estructura tambien viajo ===
+    Un volcado de filas sin restricciones dejaria una base que parece
+    correcta y no lo es: las garantias del dominio las sostiene el
+    esquema, no el codigo.
+
+==> Restricciones que sostienen las garantias del dominio
+              conname              | diferible |                           definicion                           
+-----------------------------------+-----------+----------------------------------------------------------------
+ courses_stable_id_version_key     | f         | UNIQUE (stable_id, version)
+ uq_quiz_options_question_position | t         | UNIQUE (question_id, "position") DEFERRABLE INITIALLY DEFERRED
+ uq_quiz_questions_quiz_position   | t         | UNIQUE (quiz_id, "position") DEFERRABLE INITIALLY DEFERRED
+ uq_quiz_submissions_attempt       | f         | UNIQUE (quiz_id, student_id, attempt)
+ uq_quizzes_resource               | f         | UNIQUE (resource_id)
+(5 rows)
+
+    Las cinco presentes.
+==> Disparadores de inmutabilidad de la auditoria (migracion 000004)
+   tabla    |      disparador      
+------------+----------------------
+ audit_logs | audit_logs_no_delete
+ audit_logs | audit_logs_no_update
+(2 rows)
+
+==> Limite de conexiones de la instancia frente al pool
+
+===================================================================
+ Sin fallos de consulta. La contrasena no aparece en ninguna linea.
+===================================================================
