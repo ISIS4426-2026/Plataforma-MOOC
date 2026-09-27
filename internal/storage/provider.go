@@ -20,11 +20,12 @@ const (
 
 // Config is what New needs to pick and build an adapter.
 type Config struct {
-	Backend   Backend
-	Bucket    string
-	Endpoint  string // MinIO only
-	AccessKey string // MinIO only
-	SecretKey string // MinIO only
+	Backend       Backend
+	Bucket        string
+	Endpoint      string // MinIO only
+	AccessKey     string // MinIO only
+	SecretKey     string // MinIO only
+	SignerAccount string // GCS V4 signing (IAM service account)
 }
 
 // New builds the adapter named by cfg.Backend.
@@ -35,7 +36,7 @@ type Config struct {
 func New(ctx context.Context, cfg Config) (domain.StorageProvider, error) {
 	switch Backend(strings.ToLower(string(cfg.Backend))) {
 	case BackendGCS:
-		return NewGCS(ctx, cfg.Bucket)
+		return NewGCS(ctx, cfg.Bucket, cfg.SignerAccount)
 	case BackendMinIO:
 		return NewMinIO(cfg.Endpoint, cfg.AccessKey, cfg.SecretKey, cfg.Bucket)
 	default:

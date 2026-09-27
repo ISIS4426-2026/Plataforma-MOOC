@@ -65,6 +65,10 @@ func TestValidateRechazaValoresDeDesarrolloEnProduccion(t *testing.T) {
 			func(c *config.Config) { c.StorageBackend = "minio" },
 			"STORAGE_BACKEND",
 		},
+		"el bucket sigue siendo el local": {
+			func(c *config.Config) { c.S3Bucket = "mooc-storage" },
+			"S3_BUCKET",
+		},
 		"los enlaces de los correos apuntan a localhost": {
 			func(c *config.Config) { c.AppBaseURL = "http://localhost:8080" },
 			"APP_BASE_URL",
@@ -140,6 +144,7 @@ func TestValidateReportaTodosLosProblemasJuntos(t *testing.T) {
 	cfg := produccionValida()
 	cfg.DatabaseURL = "postgres://moocuser:moocpassword@postgres:5432/moocdb"
 	cfg.StorageBackend = "minio"
+	cfg.S3Bucket = "mooc-storage"
 	cfg.S3SecretKey = "minioadmin"
 	cfg.AppBaseURL = "http://localhost:8080"
 	cfg.SMTPHost = "mailpit"
@@ -150,7 +155,7 @@ func TestValidateReportaTodosLosProblemasJuntos(t *testing.T) {
 		t.Fatal("una configuración enteramente de desarrollo fue aceptada en producción")
 	}
 
-	for _, esperado := range []string{"DATABASE_URL", "STORAGE_BACKEND", "S3_SECRET_KEY", "APP_BASE_URL", "SMTP_HOST", "SMTP_PORT"} {
+	for _, esperado := range []string{"DATABASE_URL", "STORAGE_BACKEND", "S3_BUCKET", "S3_SECRET_KEY", "APP_BASE_URL", "SMTP_HOST", "SMTP_PORT"} {
 		if !strings.Contains(err.Error(), esperado) {
 			t.Errorf("el error omite %s: quien despliega tendría que arrancar otra vez para descubrirlo", esperado)
 		}

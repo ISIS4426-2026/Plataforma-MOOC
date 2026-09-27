@@ -106,6 +106,10 @@ func (c *Config) Validate() error {
 		problemas = append(problemas,
 			"STORAGE_BACKEND=minio en produccion: la nube usa el almacenamiento administrado (gcs)")
 	}
+	if c.S3Bucket == "" || c.S3Bucket == "mooc-storage" {
+		problemas = append(problemas,
+			"S3_BUCKET conserva el valor de desarrollo (mooc-storage): en produccion debe ser el bucket administrado")
+	}
 
 	// Solo importa si de verdad se usa MinIO. Con gcs las credenciales vienen
 	// de la cuenta de servicio adjunta a la VM y estos campos se ignoran.

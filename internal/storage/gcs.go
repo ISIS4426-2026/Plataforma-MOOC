@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 	"time"
 
 	"cloud.google.com/go/storage"
@@ -20,14 +21,17 @@ import (
 // not by this code, so a bug here cannot hand a client more rights than its
 // service account holds.
 type GCS struct {
-	client *storage.Client
-	bucket string
+	client        *storage.Client
+	bucket        string
+	signerAccount string
 }
 
 // NewGCS builds the adapter from Application Default Credentials. On a VM that
 // is the attached service account; locally it is whatever gcloud auth
 // application-default login wrote. No key file is ever read from the repo.
-func NewGCS(ctx context.Context, bucket string) (*GCS, error) {
+// GCS_SIGNER_ACCOUNT or STORAGE_SIGNER_ACCOUNT optionally specifies the service
+// account to use as GoogleAccessID when signing V4 URLs via IAM Credentials.
+func NewGCS(ctx context.Context, bucket string, signerAccount ...string) (*GCS, error) {
 	if bucket == "" {
 		return nil, errors.New("storage: bucket name is required")
 	}
@@ -35,7 +39,16 @@ func NewGCS(ctx context.Context, bucket string) (*GCS, error) {
 	if err != nil {
 		return nil, fmt.Errorf("storage: cloud storage client: %w", err)
 	}
-	return &GCS{client: client, bucket: bucket}, nil
+	var signer string
+	if len(signerAccount) > 0 && signerAccount[0] != "" {
+		signer = signerAccount[0]
+	} else {
+		signer = os.Getenv("GCS_SIGNER_ACCOUNT")
+		if signer == "" {
+			signer = os.Getenv("STORAGE_SIGNER_ACCOUNT")
+		}
+	}
+	return &GCS{client: client, bucket: bucket, signerAccount: signer}, nil
 }
 
 // Close releases the underlying client.
@@ -56,10 +69,11 @@ func (g *GCS) GeneratePresignedUploadURL(ctx context.Context, objectKey, content
 		return "", fmt.Errorf("storage: refusing to sign an upload for derivative key %q", objectKey)
 	}
 	opts := &storage.SignedURLOptions{
-		Scheme:      storage.SigningSchemeV4,
-		Method:      http.MethodPut,
-		ContentType: contentType,
-		Expires:     time.Now().Add(expires),
+		Scheme:         storage.SigningSchemeV4,
+		Method:         http.MethodPut,
+		ContentType:    contentType,
+		Expires:        time.Now().Add(expires),
+		GoogleAccessID: g.signerAccount,
 	}
 	url, err := g.client.Bucket(g.bucket).SignedURL(objectKey, opts)
 	if err != nil {
@@ -73,9 +87,10 @@ func (g *GCS) GeneratePresignedUploadURL(ctx context.Context, objectKey, content
 // ends up fetching.
 func (g *GCS) GeneratePresignedDownloadURL(ctx context.Context, objectKey string, expires time.Duration) (string, error) {
 	opts := &storage.SignedURLOptions{
-		Scheme:  storage.SigningSchemeV4,
-		Method:  http.MethodGet,
-		Expires: time.Now().Add(expires),
+		Scheme:         storage.SigningSchemeV4,
+		Method:         http.MethodGet,
+		Expires:        time.Now().Add(expires),
+		GoogleAccessID: g.signerAccount,
 	}
 	url, err := g.client.Bucket(g.bucket).SignedURL(objectKey, opts)
 	if err != nil {
