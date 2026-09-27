@@ -397,6 +397,22 @@ login SMTP no es la clave: Brevo muestra un correo técnico que puede terminar e
 
 ### 4. Configurar la VM sin datos personales en Git
 
+Las dos direcciones privadas **se leen de Terraform, no se copian de aquí**. Una
+VM recreada recibe otra IP, y un literal en este documento envejece sin avisar:
+las VMs ya se recrearon una vez y pasaron de `10.0.1.2`/`10.0.1.3` a
+`10.0.1.4`/`10.0.1.5`. Desde tu máquina, antes de entrar a la VM:
+
+```bash
+cd infra/terraform
+terraform output -raw db_private_ip              # DB_PRIVATE_IP
+terraform output -raw worker_server_private_ip   # QUEUE_PRIVATE_IP
+```
+
+Desde tu máquina, **no desde la VM**: `sa-web-server` no tiene
+`compute.instances.get` sobre la instancia del worker, y no hay que concedérselo
+—esa separación es justo lo que E1 construyó—. Preguntar por la IP allí dentro
+falla con `Required 'compute.instances.get' permission`.
+
 En `mooc-web-server`, crear el archivo de configuración operativa:
 
 ```bash
@@ -404,7 +420,8 @@ sudo install -d -m 0755 /etc/mooc
 sudo tee /etc/mooc/web.conf >/dev/null <<'EOF'
 IMAGE_TAG=<SHA_COMPLETO_DE_LA_IMAGEN_PUBLICADA>
 APP_DOMAIN=34.24.52.111.sslip.io
-DB_PRIVATE_IP=10.171.240.3
+DB_PRIVATE_IP=<terraform output -raw db_private_ip>
+QUEUE_PRIVATE_IP=<terraform output -raw worker_server_private_ip>
 SMTP_HOST=smtp-relay.brevo.com
 SMTP_PORT=587
 SMTP_FROM=<CORREO_REMITENTE_VERIFICADO>
@@ -416,6 +433,14 @@ sudo chmod 640 /etc/mooc/web.conf
 
 Ese archivo no contiene contraseñas, pero queda fuera del repositorio porque el
 remitente y el login identifican la cuenta del equipo.
+
+**`QUEUE_PRIVATE_IP` es la IP privada del Worker Server, no la del propio Web
+Server.** Ahí viven la cola de asynq y el almacén de sesiones, límites e
+idempotencia (E1). Si falta, `prepare_web_env.sh` detiene el despliegue a
+propósito: la alternativa —apuntar al contenedor `redis` del propio Compose— deja
+a la API encolando tareas de media en un broker que ningún worker lee, y eso no
+falla, solo deja cada video en `pending` para siempre. Es el defecto #166, que
+encontró la verificación E2E de G3.
 
 El script versionado sustituye el `prepare_env.sh` manual de D2. Lee
 `db-password` y `smtp-password` con la cuenta de servicio de la VM, escribe

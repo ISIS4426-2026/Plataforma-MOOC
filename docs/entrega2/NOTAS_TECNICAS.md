@@ -29,6 +29,7 @@ salieron de errores que costaron una tarde y se habrían evitado leyéndolas.
 | 17 | SMTP 587, 465 y 2525 no hablan exactamente igual | F1, G3, I1 |
 | 18 | Terraform y el arranque deben interpretar igual los secretos creados desde Windows | C1, D2, E1, F1 |
 | 19 | Lo versionado tiene que reproducir lo que hacía lo que reemplaza — *`REDIS_URL`, **#166*** | D2, E1, F1, G3 |
+| 20 | El worker no podía arrancar en producción: validaba la configuración de la API | E1, F1, G3, I1 |
 
 ---
 
@@ -839,6 +840,52 @@ sin valor por omisión, y construye `REDIS_URL` con ella. Una dirección ausente
 tiene que detener el despliegue; elegir el Redis equivocado en silencio es el
 modo de fallo que costó esta nota. Registrado en **#166**.
 
+**Y esa IP se lee de Terraform, nunca se copia de un documento.** El `10.0.1.3`
+del párrafo anterior ya no existe: las dos VMs se recrearon en algún punto y
+pasaron a `10.0.1.4` (web) y `10.0.1.5` (worker). Un literal escrito en una guía
+sobrevive a la infraestructura que describía, así que
+`ADMINISTRACION.md` pide el valor con
+`terraform output -raw worker_server_private_ip` en lugar de imprimirlo.
+
 La lección general: al versionar un script que reemplaza a otro que vivía solo en
 una VM, la configuración que aquel producía es parte de lo que hay que portar. El
 contenido del `.env` viejo es la especificación del script nuevo.
+
+---
+
+## 20. El worker no podía arrancar en producción: validaba la configuración de la API
+
+**Afecta a:** E1, F1, G3 e I1.
+
+El binario del worker llamaba a `config.Validate()`, que es la comprobación de
+arranque de la API. En `APP_ENV=production` eso le exigía `APP_BASE_URL`,
+`TRUSTED_PROXY_IP`, `CSRF_ALLOWED_ORIGINS` y las cuatro variables de SMTP.
+
+El worker no usa ninguna —se comprueba con un `grep`: no aparecen en `cmd/worker`
+ni en `internal/worker`—, y con una de ellas la exigencia era **imposible de
+satisfacer**. `mail.tf` le niega `smtp-password` a propósito y lo dice con todas
+las letras: «el worker no aparece a propósito, y no es un olvido: procesa video y
+no manda mensajes». Así que la única forma de arrancarlo en producción era darle
+una credencial que la infraestructura decidió que no debía tener, o inventar un
+valor falso para engañar al validador.
+
+Lo encontró G3 al redesplegar el Worker Server. El contenedor entraba en bucle de
+reinicio quejándose de tres cosas que no usa, mientras la cola acumulaba tareas:
+
+```
+Invalid configuration: la configuracion de produccion conserva valores de desarrollo:
+  - APP_BASE_URL apunta a localhost
+  - CSRF_ALLOWED_ORIGINS vacio en produccion
+  - SMTP_PASSWORD vacio: la contrasena del proveedor vive en Secret Manager
+```
+
+Ahora hay dos comprobaciones. `Validate()` es la de la API y no cambió;
+`ValidateWorker()` omite la superficie HTTP y el correo, y **conserva entero lo
+compartido**: la contraseña de desarrollo en la base, el `sslmode`, el
+almacenamiento y el tamaño de los pools. Ahí un valor de desarrollo tiene las
+mismas consecuencias en los dos procesos, y relajarlo sería otro agujero.
+
+La lección: una comprobación de arranque que solo se puede satisfacer
+contradiciendo el modelo de permisos no protege nada, empuja a saltárselo. Si dos
+procesos comparten binario de configuración pero no superficie, la validación
+tiene que distinguirlos.

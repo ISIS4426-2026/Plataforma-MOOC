@@ -348,3 +348,83 @@ func TestValidateRechazaWorkerConcurrencyNegativa(t *testing.T) {
 		t.Errorf("el error no menciona WORKER_CONCURRENCY:\n%v", err)
 	}
 }
+
+// El worker corre en produccion sin nada de la superficie HTTP. No es una
+// configuracion incompleta: es la unica que puede tener, porque mail.tf no le
+// concede el secreto de SMTP.
+func workerEnProduccion() *config.Config {
+	return &config.Config{
+		Environment:       config.EnvironmentProduction,
+		DatabaseURL:       "postgres://moocuser:UnaContrasenaDeVerdad@10.0.0.3:5432/moocdb?sslmode=require",
+		StorageBackend:    "gcs",
+		S3Bucket:          "plataforma-mooc-media",
+		WorkerConcurrency: 2,
+		DBMaxOpenConns:    25,
+		DBMaxIdleConns:    25,
+	}
+}
+
+func TestValidateWorkerNoExigeLoQueElWorkerNoUsa(t *testing.T) {
+	if err := workerEnProduccion().ValidateWorker(); err != nil {
+		t.Fatalf("el worker fue rechazado por configuración que no usa: %v", err)
+	}
+}
+
+// La contraparte, y la razon de que las dos comprobaciones existan por
+// separado: esa misma configuracion es invalida para la API.
+func TestValidateRechazaParaLaAPILoQueAceptaParaElWorker(t *testing.T) {
+	err := workerEnProduccion().Validate()
+	if err == nil {
+		t.Fatal("la API arrancó sin APP_BASE_URL, sin CSRF y sin credenciales de SMTP")
+	}
+	for _, esperado := range []string{"APP_BASE_URL", "CSRF_ALLOWED_ORIGINS", "SMTP_USERNAME", "SMTP_PASSWORD"} {
+		if !strings.Contains(err.Error(), esperado) {
+			t.Errorf("el error de la API no menciona %s: %v", esperado, err)
+		}
+	}
+}
+
+// Lo que sí comparten los dos procesos se sigue comprobando en el worker: ahí un
+// valor de desarrollo tiene exactamente las mismas consecuencias.
+func TestValidateWorkerSigueExigiendoLoCompartido(t *testing.T) {
+	casos := map[string]struct {
+		estropear func(*config.Config)
+		esperado  string
+	}{
+		"contraseña de desarrollo en la base": {
+			estropear: func(c *config.Config) {
+				c.DatabaseURL = "postgres://moocuser:moocpassword@10.0.0.3:5432/moocdb?sslmode=require"
+			},
+			esperado: "DATABASE_URL",
+		},
+		"conexión a la base sin cifrar": {
+			estropear: func(c *config.Config) {
+				c.DatabaseURL = "postgres://moocuser:UnaContrasenaDeVerdad@10.0.0.3:5432/moocdb?sslmode=disable"
+			},
+			esperado: "sslmode",
+		},
+		"almacenamiento de desarrollo": {
+			estropear: func(c *config.Config) { c.StorageBackend = "minio" },
+			esperado:  "STORAGE_BACKEND",
+		},
+		"pool sin límite contra la instancia administrada": {
+			estropear: func(c *config.Config) { c.DBMaxOpenConns = 0; c.DBMaxIdleConns = 0 },
+			esperado:  "DB_MAX_OPEN_CONNS",
+		},
+	}
+
+	for nombre, caso := range casos {
+		t.Run(nombre, func(t *testing.T) {
+			cfg := workerEnProduccion()
+			caso.estropear(cfg)
+
+			err := cfg.ValidateWorker()
+			if err == nil {
+				t.Fatalf("el worker aceptó %s", nombre)
+			}
+			if !strings.Contains(err.Error(), caso.esperado) {
+				t.Errorf("el error no menciona %s: %v", caso.esperado, err)
+			}
+		})
+	}
+}
