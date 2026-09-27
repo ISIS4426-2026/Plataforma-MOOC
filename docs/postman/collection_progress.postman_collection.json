@@ -4,6 +4,24 @@
     "description": "Latidos de progreso, el porcentaje que se deriva de ellos y la insignia verificable que emite completar un curso (issue #113).\n\nEl orden importa: las peticiones encadenan el avance de un mismo estudiante en un mismo curso, desde antes de inscribirse hasta despues de volver.\n\nLa coleccion es re-ejecutable, y a proposito NO reinicia el progreso: la seccion 5.1 del enunciado pide que sobreviva al retiro y a la reinscripcion, asi que lo que se comprueba son invariantes que se cumplen en cualquier corrida, no un 0% de partida.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// G2 (#128): D3 agrego una cookie de sesion Secure (__Host-mooc_session) al",
+          "// hacer login. El cookie jar de Postman la reenvia automaticamente en las",
+          "// peticiones siguientes de la misma corrida, y el middleware de CSRF del",
+          "// servidor rechaza cualquier peticion mutante que la lleve sin una cabecera",
+          "// Origin -- aunque la peticion tambien lleve un Bearer valido. Esta coleccion",
+          "// es un cliente API puro por diseno, nunca deberia depender de esa cookie,",
+          "// asi que se limpia antes de cada peticion.",
+          "pm.cookies.jar().clear(pm.environment.get('baseUrl'), function () {});"
+        ]
+      }
+    }
+  ],
   "item": [
     {
       "name": "01 Login como Estudiante",

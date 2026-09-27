@@ -1,0 +1,205 @@
+newman
+
+Plataforma MOOC - Progreso e Insignias
+
+→ 01 Login como Estudiante
+  POST https://34.24.52.111.sslip.io/api/v1/auth/login [200 OK, 701B, 472ms]
+  ✓  responde 200
+
+→ 02 Login como Profesor (autor del curso publicado)
+  POST https://34.24.52.111.sslip.io/api/v1/auth/login [200 OK, 695B, 185ms]
+  ✓  responde 200
+
+→ 03 Login como Administrador
+  POST https://34.24.52.111.sslip.io/api/v1/auth/login [200 OK, 700B, 183ms]
+  ✓  responde 200
+
+→ 04 Preparacion: dejar al estudiante sin inscripcion activa
+  DELETE https://34.24.52.111.sslip.io/api/v1/courses/d0000000-0000-0000-0000-000000000001/enrollments [200 OK, 459B, 93ms]
+  ✓  queda sin inscripcion activa (200 al retirarse, 404 si nunca se inscribio)
+
+→ 05 Recorrer el curso y recolectar sus recursos obligatorios
+  GET https://34.24.52.111.sslip.io/api/v1/courses/d0000000-0000-0000-0000-000000000001/modules [200 OK, 654B, 88ms]
+  ✓  responde 200
+  GET https://34.24.52.111.sslip.io/api/v1/modules/d1000000-0000-0000-0000-000000000001/units   GET https://34.24.52.111.sslip.io/api/v1/modules/d1000000-0000-0000-0000-000000000002/units [200 OK, 446B, 96ms]
+  GET https://34.24.52.111.sslip.io/api/v1/units/d2000000-0000-0000-0000-000000000001/resources [200 OK, 1.03kB, 96ms]
+[200 OK, 444B, 272ms]
+  GET https://34.24.52.111.sslip.io/api/v1/units/d2000000-0000-0000-0000-000000000002/resources [200 OK, 542B, 107ms]
+  ✓  el curso tiene al menos un recurso obligatorio
+
+→ 06 Recolectar un recurso del curso en BORRADOR
+  GET https://34.24.52.111.sslip.io/api/v1/courses/d0000000-0000-0000-0000-000000000002/modules [200 OK, 422B, 99ms]
+  ✓  responde 200
+  GET https://34.24.52.111.sslip.io/api/v1/modules/d1000000-0000-0000-0000-000000000003/units [200 OK, 438B, 93ms]
+  GET https://34.24.52.111.sslip.io/api/v1/units/d2000000-0000-0000-0000-000000000003/resources [200 OK, 1.06kB, 94ms]
+
+→ 07 Rechazo: latido sin sesion
+  POST https://34.24.52.111.sslip.io/api/v1/progress/heartbeat [401 Unauthorized, 311B, 91ms]
+  ✓  responde 401
+  ✓  con codigo de error unauthorized
+
+→ 08 Rechazo: latido sin inscripcion activa
+  POST https://34.24.52.111.sslip.io/api/v1/progress/heartbeat [403 Forbidden, 295B, 95ms]
+  ✓  responde 403
+  ✓  con codigo de error forbidden
+
+→ 09 Inscripcion en el curso publicado
+  POST https://34.24.52.111.sslip.io/api/v1/courses/d0000000-0000-0000-0000-000000000001/enrollments [200 OK, 418B, 99ms]
+  ✓  responde 200
+  ✓  queda inscrito
+
+→ 10 Estado del progreso al empezar
+  GET https://34.24.52.111.sslip.io/api/v1/progress/courses/d0000000-0000-0000-0000-000000000001 [200 OK, 799B, 93ms]
+  ✓  responde 200
+  ✓  el total coincide con los recursos obligatorios recorridos
+  ✓  el porcentaje es coherente con las cuentas
+
+→ 11 Rechazo: tiempo de permanencia fuera de rango
+  POST https://34.24.52.111.sslip.io/api/v1/progress/heartbeat [400 Bad Request, 288B, 90ms]
+  ✓  responde 400
+  ✓  con codigo de error invalid_input
+
+→ 12 Rechazo: latido sin recurso
+  POST https://34.24.52.111.sslip.io/api/v1/progress/heartbeat [400 Bad Request, 288B, 88ms]
+  ✓  responde 400
+  ✓  con codigo de error invalid_input
+
+→ 13 Latido sin completar: cuenta el tiempo, no el avance
+  POST https://34.24.52.111.sslip.io/api/v1/progress/heartbeat [200 OK, 799B, 109ms]
+  ✓  responde 200
+  ✓  el avance no cambia
+
+→ 14 Latido que completa un recurso
+  POST https://34.24.52.111.sslip.io/api/v1/progress/heartbeat [200 OK, 799B, 106ms]
+  ✓  responde 200
+  ✓  el recurso queda en el conjunto de completados
+
+→ 15 El mismo latido repetido no infla el avance
+  POST https://34.24.52.111.sslip.io/api/v1/progress/heartbeat [200 OK, 799B, 111ms]
+  ✓  responde 200
+  ✓  el avance es el mismo que tras el primer latido
+
+→ 16 Completar cada recurso obligatorio
+  POST https://34.24.52.111.sslip.io/api/v1/progress/heartbeat [200 OK, 799B, 107ms]
+  ✓  responde 200
+  ┌
+  │ 'Using "postman.setNextRequest" is deprecated. Use "pm
+  │ .execution.setNextRequest()" instead.'
+  └
+
+Attempting to set next request to 16 Completar cada recurso obligatorio
+
+→ 16 Completar cada recurso obligatorio
+  POST https://34.24.52.111.sslip.io/api/v1/progress/heartbeat [200 OK, 799B, 101ms]
+  ✓  responde 200
+  ┌
+  │ 'Using "postman.setNextRequest" is deprecated. Use "pm
+  │ .execution.setNextRequest()" instead.'
+  └
+
+Attempting to set next request to 16 Completar cada recurso obligatorio
+
+→ 16 Completar cada recurso obligatorio
+  POST https://34.24.52.111.sslip.io/api/v1/progress/heartbeat [200 OK, 799B, 111ms]
+  ✓  responde 200
+
+→ 17 El curso queda completo y emite la insignia
+  GET https://34.24.52.111.sslip.io/api/v1/progress/courses/d0000000-0000-0000-0000-000000000001 [200 OK, 799B, 91ms]
+  ✓  responde 200
+  ✓  llega al 100% y queda aprobado
+  ✓  trae la insignia con su codigo de verificacion
+  ✓  la insignia no expone la ruta de almacenamiento
+  ✓  trae el enlace de verificacion ya armado
+
+→ 18 Verificar la insignia sin autenticacion
+  GET https://34.24.52.111.sslip.io/api/v1/badges/verify/e4b3c341-36ce-46d5-a2fa-3b52711a6e1a [200 OK, 333B, 87ms]
+  ✓  responde 200
+  ✓  la insignia es valida y dice que certifica
+  ✓  no revela nada del estudiante
+
+→ 19 Rechazo: codigo de verificacion inexistente
+  GET https://34.24.52.111.sslip.io/api/v1/badges/verify/00000000-0000-0000-0000-000000000000 [404 Not Found, 303B, 87ms]
+  ✓  responde 404
+  ✓  con codigo de error not_found
+
+→ 20 La insignia como recurso, leida por su dueno
+  GET https://34.24.52.111.sslip.io/api/v1/badges/2d406ff4-1e4e-472a-b6fa-4cfe1b9f74d2 [200 OK, 604B, 92ms]
+  ✓  responde 200
+  ✓  trae un ETag para el GET condicional
+  ✓  dice que certifica y como verificarla
+  ✓  no expone la ruta de almacenamiento
+
+→ 21 GET condicional: sin cambios responde 304
+  GET https://34.24.52.111.sslip.io/api/v1/badges/2d406ff4-1e4e-472a-b6fa-4cfe1b9f74d2 [304 Not Modified, 238B, 94ms]
+  ✓  responde 304 sin cuerpo
+
+→ 22 Rechazo: la insignia sin sesion
+  GET https://34.24.52.111.sslip.io/api/v1/badges/2d406ff4-1e4e-472a-b6fa-4cfe1b9f74d2 [401 Unauthorized, 311B, 84ms]
+  ✓  responde 401
+  ✓  con codigo de error unauthorized
+
+→ 23 Rechazo: la insignia de otro es 404, no 403
+  GET https://34.24.52.111.sslip.io/api/v1/badges/2d406ff4-1e4e-472a-b6fa-4cfe1b9f74d2 [404 Not Found, 279B, 89ms]
+  ✓  responde 404
+  ✓  con codigo de error not_found
+
+→ 24 El administrador si lee cualquier insignia
+  GET https://34.24.52.111.sslip.io/api/v1/badges/2d406ff4-1e4e-472a-b6fa-4cfe1b9f74d2 [200 OK, 604B, 89ms]
+  ✓  responde 200
+  ✓  es la misma insignia
+
+→ 25 Rechazo: el autor no acumula progreso en su propio curso
+  POST https://34.24.52.111.sslip.io/api/v1/progress/heartbeat [403 Forbidden, 295B, 103ms]
+  ✓  responde 403
+  ✓  con codigo de error forbidden
+
+→ 26 Rechazo: progreso en un curso en BORRADOR
+  POST https://34.24.52.111.sslip.io/api/v1/progress/heartbeat [409 Conflict, 315B, 96ms]
+  ✓  responde 409
+  ✓  con codigo de error course_not_published
+
+→ 27 Retiro del curso
+  DELETE https://34.24.52.111.sslip.io/api/v1/courses/d0000000-0000-0000-0000-000000000001/enrollments [200 OK, 459B, 96ms]
+  ✓  responde 200
+  ✓  queda retirado
+
+→ 28 El progreso sobrevive al retiro
+  GET https://34.24.52.111.sslip.io/api/v1/progress/courses/d0000000-0000-0000-0000-000000000001 [200 OK, 799B, 103ms]
+  ✓  responde 200
+  ✓  sigue completo y con su insignia
+
+→ 29 Rechazo: latido tras retirarse
+  POST https://34.24.52.111.sslip.io/api/v1/progress/heartbeat [403 Forbidden, 295B, 105ms]
+  ✓  responde 403
+  ✓  con codigo de error forbidden
+
+→ 30 Reinscripcion: el progreso sigue intacto
+  POST https://34.24.52.111.sslip.io/api/v1/courses/d0000000-0000-0000-0000-000000000001/enrollments [200 OK, 418B, 98ms]
+  ✓  responde 200
+  ✓  vuelve a quedar activo
+
+→ 31 Tras volver, el avance esta donde lo dejo
+  GET https://34.24.52.111.sslip.io/api/v1/progress/courses/d0000000-0000-0000-0000-000000000001 [200 OK, 799B, 96ms]
+  ✓  responde 200
+  ✓  sigue al 100% y con la misma insignia
+
+┌─────────────────────────┬────────────────────┬───────────────────┐
+│                         │           executed │            failed │
+├─────────────────────────┼────────────────────┼───────────────────┤
+│              iterations │                  1 │                 0 │
+├─────────────────────────┼────────────────────┼───────────────────┤
+│                requests │                 39 │                 0 │
+├─────────────────────────┼────────────────────┼───────────────────┤
+│            test-scripts │                 33 │                 0 │
+├─────────────────────────┼────────────────────┼───────────────────┤
+│      prerequest-scripts │                 36 │                 0 │
+├─────────────────────────┼────────────────────┼───────────────────┤
+│              assertions │                 64 │                 0 │
+├─────────────────────────┴────────────────────┴───────────────────┤
+│ total run duration: 6.8s                                         │
+├──────────────────────────────────────────────────────────────────┤
+│ total data received: 12.6kB (approx)                             │
+├──────────────────────────────────────────────────────────────────┤
+│ average response time: 115ms [min: 84ms, max: 472ms, s.d.: 67ms] │
+└──────────────────────────────────────────────────────────────────┘
+[OK] collection_progress
