@@ -116,7 +116,7 @@ pedírsela a nadie ni copiarla a mano: se lee al abrir la terminal.
 
 ```bash
 export TF_VAR_db_password="$(gcloud secrets versions access latest \
-  --secret=db-password --project=plataforma-mooc-entrega2)"
+  --secret=db-password --project=plataforma-mooc-entrega2 | tr -d '\r\n')"
 ```
 
 En PowerShell:
@@ -135,6 +135,9 @@ sobreviven al cierre de la sesión.
 > lo ejecutó, **rompiendo las conexiones de la aplicación**. El vaivén sería
 > difícil de diagnosticar, porque el código es idéntico para todos y lo que
 > difiere es el entorno. Leyéndola de una única fuente, no puede ocurrir.
+> El `tr` es necesario en Git Bash sobre Windows: elimina el `CR` de la
+> salida CRLF de `gcloud`. Terraform también aplica `trimspace` como segunda
+> barrera antes de configurar el usuario de Cloud SQL.
 
 Si el comando falla por permisos, pide el rol `secretmanager.secretAccessor`
 a quien administra el proyecto.
@@ -248,6 +251,7 @@ escribe en su propio archivo**. Así tres personas tocan tres archivos distintos
 | `storage.tf` | C3 — bucket y su IAM |
 | `database.tf` | C1 — Cloud SQL |
 | `compute.tf` | D2 y E1 — las dos VMs |
+| `mail.tf` | F1 — el secreto del proveedor SMTP y quién lo lee |
 
 `versions.tf`, `variables.tf`, `main.tf`, `outputs.tf` y `service_accounts.tf` ya
 existen y son de todos: cambiarlos sí puede generar conflicto, así que conviene
@@ -473,6 +477,7 @@ hay que concederlo.
 | `network.tf` | VPC, subred, rango privado reservado, NAT y firewall |
 | `database.tf` | Cloud SQL: instancia privada, base y usuario |
 | `storage.tf` | Bucket, prefijos, IAM por componente y CORS |
+| `mail.tf` | Secreto del proveedor SMTP y permiso de lectura de la API |
 | `outputs.tf` | Lo que consumen los issues siguientes |
 | `ADMINISTRACION.md` | Tareas de una sola vez: bootstrap del estado, accesos del equipo y cierre de la entrega |
 

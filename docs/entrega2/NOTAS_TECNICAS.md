@@ -21,11 +21,12 @@ salieron de errores que costaron una tarde y se habrían evitado leyéndolas.
 | 9 | `APP_BASE_URL` ahora también arma los enlaces de verificación | D2, D3, G4, F1, I1 |
 | 10 | Las tablas del estudiante no tienen clave ajena al curso, a propósito | C1, C2, I1 |
 | 11 | Los latidos no pasan por el limitador, y los pools no están acotados — *el presupuesto de conexiones, **resuelto** en C1* | B4, C1, G4, H1, H2, H3 |
-| 12 | Dos trampas del entorno local | todos |
+| 12 | Tres trampas del entorno local | todos |
 | 13 | Reproducir videos completos en las pruebas cuesta más que las dos VMs | B1, C3, H2, H4, H5 |
 | 14 | Tres cosas que GCP decidió por nosotros al habilitar las APIs | B3, D2, G4, E1, F1 |
 | 15 | Cloud SQL no tiene el hook que aplica el esquema en local | C1, C2, D2, E1, I6 |
 | 16 | Un `apply` desde una rama borra el trabajo de otro, y no falla al hacerlo | **todos los de infra**: B3, C1, C3, D2, E1, F1, G4, I6 |
+| 17 | SMTP 587, 465 y 2525 no hablan exactamente igual | F1, G3, I1 |
 
 ---
 
@@ -466,7 +467,7 @@ estaba; ahora el arranque la rechaza.
 
 ---
 
-## 12. Dos trampas del entorno local
+## 12. Tres trampas del entorno local
 
 **Afecta a:** todos.
 
@@ -497,6 +498,16 @@ bash ./scripts/seed.sh --reset
 Los objetivos de newman sí funcionan porque ejecutan `docker run` sin pasar por un
 script —eso sí, todos llevan `MSYS_NO_PATHCONV=1`, sin el cual Git Bash reescribe
 `/etc/newman` a una ruta de Windows y newman falla con `ENOENT`.
+
+**Git Bash puede dejar un `CR` al leer secretos de `gcloud`.** En Windows,
+`gcloud` termina la salida con CRLF. La sustitución `$(...)` elimina el LF,
+pero puede conservar el CR, de modo que Terraform recibe una contraseña un
+carácter más larga que Secret Manager. El plan entonces propone modificar
+`google_sql_user.app` aunque nadie haya rotado la credencial.
+
+La instrucción compartida elimina ambos caracteres con `tr -d '\r\n'`, y
+`database.tf` aplica `trimspace` como segunda barrera. Nunca se corrige
+copiando la contraseña a mano.
 
 ---
 
@@ -732,3 +743,29 @@ proponiendo destruirlo. Lo que resuelve es el orden completo:
 ```
 rama → plan → PR → merge → git pull en main → apply
 ```
+
+---
+
+## 17. SMTP 587, 465 y 2525 no hablan exactamente igual
+
+**Afecta a:** F1, G3 e I1.
+
+Google Compute Engine bloquea el puerto 25. Brevo recomienda 587, con una
+conexión inicial en claro que se eleva obligatoriamente mediante STARTTLS. El
+puerto 2525 funciona igual y sirve como alternativa en redes restrictivas. El
+465 es distinto: negocia TLS desde el primer byte.
+
+El cliente anterior continuaba cuando el servidor no anunciaba STARTTLS. La
+biblioteca de Go terminaba rechazando la autenticación, pero la protección
+dependía de un detalle interno y el error no explicaba la causa. Desde F1:
+
+- con credenciales, 587 y 2525 exigen STARTTLS;
+- 465 usa TLS directo;
+- una sesión sin cifrado solo se admite sin credenciales, para Mailpit local;
+- producción rechaza puertos diferentes de 587, 465 y 2525.
+
+La configuración efectiva tampoco puede quedar escrita a mano en la VM. D2
+creó un `prepare_env.sh` no versionado que reintroducía una clave de ejemplo en
+cada reinicio. F1 lo reemplaza por `scripts/prepare_web_env.sh`: el script está
+en Git, mientras que la contraseña viene de Secret Manager y el remitente/login
+permanecen en `/etc/mooc/web.conf`, fuera del repositorio.
