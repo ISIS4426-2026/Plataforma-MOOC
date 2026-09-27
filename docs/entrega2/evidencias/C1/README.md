@@ -2,18 +2,28 @@
 
 | Archivo | Criterio que demuestra |
 | :--- | :--- |
-| [`terraform_plan.txt`](./terraform_plan.txt) | Instancia en una zona sin réplicas · IP privada · SSL obligatorio, todo declarado en Terraform |
-| [`migraciones_ejecutor.txt`](./migraciones_ejecutor.txt) | El ejecutor de migraciones, contra una base vacía igual a la que nace en Cloud SQL |
+| [`instancia_configuracion.txt`](./instancia_configuracion.txt) | Una zona sin réplicas · sin IP pública · SSL obligatorio · límite de conexiones — **leído de GCP, no del estado** |
+| [`migraciones_en_la_instancia.txt`](./migraciones_en_la_instancia.txt) | `psql` por IP privada desde la VM · las 7 migraciones aplicadas · esquema verificado |
+| [`sin_acceso_desde_fuera.txt`](./sin_acceso_desde_fuera.txt) | Desde fuera de la VPC no se llega |
+| [`terraform_plan.txt`](./terraform_plan.txt) | Todo declarado en Terraform, y C1 no toca nada de B2, B3 ni C3 |
+| [`migraciones_ejecutor.txt`](./migraciones_ejecutor.txt) | El ejecutor de migraciones, probado contra una base vacía antes de apuntarlo a la nube |
 | [`plan_deriva_de_estado.txt`](./plan_deriva_de_estado.txt) | No es un criterio: es el hallazgo de la [nota 16](../../NOTAS_TECNICAS.md), capturado |
 
-**Estado: la infraestructura está declarada y planificada, no aplicada.** Los dos
-criterios de la ola 1 —`psql` por IP privada desde la VM, y las migraciones
-aplicadas contra la instancia— necesitan un `terraform apply` y un host dentro de
-la VPC.
+**Estado: aplicado y verificado. Los dos criterios de la ola 1 están cumplidos.**
 
-La configuración está verificada contra el estado real: el plan del estado
-posterior a la mezcla sale en `5 to add, 0 to change, 0 to destroy`, así que lo que
-falta es ejecutarlo, no escribirlo.
+```
+Apply complete! Resources: 5 added, 0 changed, 0 destroyed.
+```
+
+| Criterio de la ola 1 | |
+| :--- | :--- |
+| `psql` por IP privada desde la VM funciona | ✅ TLSv1.3, `TLS_AES_256_GCM_SHA384` |
+| …y desde fuera no | ✅ sin ruta: 10 s sin respuesta |
+| Todas las migraciones aplicadas | ✅ las 7, registradas en `schema_migrations` |
+| Esquema verificado | ✅ 17 tablas, 5 restricciones, 2 disparadores |
+
+La ola 2 —registro, login y administración contra la instancia— depende de D2,
+que es cuando existirá la VM que sirve la API.
 
 ---
 
@@ -166,39 +176,60 @@ para que `database_version` esté fijado a `POSTGRES_16` y no a algo anterior.
 
 ---
 
-## Lo que falta y por qué
+## Cómo se migró, sin esperar a D2
 
-Los dos criterios de la ola 1 no se pueden cerrar con lo que existe hoy:
+La instancia no tiene IP pública, así que las migraciones necesitaban un host
+dentro de la VPC — y la VM de la API es el issue #123 (D2), que aún no existe.
 
-**1. `psql` por IP privada desde la VM.** No hay VM todavía —es el issue #123
-(D2)—, y la instancia no tiene IP pública, así que desde un portátil no hay a
-dónde conectarse. Es el diseño funcionando, no un obstáculo: si se pudiera
-comprobar desde fuera, el criterio «desde fuera no» estaría incumplido.
+La salida fue una `e2-micro` temporal en `mooc-subnet`, sin IP externa, con SSH
+por IAP: la regla `mooc-allow-ssh-iap` que B3 había creado existe para esto. Se
+migró, se capturó la evidencia y **se borró** — el proyecto vuelve a tener cero
+VMs. El procedimiento quedó documentado en
+[`infra/terraform/README.md`](../../../../infra/terraform/README.md#sin-vm-todavía-el-host-temporal),
+porque hará falta otra vez en I6.
 
-**2. Las migraciones aplicadas contra la instancia.** Necesitan un host dentro de
-la VPC, es decir lo mismo.
+Dos decisiones de esa VM que no son cosméticas:
 
-El ejecutor ya está verificado contra una base vacía de PostgreSQL 16, que es
-exactamente el estado en que nace la instancia, así que lo que falta es correrlo,
-no escribirlo.
+**Llevaba adjunta `sa-web-server`, la cuenta de la API.** Así la contraseña la
+leyó la propia VM de Secret Manager con su identidad, que es el mismo camino que
+usará el despliegue real. Si se hubiera pegado a mano, la evidencia habría
+demostrado que las migraciones funcionan pero no que el acceso al secreto esté
+bien concedido — y eso es justo lo que faltaba antes de este issue: ninguna cuenta
+de servicio podía leer `db-password`, solo los tres integrantes como usuarios. El
+síntoma en D2 habría sido un contenedor que no arranca por una variable vacía,
+lejos de la causa.
 
-Hay una salida sin esperar a D2: una VM pequeña y temporal en `mooc-subnet`, con
-SSH por IAP —la regla de firewall `mooc-allow-ssh-iap` que B3 ya creó existe para
-esto—, migrar, capturar la evidencia y borrarla. El procedimiento completo está en
-[`infra/terraform/README.md`](../../../../infra/terraform/README.md#sin-vm-todavía-el-host-temporal).
+**No se clonó el repositorio.** Habría hecho falta autenticarse en la VM; se
+copiaron por `scp` sobre el túnel solo `migrations/` y `migrate.sh`, que es todo
+lo necesario.
 
-### El orden, que no es negociable
+### Lo que demuestra el cifrado, y lo que no
 
-1. ~~El `storage.tf` de C3 tiene que estar en `main`.~~ **Hecho** (PR #153). Es lo
-   que hizo que el plan pasara de `9 to destroy` a `0`.
-2. Mezclar C1 a `main`.
-3. `git pull` en `main` y **aplicar desde ahí** (sexta regla del README).
-4. La VM temporal, migrar, `--verify`, comprobar que desde fuera no se llega, y
-   borrarla.
-5. Detener la instancia si no va a usarse de inmediato:
-   `db_activation_policy = "NEVER"`.
+Que el cliente pida `sslmode=require` no prueba gran cosa. Lo que prueba el
+criterio es que **el servidor no acepta lo contrario**:
 
-Invertir 1 y 3 es exactamente la avería de la nota 16.
+```
+psql: error: connection to server at "10.171.240.3", port 5432 failed:
+FATAL:  pg_hba.conf rejects connection for host "10.0.1.2", user "moocuser",
+        database "moocdb", no encryption
+```
+
+Esa es la misma conexión, desde la misma VM, cambiando solo `require` por
+`disable`. `ENCRYPTED_ONLY` funcionando.
+
+### El presupuesto de conexiones, medido
+
+```
+ max_connections | reservadas | en_uso_ahora | margen_tras_api_y_worker
+-----------------+------------+--------------+--------------------------
+ 100             | 3          |            8 |                       47
+```
+
+47 conexiones de margen después de descontar los 25 de la API y los 25 del
+worker. Coincide con la estimación de la nota 11, que hablaba de ~42: la
+diferencia es que los «agentes de Google» resultaron consumir menos de lo
+supuesto. Sigue siendo holgado para las migraciones, un `psql` de diagnóstico y
+el solapamiento de un reinicio.
 
 ---
 
@@ -230,12 +261,21 @@ alteran la estimación.
 
 ## Nunca
 
-Los dos archivos son salidas de verificación y **no contienen ninguna
-credencial**, comprobado y no supuesto:
+Los seis archivos son salidas de verificación y **no contienen ninguna
+credencial**. No es una afirmación de intenciones: **cada uno se contrastó contra
+el valor real de Secret Manager y los seis dan cero coincidencias.**
 
-* En `terraform_plan.txt` la contraseña sale como `(sensitive value)`. El archivo
-  se contrastó contra el valor real de Secret Manager: **cero coincidencias**.
-* En `migraciones_ejecutor.txt` no aparece ninguna cadena de conexión.
-  `migrate.sh` recibe `DATABASE_URL` por entorno y nunca la imprime —ni en los
-  mensajes de error—, así que ni siquiera la contraseña del Compose local llegó
-  al archivo.
+Lo que lo hace cierto por construcción, no por revisión posterior:
+
+* `migrate.sh` recibe `DATABASE_URL` por entorno y **nunca la imprime**, ni en los
+  mensajes de error.
+* En la VM, la contraseña se resolvió con `$(gcloud secrets versions access …)`
+  **dentro** del script remoto. La orden que viajó por SSH contenía la llamada, no
+  el valor, así que la contraseña no cruzó la red ni apareció en ninguna consola.
+* En los planes, Terraform la marca como `(sensitive value)`.
+* Lo único que se imprime de ella es su longitud, para probar que la lectura
+  funcionó.
+
+Por lo mismo, en `migraciones_ejecutor.txt` no aparece ni la contraseña del Docker
+Compose local: el script tampoco imprime la cadena de conexión cuando apunta a una
+base de desarrollo.

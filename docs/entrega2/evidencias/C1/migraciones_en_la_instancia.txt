@@ -1,0 +1,171 @@
+===================================================================
+ Migraciones contra Cloud SQL - issue #118 (C1)
+ Fecha:  2026-09-27 04:37 UTC
+ Host:   mooc-migrador-temporal  (10.0.1.2)  sin IP externa
+ Cuenta: sa-web-server@plataforma-mooc-entrega2.iam.gserviceaccount.com
+ Cliente: psql (PostgreSQL) 15.19 (Debian 15.19-0+deb12u1)
+===================================================================
+
+==> La VM leyo la contrasena de Secret Manager con su cuenta adjunta.
+    Longitud: 33 caracteres. No se imprime.
+
+==> Vaciando el esquema para capturar la primera aplicacion desde cero.
+NOTICE:  drop cascades to 19 other objects
+DETAIL:  drop cascades to table schema_migrations
+drop cascades to table users
+drop cascades to table user_sessions
+drop cascades to table courses
+drop cascades to table modules
+drop cascades to table units
+drop cascades to table resources
+drop cascades to table quizzes
+drop cascades to table quiz_questions
+drop cascades to table quiz_options
+drop cascades to table quiz_submissions
+drop cascades to table progress_events
+drop cascades to table student_progress
+drop cascades to table badges
+drop cascades to table audit_logs
+drop cascades to table email_verification_tokens
+drop cascades to table password_reset_tokens
+drop cascades to function reject_audit_log_mutation()
+drop cascades to table enrollments
+
+===================================================================
+ 1. psql por IP privada, y la conexion va cifrada
+===================================================================
+  base  | usuario  |   servidor   |                                         version                                          
+--------+----------+--------------+------------------------------------------------------------------------------------------
+ moocdb | moocuser | 10.171.240.3 | PostgreSQL 16.15 on x86_64-pc-linux-gnu, compiled by Debian clang version 12.0.1, 64-bit
+(1 row)
+
+--- Cifrado efectivo de ESTA conexion (no lo declarado, lo que esta en uso) ---
+ ssl | protocolo |         cipher         
+-----+-----------+------------------------
+ t   | TLSv1.3   | TLS_AES_256_GCM_SHA384
+(1 row)
+
+
+===================================================================
+ 2. La instancia rechaza una conexion sin cifrar (ENCRYPTED_ONLY)
+
+    Esta es la comprobacion que de verdad demuestra el criterio: no
+    que el cliente pida cifrado, sino que el servidor no acepte lo
+    contrario. Se espera un fallo.
+===================================================================
+psql: error: connection to server at "10.171.240.3", port 5432 failed: FATAL:  pg_hba.conf rejects connection for host "10.0.1.2", user "moocuser", database "moocdb", no encryption
+>>> Rechazada, como debe ser.
+
+===================================================================
+ 3. Aplicar las migraciones
+===================================================================
+==> Base: moocdb en PostgreSQL 16.15 on x86_64-pc-linux-gnu, compiled by Debian clang version 12.0.1, 64-bit
+
+==> Aplicando   000001_init_schema
+==> Aplicando   000002_auth_tokens
+==> Aplicando   000003_academic_ordering
+==> Aplicando   000004_audit_immutability
+==> Aplicando   000005_resource_downloadable
+==> Aplicando   000006_enrollments
+==> Aplicando   000007_quiz_attempts
+
+==> 7 migracion(es) aplicada(s).
+==> Comprueba el resultado con: bash ./scripts/migrate.sh --verify
+--- codigo de salida: 0 ---
+
+===================================================================
+ 4. Repetir la ejecucion no debe hacer nada
+===================================================================
+==> Base: moocdb en PostgreSQL 16.15 on x86_64-pc-linux-gnu, compiled by Debian clang version 12.0.1, 64-bit
+NOTICE:  relation "schema_migrations" already exists, skipping
+
+    ya aplicada  000001_init_schema
+    ya aplicada  000002_auth_tokens
+    ya aplicada  000003_academic_ordering
+    ya aplicada  000004_audit_immutability
+    ya aplicada  000005_resource_downloadable
+    ya aplicada  000006_enrollments
+    ya aplicada  000007_quiz_attempts
+
+==> Nada que aplicar: el esquema ya esta al dia.
+==> Comprueba el resultado con: bash ./scripts/migrate.sh --verify
+
+===================================================================
+ 5. Verificacion del esquema resultante
+===================================================================
+==> Base: moocdb en PostgreSQL 16.15 on x86_64-pc-linux-gnu, compiled by Debian clang version 12.0.1, 64-bit
+NOTICE:  relation "schema_migrations" already exists, skipping
+
+==> Tablas del esquema public
+        table_name         | columnas 
+---------------------------+----------
+ audit_logs                |        8
+ badges                    |        7
+ courses                   |        9
+ email_verification_tokens |        6
+ enrollments               |        6
+ modules                   |        6
+ password_reset_tokens     |        6
+ progress_events           |        7
+ quiz_options              |        6
+ quiz_questions            |        5
+ quiz_submissions          |        8
+ quizzes                   |        7
+ resources                 |       13
+ schema_migrations         |        2
+ student_progress          |        7
+ units                     |        6
+ user_sessions             |       10
+ users                     |        8
+(18 rows)
+
+==> Restricciones que sostienen las garantias del dominio
+              conname              | diferible |                           definicion                           
+-----------------------------------+-----------+----------------------------------------------------------------
+ courses_stable_id_version_key     | f         | UNIQUE (stable_id, version)
+ uq_quiz_options_question_position | t         | UNIQUE (question_id, "position") DEFERRABLE INITIALLY DEFERRED
+ uq_quiz_questions_quiz_position   | t         | UNIQUE (quiz_id, "position") DEFERRABLE INITIALLY DEFERRED
+ uq_quiz_submissions_attempt       | f         | UNIQUE (quiz_id, student_id, attempt)
+ uq_quizzes_resource               | f         | UNIQUE (resource_id)
+(5 rows)
+
+    Las cinco presentes.
+==> Disparadores de inmutabilidad de la auditoria (migracion 000004)
+   tabla    |      disparador      
+------------+----------------------
+ audit_logs | audit_logs_no_delete
+ audit_logs | audit_logs_no_update
+(2 rows)
+
+==> Limite de conexiones de la instancia frente al pool
+ max_connections | reservadas | en_uso_ahora 
+-----------------+------------+--------------
+ 100             | 3          |            8
+(1 row)
+
+==> Migraciones registradas
+           version            |          applied_at           
+------------------------------+-------------------------------
+ 000001_init_schema           | 2026-09-27 04:37:03.457688+00
+ 000002_auth_tokens           | 2026-09-27 04:37:03.802081+00
+ 000003_academic_ordering     | 2026-09-27 04:37:03.934935+00
+ 000004_audit_immutability    | 2026-09-27 04:37:04.034658+00
+ 000005_resource_downloadable | 2026-09-27 04:37:04.129231+00
+ 000006_enrollments           | 2026-09-27 04:37:04.213549+00
+ 000007_quiz_attempts         | 2026-09-27 04:37:04.317991+00
+(7 rows)
+
+
+===================================================================
+ 6. El pool frente al limite real de la instancia
+===================================================================
+ max_connections | reservadas | en_uso_ahora | margen_tras_api_y_worker 
+-----------------+------------+--------------+--------------------------
+ 100             | 3          |            8 |                       47
+(1 row)
+
+El margen descuenta los 25 del pool de la API mas los 25 del worker.
+
+===================================================================
+ Fin. La contrasena no aparece en ninguna linea de esta salida.
+===================================================================

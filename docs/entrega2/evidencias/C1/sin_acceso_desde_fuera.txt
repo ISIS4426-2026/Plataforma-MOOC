@@ -1,0 +1,21 @@
+﻿# El otro lado del criterio: desde fuera de la VPC no se llega - issue #118 (C1)
+# Fecha: 2026-09-27 04:37 UTC
+#
+# Ejecutado desde la maquina local del integrante, fuera de la VPC y sin VPN.
+# La instancia no tiene IP publica, asi que 10.171.240.3 solo existe dentro
+# de mooc-vpc. Compara con migraciones_en_la_instancia.txt, donde la misma
+# direccion responde desde una VM de la subred.
+
+=== 1. gcloud confirma que no hay IP publica ===
+PRIVATE	False
+(solo PRIVATE, ipv4Enabled=False)
+
+=== 2. Intento de conexion TCP al 5432 ===
+RESULTADO: sin respuesta tras 10 s. No hay ruta hacia la instancia.
+
+=== 3. Por que: la ruta sale por la interfaz local, no hacia la VPC ===
+  origen 192.168.0.7 por Wi-Fi
+
+No hace falta ninguna regla de firewall que lo impida: no hay a donde
+conectarse. Eso es mas fuerte que una regla, porque una regla se puede
+cambiar por error y una direccion inexistente no.
