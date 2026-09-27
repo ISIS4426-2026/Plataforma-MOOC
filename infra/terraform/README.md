@@ -220,7 +220,7 @@ escribe en su propio archivo**. Así tres personas tocan tres archivos distintos
 existen y son de todos: cambiarlos sí puede generar conflicto, así que conviene
 avisar antes de tocarlos.
 
-### Las cinco reglas
+### Las seis reglas
 
 1. **Nunca editar el estado a mano** ni descargarlo al repositorio. Contiene la
    contraseña de la base en claro.
@@ -235,6 +235,43 @@ avisar antes de tocarlos.
    cambiar la contraseña de la base sin que nadie haya tocado el código, es esto:
    alguien tiene exportado otro valor. No apliques — pregunta en el chat del
    equipo.
+6. **El `apply` se hace desde `main`, después de mezclar. Nunca desde una rama de
+   trabajo, y nunca con un `.tf` sin publicar.** Es la regla que más cuesta
+   entender y la que más daño hace al romperse, así que va explicada aparte,
+   justo debajo.
+
+#### Por qué el `apply` va desde `main`, y qué pasa si no
+
+El estado es compartido, el código no. De ahí salen dos averías distintas, y las
+dos ocurrieron de verdad mientras se construía C1:
+
+**Si aplicas desde una rama que no tiene el archivo de otro**, Terraform ve en el
+estado recursos que tu código no declara y **propone destruirlos**. El plan de la
+rama de C1 decía:
+
+```
+Plan: 5 to add, 0 to change, 9 to destroy.
+```
+
+Los 5 eran C1. Los 9 eran el bucket de C3 con su IAM y sus prefijos. Aplicar ahí
+habría borrado el trabajo de otra persona, y el `apply` no habría fallado: habría
+funcionado perfectamente.
+
+**Si aplicas código que no has publicado**, los recursos quedan vivos en el
+estado y en GCP mientras el archivo que los declara existe solo en tu portátil.
+Entonces el problema es de todos: cualquiera que aplique después —incluso desde
+`main`— propondrá destruirlos, y si tu copia se pierde nadie puede volver a
+declararlos. Es el estado más incómodo posible, porque la infraestructura real va
+por delante del repositorio.
+
+La secuencia, entonces:
+
+```
+rama → plan (para revisar tu parte) → PR → merge a main → git pull en main → apply
+```
+
+El `plan` desde la rama sirve y conviene: valida tu configuración y te dice qué
+vas a crear. **Lo que no se hace desde la rama es el `apply`.**
 
 ---
 
@@ -254,6 +291,142 @@ Ojo con lo que `destroy` **no** borra: el bucket del estado, que se creó fuera 
 Terraform. Es intencionado — si lo borrara, se llevaría por delante el registro
 de lo que hay que reconstruir.
 
+### Y con la base de datos, `destroy` a secas no basta
+
+Desde C1 hay dos cosas en el camino, las dos a propósito:
+
+**1. La instancia está protegida contra borrado.** `terraform destroy` falla con
+`cannot destroy instance because deletion_protection is set to true`, y eso es lo
+que se quiere el otro 99 % del tiempo: tres personas aplican sobre el mismo
+estado y perder la base no se deshace. Para borrarla de verdad hay que decirlo
+en el código primero:
+
+```bash
+# En database.tf: deletion_protection = false
+terraform apply      # quita la protección, no borra nada todavía
+terraform destroy    # ahora sí
+```
+
+**2. El nombre queda reservado una semana.** Google retiene el nombre de una
+instancia borrada durante siete días, así que el `apply` siguiente falla con un
+conflicto de nombre que no se puede forzar. La salida está prevista en
+`database.tf`: subir `db_instance_generation`.
+
+```bash
+terraform apply -var='db_instance_generation=2'
+```
+
+Lo importante: **recrear la instancia da una base vacía.** Terraform crea la
+base y el usuario, no el esquema. Después de cualquier recreación hay que
+volver a migrar (ver abajo).
+
+---
+
+## Las migraciones no las hace Terraform
+
+La instancia nace con `moocdb` creada y **sin una sola tabla**. En local el
+esquema lo aplica el hook de inicialización de Postgres
+(`scripts/init-db.sh`, montado en `/docker-entrypoint-initdb.d`), que corre una
+vez cuando el volumen está vacío. **Cloud SQL no tiene ese hook.**
+
+De eso se encarga `scripts/migrate.sh`, que hay que ejecutar **desde dentro de la
+VPC** — la instancia no tiene IP pública, así que desde un portátil no hay a
+dónde conectarse. Es decir, desde una de las VMs:
+
+```bash
+# En la VM, una vez:
+sudo apt-get install -y postgresql-client
+
+export DATABASE_URL="postgres://moocuser:$(gcloud secrets versions access latest \
+  --secret=db-password)@$(terraform output -raw db_private_ip):5432/moocdb?sslmode=require"
+
+bash ./scripts/migrate.sh            # aplica lo que falte
+bash ./scripts/migrate.sh --verify   # comprueba el esquema resultante
+```
+
+Es repetible: una tabla `schema_migrations` registra lo aplicado, así que
+ejecutarlo dos veces no hace nada la segunda, y tras añadir una migración nueva
+solo aplica esa. Cada migración va **en una sola transacción junto con su
+registro**, de modo que una que falla no deja ni esquema a medias ni constancia
+de haberse aplicado.
+
+Contra tu base de desarrollo local usa `--baseline` la primera vez: ahí el
+esquema ya existe pero sin tabla de control, y sin eso el script intentaría
+aplicar `000001` y fallaría.
+
+### Sin VM todavía: el host temporal
+
+Mientras D2 no exista hay un camino que no obliga a esperarlo: una VM mínima en
+`mooc-subnet`, que se borra al terminar. Cuesta céntimos y **no necesita IP
+pública** — se entra por IAP, que es para lo que B3 creó
+`mooc-allow-ssh-iap`.
+
+```bash
+cd infra/terraform
+IP="$(terraform output -raw db_private_ip)"
+SA="$(terraform output -raw web_server_service_account)"
+cd ../..
+
+# 1. La VM. Sin dirección externa; la salida a internet la da el Cloud NAT de B3.
+#    Lleva adjunta la cuenta de la API a propósito: así el acceso al secreto se
+#    prueba por el mismo camino que usará el despliegue real, en lugar de pegar
+#    la contraseña a mano.
+gcloud compute instances create mooc-migrador-temporal \
+  --project=plataforma-mooc-entrega2 --zone=us-east1-b \
+  --machine-type=e2-micro --subnet=mooc-subnet --no-address \
+  --tags=allow-iap-ssh \
+  --service-account="${SA}" \
+  --scopes=https://www.googleapis.com/auth/cloud-platform \
+  --image-family=debian-12 --image-project=debian-cloud
+
+# 2. Copiar solo lo que hace falta. Nada de clonar el repositorio: haría falta
+#    autenticarse, y el script y las migraciones son todo lo necesario.
+gcloud compute ssh mooc-migrador-temporal --zone=us-east1-b --tunnel-through-iap \
+  --command='mkdir -p ~/mooc/scripts'
+gcloud compute scp --recurse --tunnel-through-iap --zone=us-east1-b \
+  migrations mooc-migrador-temporal:~/mooc/
+gcloud compute scp --tunnel-through-iap --zone=us-east1-b \
+  scripts/migrate.sh mooc-migrador-temporal:~/mooc/scripts/
+
+# 3. Dentro de la VM
+gcloud compute ssh mooc-migrador-temporal --zone=us-east1-b --tunnel-through-iap
+```
+
+```bash
+# --- ya dentro de la VM ---
+sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client
+cd ~/mooc
+
+# La contraseña la lee la propia VM con su cuenta de servicio. No se escribe,
+# no se pega y no queda en el historial del shell.
+export DATABASE_URL="postgres://moocuser:$(gcloud secrets versions access latest \
+  --secret=db-password)@<IP_PRIVADA>:5432/moocdb?sslmode=require"
+
+bash ./scripts/migrate.sh
+bash ./scripts/migrate.sh --verify
+exit
+```
+
+```bash
+# 4. El otro lado del criterio: desde fuera NO se llega. Debe agotar el tiempo
+#    de espera, no rechazar la conexión -- no hay nada escuchando en internet.
+#    Desde tu máquina:
+nc -vz -w 5 "${IP}" 5432        # o Test-NetConnection en PowerShell
+
+# 5. Borrarla. La VM era para esto y ya no hace falta.
+gcloud compute instances delete mooc-migrador-temporal \
+  --project=plataforma-mooc-entrega2 --zone=us-east1-b --quiet
+```
+
+Se crea con `gcloud` y no con Terraform a propósito, y es la única excepción a la
+regla 2: es un recurso efímero de una tarea de operación, no parte de la
+infraestructura de la entrega. Si estuviera en Terraform, el siguiente `apply` de
+cualquiera la recrearía.
+
+**Si el paso 3 falla con un error de IAP,** falta el rol
+`roles/iap.tunnelResourceAccessor` sobre el proyecto. Con Owner se tiene; si no,
+hay que concederlo.
+
 ---
 
 ## Dónde está cada cosa
@@ -264,8 +437,10 @@ de lo que hay que reconstruir.
 | `variables.tf` | Proyecto, región, zona y la contraseña de la base |
 | `main.tf` | Proveedor y APIs habilitadas |
 | `service_accounts.tf` | Las dos cuentas de servicio y su IAM diferenciado |
+| `network.tf` | *(B3)* VPC, subred, rango privado, NAT y firewall |
+| `database.tf` | *(C1)* Cloud SQL: instancia privada, base y usuario |
 | `outputs.tf` | Lo que consumen los issues siguientes |
-| `ADMINISTRACION.md` | Tareas de una sola vez: bootstrap del estado y accesos del equipo |
+| `ADMINISTRACION.md` | Tareas de una sola vez: bootstrap del estado, accesos del equipo y cierre de la entrega |
 
 ---
 

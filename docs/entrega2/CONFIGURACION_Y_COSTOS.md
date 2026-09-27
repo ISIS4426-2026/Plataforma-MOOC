@@ -472,6 +472,14 @@ con lo que reciben las alertas sin configurar canales.
 5. **Cloud SQL:** antes de detener o suspender la instancia hay que consultar las
    condiciones del proveedor sobre duración de la suspensión, reactivación
    automática y cargos que siguen corriendo, e incorporarlas aquí.
+   **Mecanismo, desde C1:** la instancia lleva `activation_policy` como variable
+   en `infra/terraform/database.tf`, así que detenerla y reanudarla es un cambio
+   de código y un `apply`, no un clic. Se hizo variable de código y no de entorno
+   para que el `apply` de quien no la exportara no volviera a encenderla en
+   silencio. Detenida se deja de pagar cómputo y se siguen pagando el
+   almacenamiento y las copias; **la magnitud del ahorro hay que contrastarla
+   contra el informe de facturación tras la primera parada**, que es lo que esta
+   regla pide y lo único que no se puede afirmar sin medirlo.
 6. **Al cerrar la entrega** (issue I6), se elimina la instancia de base de datos
    administrada, conservando antes los respaldos, los datos sintéticos y los
    scripts necesarios para reconstruirla. Se documenta qué recursos se conservan,

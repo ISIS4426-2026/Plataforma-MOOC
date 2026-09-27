@@ -19,6 +19,11 @@ func produccionValida() *config.Config {
 		AppBaseURL:     "https://mooc.example.com",
 		SMTPHost:       "smtp.sendgrid.net",
 		SMTPPort:       587,
+
+		// El pool dimensionado contra el max_connections de la instancia del
+		// issue #118. Ver el reparto en infra/terraform/database.tf.
+		DBMaxOpenConns: 25,
+		DBMaxIdleConns: 25,
 	}
 }
 
@@ -76,6 +81,28 @@ func TestValidateRechazaValoresDeDesarrolloEnProduccion(t *testing.T) {
 			func(c *config.Config) { c.SMTPPort = 25 },
 			"SMTP_PORT",
 		},
+		"la conexion a la base no exige cifrado": {
+			func(c *config.Config) {
+				c.DatabaseURL = "postgres://moocuser:UnaContrasena@10.0.0.3:5432/moocdb?sslmode=disable"
+			},
+			"sslmode",
+		},
+		"la conexion a la base deja el cifrado a criterio del servidor": {
+			func(c *config.Config) {
+				c.DatabaseURL = "postgres://moocuser:UnaContrasena@10.0.0.3:5432/moocdb?sslmode=prefer"
+			},
+			"sslmode",
+		},
+		"la cadena de conexion no menciona el cifrado": {
+			func(c *config.Config) {
+				c.DatabaseURL = "postgres://moocuser:UnaContrasena@10.0.0.3:5432/moocdb"
+			},
+			"sslmode",
+		},
+		"el pool no tiene limite frente a una instancia que si lo tiene": {
+			func(c *config.Config) { c.DBMaxOpenConns = 0; c.DBMaxIdleConns = 0 },
+			"DB_MAX_OPEN_CONNS",
+		},
 	}
 
 	for nombre, caso := range casos {
@@ -127,5 +154,70 @@ func TestValidateReportaTodosLosProblemasJuntos(t *testing.T) {
 		if !strings.Contains(err.Error(), esperado) {
 			t.Errorf("el error omite %s: quien despliega tendría que arrancar otra vez para descubrirlo", esperado)
 		}
+	}
+}
+
+// Issue #118 (C1). Los tres modos que cifran de verdad valen; se prueban los
+// tres porque verify-ca y verify-full son el endurecimiento natural de este
+// despliegue y seria absurdo que el arranque los rechazara.
+func TestValidateAceptaLosModosDeSSLQueCifran(t *testing.T) {
+	for _, modo := range []string{"require", "verify-ca", "verify-full"} {
+		t.Run(modo, func(t *testing.T) {
+			cfg := produccionValida()
+			cfg.DatabaseURL = "postgres://moocuser:UnaContrasena@10.0.0.3:5432/moocdb?sslmode=" + modo
+
+			if err := cfg.Validate(); err != nil {
+				t.Fatalf("sslmode=%s fue rechazado pese a que cifra: %v", modo, err)
+			}
+		})
+	}
+}
+
+// libpq admite dos formas de cadena de conexion y la comprobacion tiene que
+// ver ambas: si solo entendiera la URL, pasar a la forma de pares
+// clave=valor desactivaria la comprobacion sin que nada lo avisara.
+func TestValidateLeeElSslmodeEnLaFormaDePares(t *testing.T) {
+	cfg := produccionValida()
+	cfg.DatabaseURL = "host=10.0.0.3 port=5432 user=moocuser password=UnaContrasena dbname=moocdb sslmode=disable"
+
+	err := cfg.Validate()
+
+	if err == nil {
+		t.Fatal("se acepto una cadena de pares clave=valor con sslmode=disable")
+	}
+	if !strings.Contains(err.Error(), "sslmode") {
+		t.Errorf("el error no menciona sslmode:\n%v", err)
+	}
+}
+
+// Una contrasena con `&` o con `?` dentro no debe confundir la extraccion del
+// sslmode. Es el caso por el que la comprobacion busca el parametro en lugar de
+// parsear la cadena: un parseo estricto fallaria entero por la contrasena.
+func TestValidateNoSeConfundeConUnaContrasenaConSimbolos(t *testing.T) {
+	cfg := produccionValida()
+	cfg.DatabaseURL = "postgres://moocuser:a?b&c=d@10.0.0.3:5432/moocdb?sslmode=require"
+
+	if err := cfg.Validate(); err != nil {
+		t.Fatalf("una contrasena con simbolos rompio la lectura del sslmode: %v", err)
+	}
+}
+
+// Pedir mas conexiones inactivas que abiertas no da error en database/sql: las
+// recorta en silencio. Es la clase de configuracion que parece aplicada y no lo
+// esta, asi que se comprueba en todo entorno y no solo en produccion.
+func TestValidateRechazaMasConexionesInactivasQueAbiertas(t *testing.T) {
+	cfg := &config.Config{
+		Environment:    "development",
+		DBMaxOpenConns: 10,
+		DBMaxIdleConns: 25,
+	}
+
+	err := cfg.Validate()
+
+	if err == nil {
+		t.Fatal("se acepto un pool con mas conexiones inactivas que abiertas")
+	}
+	if !strings.Contains(err.Error(), "DB_MAX_IDLE_CONNS") {
+		t.Errorf("el error no menciona DB_MAX_IDLE_CONNS:\n%v", err)
 	}
 }

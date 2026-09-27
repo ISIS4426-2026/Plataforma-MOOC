@@ -259,3 +259,63 @@ Rotar primero, investigar después. Una versión nueva en Secret Manager y un
 Si lo filtrado fue **el estado de Terraform** —que contiene la contraseña de la
 base en claro—, hay que rotarla aunque el bucket vuelva a estar privado: el
 estado la lleva dentro, y un objeto que estuvo expuesto se considera expuesto.
+
+---
+
+## Cierre de la entrega (issue #133, I6)
+
+El enunciado **exige eliminar la instancia de base de datos administrada** al
+cerrar la entrega. Con la protección de borrado que puso C1, un `terraform
+destroy` a secas falla, y eso es intencionado: la protección está ahí para el
+resto del semestre, no para este momento.
+
+El orden importa, porque los tres pasos no se pueden juntar en uno:
+
+**1. Guardar lo que haga falta conservar.** Una vez borrada la instancia, sus
+copias de seguridad se van con ella.
+
+```bash
+gcloud sql export sql mooc-db-1 gs://<bucket>/respaldo-final.sql \
+  --database=moocdb --project=plataforma-mooc-entrega2
+```
+
+**2. Quitar la protección en el código y aplicar.** En `database.tf`,
+`deletion_protection = false`. Se hace por código y no con `gcloud`, porque de
+otro modo el siguiente `plan` propondría volver a activarla.
+
+```bash
+terraform apply     # solo quita la protección; no borra nada
+```
+
+**3. Destruir.**
+
+```bash
+terraform destroy
+```
+
+### Dos cosas que sorprenden al recrear
+
+**El nombre queda reservado siete días.** Google retiene el nombre de una
+instancia borrada, así que un `apply` posterior falla con un conflicto de nombre
+que no se puede forzar. La salida está prevista: subir
+`db_instance_generation` en `database.tf` o pasarlo por línea de comandos.
+
+```bash
+terraform apply -var='db_instance_generation=2'
+```
+
+**La instancia nueva viene vacía.** Terraform crea la base y el usuario, nunca
+el esquema. Hay que volver a migrar desde una VM, con
+`scripts/migrate.sh` — el procedimiento está en
+[`README.md`](./README.md#las-migraciones-no-las-hace-terraform).
+
+### Qué sobrevive al `destroy`
+
+| | |
+| :--- | :--- |
+| El bucket del estado de Terraform | Se creó fuera de Terraform, a propósito |
+| Los secretos de Secret Manager | Los gestiona este documento, no el código |
+| Las APIs habilitadas | `disable_on_destroy = false`; apagarlas no ahorra nada |
+
+Nada de eso cuesta dinero apreciable, y conservarlo es lo que permite volver a
+levantar el entorno para la sustentación.

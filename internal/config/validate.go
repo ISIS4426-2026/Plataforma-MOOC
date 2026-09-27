@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 )
 
@@ -33,17 +34,62 @@ const (
 	localMailHost   = "mailpit"
 )
 
+// Modos de sslmode que cifran de verdad, para el issue #118 (C1).
+//
+// Los tres que faltan --disable, allow y prefer-- comparten un problema: el
+// cifrado queda a criterio del servidor. Contra la instancia de Cloud SQL, que
+// esta en ENCRYPTED_ONLY, «prefer» acabaria cifrando igual, y eso es
+// precisamente lo que lo hace peligroso: funciona, asi que nadie lo corrige, y
+// el dia que la cadena de conexion apunte a otro servidor viajaria en claro sin
+// que cambie ni una linea de codigo.
+var sslModesCifrados = []string{"require", "verify-ca", "verify-full"}
+
+// sslModeDe extrae el sslmode de una cadena de conexion.
+//
+// Funciona con las dos formas que admite libpq --la URL
+// (`postgres://...?sslmode=x`) y la de pares clave=valor (`host=... sslmode=x`)--
+// porque no parsea: busca el parametro y lee hasta el siguiente separador. Para
+// una comprobacion de arranque eso es mas robusto que un parseo, que fallaria
+// entero por una contrasena con caracteres raros.
+func sslModeDe(dsn string) string {
+	const clave = "sslmode="
+
+	i := strings.Index(dsn, clave)
+	if i < 0 {
+		return ""
+	}
+
+	valor := dsn[i+len(clave):]
+	if fin := strings.IndexAny(valor, "&? "); fin >= 0 {
+		valor = valor[:fin]
+	}
+	return strings.ToLower(strings.TrimSpace(valor))
+}
+
 // Validate comprueba que la configuracion no arrastra valores de desarrollo a
 // un entorno que no lo es.
 //
 // Devuelve todos los problemas juntos y no el primero: quien despliega prefiere
 // una lista de cuatro cosas que corregir a cuatro intentos de arranque.
 func (c *Config) Validate() error {
-	if !strings.EqualFold(c.Environment, EnvironmentProduction) {
-		return nil
+	var problemas []string
+
+	// Esta si se comprueba en todo entorno, porque en ninguno es intencionada:
+	// database/sql recorta en silencio el maximo de conexiones inactivas al de
+	// abiertas, asi que pedir mas inactivas que abiertas no da error, no hace
+	// nada y deja a quien lo configuro creyendo que si.
+	if c.DBMaxIdleConns > c.DBMaxOpenConns {
+		problemas = append(problemas, fmt.Sprintf(
+			"DB_MAX_IDLE_CONNS=%d es mayor que DB_MAX_OPEN_CONNS=%d: database/sql lo recorta en silencio",
+			c.DBMaxIdleConns, c.DBMaxOpenConns))
 	}
 
-	var problemas []string
+	if !strings.EqualFold(c.Environment, EnvironmentProduction) {
+		if len(problemas) == 0 {
+			return nil
+		}
+		return unError(problemas)
+	}
 
 	// La contrasena de la base viaja dentro de DATABASE_URL, asi que se busca
 	// ahi. Que siga siendo la de docker-compose significa que TF_VAR_db_password
@@ -91,9 +137,39 @@ func (c *Config) Validate() error {
 			"SMTP_PORT=25: Google bloquea ese puerto saliente en Compute Engine y no se puede abrir; usar 587 o 465")
 	}
 
+	// La instancia de Cloud SQL del issue #118 no tiene IP publica y esta en
+	// ENCRYPTED_ONLY, asi que rechaza las conexiones en claro. Sin esta
+	// comprobacion, el sintoma de una cadena con `sslmode=disable` es un fallo
+	// de conexion en el arranque cuyo mensaje no menciona el cifrado.
+	if modo := sslModeDe(c.DatabaseURL); !slices.Contains(sslModesCifrados, modo) {
+		if modo == "" {
+			problemas = append(problemas,
+				"DATABASE_URL no lleva sslmode: Cloud SQL exige conexion cifrada; usar sslmode=require")
+		} else {
+			problemas = append(problemas, fmt.Sprintf(
+				"DATABASE_URL usa sslmode=%s, que deja el cifrado a criterio del servidor; usar require, verify-ca o verify-full",
+				modo))
+		}
+	}
+
+	// Cero significa «sin limite» en database/sql, y un pool sin limite contra
+	// una instancia con max_connections declarado es la forma de descubrir el
+	// limite bajo carga (nota 11 de NOTAS_TECNICAS.md). El reparto de las 100
+	// conexiones esta en infra/terraform/database.tf.
+	if c.DBMaxOpenConns <= 0 {
+		problemas = append(problemas,
+			"DB_MAX_OPEN_CONNS sin limite: la instancia administrada tiene un tope de conexiones y lo comparten la API y el worker")
+	}
+
 	if len(problemas) == 0 {
 		return nil
 	}
+	return unError(problemas)
+}
+
+// unError junta los problemas en un solo mensaje. Quien despliega prefiere una
+// lista que corregir a un arranque fallido por cada cosa.
+func unError(problemas []string) error {
 	return fmt.Errorf(
 		"la configuracion de produccion conserva valores de desarrollo:\n  - %s",
 		strings.Join(problemas, "\n  - "))

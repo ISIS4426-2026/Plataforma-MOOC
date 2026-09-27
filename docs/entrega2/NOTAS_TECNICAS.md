@@ -20,10 +20,12 @@ salieron de errores que costaron una tarde y se habrían evitado leyéndolas.
 | 8 | El contrato de OpenAPI ya documenta lo que falta construir | A5, G2, I1 |
 | 9 | `APP_BASE_URL` ahora también arma los enlaces de verificación | D2, D3, G4, F1, I1 |
 | 10 | Las tablas del estudiante no tienen clave ajena al curso, a propósito | C1, C2, I1 |
-| 11 | Los latidos no pasan por el limitador, y los pools no están acotados | B4, C1, G4, H1, H2, H3 |
+| 11 | Los latidos no pasan por el limitador, y los pools no están acotados — *el presupuesto de conexiones, **resuelto** en C1* | B4, C1, G4, H1, H2, H3 |
 | 12 | Dos trampas del entorno local | todos |
 | 13 | Reproducir videos completos en las pruebas cuesta más que las dos VMs | B1, C3, H2, H4, H5 |
 | 14 | Tres cosas que GCP decidió por nosotros al habilitar las APIs | B3, D2, G4, E1, F1 |
+| 15 | Cloud SQL no tiene el hook que aplica el esquema en local | C1, C2, D2, E1, I6 |
+| 16 | Un `apply` desde una rama borra el trabajo de otro, y no falla al hacerlo | **todos los de infra**: B3, C1, C3, D2, E1, F1, G4, I6 |
 
 ---
 
@@ -433,10 +435,34 @@ A6 añadió una que abría 8 transacciones a la vez: el síntoma fue un fallo
 intermitente en un test sin relación, no un error de conexión. Se acotó ese test a
 4.
 
-Para **C1 esto importa de verdad**: las instancias pequeñas de Cloud SQL permiten
-bastante menos de 100 conexiones, y con dos VMs (API y workers) más el pool de
-asynq hay que sumar antes de dimensionar, no después del primer `too many
-connections` bajo carga.
+Para **C1 esto importaba de verdad**: con dos VMs (API y workers) sumando contra
+el mismo tope, había que sumar antes de dimensionar y no después del primer `too
+many connections` bajo carga.
+
+**Resuelto en C1, y de una forma que conviene conocer.** En lugar de heredar el
+`max_connections` que Google asigna según la memoria del perfil —que cambiaría
+solo si alguien cambia el perfil—, `infra/terraform/database.tf` lo **declara**:
+
+| | Conexiones |
+| :--- | ---: |
+| API (VM de D2) | 25 |
+| Worker (VM de E1) | 25 |
+| Reserva de superusuario | 3 |
+| Agentes de Google | ~5 |
+| **Comprometido** | **~58** de 100 |
+
+Los ~42 restantes son el margen para las migraciones, un `psql` de diagnóstico y
+el solapamiento de un reinicio.
+
+**Lo que hay que recordar al tocar el pool:** `DB_MAX_OPEN_CONNS` es *por
+proceso*, no del sistema. Subirlo en la VM de la API no avisa de que la del
+worker también está consumiendo. El límite efectivo se consulta con
+`bash ./scripts/migrate.sh --verify`.
+
+Y una comprobación nueva que se aplica en todo entorno: pedir más conexiones
+inactivas que abiertas ya no pasa desapercibido. `database/sql` recortaba el
+valor en silencio, así que era una configuración que parecía aplicada y no lo
+estaba; ahora el arranque la rechaza.
 
 ---
 
@@ -588,3 +614,121 @@ solo qué cuentas existen.
 Si al final ninguna VM la usa, lo más limpio es **quitarle el rol de Editor** a
 esa cuenta por defecto. No se puede borrar mientras la API esté habilitada, pero
 sí dejarla sin permisos.
+
+---
+
+## 15. Cloud SQL no tiene el hook que aplica el esquema en local
+
+**Afecta a:** C1 (migrar la instancia), C2 (respaldos y restauración), D2 y E1
+(arranque de las VMs), I6 (recrear el entorno).
+
+En local, el esquema lo crea el hook de inicialización de Postgres:
+`scripts/init-db.sh` montado en `/docker-entrypoint-initdb.d`, que recorre
+`migrations/*.up.sql` **una sola vez**, cuando el volumen está vacío.
+
+**Cloud SQL no tiene ese hook.** La instancia nace con `moocdb` creada y sin una
+sola tabla, y nada la migra. El síntoma es el de siempre en este proyecto: la
+aplicación arranca —la conexión funciona— y el primer registro devuelve 500.
+
+Por eso C1 añadió `scripts/migrate.sh`, con una tabla `schema_migrations` que lo
+hace repetible. Tres cosas que conviene saber antes de usarlo:
+
+**1. Hay que ejecutarlo desde dentro de la VPC.** La instancia no tiene IP
+pública, así que desde un portátil no hay a dónde conectarse. Desde una VM, con
+`postgresql-client` instalado.
+
+**2. Contra tu base de desarrollo, la primera vez es `--baseline`.** Ahí el
+esquema ya existe pero sin tabla de control, así que el script intentaría aplicar
+`000001` y fallaría con «relation already exists». El baseline registra lo
+aplicado sin ejecutarlo.
+
+**3. Recrear la instancia da una base vacía.** Terraform crea la base y el
+usuario, nunca el esquema. Después de cualquier `destroy`/`apply` —y en **I6** eso
+es obligatorio— hay que volver a migrar. No es un paso opcional del despliegue.
+
+### Dos trampas de la propia instancia, ya previstas en el código
+
+**El nombre queda reservado una semana.** Google retiene el nombre de una
+instancia borrada siete días, y el `apply` siguiente falla con un conflicto que
+no se puede forzar. La salida es subir `db_instance_generation` en `database.tf`.
+
+**`terraform destroy` falla a propósito.** La instancia lleva
+`deletion_protection = true`, porque tres personas aplican sobre el mismo estado
+y perder la base no se deshace. Para I6 hay que ponerlo en `false`, aplicar, y
+solo entonces destruir. El procedimiento completo está en
+[`infra/terraform/ADMINISTRACION.md`](../../infra/terraform/ADMINISTRACION.md).
+
+### La buena noticia: las migraciones ya eran portables
+
+Se revisaron contra las restricciones de Cloud SQL y no hubo que tocar ninguna:
+**cero `CREATE EXTENSION`**, nada no transaccional (ningún `CONCURRENTLY`, ningún
+`VACUUM`), **ningún rol**. El único `BEGIN` del árbol es el cuerpo de una función
+PL/pgSQL, no control de transacción.
+
+Que no haga falta ninguna extensión pese a usar `gen_random_uuid()` en 22
+columnas es porque esa función es núcleo desde PostgreSQL 13. **Es la razón por
+la que `database_version` está fijado a `POSTGRES_16`**: sobre una versión
+anterior, estas migraciones fallarían todas en la primera línea de la 000001 sin
+`pgcrypto`.
+
+---
+
+## 16. Un `apply` desde una rama borra el trabajo de otro, y no falla al hacerlo
+
+**Afecta a:** todos los issues de infraestructura — B3, C1, C3, D2, E1, F1, G4, I6.
+
+Esta no salió de leer documentación: ocurrió mientras se construía C1, y la
+primera señal fue una línea del `plan` que había que mirar dos veces.
+
+```
+Plan: 5 to add, 0 to change, 9 to destroy.
+```
+
+Los 5 eran C1. **Los 9 eran el bucket de C3, su IAM y sus prefijos**, y estaban
+ahí porque el estado es compartido mientras el código no lo es: la rama de C1 no
+contenía el `storage.tf` de C3, así que para Terraform esos nueve recursos
+sobraban.
+
+Lo que hace esto peligroso es que **el `apply` no habría fallado**. Habría
+funcionado, habría borrado el trabajo de otra persona y habría terminado en verde.
+No hay ninguna salvaguarda técnica: la única barrera es leer la última línea del
+plan.
+
+### La segunda mitad, que es peor
+
+Al investigar apareció algo más: ese `storage.tf` **no estaba en `main` ni en
+ninguna rama remota**. La rama de C3 tenía cero commits. Los recursos se habían
+aplicado desde un archivo que existía solo en el portátil de quien lo hizo.
+
+Eso deja la infraestructura real **por delante del repositorio**, y el problema
+pasa a ser de todos:
+
+* Cualquiera que aplique, desde `main` incluido, propone destruir esos recursos.
+* Nadie más puede declararlos, porque no tiene el archivo.
+* Si esa copia local se pierde, quedan huérfanos en el estado y hay que
+  reconstruirlos a mano o importarlos.
+
+### Qué hacer
+
+**Al trabajar:** `plan` desde tu rama todo lo que quieras —valida tu
+configuración y es lo que confirma qué vas a crear—, pero el `apply` **solo desde
+`main` actualizado y después de mezclar**. Está como sexta regla en
+[`infra/terraform/README.md`](../../infra/terraform/README.md).
+
+**Al revisar un plan:** la última línea, siempre. Un `to destroy` que no
+esperabas no es ruido; es que tu código y el estado no cuentan la misma historia.
+
+**Si ya aplicaste desde una rama:** sube el archivo cuanto antes y mézclalo. No
+hay que deshacer nada —los recursos están bien— pero hasta que el código esté en
+`main`, nadie puede aplicar sin borrarlos.
+
+### Por qué no basta con `git pull`
+
+El README decía «`git pull` antes de planificar», y es necesario pero no
+suficiente: en una rama de trabajo, `git pull` trae los cambios *de esa rama*, no
+los de `main`. La rama sigue sin el archivo del compañero y el plan sigue
+proponiendo destruirlo. Lo que resuelve es el orden completo:
+
+```
+rama → plan → PR → merge → git pull en main → apply
+```
