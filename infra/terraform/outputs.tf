@@ -146,3 +146,21 @@ output "database_url_template" {
     google_sql_database.mooc.name,
   )
 }
+
+# --- Maquinas Virtuales de Computo (issue #123, D2) -------------------------
+
+output "web_server_name" {
+  description = "Nombre de la instancia de cómputo del Web Server (D2)."
+  value       = google_compute_instance.web_server.name
+}
+
+output "web_server_public_ip" {
+  description = "Dirección IPv4 pública estática del Web Server (D2)."
+  value       = google_compute_address.web_server_ip.address
+}
+
+output "web_server_private_ip" {
+  description = "Dirección IPv4 privada en mooc-subnet del Web Server (D2)."
+  value       = google_compute_instance.web_server.network_interface[0].network_ip
+}
+

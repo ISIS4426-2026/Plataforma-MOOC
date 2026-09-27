@@ -1,0 +1,71 @@
+================================================================================
+EVIDENCIA D2 - CRITERIO 3: SUPERVIVENCIA AL REINICIO DE LA VM
+================================================================================
+Fecha de verificación: 2026-09-27 14:43:06 UTC
+Instancia: mooc-web-server (us-east1-b, IP externa: 34.24.52.111)
+Servicio de convergencia: mooc-web.service (systemd)
+Política de reinicio de contenedores: restart: unless-stopped
+================================================================================
+
+--- 1. EJECUCIÓN DEL REINICIO CONTROLADO DE LA MÁQUINA VIRTUAL ---
+
+$ gcloud compute ssh mooc-web-server --zone=us-east1-b --project=plataforma-mooc-entrega2 --tunnel-through-iap --command="sudo reboot"
+Connection to mooc-web-server closed by remote host.
+
+--- 2. VERIFICACIÓN DEL UPTIME TRAS EL REINICIO ---
+
+$ gcloud compute ssh mooc-web-server --zone=us-east1-b --project=plataforma-mooc-entrega2 --tunnel-through-iap --command="uptime"
+
+ 14:43:06 up 0 min,  0 user,  load average: 0.52, 0.19, 0.07
+
+--- 3. ESTADO DEL SERVICIO SYSTEMD (mooc-web.service) TRAS ARRANQUE ---
+
+$ sudo systemctl status mooc-web.service --no-pager
+
+● mooc-web.service - Plataforma MOOC Web Server Stack
+     Loaded: loaded (/etc/systemd/system/mooc-web.service; enabled; preset: enabled)
+     Active: active (exited) since Sun 2026-09-27 14:42:38 UTC; 27s ago
+    Process: 1444 ExecStart=/usr/bin/docker compose -f /home/dfortizr1/mooc/docker-compose.prod.yml up -d (code=exited, status=0/SUCCESS)
+   Main PID: 1444 (code=exited, status=0/SUCCESS)
+        CPU: 2.187s
+
+Sep 27 14:42:29 mooc-web-server docker[1461]:  Container mooc-redis-1 Started
+Sep 27 14:42:29 mooc-web-server docker[1461]:  Container mooc-redis-1 Waiting
+Sep 27 14:42:32 mooc-web-server docker[1461]:  Container mooc-redis-1 Healthy
+Sep 27 14:42:32 mooc-web-server docker[1461]:  Container mooc-api-1 Starting
+Sep 27 14:42:32 mooc-web-server docker[1461]:  Container mooc-api-1 Started
+Sep 27 14:42:32 mooc-web-server docker[1461]:  Container mooc-api-1 Waiting
+Sep 27 14:42:37 mooc-web-server docker[1461]:  Container mooc-api-1 Healthy
+Sep 27 14:42:37 mooc-web-server docker[1461]:  Container mooc-proxy-1 Starting
+Sep 27 14:42:38 mooc-web-server docker[1461]:  Container mooc-proxy-1 Started
+Sep 27 14:42:38 mooc-web-server systemd[1]: Finished mooc-web.service - Plataforma MOOC Web Server Stack.
+
+--- 4. ESTADO DE LOS CONTENEDORES (docker compose ps) ---
+
+$ cd ~/mooc && sudo docker compose -f docker-compose.prod.yml ps
+
+NAME           IMAGE                                                                                                COMMAND                  SERVICE   CREATED          STATUS                    PORTS
+mooc-api-1     us-east1-docker.pkg.dev/plataforma-mooc-entrega2/mooc/api:df53ded45d01a19b8ae5540340d42d31fce60343   "/app/api"               api       38 seconds ago   Up 34 seconds (healthy)   0.0.0.0:8080->8080/tcp, [::]:8080->8080/tcp
+mooc-proxy-1   nginx:1.27-alpine                                                                                    "/docker-entrypoint.…"   proxy     38 seconds ago   Up 28 seconds             0.0.0.0:80->80/tcp, [::]:80->80/tcp, 0.0.0.0:443->443/tcp, [::]:443->443/tcp
+mooc-redis-1   redis:7-alpine                                                                                       "docker-entrypoint.s…"   redis     39 seconds ago   Up 37 seconds (healthy)   0.0.0.0:6379->6379/tcp, [::]:6379->6379/tcp
+
+--- 5. PETICIÓN HTTP DESDE INTERNET INMEDIATAMENTE TRAS EL REINICIO ---
+
+$ curl -i -s http://34.24.52.111/api/v1/health
+
+HTTP/1.1 200 OK
+Server: nginx/1.27.5
+Date: Sun, 27 Sep 2026 14:43:06 GMT
+Content-Type: application/json
+Content-Length: 82
+Connection: keep-alive
+X-Request-Id: 496f4fad-483e-4a9e-930b-b3fc0145590b
+
+{"status":"pass","timestamp":"2026-09-27T14:43:06Z","services":{"database":"up"}}
+
+================================================================================
+CONCLUSIÓN:
+El servicio mooc-web.service y los contenedores de Docker (api, proxy, redis)
+convergieron de manera 100% autónoma y saludable tras el reinicio de la máquina
+virtual, respondiendo HTTP 200 OK a peticiones públicas sin intervención manual.
+================================================================================

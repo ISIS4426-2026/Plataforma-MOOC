@@ -12,6 +12,8 @@ La parametrización del adaptador de almacenamiento administrado reside en [`../
 | [`carga_directa_completa_sin_api.txt`](./carga_directa_completa_sin_api.txt) | **Carga directa completa sin que el archivo pase por la API**. Transferencia binaria de 5 MiB punto a punto cliente $\rightarrow$ Google Cloud Storage (HTTP/2 200 OK), verificación de metadatos en GCS con `StatObject`, y confirmación en la API (HTTP 202 Accepted) sin intermediación de bytes. |
 | [`rechazo_firma_alterada_o_vencida.txt`](./rechazo_firma_alterada_o_vencida.txt) | **URL vencida o firma alterada es rechazada**. Comprobación exhaustiva: firma alterada rechazada con `HTTP 403 Forbidden` (`SignatureDoesNotMatch`), URL expirada rechazada con `HTTP 400 Bad Request` (`ExpiredToken`), y cabecera `Content-Type` adulterada rechazada con `HTTP 403 Forbidden`. |
 | [`worker_escribe_derivados_api_rechazada.txt`](./worker_escribe_derivados_api_rechazada.txt) | **El worker escribe derivados y la API no puede**. Demostración empírica de menor privilegio IAM: `sa-worker-server` escribe en `hls/` (200 OK) y es bloqueado en `originals/` (403 Forbidden); `sa-web-server` escribe en `originals/` (200 OK) y es bloqueado en `hls/` (403 Forbidden por condición CEL). |
+| [`../D2/cierre_ola2_c1_c4.txt`](../D2/cierre_ola2_c1_c4.txt) | **Verificación en Ola 2 desde Internet**: Flujo de carga multimedia completo ejecutado a través del Web Server público de D2 (`http://34.24.52.111`). |
+
 
 ---
 
@@ -93,9 +95,10 @@ El diseño de permisos garantiza que ningún componente posea facultades indebid
 
 ---
 
-## 4. Carga Directa Desacoplada y Verificación en Ola 2
+## 4. Carga Directa Desacoplada y Verificación en Ola 2 (Completada en D2)
 
-El flujo de carga multimedia implementado en [`internal/http/handler/media.go`](../../../../internal/http/handler/media.go) cumple con la arquitectura de descarga de tráfico (*offloading*):
+El flujo de carga multimedia implementado en [`internal/http/handler/media.go`](../../../../internal/http/handler/media.go) cumple con la arquitectura de descarga de tráfico (*offloading*). Su verificación de integración extremo a extremo desde Internet se completó tras poner en marcha el Web Server público en D2 (evidencia en [`../D2/cierre_ola2_c1_c4.txt`](../D2/cierre_ola2_c1_c4.txt)):
+
 
 ```
   1. POST /api/v1/media/presigned-url
