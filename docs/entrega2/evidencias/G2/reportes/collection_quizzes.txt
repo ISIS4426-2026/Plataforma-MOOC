@@ -1,0 +1,164 @@
+newman
+
+Plataforma MOOC - Quizzes y Calificacion
+
+→ 01 Login como Profesor
+  POST https://34.24.52.111.sslip.io/api/v1/auth/login [200 OK, 696B, 932ms]
+  ✓  responde 200
+
+→ 02 Login como Estudiante
+  POST https://34.24.52.111.sslip.io/api/v1/auth/login [200 OK, 702B, 204ms]
+  ✓  responde 200
+
+→ 03 Crear el curso de la corrida
+  POST https://34.24.52.111.sslip.io/api/v1/courses [201 Created, 476B, 107ms]
+  ✓  responde 201
+
+→ 04 Crear el modulo
+  POST https://34.24.52.111.sslip.io/api/v1/courses/4798bb4e-9191-4d99-a39d-1cb19bd4d513/modules [201 Created, 404B, 113ms]
+  ✓  responde 201
+
+→ 05 Crear la unidad
+  POST https://34.24.52.111.sslip.io/api/v1/modules/20bc4b1c-d600-492b-a1d5-ef3503b00c49/units [201 Created, 404B, 112ms]
+  ✓  responde 201
+
+→ 06 Crear el recurso de tipo quiz
+  POST https://34.24.52.111.sslip.io/api/v1/units/f1cc0be1-adaf-4e39-bba1-212a8be96a11/resources [201 Created, 511B, 115ms]
+  ✓  responde 201
+
+→ 07 Rechazo: un cuestionario solo cuelga de un recurso de tipo quiz
+  POST https://34.24.52.111.sslip.io/api/v1/resources/d3000000-0000-0000-0000-000000000002/quiz [400 Bad Request, 288B, 111ms]
+  ✓  responde 400
+  ✓  con codigo de error invalid_input
+
+→ 08 Crear el cuestionario
+  POST https://34.24.52.111.sslip.io/api/v1/resources/9a013c0a-1f64-425e-a8e3-59f346a88fb2/quiz [201 Created, 380B, 117ms]
+  ✓  responde 201
+  ✓  guarda la politica de aprobacion y de intentos
+
+→ 09 Rechazo: un segundo cuestionario en el mismo recurso
+  POST https://34.24.52.111.sslip.io/api/v1/resources/9a013c0a-1f64-425e-a8e3-59f346a88fb2/quiz [409 Conflict, 321B, 117ms]
+  ✓  responde 409
+  ✓  con codigo de error quiz_conflict
+
+→ 10 Rechazo: una pregunta sin opcion correcta
+  POST https://34.24.52.111.sslip.io/api/v1/quizzes/5380dce9-9ed4-4976-b502-4388e762192f/questions [400 Bad Request, 288B, 97ms]
+  ✓  responde 400
+  ✓  con codigo de error invalid_input
+
+→ 11 Rechazo: una pregunta con una sola opcion
+  POST https://34.24.52.111.sslip.io/api/v1/quizzes/5380dce9-9ed4-4976-b502-4388e762192f/questions [400 Bad Request, 288B, 106ms]
+  ✓  responde 400
+  ✓  con codigo de error invalid_input
+
+→ 12 Agregar la pregunta 1
+  POST https://34.24.52.111.sslip.io/api/v1/quizzes/5380dce9-9ed4-4976-b502-4388e762192f/questions [201 Created, 496B, 128ms]
+  ✓  responde 201
+  ✓  devuelve las opciones con su clave y su orden
+
+→ 13 Agregar la pregunta 2
+  POST https://34.24.52.111.sslip.io/api/v1/quizzes/5380dce9-9ed4-4976-b502-4388e762192f/questions [201 Created, 496B, 121ms]
+  ✓  responde 201
+  ✓  devuelve las opciones con su clave y su orden
+
+→ 14 El autor lee el cuestionario CON la clave
+  GET https://34.24.52.111.sslip.io/api/v1/resources/9a013c0a-1f64-425e-a8e3-59f346a88fb2/quiz [200 OK, 966B, 148ms]
+  ✓  responde 200
+  ✓  trae questions_with_key y no questions
+  ✓  cada pregunta tiene exactamente una correcta
+
+→ 15 Publicar el curso
+  POST https://34.24.52.111.sslip.io/api/v1/courses/4798bb4e-9191-4d99-a39d-1cb19bd4d513/publish [200 OK, 549B, 107ms]
+  ✓  responde 200
+  ✓  queda publicado
+
+→ 16 Rechazo: agregar preguntas a un curso publicado
+  POST https://34.24.52.111.sslip.io/api/v1/quizzes/5380dce9-9ed4-4976-b502-4388e762192f/questions [409 Conflict, 315B, 108ms]
+  ✓  responde 409
+  ✓  con codigo de error course_immutable
+
+→ 17 Rechazo: leer el cuestionario sin inscripcion
+  GET https://34.24.52.111.sslip.io/api/v1/resources/9a013c0a-1f64-425e-a8e3-59f346a88fb2/quiz [403 Forbidden, 295B, 108ms]
+  ✓  responde 403
+  ✓  con codigo de error forbidden
+
+→ 18 Rechazo: presentar sin inscripcion
+  POST https://34.24.52.111.sslip.io/api/v1/quizzes/5380dce9-9ed4-4976-b502-4388e762192f/submissions [403 Forbidden, 295B, 107ms]
+  ✓  responde 403
+  ✓  con codigo de error forbidden
+
+→ 19 Inscripcion en el curso
+  POST https://34.24.52.111.sslip.io/api/v1/courses/4798bb4e-9191-4d99-a39d-1cb19bd4d513/enrollments [200 OK, 418B, 114ms]
+  ✓  responde 200
+  ✓  queda inscrito
+
+→ 20 El estudiante lee el cuestionario SIN la clave
+  GET https://34.24.52.111.sslip.io/api/v1/resources/9a013c0a-1f64-425e-a8e3-59f346a88fb2/quiz [200 OK, 883B, 125ms]
+  ✓  responde 200
+  ✓  el cuerpo no contiene la cadena is_correct
+  ✓  trae questions y no questions_with_key
+  ✓  las opciones llegan completas y ordenadas
+
+→ 21 Rechazo: un envio sin respuestas
+  POST https://34.24.52.111.sslip.io/api/v1/quizzes/5380dce9-9ed4-4976-b502-4388e762192f/submissions [400 Bad Request, 288B, 100ms]
+  ✓  responde 400
+  ✓  con codigo de error invalid_input
+
+→ 22 Intento 1: todo incorrecto
+  POST https://34.24.52.111.sslip.io/api/v1/quizzes/5380dce9-9ed4-4976-b502-4388e762192f/submissions [200 OK, 362B, 120ms]
+  ✓  responde 200
+  ✓  califica en cero y no aprueba
+  ✓  es el intento 1 y quedan 2
+
+→ 23 Intento 2: todo correcto
+  POST https://34.24.52.111.sslip.io/api/v1/quizzes/5380dce9-9ed4-4976-b502-4388e762192f/submissions [200 OK, 363B, 142ms]
+  ✓  responde 200
+  ✓  califica en 100 y aprueba
+  ✓  es el intento 2 y queda 1
+
+→ 24 El mismo envio repetido no consume otro intento
+  POST https://34.24.52.111.sslip.io/api/v1/quizzes/5380dce9-9ed4-4976-b502-4388e762192f/submissions [200 OK, 388B, 96ms]
+  ✓  responde 200
+  ✓  devuelve exactamente la misma calificacion
+
+→ 25 Intento 3: el ultimo permitido
+  POST https://34.24.52.111.sslip.io/api/v1/quizzes/5380dce9-9ed4-4976-b502-4388e762192f/submissions [200 OK, 363B, 135ms]
+  ✓  responde 200
+  ✓  es el intento 3 y no quedan mas
+
+→ 26 Rechazo: superar el limite de intentos
+  POST https://34.24.52.111.sslip.io/api/v1/quizzes/5380dce9-9ed4-4976-b502-4388e762192f/submissions [409 Conflict, 321B, 116ms]
+  ✓  responde 409
+  ✓  con codigo de error quiz_conflict
+
+→ 27 Mis intentos: exactamente tres
+  GET https://34.24.52.111.sslip.io/api/v1/quizzes/5380dce9-9ed4-4976-b502-4388e762192f/submissions/me [200 OK, 686B, 112ms]
+  ✓  responde 200
+  ✓  hay tres intentos, del mas reciente al mas antiguo
+  ✓  el historial tampoco filtra la clave
+
+→ 28 Aprobar el cuestionario completo su recurso
+  GET https://34.24.52.111.sslip.io/api/v1/progress/courses/4798bb4e-9191-4d99-a39d-1cb19bd4d513 [200 OK, 721B, 105ms]
+  ✓  responde 200
+  ✓  el recurso del cuestionario cuenta como completado
+
+┌─────────────────────────┬────────────────────┬────────────────────┐
+│                         │           executed │             failed │
+├─────────────────────────┼────────────────────┼────────────────────┤
+│              iterations │                  1 │                  0 │
+├─────────────────────────┼────────────────────┼────────────────────┤
+│                requests │                 28 │                  0 │
+├─────────────────────────┼────────────────────┼────────────────────┤
+│            test-scripts │                 28 │                  0 │
+├─────────────────────────┼────────────────────┼────────────────────┤
+│      prerequest-scripts │                 32 │                  0 │
+├─────────────────────────┼────────────────────┼────────────────────┤
+│              assertions │                 56 │                  0 │
+├─────────────────────────┴────────────────────┴────────────────────┤
+│ total run duration: 6.3s                                          │
+├───────────────────────────────────────────────────────────────────┤
+│ total data received: 6.53kB (approx)                              │
+├───────────────────────────────────────────────────────────────────┤
+│ average response time: 147ms [min: 96ms, max: 932ms, s.d.: 152ms] │
+└───────────────────────────────────────────────────────────────────┘
+[OK] collection_quizzes

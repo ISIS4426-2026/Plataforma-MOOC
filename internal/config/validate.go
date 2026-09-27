@@ -98,6 +98,11 @@ func (c *Config) Validate() error {
 			c.DBMaxIdleConns, c.DBMaxOpenConns))
 	}
 
+	if c.WorkerConcurrency < 0 {
+		problemas = append(problemas, fmt.Sprintf(
+			"WORKER_CONCURRENCY=%d no puede ser negativo", c.WorkerConcurrency))
+	}
+
 	if !strings.EqualFold(c.Environment, EnvironmentProduction) {
 		if len(problemas) == 0 {
 			return nil

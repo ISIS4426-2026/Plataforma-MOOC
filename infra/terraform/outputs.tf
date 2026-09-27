@@ -164,3 +164,21 @@ output "web_server_private_ip" {
   value       = google_compute_instance.web_server.network_interface[0].network_ip
 }
 
+# --- Maquinas Virtuales de Computo - Worker Server (issue #124, E1) ---------
+
+output "worker_server_name" {
+  description = "Nombre de la instancia de cómputo del Worker Server (E1)."
+  value       = google_compute_instance.worker_server.name
+}
+
+output "worker_server_public_ip" {
+  description = "Dirección IPv4 pública estática del Worker Server (E1)."
+  value       = google_compute_address.worker_server_ip.address
+}
+
+output "worker_server_private_ip" {
+  description = "Dirección IPv4 privada en mooc-subnet del Worker Server (E1)."
+  value       = google_compute_instance.worker_server.network_interface[0].network_ip
+}
+
+

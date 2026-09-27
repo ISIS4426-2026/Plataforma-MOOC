@@ -335,3 +335,16 @@ func TestValidateAceptaLosPuertosSMTPDelProveedor(t *testing.T) {
 		})
 	}
 }
+
+func TestValidateRechazaWorkerConcurrencyNegativa(t *testing.T) {
+	cfg := produccionValida()
+	cfg.WorkerConcurrency = -1
+
+	err := cfg.Validate()
+	if err == nil {
+		t.Fatal("se acepto una concurrencia de workers negativa")
+	}
+	if !strings.Contains(err.Error(), "WORKER_CONCURRENCY") {
+		t.Errorf("el error no menciona WORKER_CONCURRENCY:\n%v", err)
+	}
+}

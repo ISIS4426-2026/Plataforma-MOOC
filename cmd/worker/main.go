@@ -110,10 +110,23 @@ func main() {
 		nil,
 	)
 
+	workDirDesc := cfg.MediaWorkDir
+	if workDirDesc == "" {
+		workDirDesc = "(system temp)"
+	}
+	workerConcurrency := cfg.WorkerConcurrency
+	if workerConcurrency <= 0 {
+		workerConcurrency = 2
+	}
+	log.Printf("Worker concurrency: %d, work dir: %s, max original size: %d MB\n",
+		workerConcurrency, workDirDesc, cfg.MediaMaxOriginalBytes>>20)
+
 	engine, err := worker.NewWorkerEngine(cfg,
+		worker.WithConcurrency(workerConcurrency),
 		worker.WithMeter(obs.Meter),
 		worker.WithMediaProcessor(asynq.HandlerFunc(mediaProcessor.Handle)),
 	)
+
 	if err != nil {
 		log.Fatalf("Failed to initialize worker engine: %v\n", err)
 	}

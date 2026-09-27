@@ -28,6 +28,7 @@ La carpeta `docs/postman/` contiene los siguientes artefactos:
 | [`collection_media.postman_collection.json`](./collection_media.postman_collection.json) | Colección v2.1 de Postman para **Multimedia** (Issue #109) con 25 peticiones organizadas secuencialmente, flujo de carga directa al bucket sin pasar por la API, confirmación idempotente, validación de extensión, MIME y tamaño, control de acceso e inmutabilidad, y 43 aserciones automatizadas. |
 | [`mooc_local.postman_environment.json`](./mooc_local.postman_environment.json) | Entorno parametrizado para ejecuciones desde Postman Desktop en la máquina host (`http://localhost:8080` y `http://localhost:8025`). |
 | [`mooc_docker.postman_environment.json`](./mooc_docker.postman_environment.json) | Entorno parametrizado para ejecuciones desatendidas en la red de Docker Compose (`http://api:8080` y `http://mailpit:8025`). |
+| [`mooc_cloud.postman_environment.json`](./mooc_cloud.postman_environment.json) | Entorno para ejecuciones contra el despliegue real en la nube (issue #128, G2): `baseUrl` es el origen HTTPS público (`https://34.24.52.111.sslip.io`); `mailpitUrl` va deshabilitado porque Mailpit no existe fuera de local. Detalle en [`docs/entrega2/evidencias/G2/README.md`](../entrega2/evidencias/G2/README.md). |
 | [`README.md`](./README.md) | Documentación técnica integral, matrices de peticiones/aserciones y guía de ejecución. |
 
 **Total de la suite**: **194 peticiones HTTP** definidas (225 ejecutadas) y **415 aserciones automatizadas** con **0 fallos**.
@@ -332,6 +333,35 @@ docker run --rm --network plataforma-mooc_default   -v "$(pwd)/docs/postman":/et
 >
 > Paso a paso, verificación y solución de problemas en
 > [`docs/entrega2/EJECUCION_PRUEBAS_MULTIMEDIA.md`](../entrega2/EJECUCION_PRUEBAS_MULTIMEDIA.md).
+
+---
+
+### Opción 3: Ejecución contra la nube (issue #128, G2)
+
+```bash
+bash ./scripts/test_postman_cloud.sh
+```
+
+Corre seis de las siete colecciones (todas menos identidad, ver más abajo)
+contra el origen público real declarado en
+[`mooc_cloud.postman_environment.json`](./mooc_cloud.postman_environment.json),
+con reporte exportable por colección en `docs/entrega2/evidencias/G2/reportes/`.
+Detalle completo, incluyendo el hallazgo de CSRF que esto descubrió, en
+[`docs/entrega2/evidencias/G2/README.md`](../entrega2/evidencias/G2/README.md).
+
+**Por qué cada colección lleva ahora un script de pre-petición a nivel de
+colección.** D3 agregó una cookie de sesión `Secure` (`__Host-mooc_session`)
+al iniciar sesión. El cookie jar de Postman la reenvía automáticamente en las
+peticiones siguientes de la misma corrida — como haría un navegador real —, y
+el middleware de CSRF del servidor rechaza cualquier petición mutante que
+lleve esa cookie sin una cabecera `Origin`, así la petición también lleve un
+`Bearer` válido. Localmente esto no se notaba: `CSRF_ALLOWED_ORIGINS` vive
+vacío en desarrollo. Contra la nube, donde D3 sí lo configura, las siete
+colecciones fallaban con `csrf_origin_rejected` desde la segunda petición
+mutante de cada una. La corrección no toca el servidor —el comportamiento es
+el que D3 diseñó a propósito—: cada colección ahora limpia el cookie jar
+antes de cada petición, porque estas colecciones son clientes API puros por
+diseño y nunca debieron depender de esa cookie.
 
 ---
 

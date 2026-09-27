@@ -1,0 +1,68 @@
+# ==============================================================================
+# Plataforma MOOC - Docker Compose para Worker Server y Cola en la Nube (Issue E1)
+# ==============================================================================
+# Despliega el procesamiento asíncrono y la cola en su propia máquina virtual:
+# - redis: Intermediario de mensajería (Asynq/Redis) publicado en el puerto 6379 del
+#   host, accesible exclusivamente desde la subred privada VPC (10.0.1.0/24) e
+#   inalcanzable desde Internet por reglas de firewall de Compute Engine.
+# - worker: Procesador asíncrono en Go con FFmpeg. Concurrencia fijada en 2
+#   (1 worker por vCPU en e2-highcpu-2) y almacenamiento temporal delimitado en
+#   /tmp/mooc-worker con limpieza automática.
+# ==============================================================================
+
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: mooc-queue
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      worker_backend:
+        ipv4_address: 172.31.0.2
+    restart: unless-stopped
+
+  worker:
+    image: ${GCP_REGION:-us-east1}-docker.pkg.dev/${GCP_PROJECT_ID:-plataforma-mooc-entrega2}/${GCP_ARTIFACT_REGISTRY_REPOSITORY:-mooc}/worker:${IMAGE_TAG:?Set IMAGE_TAG to the full commit SHA}
+    container_name: mooc-worker
+    environment:
+      - APP_ENV=production
+      - DATABASE_URL=${DATABASE_URL:?Set DATABASE_URL with Cloud SQL credentials}
+      - REDIS_URL=${REDIS_URL:-redis:6379}
+      - STORAGE_BACKEND=gcs
+      - S3_BUCKET=${S3_BUCKET:-plataforma-mooc-entrega2-media}
+      - GCP_PROJECT_ID=${GCP_PROJECT_ID:-plataforma-mooc-entrega2}
+      - WORKER_CONCURRENCY=${WORKER_CONCURRENCY:-2}
+      - MEDIA_WORK_DIR=${MEDIA_WORK_DIR:-/tmp/mooc-worker}
+      - MEDIA_MAX_ORIGINAL_MB=${MEDIA_MAX_ORIGINAL_MB:-2048}
+      - MEDIA_HLS_LADDER=${MEDIA_HLS_LADDER:-}
+      - DB_MAX_OPEN_CONNS=${DB_MAX_OPEN_CONNS:-25}
+      - DB_MAX_IDLE_CONNS=${DB_MAX_IDLE_CONNS:-25}
+      - DB_CONN_MAX_LIFETIME=${DB_CONN_MAX_LIFETIME:-5m}
+      - METRICS_PORT=9090
+    volumes:
+      - /tmp/mooc-worker:/tmp/mooc-worker
+    ports:
+      - "${WORKER_METRICS_PORT:-9090}:9090"
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      worker_backend:
+        ipv4_address: 172.31.0.3
+    restart: unless-stopped
+
+volumes:
+  redis_data:
+
+networks:
+  worker_backend:
+    ipam:
+      config:
+        - subnet: 172.31.0.0/24
