@@ -33,7 +33,7 @@ SMTP_PORT="${SMTP_PORT:-587}"
 S3_BUCKET="${S3_BUCKET:-plataforma-mooc-entrega2-media}"
 GCS_SIGNER_ACCOUNT="${GCS_SIGNER_ACCOUNT:-sa-web-server@${GCP_PROJECT_ID}.iam.gserviceaccount.com}"
 
-required=(IMAGE_TAG APP_DOMAIN DB_PRIVATE_IP SMTP_FROM SMTP_USERNAME)
+required=(IMAGE_TAG APP_DOMAIN DB_PRIVATE_IP QUEUE_PRIVATE_IP SMTP_FROM SMTP_USERNAME)
 for name in "${required[@]}"; do
   [[ -n "${!name:-}" ]] || fail "${name} is empty in ${CONFIG_FILE}"
 done
@@ -42,6 +42,16 @@ done
   fail "IMAGE_TAG must be the full 40-character commit SHA"
 [[ "${SMTP_PORT}" =~ ^(587|465|2525)$ ]] ||
   fail "SMTP_PORT must be 587, 465, or 2525"
+
+# The queue and the session, rate-limit and idempotency stores all live on the
+# Worker Server (E1), reached over the VPC. Pointing REDIS_URL at the Compose
+# file's own `redis` service instead leaves the API enqueueing media tasks into a
+# broker no worker reads, and nothing fails: uploads answer 202 and the resource
+# stays `pending` forever. G3 found exactly that, so the address is required here
+# rather than defaulted -- a missing value must stop the deployment, not pick the
+# wrong Redis silently.
+[[ "${QUEUE_PRIVATE_IP}" =~ ^[0-9]{1,3}(\.[0-9]{1,3}){3}$ ]] ||
+  fail "QUEUE_PRIVATE_IP must be the Worker Server's private IPv4 address"
 
 for name in APP_DOMAIN SMTP_FROM SMTP_USERNAME; do
   value="${!name}"
@@ -81,7 +91,7 @@ APP_BASE_URL='https://${APP_DOMAIN}'
 CSRF_ALLOWED_ORIGINS='https://${APP_DOMAIN}'
 TRUSTED_PROXY_IP='172.30.0.2'
 DATABASE_URL='postgres://moocuser:${ENCODED_DB_PASSWORD}@${DB_PRIVATE_IP}:5432/moocdb?sslmode=require'
-REDIS_URL='redis:6379'
+REDIS_URL='${QUEUE_PRIVATE_IP}:6379'
 STORAGE_BACKEND='gcs'
 S3_BUCKET='${S3_BUCKET}'
 GCP_PROJECT_ID='${GCP_PROJECT_ID}'

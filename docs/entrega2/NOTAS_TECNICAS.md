@@ -10,7 +10,7 @@ salieron de errores que costaron una tarde y se habrían evitado leyéndolas.
 | | Hallazgo | Afecta a |
 | :--- | :--- | :--- |
 | 1 | La URL firmada lleva el host dentro de la firma | C4, G2, H4, H5 |
-| 1b | HLS multi-archivo no funciona detrás de URLs firmadas | C3, C4, H4, H5, I1 |
+| 1b | HLS multi-archivo no funciona detrás de URLs firmadas — *y en la nube el prefijo público no es aplicable, **#167*** | C3, C4, G3, H4, H5, I1 |
 | 2 | MinIO retiró sus imágenes públicas | cualquier `docker compose up` |
 | 3 | Las posiciones del seed estaban desfasadas en uno | G1, G2, G3 |
 | 4 | El estado `available` del enunciado es `completed` en el código | A3, I1, I3 |
@@ -28,6 +28,7 @@ salieron de errores que costaron una tarde y se habrían evitado leyéndolas.
 | 16 | Un `apply` desde una rama borra el trabajo de otro, y no falla al hacerlo | **todos los de infra**: B3, C1, C3, D2, E1, F1, G4, I6 |
 | 17 | SMTP 587, 465 y 2525 no hablan exactamente igual | F1, G3, I1 |
 | 18 | Terraform y el arranque deben interpretar igual los secretos creados desde Windows | C1, D2, E1, F1 |
+| 19 | Lo versionado tiene que reproducir lo que hacía lo que reemplaza — *`REDIS_URL`, **#166*** | D2, E1, F1, G3 |
 
 ---
 
@@ -122,9 +123,27 @@ ffprobe http://.../hls/<stable_id>/master.m3u8   → h264 640x360 + aac
 wget    http://.../originals/<stable_id>/...      → 403 Forbidden
 ```
 
-En local lo aplica el servicio `minio-policy` de `docker-compose.yml`. **En C3
-hay que replicarlo en el bucket administrado**: lectura pública acotada al
-prefijo `hls/`, nunca al bucket entero.
+En local lo aplica el servicio `minio-policy` de `docker-compose.yml`.
+
+### En la nube esa decisión no se puede aplicar tal como está escrita
+
+Esta nota decía que C3 solo tenía que replicar la política en el bucket
+administrado. **No es posible**, y G3 lo descubrió midiéndolo: `hls/` responde
+`403` de forma anónima, y la condición IAM que parecería resolverlo no existe
+como opción. **IAM no admite condiciones en enlaces concedidos a `allUsers` ni a
+`allAuthenticatedUsers`**, así que con acceso uniforme a nivel de bucket o es
+público el bucket entero —que es justo lo que esta decisión descarta— o no hay
+prefijo público.
+
+Lo que separa «no está» de «no puedo leer» es pedir un objeto que no existe:
+
+```
+GET /hls/no-existe-a-proposito/master.m3u8   → 403   (404 si el prefijo fuera público)
+GET /originals/no-existe/x.mp4               → 403   (correcto, es privado)
+```
+
+Queda abierto en **#167** con las tres salidas reales evaluadas; la de un bucket
+aparte para los derivados es la única que no degrada la postura de seguridad.
 
 ---
 
@@ -789,3 +808,37 @@ raíz del despliegue. Derivar el repositorio directamente desde
 `BASH_SOURCE[0]` hacía que escribiera `.env` en el directorio padre. Primero se
 resuelve la ruta real con `readlink -f`; así una invocación directa y la de
 systemd preparan exactamente el mismo archivo.
+
+---
+
+## 19. Lo versionado tiene que reproducir lo que hacía lo que reemplaza
+
+**Afecta a:** D2, E1, F1 y G3.
+
+Corolario de la nota 18, con otra víctima y peores síntomas.
+
+E1 dejó la cola en el Worker Server, así que el `.env` de la VM web apuntaba
+`REDIS_URL` a `10.0.1.3:6379` —se ve en su propia evidencia—. Ese valor lo
+escribía el `prepare_env.sh` **no versionado** de D2. Cuando F1 lo sustituyó por
+`scripts/prepare_web_env.sh`, que sí está en Git, el script fijó
+`REDIS_URL='redis:6379'`: el contenedor Redis del propio Web Server.
+
+El resultado no se parece a un fallo. La API encola en un broker que nadie lee,
+así que una carga de video responde `202`, el original queda guardado en el
+bucket y el recurso se queda en `pending` para siempre. No hay error en ningún
+log, porque nada falló: el mensaje se entregó a un Redis que está perfectamente
+sano.
+
+```
+POST /api/v1/media/uploads/{id}/complete   → 202  processing_status="pending"
+… 4 minutos después                        →      processing_status="pending"
+```
+
+`prepare_web_env.sh` ahora **exige** `QUEUE_PRIVATE_IP` en `/etc/mooc/web.conf`,
+sin valor por omisión, y construye `REDIS_URL` con ella. Una dirección ausente
+tiene que detener el despliegue; elegir el Redis equivocado en silencio es el
+modo de fallo que costó esta nota. Registrado en **#166**.
+
+La lección general: al versionar un script que reemplaza a otro que vivía solo en
+una VM, la configuración que aquel producía es parte de lo que hay que portar. El
+contenido del `.env` viejo es la especificación del script nuevo.
