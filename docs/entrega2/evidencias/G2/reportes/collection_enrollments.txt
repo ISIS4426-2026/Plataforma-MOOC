@@ -1,0 +1,123 @@
+newman
+
+Plataforma MOOC - Inscripciones
+
+→ 01 Login como Estudiante
+  POST https://34.24.52.111.sslip.io/api/v1/auth/login [200 OK, 702B, 440ms]
+  ✓  responde 200
+
+→ 02 Login como Profesor (autor del curso publicado)
+  POST https://34.24.52.111.sslip.io/api/v1/auth/login [200 OK, 696B, 171ms]
+  ✓  responde 200
+
+→ 03 Preparacion: dejar al estudiante sin inscripcion activa
+  DELETE https://34.24.52.111.sslip.io/api/v1/courses/d0000000-0000-0000-0000-000000000001/enrollments [200 OK, 459B, 85ms]
+  ✓  queda sin inscripcion activa (200 al retirarse, 404 si nunca se inscribio)
+
+→ 04 El catalogo es publico
+  GET https://34.24.52.111.sslip.io/api/v1/courses [200 OK, 2.44kB, 76ms]
+  ✓  responde 200 sin autenticacion
+
+→ 05 Rechazo: contenido sin sesion
+  GET https://34.24.52.111.sslip.io/api/v1/courses/d0000000-0000-0000-0000-000000000001/modules [401 Unauthorized, 311B, 73ms]
+  ✓  responde 401
+  ✓  con codigo de error unauthorized
+
+→ 06 Rechazo: estudiante NO inscrito pide el contenido
+  GET https://34.24.52.111.sslip.io/api/v1/courses/d0000000-0000-0000-0000-000000000001/modules [403 Forbidden, 295B, 87ms]
+  ✓  responde 403
+  ✓  con codigo de error forbidden
+
+→ 07 Antes de inscribirse, el estado dice que no
+  GET https://34.24.52.111.sslip.io/api/v1/courses/d0000000-0000-0000-0000-000000000001/enrollments/me [200 OK, 491B, 81ms]
+  ✓  responde 200
+  ✓  enrolled es false
+
+→ 08 Rechazo: inscripcion en un curso en BORRADOR
+  POST https://34.24.52.111.sslip.io/api/v1/courses/d0000000-0000-0000-0000-000000000002/enrollments [409 Conflict, 307B, 96ms]
+  ✓  responde 409
+  ✓  con codigo de error course_not_published
+
+→ 09 Rechazo: el autor no se inscribe en su propio curso
+  POST https://34.24.52.111.sslip.io/api/v1/courses/d0000000-0000-0000-0000-000000000001/enrollments [403 Forbidden, 295B, 77ms]
+  ✓  responde 403
+  ✓  con codigo de error forbidden
+
+→ 10 Inscripcion en el curso publicado
+  POST https://34.24.52.111.sslip.io/api/v1/courses/d0000000-0000-0000-0000-000000000001/enrollments [200 OK, 418B, 84ms]
+  ✓  responde 200
+  ✓  queda activa, sobre el stable_id del curso y sin fecha de retiro
+
+→ 11 Ahora si ve el contenido
+  GET https://34.24.52.111.sslip.io/api/v1/courses/d0000000-0000-0000-0000-000000000001/modules [200 OK, 654B, 79ms]
+  ✓  responde 200
+  ✓  devuelve los modulos del curso
+
+→ 12 Inscribirse de nuevo devuelve la misma inscripcion
+  POST https://34.24.52.111.sslip.io/api/v1/courses/d0000000-0000-0000-0000-000000000001/enrollments [200 OK, 418B, 93ms]
+  ✓  responde 200
+  ✓  es la misma inscripcion, no una nueva
+
+→ 13 Aparece en mis inscripciones
+  GET https://34.24.52.111.sslip.io/api/v1/me/enrollments [200 OK, 641B, 100ms]
+  ✓  responde 200
+  ✓  contiene la inscripcion recien creada
+
+→ 14 Retiro del curso
+  DELETE https://34.24.52.111.sslip.io/api/v1/courses/d0000000-0000-0000-0000-000000000001/enrollments [200 OK, 459B, 88ms]
+  ✓  responde 200
+  ✓  queda retirada, con la fecha y el mismo id
+
+→ 15 Tras retirarse, pierde el acceso
+  GET https://34.24.52.111.sslip.io/api/v1/courses/d0000000-0000-0000-0000-000000000001/modules [403 Forbidden, 295B, 79ms]
+  ✓  responde 403
+  ✓  con codigo de error forbidden
+
+→ 16 Reinscripcion: vuelve la misma, no una nueva
+  POST https://34.24.52.111.sslip.io/api/v1/courses/d0000000-0000-0000-0000-000000000001/enrollments [200 OK, 418B, 80ms]
+  ✓  responde 200
+  ✓  vuelve a activa reutilizando el registro
+
+→ 17 El acceso vuelve con ella
+  GET https://34.24.52.111.sslip.io/api/v1/courses/d0000000-0000-0000-0000-000000000001/modules [200 OK, 654B, 77ms]
+  ✓  responde 200
+
+→ 18 El estado ahora dice que si
+  GET https://34.24.52.111.sslip.io/api/v1/courses/d0000000-0000-0000-0000-000000000001/enrollments/me [200 OK, 449B, 78ms]
+  ✓  responde 200
+  ✓  enrolled es true y trae la inscripcion
+
+→ 19 El autor lee su propio BORRADOR sin inscribirse
+  GET https://34.24.52.111.sslip.io/api/v1/courses/d0000000-0000-0000-0000-000000000002/modules [200 OK, 422B, 87ms]
+  ✓  responde 200
+
+→ 20 El autor lee la lista de inscritos
+  GET https://34.24.52.111.sslip.io/api/v1/courses/d0000000-0000-0000-0000-000000000001/enrollments [200 OK, 641B, 81ms]
+  ✓  responde 200
+  ✓  incluye al estudiante inscrito
+
+→ 21 Rechazo: un estudiante no lee la lista de inscritos
+  GET https://34.24.52.111.sslip.io/api/v1/courses/d0000000-0000-0000-0000-000000000001/enrollments [403 Forbidden, 295B, 74ms]
+  ✓  responde 403
+  ✓  con codigo de error forbidden
+
+┌─────────────────────────┬────────────────────┬───────────────────┐
+│                         │           executed │            failed │
+├─────────────────────────┼────────────────────┼───────────────────┤
+│              iterations │                  1 │                 0 │
+├─────────────────────────┼────────────────────┼───────────────────┤
+│                requests │                 21 │                 0 │
+├─────────────────────────┼────────────────────┼───────────────────┤
+│            test-scripts │                 21 │                 0 │
+├─────────────────────────┼────────────────────┼───────────────────┤
+│      prerequest-scripts │                 21 │                 0 │
+├─────────────────────────┼────────────────────┼───────────────────┤
+│              assertions │                 36 │                 0 │
+├─────────────────────────┴────────────────────┴───────────────────┤
+│ total run duration: 3.6s                                         │
+├──────────────────────────────────────────────────────────────────┤
+│ total data received: 6.89kB (approx)                             │
+├──────────────────────────────────────────────────────────────────┤
+│ average response time: 104ms [min: 73ms, max: 440ms, s.d.: 77ms] │
+└──────────────────────────────────────────────────────────────────┘
+[OK] collection_enrollments
