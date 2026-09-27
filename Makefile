@@ -1,4 +1,4 @@
-.PHONY: all build fmt vet lint test test-migrations demo-segment4 demo-segments-1-2 test-stage test-e2e test-postman test-postman-identity test-postman-admin test-postman-authoring test-postman-enrollments test-postman-progress test-postman-quizzes test-postman-media test-postman-cloud seed seed-clean seed-reset seed-status check clean run-api run-worker docker-up docker-down
+.PHONY: all build fmt vet lint test test-migrations demo-segment4 demo-segments-1-2 test-stage test-e2e test-postman test-postman-identity test-postman-admin test-postman-authoring test-postman-enrollments test-postman-progress test-postman-quizzes test-postman-media test-postman-cloud seed seed-clean seed-reset seed-status seed-capacity seed-media check clean run-api run-worker docker-up docker-down
 
 all: check
 
@@ -122,6 +122,21 @@ seed-reset:
 
 seed-status:
 	@./scripts/seed.sh --status
+
+seed-capacity:
+	@./scripts/seed.sh --load-capacity
+
+# Regenerates the G1 (#127) multimedia dataset: three real videos through the
+# production HLS pipeline, seeded into the bucket, reconciled, and written to
+# docs/entrega2/evidencias/G1/manifest.json. Needs ffmpeg, so it runs inside
+# the worker image rather than natively -- see cmd/seed-media. The bind mount
+# is what lets manifest.json survive the container being removed (--rm): the
+# image has no other volume onto the host, and without one the file would be
+# written inside the container and discarded with it.
+seed-media:
+	@docker compose run --rm \
+		-v "$$(pwd)/docs/entrega2/evidencias/G1:/app/docs/entrega2/evidencias/G1" \
+		worker /app/seed-media
 
 check: fmt vet lint test test-migrations build
 	@echo "==> All checks (fmt, vet, lint, test, test-migrations, build) passed cleanly!"
