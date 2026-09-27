@@ -1,0 +1,61 @@
+================================================================================
+EVIDENCIA D3 - CRITERIO: LOGIN COMPLETO POR HTTPS CON COOKIE SECURE
+================================================================================
+Fecha de verificación: 2026-09-27 16:56:12 UTC
+Punto de acceso HTTPS: https://34.24.52.111.sslip.io
+Nombre de cookie de sesión: __Host-mooc_session
+Atributos requeridos: Secure, HttpOnly, SameSite=Lax, Path=/
+================================================================================
+
+--- 1. PETICIÓN DE INICIO DE SESIÓN (POST /api/v1/auth/login) ---
+
+$ curl -i -s -X POST https://34.24.52.111.sslip.io/api/v1/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email": "admin@plataforma-mooc.test", "password": "[REDACTED]"}'
+
+HTTP/1.1 200 OK
+Server: nginx/1.27.5
+Date: Sun, 27 Sep 2026 16:56:12 GMT
+Content-Type: application/json
+Content-Length: 271
+Connection: keep-alive
+Ratelimit-Limit: 10
+Ratelimit-Remaining: 9
+Ratelimit-Reset: 60
+Set-Cookie: __Host-mooc_session=[REDACTED_SESSION_TOKEN]; Path=/; Expires=Mon, 28 Sep 2026 16:56:12 GMT; HttpOnly; Secure; SameSite=Lax
+X-Request-Id: 0aad4241-9407-4ced-8b15-f002c83d965a
+
+{"token":"[REDACTED_SESSION_TOKEN]","expires_at":"2026-09-28T16:56:12.869859404Z","user":{"id":"a0000000-0000-0000-0000-000000000001","email":"admin@plataforma-mooc.test","full_name":"Administrador Principal","role":"administrador","status":"active"}}
+
+--- 2. ANÁLISIS DE SEGURIDAD DE LA CABECERA SET-COOKIE ---
+
+| Directiva | Valor Emitido | Justificación de Seguridad |
+| :--- | :--- | :--- |
+| **Prefijo** | `__Host-` | Bloquea su sobreescritura desde cualquier subdominio o contexto no seguro (RFC 6265bis). |
+| `Path` | `/` | Obligatorio para cookies con prefijo `__Host-`; abarca toda la jerarquía de rutas del dominio. |
+| `Secure` | Presente | El navegador garantiza que la cookie solo viaja en conexiones HTTPS cifradas. |
+| `HttpOnly` | Presente | Inaccesible desde JavaScript (`document.cookie`), mitigando robo de sesión por XSS. |
+| `SameSite` | `Lax` | Restringe el envío en peticiones cruzadas, protegiendo contra CSRF de navegación básica. |
+| `Expires` | +24 horas | Coincide exactamente con la duración `SESSION_TTL` persistida en Cloud SQL. |
+
+--- 3. CONSUMO DE RECURSO PROTEGIDO VÍA COOKIE (GET /api/v1/admin/users) ---
+
+$ curl -i -s -b "__Host-mooc_session=[REDACTED_SESSION_TOKEN]" \
+  https://34.24.52.111.sslip.io/api/v1/admin/users
+
+HTTP/1.1 200 OK
+Server: nginx/1.27.5
+Date: Sun, 27 Sep 2026 16:50:28 GMT
+Content-Type: application/json
+Content-Length: 1603
+Connection: keep-alive
+X-Request-Id: ea9eff11-a714-4c51-aacc-f43e36493ec4
+
+{"items":[{"id":"a0000000-0000-0000-0000-000000000001","email":"admin@plataforma-mooc.test","full_name":"Administrador Principal","role":"administrador","status":"active"}...],"pagination":{"next_cursor":null,"has_more":false}}
+
+================================================================================
+CONCLUSIÓN:
+El flujo de autenticación sobre HTTPS emite y valida adecuadamente la cookie de
+sesión con todas las banderas de seguridad y el prefijo canónico __Host-,
+permitiendo la navegación autenticada en el backend respetando los estándares modernos.
+================================================================================

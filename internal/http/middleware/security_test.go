@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/domain"
+	httpHandler "github.com/ISIS4426-2026/Plataforma-MOOC/internal/http/handler"
 	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/http/middleware"
 )
 
@@ -228,6 +229,7 @@ func TestCSRFRejectsAnUntrustedOrigin(t *testing.T) {
 	handler := csrfHandler(t, []string{"https://app.plataforma-mooc.test"})
 
 	r := httptest.NewRequest(http.MethodPost, "/api/v1/auth/login", nil)
+	r.AddCookie(&http.Cookie{Name: httpHandler.SessionCookieName, Value: "session-token"})
 	r.Header.Set(middleware.HeaderOrigin, "https://sitio-del-atacante.test")
 
 	w := httptest.NewRecorder()
@@ -273,6 +275,33 @@ func TestCSRFAllowsRequestsWithoutAnOrigin(t *testing.T) {
 
 	if w.Code != http.StatusOK {
 		t.Errorf("expected a request with no Origin to pass, got %d", w.Code)
+	}
+}
+
+func TestCSRFRejectsCookieAuthenticationWithoutAnOrigin(t *testing.T) {
+	handler := csrfHandler(t, []string{"https://app.plataforma-mooc.test"})
+	r := httptest.NewRequest(http.MethodPost, "/api/v1/auth/sessions", nil)
+	r.AddCookie(&http.Cookie{Name: httpHandler.SessionCookieName, Value: "session-token"})
+
+	w := httptest.NewRecorder()
+	handler.ServeHTTP(w, r)
+
+	if w.Code != http.StatusForbidden {
+		t.Errorf("expected 403 for cookie authentication without an origin, got %d", w.Code)
+	}
+}
+
+func TestCSRFRejectsCookieAuthenticationWithAnEmptyAllowlist(t *testing.T) {
+	handler := csrfHandler(t, nil)
+	r := httptest.NewRequest(http.MethodPost, "/api/v1/auth/sessions", nil)
+	r.AddCookie(&http.Cookie{Name: httpHandler.SessionCookieName, Value: "session-token"})
+	r.Header.Set(middleware.HeaderOrigin, "https://app.plataforma-mooc.test")
+
+	w := httptest.NewRecorder()
+	handler.ServeHTTP(w, r)
+
+	if w.Code != http.StatusForbidden {
+		t.Errorf("expected 403 with an empty cookie-origin allowlist, got %d", w.Code)
 	}
 }
 
@@ -354,5 +383,108 @@ func TestCSRFIsDisabledWithoutAnAllowlist(t *testing.T) {
 
 	if w.Code != http.StatusOK {
 		t.Errorf("expected the check to be disabled, got %d", w.Code)
+	}
+}
+
+type recordingAuthenticator struct {
+	token string
+}
+
+func (a *recordingAuthenticator) Authenticate(_ context.Context, token string) (*domain.Session, *domain.User, error) {
+	a.token = token
+	return &domain.Session{}, &domain.User{}, nil
+}
+
+func TestRequireAuthAcceptsCookieAndBearerCredentials(t *testing.T) {
+	cases := []struct {
+		name  string
+		token string
+		setup func(*http.Request)
+	}{
+		{
+			name:  "session cookie",
+			token: "cookie-token",
+			setup: func(r *http.Request) {
+				r.AddCookie(&http.Cookie{Name: httpHandler.SessionCookieName, Value: "cookie-token"})
+			},
+		},
+		{
+			name:  "bearer token",
+			token: "bearer-token",
+			setup: func(r *http.Request) {
+				r.Header.Set("Authorization", "Bearer bearer-token")
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			authenticator := &recordingAuthenticator{}
+			middlewareUnderTest := middleware.RequireAuth(authenticator)(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+				w.WriteHeader(http.StatusNoContent)
+			}))
+			r := httptest.NewRequest(http.MethodGet, "/api/v1/auth/sessions", nil)
+			tc.setup(r)
+			w := httptest.NewRecorder()
+
+			middlewareUnderTest.ServeHTTP(w, r)
+
+			if w.Code != http.StatusNoContent {
+				t.Fatalf("expected authenticated request to pass, got %d", w.Code)
+			}
+			if authenticator.token != tc.token {
+				t.Errorf("authenticator received token %q, want %q", authenticator.token, tc.token)
+			}
+		})
+	}
+}
+
+func TestForwardedHeadersAreAcceptedOnlyFromTheTrustedProxy(t *testing.T) {
+	cases := []struct {
+		name            string
+		remoteAddr      string
+		wantRemote      string
+		wantScheme      string
+		wantHost        string
+		wantRequestHost string
+	}{
+		{
+			name:            "trusted proxy",
+			remoteAddr:      "172.30.0.2:4711",
+			wantRemote:      "198.51.100.24:4711",
+			wantScheme:      "https",
+			wantHost:        "mooc.example.com",
+			wantRequestHost: "mooc.example.com",
+		},
+		{
+			name:            "untrusted peer",
+			remoteAddr:      "172.30.0.9:4711",
+			wantRemote:      "172.30.0.9:4711",
+			wantRequestHost: "example.com",
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			var gotRemote, gotScheme, gotHost, gotRequestHost string
+			handler := middleware.ForwardedHeaders("172.30.0.2")(http.HandlerFunc(func(_ http.ResponseWriter, r *http.Request) {
+				gotRemote = r.RemoteAddr
+				gotScheme = r.URL.Scheme
+				gotHost = r.URL.Host
+				gotRequestHost = r.Host
+			}))
+			r := httptest.NewRequest(http.MethodGet, "/api/v1/health", nil)
+			r.RemoteAddr = tc.remoteAddr
+			r.Header.Set("X-Forwarded-For", "198.51.100.24")
+			r.Header.Set("X-Forwarded-Proto", "https")
+			r.Header.Set("X-Forwarded-Host", "mooc.example.com")
+
+			handler.ServeHTTP(httptest.NewRecorder(), r)
+
+			if gotRemote != tc.wantRemote || gotScheme != tc.wantScheme || gotHost != tc.wantHost || gotRequestHost != tc.wantRequestHost {
+				t.Errorf("forwarded metadata = (%q, %q, %q, %q), want (%q, %q, %q, %q)",
+					gotRemote, gotScheme, gotHost, gotRequestHost, tc.wantRemote, tc.wantScheme, tc.wantHost, tc.wantRequestHost)
+			}
+		})
 	}
 }

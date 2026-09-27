@@ -12,13 +12,15 @@ import (
 // suma de varias.
 func produccionValida() *config.Config {
 	return &config.Config{
-		Environment:    config.EnvironmentProduction,
-		DatabaseURL:    "postgres://moocuser:UnaContrasenaDeVerdad@10.0.0.3:5432/moocdb?sslmode=require",
-		StorageBackend: "gcs",
-		S3Bucket:       "plataforma-mooc-media",
-		AppBaseURL:     "https://mooc.example.com",
-		SMTPHost:       "smtp.sendgrid.net",
-		SMTPPort:       587,
+		Environment:        config.EnvironmentProduction,
+		DatabaseURL:        "postgres://moocuser:UnaContrasenaDeVerdad@10.0.0.3:5432/moocdb?sslmode=require",
+		StorageBackend:     "gcs",
+		S3Bucket:           "plataforma-mooc-media",
+		AppBaseURL:         "https://mooc.example.com",
+		CSRFAllowedOrigins: []string{"https://mooc.example.com"},
+		TrustedProxyIP:     "172.30.0.2",
+		SMTPHost:           "smtp.sendgrid.net",
+		SMTPPort:           587,
 
 		// El pool dimensionado contra el max_connections de la instancia del
 		// issue #118. Ver el reparto en infra/terraform/database.tf.
@@ -73,9 +75,25 @@ func TestValidateRechazaValoresDeDesarrolloEnProduccion(t *testing.T) {
 			func(c *config.Config) { c.AppBaseURL = "http://localhost:8080" },
 			"APP_BASE_URL",
 		},
+		"la URL publica no usa HTTPS": {
+			func(c *config.Config) { c.AppBaseURL = "http://mooc.example.com" },
+			"APP_BASE_URL",
+		},
 		"no hay origen público configurado": {
 			func(c *config.Config) { c.AppBaseURL = "" },
 			"APP_BASE_URL",
+		},
+		"la lista CSRF esta vacia": {
+			func(c *config.Config) { c.CSRFAllowedOrigins = nil },
+			"CSRF_ALLOWED_ORIGINS",
+		},
+		"la lista CSRF no incluye el origen publico": {
+			func(c *config.Config) { c.CSRFAllowedOrigins = []string{"https://otro.example.com"} },
+			"CSRF_ALLOWED_ORIGINS",
+		},
+		"la lista CSRF contiene una ruta y no un origen": {
+			func(c *config.Config) { c.CSRFAllowedOrigins = []string{"https://mooc.example.com/app"} },
+			"CSRF_ALLOWED_ORIGINS",
 		},
 		"el correo sigue saliendo por mailpit": {
 			func(c *config.Config) { c.SMTPHost = "mailpit" },
@@ -147,6 +165,7 @@ func TestValidateReportaTodosLosProblemasJuntos(t *testing.T) {
 	cfg.S3Bucket = "mooc-storage"
 	cfg.S3SecretKey = "minioadmin"
 	cfg.AppBaseURL = "http://localhost:8080"
+	cfg.CSRFAllowedOrigins = nil
 	cfg.SMTPHost = "mailpit"
 	cfg.SMTPPort = 25
 
@@ -155,7 +174,7 @@ func TestValidateReportaTodosLosProblemasJuntos(t *testing.T) {
 		t.Fatal("una configuración enteramente de desarrollo fue aceptada en producción")
 	}
 
-	for _, esperado := range []string{"DATABASE_URL", "STORAGE_BACKEND", "S3_BUCKET", "S3_SECRET_KEY", "APP_BASE_URL", "SMTP_HOST", "SMTP_PORT"} {
+	for _, esperado := range []string{"DATABASE_URL", "STORAGE_BACKEND", "S3_BUCKET", "S3_SECRET_KEY", "APP_BASE_URL", "CSRF_ALLOWED_ORIGINS", "SMTP_HOST", "SMTP_PORT"} {
 		if !strings.Contains(err.Error(), esperado) {
 			t.Errorf("el error omite %s: quien despliega tendría que arrancar otra vez para descubrirlo", esperado)
 		}

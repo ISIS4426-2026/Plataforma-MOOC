@@ -27,7 +27,7 @@ type Authenticator interface {
 func RequireAuth(authenticator Authenticator) Middleware {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			token, ok := handler.BearerToken(r)
+			token, ok := handler.SessionToken(r)
 			if !ok {
 				unauthorized(w)
 				return
