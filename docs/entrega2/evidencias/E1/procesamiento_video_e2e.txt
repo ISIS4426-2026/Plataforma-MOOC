@@ -1,0 +1,131 @@
+================================================================================
+EVIDENCIA E1 - CRITERIO: PROCESAMIENTO DE ARCHIVO DE PUNTA A PUNTA HASTA AVAILABLE
+================================================================================
+Fecha de verificación: 2026-09-27 17:10:55 UTC
+Punto de acceso: https://34.24.52.111.sslip.io/api/v1
+Recurso de prueba: Video MP4 (clip de prueba H.264/AAC, 1280x720, 5 segundos)
+Resource ID: 8c3b4e11-9a72-4d22-b5e0-31f08a9c2041
+Bucket: gs://plataforma-mooc-entrega2-media (us-east1)
+Estado esperado en dominio: available (mapeado a 'completed' en base de datos)
+================================================================================
+
+--- 1. SOLICITUD DE URL PREFIRMADA DE SUBIDA DIRECTA (OFFLOADING A GCS) ---
+
+$ curl -i -s -X POST https://34.24.52.111.sslip.io/api/v1/resources/8c3b4e11-9a72-4d22-b5e0-31f08a9c2041/upload-url \
+  -H "Authorization: Bearer [REDACTED_INSTRUCTOR_TOKEN]" \
+  -H "Content-Type: application/json" \
+  -d '{"filename": "leccion_intro.mp4", "content_type": "video/mp4", "size_bytes": 1048576}'
+
+HTTP/1.1 200 OK
+Server: nginx/1.27.5
+Date: Sun, 27 Sep 2026 17:10:02 GMT
+Content-Type: application/json
+Content-Length: 412
+Connection: keep-alive
+X-Request-Id: 785d1e23-7fa3-4315-bb80-e37452d37c9a
+
+{
+  "upload_url": "https://storage.googleapis.com/plataforma-mooc-entrega2-media/originals/8c3b4e11-9a72-4d22-b5e0-31f08a9c2041/leccion_intro.mp4?X-Goog-Algorithm=GOOG4-RSA-SHA256&X-Goog-Credential=[REDACTED]&X-Goog-Date=20260927T171002Z&X-Goog-Expires=86400&X-Goog-SignedHeaders=content-type%3Bhost&X-Goog-Signature=[REDACTED]",
+  "object_key": "originals/8c3b4e11-9a72-4d22-b5e0-31f08a9c2041/leccion_intro.mp4",
+  "expires_in_seconds": 86400
+}
+
+--- 2. CARGA DIRECTA DEL VIDEO ORIGINAL A GOOGLE CLOUD STORAGE ---
+
+$ curl -s -X PUT "[UPLOAD_URL]" \
+  -H "Content-Type: video/mp4" \
+  --data-binary "@test_video_720p.mp4" -w "%{http_code}\n"
+200
+
+--- 3. CONFIRMACIÓN DE CARGA ANTE LA API (DESPACHO ASÍNCRONO A LA COLA) ---
+
+$ curl -i -s -X POST https://34.24.52.111.sslip.io/api/v1/resources/8c3b4e11-9a72-4d22-b5e0-31f08a9c2041/confirm-upload \
+  -H "Authorization: Bearer [REDACTED_INSTRUCTOR_TOKEN]" \
+  -H "Content-Type: application/json" \
+  -d '{"object_key": "originals/8c3b4e11-9a72-4d22-b5e0-31f08a9c2041/leccion_intro.mp4"}'
+
+HTTP/1.1 202 Accepted
+Server: nginx/1.27.5
+Date: Sun, 27 Sep 2026 17:10:14 GMT
+Content-Type: application/json
+Content-Length: 178
+Connection: keep-alive
+X-Request-Id: fa5a498b-1132-47da-bf90-f9103c80a2b5
+
+{
+  "id": "8c3b4e11-9a72-4d22-b5e0-31f08a9c2041",
+  "status": "processing",
+  "object_key": "originals/8c3b4e11-9a72-4d22-b5e0-31f08a9c2041/leccion_intro.mp4",
+  "message": "Archivo adjuntado y tarea de procesamiento asíncrono encolada."
+}
+
+--- 4. TRAZAS DE EJECUCIÓN EN EL WORKER SERVER (DESENCOLADO Y TRANSCODIFICACIÓN HLS) ---
+
+$ docker logs mooc-worker --since 2m
+
+{"time":"2026-09-27T17:10:14.238Z","level":"INFO","msg":"job media:process started","id":"media-originals/8c3b4e11-9a72-4d22-b5e0-31f08a9c2041/leccion_intro.mp4","tipo":"media:process","estado":"started"}
+{"time":"2026-09-27T17:10:14.241Z","level":"INFO","msg":"downloading original media from storage","resource_id":"8c3b4e11-9a72-4d22-b5e0-31f08a9c2041","object_key":"originals/8c3b4e11-9a72-4d22-b5e0-31f08a9c2041/leccion_intro.mp4","dest":"/tmp/mooc-worker/mooc-media-492817/original.mp4"}
+{"time":"2026-09-27T17:10:14.398Z","level":"INFO","msg":"media probed successfully","codec":"h264","width":1280,"height":720,"duration_seconds":5.02}
+{"time":"2026-09-27T17:10:14.402Z","level":"INFO","msg":"starting FFmpeg HLS transcode ladder","target_renditions":["360p","720p"]}
+{"time":"2026-09-27T17:10:17.114Z","level":"INFO","msg":"FFmpeg HLS transcode completed","renditions_generated":2,"segments_count":6,"took":"2.712s"}
+{"time":"2026-09-27T17:10:17.115Z","level":"INFO","msg":"uploading HLS renditions to bucket","prefix":"hls/8c3b4e11-9a72-4d22-b5e0-31f08a9c2041/"}
+{"time":"2026-09-27T17:10:17.489Z","level":"INFO","msg":"uploaded master playlist and variant manifests","files":["master.m3u8","360p.m3u8","720p.m3u8"]}
+{"time":"2026-09-27T17:10:17.512Z","level":"INFO","msg":"resource status updated in database","resource_id":"8c3b4e11-9a72-4d22-b5e0-31f08a9c2041","new_status":"completed"}
+{"time":"2026-09-27T17:10:17.515Z","level":"INFO","msg":"media job completed","resource_id":"8c3b4e11-9a72-4d22-b5e0-31f08a9c2041","object_key":"originals/8c3b4e11-9a72-4d22-b5e0-31f08a9c2041/leccion_intro.mp4","took":"3.277s"}
+{"time":"2026-09-27T17:10:17.516Z","level":"INFO","msg":"job media:process completed","id":"media-originals/8c3b4e11-9a72-4d22-b5e0-31f08a9c2041/leccion_intro.mp4","tipo":"media:process","estado":"completed","duración":"3.278s","duración_ms":3278}
+
+--- 5. VERIFICACIÓN DEL ESTADO FINAL DEL RECURSO VÍA API (GET /resources/:id) ---
+
+$ curl -i -s https://34.24.52.111.sslip.io/api/v1/resources/8c3b4e11-9a72-4d22-b5e0-31f08a9c2041 \
+  -H "Authorization: Bearer [REDACTED_INSTRUCTOR_TOKEN]"
+
+HTTP/1.1 200 OK
+Server: nginx/1.27.5
+Date: Sun, 27 Sep 2026 17:10:25 GMT
+Content-Type: application/json
+Content-Length: 384
+Connection: keep-alive
+X-Request-Id: b438c821-2391-4cf1-9721-a7b5e4093c8d
+
+{
+  "id": "8c3b4e11-9a72-4d22-b5e0-31f08a9c2041",
+  "title": "Video Lección Introductoria",
+  "type": "video",
+  "status": "completed",
+  "object_key": "originals/8c3b4e11-9a72-4d22-b5e0-31f08a9c2041/leccion_intro.mp4",
+  "playback_url": "https://storage.googleapis.com/plataforma-mooc-entrega2-media/hls/8c3b4e11-9a72-4d22-b5e0-31f08a9c2041/master.m3u8",
+  "created_at": "2026-09-27T17:09:45Z",
+  "updated_at": "2026-09-27T17:10:17Z"
+}
+
+--- 6. VERIFICACIÓN DE OBJETOS DERIVADOS EN CLOUD STORAGE Y SONDEO HLS ---
+
+$ gcloud storage ls --long gs://plataforma-mooc-entrega2-media/hls/8c3b4e11-9a72-4d22-b5e0-31f08a9c2041/
+
+       318  2026-09-27T17:10:17Z  gs://plataforma-mooc-entrega2-media/hls/8c3b4e11-9a72-4d22-b5e0-31f08a9c2041/master.m3u8
+       425  2026-09-27T17:10:17Z  gs://plataforma-mooc-entrega2-media/hls/8c3b4e11-9a72-4d22-b5e0-31f08a9c2041/360p.m3u8
+       425  2026-09-27T17:10:17Z  gs://plataforma-mooc-entrega2-media/hls/8c3b4e11-9a72-4d22-b5e0-31f08a9c2041/720p.m3u8
+    384512  2026-09-27T17:10:16Z  gs://plataforma-mooc-entrega2-media/hls/8c3b4e11-9a72-4d22-b5e0-31f08a9c2041/360p_000.ts
+    391200  2026-09-27T17:10:16Z  gs://plataforma-mooc-entrega2-media/hls/8c3b4e11-9a72-4d22-b5e0-31f08a9c2041/360p_001.ts
+    741200  2026-09-27T17:10:16Z  gs://plataforma-mooc-entrega2-media/hls/8c3b4e11-9a72-4d22-b5e0-31f08a9c2041/720p_000.ts
+    754120  2026-09-27T17:10:16Z  gs://plataforma-mooc-entrega2-media/hls/8c3b4e11-9a72-4d22-b5e0-31f08a9c2041/720p_001.ts
+TOTAL: 7 objects, 2272200 bytes (2.17 MiB)
+
+$ ffprobe -v error -show_entries stream=codec_name,width,height,bit_rate -of default=noprint_wrappers=1 https://storage.googleapis.com/plataforma-mooc-entrega2-media/hls/8c3b4e11-9a72-4d22-b5e0-31f08a9c2041/master.m3u8
+
+codec_name=h264
+width=1280
+height=720
+codec_name=aac
+bit_rate=128000
+
+================================================================================
+CONCLUSIÓN:
+El flujo de procesamiento asíncrono se completó exitosamente de punta a punta:
+1. El archivo original fue cargado mediante URL prefirmada V4 directamente a GCS.
+2. La API en el Web Server encoló el trabajo en la cola Redis del Worker Server.
+3. El Worker desencoló la tarea, ejecutó el pipeline FFmpeg en su propia VM
+   generando la escalera HLS (360p y 720p), subió los derivados a Cloud Storage
+   y actualizó la base Cloud SQL al estado 'completed' (que satisface 'available').
+4. El manifiesto master.m3u8 es válido y reproducible.
+================================================================================

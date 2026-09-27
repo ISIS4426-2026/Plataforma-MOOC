@@ -1,0 +1,130 @@
+# ==============================================================================
+# Terraform Plan & Apply - Issue #124 (E1: Worker Server y Cola en Red Privada)
+# ==============================================================================
+# Fecha de ejecución: 2026-09-27
+# Proyecto: plataforma-mooc-entrega2
+# Región: us-east1 (Carolina del Sur) | Zona: us-east1-b
+# Perfil B1: e2-highcpu-2 (2 vCPU dedicadas, 2 GiB RAM, 30 GiB pd-balanced)
+# Cuenta de servicio: sa-worker-server@plataforma-mooc-entrega2.iam.gserviceaccount.com
+# ==============================================================================
+
+Terraform used the selected providers to generate the following execution plan.
+Resource actions are indicated with the following symbols:
+  + create
+
+Terraform will perform the following actions:
+
+  # google_compute_address.worker_server_ip will be created
+  + resource "google_compute_address" "worker_server_ip" {
+      + address            = "34.148.188.42"
+      + address_id         = (known after apply)
+      + address_type       = "EXTERNAL"
+      + description        = "Direccion IPv4 estatica externa para el Worker Server (E1)"
+      + name               = "mooc-worker-server-ip"
+      + network_tier       = "PREMIUM"
+      + project            = "plataforma-mooc-entrega2"
+      + region             = "us-east1"
+      + labels             = {
+          + "entrega"  = "2"
+          + "gestion"  = "terraform"
+          + "proyecto" = "plataforma-mooc"
+        }
+    }
+
+  # google_compute_instance.worker_server will be created
+  + resource "google_compute_instance" "worker_server" {
+      + can_ip_forward          = false
+      + cpu_platform            = (known after apply)
+      + current_status          = (known after apply)
+      + deletion_protection     = false
+      + description             = "Instancia Worker Server: Procesamiento multimedia FFmpeg y cola Asynq/Redis"
+      + id                      = (known after apply)
+      + instance_id             = (known after apply)
+      + label_fingerprint       = (known after apply)
+      + machine_type            = "e2-highcpu-2"
+      + name                    = "mooc-worker-server"
+      + project                 = "plataforma-mooc-entrega2"
+      + tags                    = [
+          + "allow-iap-ssh",
+          + "worker-server",
+        ]
+      + labels                  = {
+          + "entrega"  = "2"
+          + "gestion"  = "terraform"
+          + "proyecto" = "plataforma-mooc"
+        }
+      + zone                    = "us-east1-b"
+
+      + boot_disk {
+          + auto_delete = true
+          + device_name = (known after apply)
+          + mode        = "READ_WRITE"
+
+          + initialize_params {
+              + enable_confidential_compute = false
+              + image                       = "debian-cloud/debian-12"
+              + provisioned_iops            = 0
+              + provisioned_throughput      = 0
+              + size                        = 30
+              + type                        = "pd-balanced"
+              + labels                      = {
+                  + "entrega"  = "2"
+                  + "gestion"  = "terraform"
+                  + "proyecto" = "plataforma-mooc"
+                }
+            }
+        }
+
+      + network_interface {
+          + internal_ipv6_prefix_length = 0
+          + name                        = (known after apply)
+          + network                     = "mooc-vpc"
+          + network_ip                  = "10.0.1.3"
+          + subnetwork                  = "projects/plataforma-mooc-entrega2/regions/us-east1/subnetworks/mooc-subnet"
+          + subnetwork_project          = "plataforma-mooc-entrega2"
+
+          + access_config {
+              + nat_ip       = "34.148.188.42"
+              + network_tier = "PREMIUM"
+            }
+        }
+
+      + service_account {
+          + email  = "sa-worker-server@plataforma-mooc-entrega2.iam.gserviceaccount.com"
+          + scopes = [
+              + "https://www.googleapis.com/auth/cloud-platform",
+            ]
+        }
+
+      + metadata_startup_script = <<-EOT
+          #!/usr/bin/env bash
+          set -euo pipefail
+          ... (instalación de paquetes oficiales Docker CE, Compose plugin y dependencias) ...
+          systemctl enable --now docker
+        EOT
+    }
+
+Plan: 2 to add, 0 to change, 0 to destroy.
+
+Changes to Outputs:
+  + worker_server_name       = "mooc-worker-server"
+  + worker_server_private_ip = "10.0.1.3"
+  + worker_server_public_ip  = "34.148.188.42"
+
+------------------------------------------------------------------------
+Apply complete! Resources: 2 added, 0 changed, 0 destroyed.
+
+Outputs:
+project_id = "plataforma-mooc-entrega2"
+region = "us-east1"
+zone = "us-east1-b"
+subnet_cidr = "10.0.1.0/24"
+subnet_name = "mooc-subnet"
+vpc_name = "mooc-vpc"
+web_server_name = "mooc-web-server"
+web_server_private_ip = "10.0.1.2"
+web_server_public_ip = "34.24.52.111"
+worker_server_name = "mooc-worker-server"
+worker_server_private_ip = "10.0.1.3"
+worker_server_public_ip = "34.148.188.42"
+worker_server_service_account = "sa-worker-server@plataforma-mooc-entrega2.iam.gserviceaccount.com"

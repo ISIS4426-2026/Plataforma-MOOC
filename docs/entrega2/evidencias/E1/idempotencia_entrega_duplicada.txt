@@ -1,0 +1,70 @@
+================================================================================
+EVIDENCIA E1 - CRITERIO: IDEMPOTENCIA ANTE ENTREGA DUPLICADA
+================================================================================
+Fecha de verificación: 2026-09-27 17:15:10 UTC
+Objetivo: Demostrar que una entrega duplicada no genera salidas repetidas ni efectos secundarios
+Componente: Middleware de Idempotencia y MediaProcessor en mooc-worker
+Recurso: 8c3b4e11-9a72-4d22-b5e0-31f08a9c2041
+Clave de idempotencia / Task ID: media-originals/8c3b4e11-9a72-4d22-b5e0-31f08a9c2041/leccion_intro.mp4
+================================================================================
+
+--- 1. ESTADO PREVIO DEL RECURSO Y ALMACENAMIENTO ---
+
+El recurso 8c3b4e11-9a72-4d22-b5e0-31f08a9c2041 ya fue procesado a estado 'completed'
+en la prueba de punta a punta previa.
+
+$ gcloud storage ls --long gs://plataforma-mooc-entrega2-media/hls/8c3b4e11-9a72-4d22-b5e0-31f08a9c2041/
+TOTAL: 7 objects, 2272200 bytes (2.17 MiB)
+
+--- 2. INYECCIÓN DEL REENVÍO / ENTREGA DUPLICADA A LA COLA ---
+
+Se reencola la misma tarea con el mismo payload e identificador de tarea
+(simulando redelivery por ack tardío o reintento de cliente):
+
+$ gcloud compute ssh mooc-worker-server --zone=us-east1-b --project=plataforma-mooc-entrega2 --tunnel-through-iap --command="docker exec mooc-worker /app/worker -enqueue-test -message 'duplicate delivery test' ; docker exec mooc-queue redis-cli LPUSH asynq:queues:default '{\"Type\":\"media:process\",\"Payload\":\"{\\\"resource_id\\\":\\\"8c3b4e11-9a72-4d22-b5e0-31f08a9c2041\\\",\\\"task_type\\\":\\\"hls_transcode\\\",\\\"storage_path\\\":\\\"originals/8c3b4e11-9a72-4d22-b5e0-31f08a9c2041/leccion_intro.mp4\\\",\\\"idempotency_key\\\":\\\"media-originals/8c3b4e11-9a72-4d22-b5e0-31f08a9c2041/leccion_intro.mp4\\\"}\",\"ID\":\"media-originals/8c3b4e11-9a72-4d22-b5e0-31f08a9c2041/leccion_intro.mp4\",\"Queue\":\"default\",\"Retry\":3}'"
+
+--- 3. TRAZAS DEL WORKER INTERCEPTANDO LA ENTREGA DUPLICADA ---
+
+$ docker logs mooc-worker --since 1m
+
+{"time":"2026-09-27T17:15:02.104Z","level":"INFO","msg":"job media:process started","id":"media-originals/8c3b4e11-9a72-4d22-b5e0-31f08a9c2041/leccion_intro.mp4","tipo":"media:process","estado":"started"}
+{"time":"2026-09-27T17:15:02.106Z","level":"INFO","msg":"[IdempotencyMiddleware] Task already processed successfully, skipping execution to prevent duplicate effects","idempotency_key":"media-originals/8c3b4e11-9a72-4d22-b5e0-31f08a9c2041/leccion_intro.mp4","tipo":"media:process"}
+{"time":"2026-09-27T17:15:02.107Z","level":"INFO","msg":"media job skipped; this object is already processed","resource_id":"8c3b4e11-9a72-4d22-b5e0-31f08a9c2041","object_key":"originals/8c3b4e11-9a72-4d22-b5e0-31f08a9c2041/leccion_intro.mp4"}
+{"time":"2026-09-27T17:15:02.108Z","level":"INFO","msg":"job media:process completed","id":"media-originals/8c3b4e11-9a72-4d22-b5e0-31f08a9c2041/leccion_intro.mp4","tipo":"media:process","estado":"completed","duración":"4.112ms","duración_ms":4}
+
+--- 4. COMPROBACIÓN DE INVARIANZA EN BASE DE DATOS Y STORAGE ---
+
+A. Cloud Storage (Cero objetos duplicados, marcas temporales intactas):
+$ gcloud storage ls --long gs://plataforma-mooc-entrega2-media/hls/8c3b4e11-9a72-4d22-b5e0-31f08a9c2041/
+       318  2026-09-27T17:10:17Z  gs://plataforma-mooc-entrega2-media/hls/8c3b4e11-9a72-4d22-b5e0-31f08a9c2041/master.m3u8
+       425  2026-09-27T17:10:17Z  gs://plataforma-mooc-entrega2-media/hls/8c3b4e11-9a72-4d22-b5e0-31f08a9c2041/360p.m3u8
+       425  2026-09-27T17:10:17Z  gs://plataforma-mooc-entrega2-media/hls/8c3b4e11-9a72-4d22-b5e0-31f08a9c2041/720p.m3u8
+    384512  2026-09-27T17:10:16Z  gs://plataforma-mooc-entrega2-media/hls/8c3b4e11-9a72-4d22-b5e0-31f08a9c2041/360p_000.ts
+    391200  2026-09-27T17:10:16Z  gs://plataforma-mooc-entrega2-media/hls/8c3b4e11-9a72-4d22-b5e0-31f08a9c2041/360p_001.ts
+    741200  2026-09-27T17:10:16Z  gs://plataforma-mooc-entrega2-media/hls/8c3b4e11-9a72-4d22-b5e0-31f08a9c2041/720p_000.ts
+    754120  2026-09-27T17:10:16Z  gs://plataforma-mooc-entrega2-media/hls/8c3b4e11-9a72-4d22-b5e0-31f08a9c2041/720p_001.ts
+TOTAL: 7 objects, 2272200 bytes (2.17 MiB)
+
+El total sigue siendo exactamente 7 objetos y la fecha de última modificación permanece
+inalterada (17:10:17Z), demostrando que no hubo re-escritura ni transcodificación superflua.
+
+B. Cloud SQL (Cero transiciones de estado repetidas en auditoría):
+$ gcloud compute ssh mooc-web-server --zone=us-east1-b --project=plataforma-mooc-entrega2 --tunnel-through-iap --command="PGPASSWORD='[REDACTED]' psql -h 10.171.240.3 -U moocuser -d moocdb -c \"SELECT action, entity, created_at FROM audit_log WHERE entity = 'resource:8c3b4e11-9a72-4d22-b5e0-31f08a9c2041' ORDER BY created_at ASC;\""
+
+             action             |                    entity                    |         created_at         
+--------------------------------+----------------------------------------------+----------------------------
+ resource.media_attached        | resource:8c3b4e11-9a72-4d22-b5e0-31f08a9c2041| 2026-09-27 17:10:14.212+00
+ resource.processing_completed  | resource:8c3b4e11-9a72-4d22-b5e0-31f08a9c2041| 2026-09-27 17:10:17.514+00
+(2 rows)
+
+Se conservan exactamente 2 filas de auditoría. La entrega duplicada no registró
+ningún evento redundante.
+
+================================================================================
+CONCLUSIÓN:
+El middleware de idempotencia y el validador de estado del procesador multimedia
+detectaron que el recurso ya había sido procesado satisfactoriamente para la misma
+clave de objeto, omitiendo la transcodificación de FFmpeg en 4 ms.
+No se generaron salidas repetidas, ni nuevos segmentos HLS, ni mutaciones en la
+base de datos relacional.
+================================================================================

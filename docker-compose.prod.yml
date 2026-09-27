@@ -103,14 +103,19 @@ services:
       - STORAGE_BACKEND=gcs
       - S3_BUCKET=${S3_BUCKET:-plataforma-mooc-entrega2-media}
       - GCP_PROJECT_ID=${GCP_PROJECT_ID:-plataforma-mooc-entrega2}
+      - WORKER_CONCURRENCY=${WORKER_CONCURRENCY:-2}
+      - MEDIA_WORK_DIR=${MEDIA_WORK_DIR:-/tmp/mooc-worker}
       - MEDIA_MAX_ORIGINAL_MB=${MEDIA_MAX_ORIGINAL_MB:-2048}
       - MEDIA_HLS_LADDER=${MEDIA_HLS_LADDER:-}
       - DB_MAX_OPEN_CONNS=${DB_MAX_OPEN_CONNS:-25}
       - DB_MAX_IDLE_CONNS=${DB_MAX_IDLE_CONNS:-25}
       - DB_CONN_MAX_LIFETIME=${DB_CONN_MAX_LIFETIME:-5m}
       - METRICS_PORT=9090
+    volumes:
+      - /tmp/mooc-worker:/tmp/mooc-worker
     ports:
       - "${WORKER_METRICS_PORT:-9090}:9090"
+
     depends_on:
       redis:
         condition: service_healthy
