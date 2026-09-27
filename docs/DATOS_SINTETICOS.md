@@ -253,3 +253,45 @@ Esta prueba verifica programáticamente:
 * La integridad referencial de módulos, unidades, recursos, quizzes e insignias.
 * La idempotencia de re-ejecución del script `synthetic_data.sql`.
 * La efectividad del script de limpieza `clean_data.sql` y el truncado sin errores.
+
+---
+
+## 7. Dataset de Capacidad y Multimedia (issue #127 / G1)
+
+Este dataset es distinto del funcional descrito arriba: existe para los
+escenarios de carga de H1-H3, no para pruebas funcionales, y se carga por
+separado.
+
+### 7.1 Cuentas de carga
+
+`scripts/seeds/capacity_data.sql` agrega **200 estudiantes adicionales**
+(`carga.estudiante0001@plataforma-mooc.test` … `carga.estudiante0200@...`),
+con la misma contraseña `Password123!` y bloque de UUID propio (`c9...`) para
+no colisionar con los cuatro estudiantes funcionales. Se cargan con:
+
+```bash
+./scripts/seed.sh --load-capacity
+# o
+make seed-capacity
+```
+
+**Deliberadamente no están inscritos en ningún curso.** El recorrido que H2
+mide incluye la inscripción como uno de sus pasos (catálogo → curso →
+inscripción → contenido → progreso → quiz — ver
+[`NOTAS_TECNICAS.md`](entrega2/NOTAS_TECNICAS.md) nota 6); pre-inscribirlos
+aquí le quitaría al guion de carga el paso de escritura que se supone debe
+medir.
+
+### 7.2 Curso multimedia
+
+`go run ./cmd/seed-media` (documentado en
+[`docs/entrega2/evidencias/G1/README.md`](entrega2/evidencias/G1/README.md))
+crea un curso técnico dedicado —**Perfiles de Video para Pruebas de
+Capacidad**— con tres recursos de video reales (2, 10 y 30 minutos, todos a
+1280×720) procesados por el pipeline real de HLS
+(`internal/transcode` + `internal/worker/handler.MediaProcessor`), no por una
+reimplementación de prueba. Sus recursos son `is_mandatory = false`
+deliberadamente: así no alteran el denominador de porcentaje de progreso que
+la sección 7 de este documento ya fija en 3 recursos obligatorios para
+`estudiante1`/`estudiante2` (ver nota 7 de `NOTAS_TECNICAS.md` sobre por qué
+ese denominador es frágil).

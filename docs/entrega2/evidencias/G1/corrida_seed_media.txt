@@ -1,0 +1,27 @@
+ Container plataforma-mooc-postgres-1 Running 
+ Container plataforma-mooc-redis-1 Running 
+ Container plataforma-mooc-minio-1 Running 
+ Container plataforma-mooc-postgres-1 Waiting 
+ Container plataforma-mooc-redis-1 Waiting 
+ Container plataforma-mooc-minio-1 Waiting 
+ Container plataforma-mooc-redis-1 Healthy 
+ Container plataforma-mooc-postgres-1 Healthy 
+ Container plataforma-mooc-minio-1 Healthy 
+ Container plataforma-mooc-worker-run-3bf39ec37819 Creating 
+ Container plataforma-mooc-worker-run-3bf39ec37819 Created 
+2026/09/27 16:50:30 === Perfil corto: Video de prueba: perfil corto (2 min, 1280x720) (120s) ===
+2026/09/27 16:51:33 INFO media rendered to HLS resource_id=d9300000-0000-0000-0000-000000000001 hls_prefix=hls/e9300000-0000-0000-0000-000000000001 renditions=2 ladder=360p,720p files_uploaded=37 original_bytes=2599196 source_width=1280 source_height=720 duration_seconds=120
+2026/09/27 16:51:33 INFO media job completed resource_id=d9300000-0000-0000-0000-000000000001 object_key=originals/e9300000-0000-0000-0000-000000000001/0d89f308-c5c7-45ce-910a-8420cd3b8261.mp4 took=43.684767608s
+2026/09/27 16:51:33 Perfil corto: original 2.6 MB, 37 derivados subidos
+2026/09/27 16:51:33 === Perfil medio: Video de prueba: perfil medio (10 min, 1280x720) (600s) ===
+2026/09/27 16:56:46 INFO media rendered to HLS resource_id=d9300000-0000-0000-0000-000000000002 hls_prefix=hls/e9300000-0000-0000-0000-000000000002 renditions=2 ladder=360p,720p files_uploaded=171 original_bytes=13006511 source_width=1280 source_height=720 duration_seconds=600
+2026/09/27 16:56:46 INFO media job completed resource_id=d9300000-0000-0000-0000-000000000002 object_key=originals/e9300000-0000-0000-0000-000000000002/09fafd86-ea19-4d4a-ac20-854132ba3fc0.mp4 took=3m52.309140622s
+2026/09/27 16:56:46 Perfil medio: original 13.0 MB, 171 derivados subidos
+2026/09/27 16:56:46 === Perfil largo: Video de prueba: perfil largo (30 min, 1280x720) (1800s) ===
+2026/09/27 17:12:12 INFO media rendered to HLS resource_id=d9300000-0000-0000-0000-000000000003 hls_prefix=hls/e9300000-0000-0000-0000-000000000003 renditions=2 ladder=360p,720p files_uploaded=503 original_bytes=39029758 source_width=1280 source_height=720 duration_seconds=1800
+2026/09/27 17:12:12 INFO media job completed resource_id=d9300000-0000-0000-0000-000000000003 object_key=originals/e9300000-0000-0000-0000-000000000003/bc7079a3-d893-49e6-bc35-0887c7a62701.mp4 took=11m13.403590675s
+2026/09/27 17:12:13 Perfil largo: original 39.0 MB, 503 derivados subidos
+2026/09/27 17:12:13 Curso d9000000-0000-0000-0000-000000000001 publicado.
+2026/09/27 17:12:15 === Listo: 714 objetos, 765.8 MB, reconciliación OK ===
+
+[exited with code 0]
