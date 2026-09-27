@@ -15,9 +15,7 @@
 
 services:
   api:
-    build:
-      context: .
-      dockerfile: Dockerfile.api
+    image: ${GCP_REGION:-us-east1}-docker.pkg.dev/${GCP_PROJECT_ID:-plataforma-mooc-entrega2}/${GCP_ARTIFACT_REGISTRY_REPOSITORY:-mooc}/api:${IMAGE_TAG:?Set IMAGE_TAG to the full commit SHA}
     ports:
       - "${API_PORT:-8080}:8080"
     environment:
@@ -54,9 +52,7 @@ services:
     restart: unless-stopped
 
   worker:
-    build:
-      context: .
-      dockerfile: Dockerfile.worker
+    image: ${GCP_REGION:-us-east1}-docker.pkg.dev/${GCP_PROJECT_ID:-plataforma-mooc-entrega2}/${GCP_ARTIFACT_REGISTRY_REPOSITORY:-mooc}/worker:${IMAGE_TAG:?Set IMAGE_TAG to the full commit SHA}
     environment:
       - APP_ENV=production
       - DATABASE_URL=${DATABASE_URL}

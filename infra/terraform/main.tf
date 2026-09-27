@@ -24,6 +24,9 @@ locals {
     # Almacenamiento de objetos (C3).
     "storage.googleapis.com",
 
+    # Registro de imagenes Docker (D1).
+    "artifactregistry.googleapis.com",
+
     # Cuentas de servicio y sus politicas.
     "iam.googleapis.com",
 

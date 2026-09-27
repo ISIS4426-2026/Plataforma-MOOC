@@ -157,6 +157,38 @@ terraform plan              # (3) leerlo, no hojearlo
 terraform apply             # (4)
 ```
 
+### D1 — Registro y publicación de imágenes
+
+Terraform crea el repositorio Docker `mooc` en Artifact Registry, en la misma
+región `us-east1`, y activa tags inmutables. Las cuentas de servicio de las VMs
+solo reciben `roles/artifactregistry.reader`; no se guardan llaves de servicio
+en el repositorio.
+
+Después de integrar A3, A5 y A6 en un commit, publicar las imágenes desde una
+identidad personal con permisos de Artifact Registry:
+
+```bash
+gcloud auth login
+gcloud config set project plataforma-mooc-entrega2
+./scripts/publish_images.sh
+```
+
+El script exige un árbol Git limpio, usa el SHA completo de `HEAD`, construye
+para `linux/amd64` y publica API y worker directamente con ese tag. Nunca se
+deben pasar secretos mediante `docker build --build-arg`, `ENV` o archivos de
+credenciales.
+
+En cada VM, el despliegue consume el mismo tag inmutable:
+
+```bash
+export IMAGE_TAG="<SHA_COMPLETO_PUBLICADO>"
+docker compose -f docker-compose.prod.yml pull
+docker compose -f docker-compose.prod.yml up -d
+```
+
+El valor de `IMAGE_TAG` debe corresponder al commit cuyas imágenes se
+publicaron; no se debe usar `latest`.
+
 **(1) Traer los cambios antes de planificar.** El estado es compartido pero el
 código no: si aplicas desde una rama vieja, Terraform verá recursos en el estado
 que tu código no declara y **propondrá destruirlos**. El `plan` lo mostraría,
