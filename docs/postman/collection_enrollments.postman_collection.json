@@ -10,14 +10,22 @@
       "script": {
         "type": "text/javascript",
         "exec": [
-          "// G2 (#128): D3 agrego una cookie de sesion Secure (__Host-mooc_session) al",
-          "// hacer login. El cookie jar de Postman la reenvia automaticamente en las",
-          "// peticiones siguientes de la misma corrida, y el middleware de CSRF del",
-          "// servidor rechaza cualquier peticion mutante que la lleve sin una cabecera",
-          "// Origin -- aunque la peticion tambien lleve un Bearer valido. Esta coleccion",
-          "// es un cliente API puro por diseno, nunca deberia depender de esa cookie,",
-          "// asi que se limpia antes de cada peticion.",
-          "pm.cookies.jar().clear(pm.environment.get('baseUrl'), function () {});"
+          "// G2 (#128): D3 agrega una cookie de sesion Secure (__Host-mooc_session) al",
+          "// hacer login, y el cookie jar de Postman la reenvia sola en las peticiones",
+          "// siguientes de la misma corrida -- como haria un navegador real. El",
+          "// middleware de CSRF del servidor rechaza una peticion mutante que lleve esa",
+          "// cookie sin declarar un Origin permitido, aunque tambien lleve un Bearer",
+          "// valido.",
+          "//",
+          "// En vez de pelear con el cookie jar -- pm.cookies.jar().clear() funciona en",
+          "// newman pero no de forma confiable dentro del Collection Runner de Postman",
+          "// Desktop, verificado empiricamente -- esta coleccion declara el mismo",
+          "// origen que el servidor ya tiene en su lista blanca (CSRF_ALLOWED_ORIGINS).",
+          "// Es una cabecera sincrona, sin depender de una API de cookies que se",
+          "// comporta distinto entre herramientas, y funciona igual en local (donde",
+          "// la lista blanca vacia deja pasar cualquier origen declarado sin cookie)",
+          "// y en la nube (donde el origen coincide exactamente con la lista blanca).",
+          "pm.request.headers.upsert({ key: 'Origin', value: pm.environment.get('baseUrl') });"
         ]
       }
     }
@@ -212,7 +220,14 @@
       ],
       "request": {
         "method": "GET",
-        "header": [],
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer anonymous-probe-invalid-token",
+            "type": "text",
+            "description": "G2 (#128): fuerza que SessionToken() (internal/http/handler/auth.go) tome el camino Bearer en vez de caer al respaldo por cookie de sesion. Sin esto, una cookie de una peticion anterior en la misma corrida de Postman autentica esta peticion 'sin sesion' con quien sea que haya iniciado sesion ultimo, y la prueba deja de probar lo que dice probar."
+          }
+        ],
         "url": {
           "raw": "{{baseUrl}}/api/v1/courses/{{seededPublishedCourseId}}/modules",
           "host": [

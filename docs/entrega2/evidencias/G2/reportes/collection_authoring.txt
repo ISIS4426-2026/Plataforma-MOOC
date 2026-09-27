@@ -3,7 +3,7 @@ newman
 Plataforma MOOC - Autoria de Cursos
 
 → 01 Login como Profesor
-  POST https://34.24.52.111.sslip.io/api/v1/auth/login [200 OK, 696B, 1156ms]
+  POST https://34.24.52.111.sslip.io/api/v1/auth/login [200 OK, 695B, 931ms]
   ✓  responde 200
   ✓  devuelve token Bearer y usuario profesor
 
@@ -13,162 +13,161 @@ Plataforma MOOC - Autoria de Cursos
   ✓  curso creado en estado draft y version 1
 
 → 03 Intento de publicacion con errores (espera 422 validation_failed)
-  POST https://34.24.52.111.sslip.io/api/v1/courses/2a5b5b56-746b-4640-8515-8431b554ae59/publish [422 Unprocessable Entity, 609B, 97ms]
+  POST https://34.24.52.111.sslip.io/api/v1/courses/0b1ddb57-0662-4654-b86b-9f9232477a17/publish [422 Unprocessable Entity, 609B, 105ms]
   ✓  responde 422
   ✓  lista exhaustiva de errores de validacion
 
 → 04 Crear Modulo 1 en Borrador
-  POST https://34.24.52.111.sslip.io/api/v1/courses/2a5b5b56-746b-4640-8515-8431b554ae59/modules [201 Created, 427B, 108ms]
+  POST https://34.24.52.111.sslip.io/api/v1/courses/0b1ddb57-0662-4654-b86b-9f9232477a17/modules [201 Created, 427B, 113ms]
   ✓  responde 201
   ✓  modulo creado con posicion 0 e identificador estable
 
 → 05 Crear Unidad 1 en Modulo 1
-  POST https://34.24.52.111.sslip.io/api/v1/modules/d87d6dfb-412f-4b0c-a50c-5364433ae00f/units [201 Created, 420B, 104ms]
+  POST https://34.24.52.111.sslip.io/api/v1/modules/f5b2e463-4588-4ae4-a680-77007e7a4c8d/units [201 Created, 420B, 121ms]
   ✓  responde 201
   ✓  unidad creada con posicion 0 e identificador estable
 
 → 06 Crear Recurso 1 (Lectura Obligatoria - Markdown Canonico)
-  POST https://34.24.52.111.sslip.io/api/v1/units/c0fedc66-84d6-4621-ae67-b537ffa8703e/resources [201 Created, 626B, 125ms]
+  POST https://34.24.52.111.sslip.io/api/v1/units/c3d94ee5-2db3-47ea-9942-3dd6baa7bc45/resources [201 Created, 626B, 120ms]
   ✓  responde 201
   ✓  recurso 1 obligatorio creado en posicion 0
 
 → 07 Crear Recurso 2 (Recurso Complementario - Posicion 1)
-  POST https://34.24.52.111.sslip.io/api/v1/units/c0fedc66-84d6-4621-ae67-b537ffa8703e/resources [201 Created, 604B, 105ms]
+  POST https://34.24.52.111.sslip.io/api/v1/units/c3d94ee5-2db3-47ea-9942-3dd6baa7bc45/resources [201 Created, 604B, 111ms]
   ✓  responde 201
   ✓  recurso 2 complementario creado en posicion 1
 
 → 08 Crear Recurso 3 (Quiz Formativo - Posicion 2)
-  POST https://34.24.52.111.sslip.io/api/v1/units/c0fedc66-84d6-4621-ae67-b537ffa8703e/resources [201 Created, 553B, 108ms]
+  POST https://34.24.52.111.sslip.io/api/v1/units/c3d94ee5-2db3-47ea-9942-3dd6baa7bc45/resources [201 Created, 553B, 114ms]
   ✓  responde 201
   ✓  recurso 3 quiz creado en posicion 2
 
 → 09 Previsualizar Metadatos del Curso (GET Draft con ETag)
-  GET https://34.24.52.111.sslip.io/api/v1/courses/2a5b5b56-746b-4640-8515-8431b554ae59 [200 OK, 558B, 90ms]
+  GET https://34.24.52.111.sslip.io/api/v1/courses/0b1ddb57-0662-4654-b86b-9f9232477a17 [200 OK, 558B, 98ms]
   ✓  responde 200
   ✓  datos del borrador y cabecera ETag presentes
 
 → 10 Previsualizar Modulos del Curso
-  GET https://34.24.52.111.sslip.io/api/v1/courses/2a5b5b56-746b-4640-8515-8431b554ae59/modules [200 OK, 434B, 90ms]
+  GET https://34.24.52.111.sslip.io/api/v1/courses/0b1ddb57-0662-4654-b86b-9f9232477a17/modules [200 OK, 434B, 98ms]
   ✓  responde 200
   ✓  listado de modulos del curso ordenado
 
 → 11 Previsualizar Unidades del Modulo
-  GET https://34.24.52.111.sslip.io/api/v1/modules/d87d6dfb-412f-4b0c-a50c-5364433ae00f/units [200 OK, 427B, 91ms]
+  GET https://34.24.52.111.sslip.io/api/v1/modules/f5b2e463-4588-4ae4-a680-77007e7a4c8d/units [200 OK, 427B, 103ms]
   ✓  responde 200
   ✓  listado de unidades del modulo ordenado
 
 → 12 Previsualizar Recursos de la Unidad (Antes de Reordenar)
-  GET https://34.24.52.111.sslip.io/api/v1/units/c0fedc66-84d6-4621-ae67-b537ffa8703e/resources [200 OK, 1.37kB, 105ms]
+  GET https://34.24.52.111.sslip.io/api/v1/units/c3d94ee5-2db3-47ea-9942-3dd6baa7bc45/resources [200 OK, 1.37kB, 102ms]
   ✓  responde 200
   ✓  tres recursos con posiciones 0, 1 y 2
 
 → 13 Reordenar: Eliminar recurso intermedio (Posicion 1)
-  DELETE https://34.24.52.111.sslip.io/api/v1/resources/6da16453-7cd7-446a-b146-b35c460596fa [204 No Content, 162B, 112ms]
+  DELETE https://34.24.52.111.sslip.io/api/v1/resources/eef4b8e4-24ef-437d-b9a4-2889a2c9fecc [204 No Content, 162B, 121ms]
   ✓  responde 204
   ✓  cuerpo estrictamente vacio
 
 → 14 Verificar Reordenamiento y Preservacion de Identificadores Estables
-  GET https://34.24.52.111.sslip.io/api/v1/units/c0fedc66-84d6-4621-ae67-b537ffa8703e/resources [200 OK, 974B, 107ms]
+  GET https://34.24.52.111.sslip.io/api/v1/units/c3d94ee5-2db3-47ea-9942-3dd6baa7bc45/resources [200 OK, 974B, 112ms]
   ✓  responde 200
   ✓  reordenamiento exitoso sin huecos y stable_id intacto
 
 → 15 Publicacion Exitosa del Curso
-  POST https://34.24.52.111.sslip.io/api/v1/courses/2a5b5b56-746b-4640-8515-8431b554ae59/publish [200 OK, 562B, 104ms]
+  POST https://34.24.52.111.sslip.io/api/v1/courses/0b1ddb57-0662-4654-b86b-9f9232477a17/publish [200 OK, 562B, 132ms]
   ✓  responde 200
   ✓  curso publicado exitosamente con version 1
 
 → 16 Consultar Curso Publicado en Catalogo
-  GET https://34.24.52.111.sslip.io/api/v1/courses/2a5b5b56-746b-4640-8515-8431b554ae59 [200 OK, 562B, 88ms]
+  GET https://34.24.52.111.sslip.io/api/v1/courses/0b1ddb57-0662-4654-b86b-9f9232477a17 [200 OK, 562B, 99ms]
   ✓  responde 200
   ✓  curso accesible en catalogo como published
 
 → 17 Inmutabilidad: Rechazo al editar metadatos del curso publicado
-  PUT https://34.24.52.111.sslip.io/api/v1/courses/2a5b5b56-746b-4640-8515-8431b554ae59 [409 Conflict, 329B, 92ms]
+  PUT https://34.24.52.111.sslip.io/api/v1/courses/0b1ddb57-0662-4654-b86b-9f9232477a17 [409 Conflict, 329B, 100ms]
   ✓  responde 409
   ✓  codigo course_immutable y mensaje explicativo
 
 → 18 Inmutabilidad: Rechazo al agregar modulo a curso publicado
-  POST https://34.24.52.111.sslip.io/api/v1/courses/2a5b5b56-746b-4640-8515-8431b554ae59/modules [409 Conflict, 341B, 92ms]
+  POST https://34.24.52.111.sslip.io/api/v1/courses/0b1ddb57-0662-4654-b86b-9f9232477a17/modules [409 Conflict, 341B, 106ms]
   ✓  responde 409
   ✓  codigo course_immutable
 
 → 19 Inmutabilidad: Rechazo al agregar unidad en modulo de curso publicado
-  POST https://34.24.52.111.sslip.io/api/v1/modules/d87d6dfb-412f-4b0c-a50c-5364433ae00f/units [409 Conflict, 341B, 94ms]
+  POST https://34.24.52.111.sslip.io/api/v1/modules/f5b2e463-4588-4ae4-a680-77007e7a4c8d/units [409 Conflict, 341B, 109ms]
   ✓  responde 409
   ✓  codigo course_immutable
 
 → 20 Inmutabilidad: Rechazo al agregar recurso en unidad de curso publicado
-  POST https://34.24.52.111.sslip.io/api/v1/units/c0fedc66-84d6-4621-ae67-b537ffa8703e/resources [409 Conflict, 341B, 102ms]
+  POST https://34.24.52.111.sslip.io/api/v1/units/c3d94ee5-2db3-47ea-9942-3dd6baa7bc45/resources [409 Conflict, 341B, 108ms]
   ✓  responde 409
   ✓  codigo course_immutable
 
 → 21 Inmutabilidad: Rechazo al eliminar recurso en curso publicado
-  DELETE https://34.24.52.111.sslip.io/api/v1/resources/233bcf45-0434-4af1-9420-bedd2a8a2575 [409 Conflict, 341B, 109ms]
+  DELETE https://34.24.52.111.sslip.io/api/v1/resources/a5059278-e3bc-4844-94cf-17006bf25463 [409 Conflict, 341B, 96ms]
   ✓  responde 409
   ✓  codigo course_immutable
 
 → 22 Inmutabilidad: Rechazo al republicar un curso ya publicado
-  POST https://34.24.52.111.sslip.io/api/v1/courses/2a5b5b56-746b-4640-8515-8431b554ae59/publish [409 Conflict, 305B, 91ms]
+  POST https://34.24.52.111.sslip.io/api/v1/courses/0b1ddb57-0662-4654-b86b-9f9232477a17/publish [409 Conflict, 305B, 94ms]
   ✓  responde 409
   ✓  codigo conflict
 
 → 23 Despublicacion temporal (Flujo MVP Seccion 5.1)
-  POST https://34.24.52.111.sslip.io/api/v1/courses/2a5b5b56-746b-4640-8515-8431b554ae59/unpublish [200 OK, 564B, 103ms]
+  POST https://34.24.52.111.sslip.io/api/v1/courses/0b1ddb57-0662-4654-b86b-9f9232477a17/unpublish [200 OK, 564B, 103ms]
   ✓  responde 200
   ✓  estado transiciona a unpublished
 
 → 24 Editar curso temporalmente despublicado
-  PUT https://34.24.52.111.sslip.io/api/v1/courses/2a5b5b56-746b-4640-8515-8431b554ae59 [200 OK, 546B, 102ms]
+  PUT https://34.24.52.111.sslip.io/api/v1/courses/0b1ddb57-0662-4654-b86b-9f9232477a17 [200 OK, 546B, 98ms]
   ✓  responde 200
   ✓  titulo y descripcion actualizados exitosamente
 
 → 25 Republicar curso tras la actualizacion
-  POST https://34.24.52.111.sslip.io/api/v1/courses/2a5b5b56-746b-4640-8515-8431b554ae59/publish [200 OK, 544B, 107ms]
+  POST https://34.24.52.111.sslip.io/api/v1/courses/0b1ddb57-0662-4654-b86b-9f9232477a17/publish [200 OK, 544B, 120ms]
   ✓  responde 200
   ✓  curso republicado como published con nuevo titulo
 
 → 26 Login como Estudiante (Usuario no autor)
-  POST https://34.24.52.111.sslip.io/api/v1/auth/login [200 OK, 702B, 187ms]
+  POST https://34.24.52.111.sslip.io/api/v1/auth/login [200 OK, 702B, 214ms]
   ✓  responde 200
   ✓  sesion obtenida con rol estudiante
 
 → 27 No-autor intenta crear curso (espera 403)
-  POST https://34.24.52.111.sslip.io/api/v1/courses [403 Forbidden, 295B, 95ms]
+  POST https://34.24.52.111.sslip.io/api/v1/courses [403 Forbidden, 295B, 94ms]
   ✓  responde 403
   ✓  codigo forbidden
 
 → 28 No-autor intenta agregar modulo (espera 403)
-  POST https://34.24.52.111.sslip.io/api/v1/courses/2a5b5b56-746b-4640-8515-8431b554ae59/modules [403 Forbidden, 295B, 91ms]
+  POST https://34.24.52.111.sslip.io/api/v1/courses/0b1ddb57-0662-4654-b86b-9f9232477a17/modules [403 Forbidden, 295B, 94ms]
   ✓  responde 403
   ✓  codigo forbidden
 
 → 29 No-autor intenta publicar curso (espera 403)
-  POST https://34.24.52.111.sslip.io/api/v1/courses/2a5b5b56-746b-4640-8515-8431b554ae59/publish [403 Forbidden, 295B, 87ms]
+  POST https://34.24.52.111.sslip.io/api/v1/courses/0b1ddb57-0662-4654-b86b-9f9232477a17/publish [403 Forbidden, 295B, 96ms]
   ✓  responde 403
   ✓  codigo forbidden
 
 → 30 Peticion anonima sin autenticacion a crear curso (espera 401)
-  POST https://34.24.52.111.sslip.io/api/v1/courses [401 Unauthorized, 311B, 85ms]
+  POST https://34.24.52.111.sslip.io/api/v1/courses [401 Unauthorized, 311B, 93ms]
   ✓  responde 401
   ✓  cabecera WWW-Authenticate y codigo unauthorized
 
-┌─────────────────────────┬─────────────────────┬────────────────────┐
-│                         │            executed │             failed │
-├─────────────────────────┼─────────────────────┼────────────────────┤
-│              iterations │                   1 │                  0 │
-├─────────────────────────┼─────────────────────┼────────────────────┤
-│                requests │                  30 │                  0 │
-├─────────────────────────┼─────────────────────┼────────────────────┤
-│            test-scripts │                  30 │                  0 │
-├─────────────────────────┼─────────────────────┼────────────────────┤
-│      prerequest-scripts │                  30 │                  0 │
-├─────────────────────────┼─────────────────────┼────────────────────┤
-│              assertions │                  60 │                  0 │
-├─────────────────────────┴─────────────────────┴────────────────────┤
-│ total run duration: 6.5s                                           │
-├────────────────────────────────────────────────────────────────────┤
-│ total data received: 7.83kB (approx)                               │
-├────────────────────────────────────────────────────────────────────┤
-│ average response time: 137ms [min: 85ms, max: 1156ms, s.d.: 189ms] │
-└────────────────────────────────────────────────────────────────────┘
-[OK] collection_authoring
+┌─────────────────────────┬────────────────────┬────────────────────┐
+│                         │           executed │             failed │
+├─────────────────────────┼────────────────────┼────────────────────┤
+│              iterations │                  1 │                  0 │
+├─────────────────────────┼────────────────────┼────────────────────┤
+│                requests │                 30 │                  0 │
+├─────────────────────────┼────────────────────┼────────────────────┤
+│            test-scripts │                 30 │                  0 │
+├─────────────────────────┼────────────────────┼────────────────────┤
+│      prerequest-scripts │                 30 │                  0 │
+├─────────────────────────┼────────────────────┼────────────────────┤
+│              assertions │                 60 │                  0 │
+├─────────────────────────┴────────────────────┴────────────────────┤
+│ total run duration: 7.1s                                          │
+├───────────────────────────────────────────────────────────────────┤
+│ total data received: 7.83kB (approx)                              │
+├───────────────────────────────────────────────────────────────────┤
+│ average response time: 137ms [min: 93ms, max: 931ms, s.d.: 148ms] │
+└───────────────────────────────────────────────────────────────────┘

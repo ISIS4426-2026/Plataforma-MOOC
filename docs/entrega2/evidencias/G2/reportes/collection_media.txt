@@ -3,120 +3,120 @@ newman
 Plataforma MOOC - Multimedia
 
 → 01 Login como Profesor (autor)
-  POST https://34.24.52.111.sslip.io/api/v1/auth/login [200 OK, 695B, 575ms]
+  POST https://34.24.52.111.sslip.io/api/v1/auth/login [200 OK, 696B, 894ms]
   ✓  responde 200
   ✓  devuelve token de profesor
 
 → 02 Crear curso en borrador
-  POST https://34.24.52.111.sslip.io/api/v1/courses [201 Created, 443B, 100ms]
+  POST https://34.24.52.111.sslip.io/api/v1/courses [201 Created, 443B, 142ms]
   ✓  responde 201
 
 → 03 Crear modulo
-  POST https://34.24.52.111.sslip.io/api/v1/courses/778bc798-197f-4260-9c26-f3aa237d670e/modules [201 Created, 392B, 93ms]
+  POST https://34.24.52.111.sslip.io/api/v1/courses/67efc85f-73a4-480f-8baa-0565531bef36/modules [201 Created, 392B, 120ms]
   ✓  responde 201
 
 → 04 Crear unidad
-  POST https://34.24.52.111.sslip.io/api/v1/modules/04c9c773-7f6f-4f6f-b3fa-1985936f3b22/units [201 Created, 392B, 93ms]
+  POST https://34.24.52.111.sslip.io/api/v1/modules/866e380e-2d95-4afb-917d-314718ac4976/units [201 Created, 392B, 119ms]
   ✓  responde 201
 
 → 05 Crear recurso de video
-  POST https://34.24.52.111.sslip.io/api/v1/units/09d11e46-bb44-4196-a8f5-6dfe56355a4d/resources [201 Created, 507B, 98ms]
+  POST https://34.24.52.111.sslip.io/api/v1/units/137d3686-26cc-4d26-a7c9-076ce46ef291/resources [201 Created, 507B, 120ms]
   ✓  responde 201
   ✓  nace sin objeto asociado
 
 → 06 Solicitar URL prefirmada de carga
-  POST https://34.24.52.111.sslip.io/api/v1/media/presigned-url [200 OK, 1.36kB, 156ms]
+  POST https://34.24.52.111.sslip.io/api/v1/media/presigned-url [200 OK, 1.36kB, 189ms]
   ✓  responde 200
   ✓  la clave va bajo originals/<stable_id>/ y descarta el nombre del cliente
   ✓  declara el metodo y el content-type que cubre la firma
   ✓  vence en 24 horas, como pide el enunciado
 
 → 07 Carga directa al bucket (el archivo no pasa por la API)
-  PUT https://storage.googleapis.com/plataforma-mooc-entrega2-media/originals/86175923-1a1b-407d-85bd-ad742d7eee75/ba998544-561e-4580-84ae-877449e93196.mp4?X-Goog-Algorithm=GOOG4-RSA-SHA256&X-Goog-Credential=sa-web-server%40plataforma-mooc-entrega2.iam.gserviceaccount.com%2F20260927%2Fauto%2Fstorage%2Fgoog4_request&X-Goog-Date=20260927T174546Z&X-Goog-Expires=86399&X-Goog-Signature=78bf1507caca7f2f7404dd2798c05424dc0f324274258e824256df3cec134202ebec7028b4c45108a699ca8582c7b4fab9b579af05863e4e38f8a8ea93805e8b61ebe19c8ef3227220744736999d1933e86d2861cdf4e80eae418ea53aac8ab4ede58a96aa200470667aa7486a99e7cff7a3893b141d410d6f4cd3d729c41f8262301690b09fb06e1881bf5ec0e74d0edd3e8351419e8bb27b501c49cbb2772be1bdbf84e14af913711a149a7cb32085a514e2d9cca13d465a9cb87c1aca01344ab979d19726b1c805cbcb81561b7d24b7ea681d7c9fe86170afc984b4cf87d0c06bb8784fc06ac881e8ebd26b1675a7bf1e72445d0646978e4657d37dc27072&X-Goog-SignedHeaders=content-type%3Bhost [200 OK, 565B, 391ms]
+  PUT https://storage.googleapis.com/plataforma-mooc-entrega2-media/originals/3e39bc10-b92c-42c9-9572-96fcbc5b1118/fad886c1-fd66-4ddf-acdb-8150058cf103.mp4?X-Goog-Algorithm=GOOG4-RSA-SHA256&X-Goog-Credential=sa-web-server%40plataforma-mooc-entrega2.iam.gserviceaccount.com%2F20260927%2Fauto%2Fstorage%2Fgoog4_request&X-Goog-Date=20260927T202023Z&X-Goog-Expires=86399&X-Goog-Signature=b76a0c5f6da34be03b0b5b084c6c3422394e04bc3a27b8709c91ca506f93f27969e9e4a04248d6ad548f6a8bd66014b60673d8f73e79ddf363d52174c9dba0283ac44dfbef404b12417a1adcba1f06c99b0e99042ced62ec9cf59216ad609aae0757cd9d02409bd0645f7db632df2aff1cd0fbeaa7c2ee968a5de058de621aa6867fb781f183d6a7808e5d64bdbe7417bef938ffcfcba3ac0ff180191f67769c83a41d639887b47e530ee84c3a79b78d882709341d880fa343b786554d8251a64cfbd89e1fb1f6afe8776f9e9723b49529dc031301692c56d4afc772f357a8ca3e18b0828f6ed41d816be8c0f09886e36c494591c5efd387a2624512dac3af99&X-Goog-SignedHeaders=content-type%3Bhost [200 OK, 718B, 422ms]
   ✓  el bucket acepta la transferencia
 
 → 08 Confirmar la carga
-  POST https://34.24.52.111.sslip.io/api/v1/media/uploads/6b3a9e33-6708-4645-a3f5-5da4629bff7b/complete [202 Accepted, 609B, 146ms]
+  POST https://34.24.52.111.sslip.io/api/v1/media/uploads/06917447-c8b4-4b43-bb4b-dceaf5a92237/complete [202 Accepted, 609B, 164ms]
   ✓  responde 202
   ✓  el recurso apunta al objeto y entra a la cola
 
 → 09 Reconfirmar la misma carga (idempotente)
-  POST https://34.24.52.111.sslip.io/api/v1/media/uploads/6b3a9e33-6708-4645-a3f5-5da4629bff7b/complete [202 Accepted, 609B, 131ms]
+  POST https://34.24.52.111.sslip.io/api/v1/media/uploads/06917447-c8b4-4b43-bb4b-dceaf5a92237/complete [202 Accepted, 609B, 160ms]
   ✓  sigue respondiendo 202, no 500
   ✓  el estado no cambia
 
 → 10 Obtener URL firmada de lectura
-  GET https://34.24.52.111.sslip.io/api/v1/media/resources/6b3a9e33-6708-4645-a3f5-5da4629bff7b/download-url [200 OK, 1.2kB, 141ms]
+  GET https://34.24.52.111.sslip.io/api/v1/media/resources/06917447-c8b4-4b43-bb4b-dceaf5a92237/download-url [200 OK, 1.2kB, 163ms]
   ✓  responde 200
   ✓  apunta al objeto y vive mucho menos que la de carga
 
 → 11 Rechazo: extension fuera de la lista permitida
-  POST https://34.24.52.111.sslip.io/api/v1/media/presigned-url [400 Bad Request, 288B, 88ms]
+  POST https://34.24.52.111.sslip.io/api/v1/media/presigned-url [400 Bad Request, 288B, 104ms]
   ✓  responde 400
   ✓  con codigo de error invalid_input
 
 → 12 Rechazo: el mime declarado no corresponde a la extension
-  POST https://34.24.52.111.sslip.io/api/v1/media/presigned-url [400 Bad Request, 288B, 93ms]
+  POST https://34.24.52.111.sslip.io/api/v1/media/presigned-url [400 Bad Request, 288B, 115ms]
   ✓  responde 400
   ✓  con codigo de error invalid_input
 
 → 13 Rechazo: tamano por encima del limite
-  POST https://34.24.52.111.sslip.io/api/v1/media/presigned-url [400 Bad Request, 288B, 85ms]
+  POST https://34.24.52.111.sslip.io/api/v1/media/presigned-url [400 Bad Request, 288B, 111ms]
   ✓  responde 400
   ✓  con codigo de error invalid_input
 
 → 14 Crear recurso de texto (no admite archivo)
-  POST https://34.24.52.111.sslip.io/api/v1/units/09d11e46-bb44-4196-a8f5-6dfe56355a4d/resources [201 Created, 536B, 95ms]
+  POST https://34.24.52.111.sslip.io/api/v1/units/137d3686-26cc-4d26-a7c9-076ce46ef291/resources [201 Created, 536B, 118ms]
   ✓  responde 201
 
 → 15 Rechazo: un recurso de texto no acepta carga
-  POST https://34.24.52.111.sslip.io/api/v1/media/presigned-url [400 Bad Request, 288B, 93ms]
+  POST https://34.24.52.111.sslip.io/api/v1/media/presigned-url [400 Bad Request, 288B, 107ms]
   ✓  responde 400
   ✓  con codigo de error invalid_input
 
 → 16 Pedir URL para una carga que nunca se hara
-  POST https://34.24.52.111.sslip.io/api/v1/media/presigned-url [200 OK, 1.36kB, 134ms]
+  POST https://34.24.52.111.sslip.io/api/v1/media/presigned-url [200 OK, 1.36kB, 169ms]
   ✓  responde 200
 
 → 17 Rechazo: confirmar una carga que nunca llego
-  POST https://34.24.52.111.sslip.io/api/v1/media/uploads/6b3a9e33-6708-4645-a3f5-5da4629bff7b/complete [409 Conflict, 339B, 117ms]
+  POST https://34.24.52.111.sslip.io/api/v1/media/uploads/06917447-c8b4-4b43-bb4b-dceaf5a92237/complete [409 Conflict, 339B, 141ms]
   ✓  responde 409
   ✓  con codigo de error upload_not_found
 
 → 18 Rechazo: confirmar con la clave de otro recurso
-  POST https://34.24.52.111.sslip.io/api/v1/media/uploads/c4571dbe-f399-44d2-b75f-8ce33315ed6f/complete [400 Bad Request, 288B, 84ms]
+  POST https://34.24.52.111.sslip.io/api/v1/media/uploads/0d69777b-61b4-4b5e-b30c-92947ec7a009/complete [400 Bad Request, 288B, 128ms]
   ✓  responde 400
   ✓  con codigo de error invalid_input
 
 → 19 Login como Estudiante
-  POST https://34.24.52.111.sslip.io/api/v1/auth/login [200 OK, 702B, 180ms]
+  POST https://34.24.52.111.sslip.io/api/v1/auth/login [200 OK, 702B, 194ms]
   ✓  responde 200
 
 → 20 Rechazo: un estudiante no obtiene URL de carga
-  POST https://34.24.52.111.sslip.io/api/v1/media/presigned-url [403 Forbidden, 295B, 74ms]
+  POST https://34.24.52.111.sslip.io/api/v1/media/presigned-url [403 Forbidden, 295B, 104ms]
   ✓  responde 403
   ✓  con codigo de error forbidden
 
 → 21 Rechazo: peticion anonima
-  POST https://34.24.52.111.sslip.io/api/v1/media/presigned-url [401 Unauthorized, 311B, 83ms]
+  POST https://34.24.52.111.sslip.io/api/v1/media/presigned-url [401 Unauthorized, 311B, 99ms]
   ✓  responde 401
   ✓  con codigo de error unauthorized
 
 → 22 Pedir URL sobre recurso de curso PUBLICADO
-  POST https://34.24.52.111.sslip.io/api/v1/media/presigned-url [200 OK, 1.36kB, 130ms]
+  POST https://34.24.52.111.sslip.io/api/v1/media/presigned-url [200 OK, 1.36kB, 157ms]
   ✓  responde 200
 
 → 23 Cargar ese archivo al bucket
-  PUT https://storage.googleapis.com/plataforma-mooc-entrega2-media/originals/e3000000-0000-0000-0000-000000000002/37414015-d188-4b7d-9624-baf9a670b76b.mp4?X-Goog-Algorithm=GOOG4-RSA-SHA256&X-Goog-Credential=sa-web-server%40plataforma-mooc-entrega2.iam.gserviceaccount.com%2F20260927%2Fauto%2Fstorage%2Fgoog4_request&X-Goog-Date=20260927T174549Z&X-Goog-Expires=86399&X-Goog-Signature=155e98c53db6975eefe200232f8aefe2151451e6d7768bb3677cf782b41fb6d1e1b5495c956f2230e0dd0684f9b0171c95bdc987ddf1726321932b02c6a3ed38137f5f9f09e0e92fb2bfe35d3010c52f302fcdeb7ae952b5914f772304b06ee275dfcd94f274821c76d197591daf5852dc978c3798fee3aa6e7127e87e579443c6a8f50da65b0ef13ace94a23336b17ed6b4ebe5f40e9127cb810dc4691afe553974302a38a9353c0dcba28a64ee66463ec6d43bbf8a15fbe38ce22ea47cab6675176c944a0779fb6f99197e17dcb5598f8ab734e543e14fdba6e66beefda5b4c9a7cadc161784999f6482ffeacb6566834239cf7cc636ce08a09dfd212be459&X-Goog-SignedHeaders=content-type%3Bhost [200 OK, 558B, 189ms]
+  PUT https://storage.googleapis.com/plataforma-mooc-entrega2-media/originals/e3000000-0000-0000-0000-000000000002/e4b38ea0-5c72-471c-bc1b-cafc9aa7678c.mp4?X-Goog-Algorithm=GOOG4-RSA-SHA256&X-Goog-Credential=sa-web-server%40plataforma-mooc-entrega2.iam.gserviceaccount.com%2F20260927%2Fauto%2Fstorage%2Fgoog4_request&X-Goog-Date=20260927T202027Z&X-Goog-Expires=86399&X-Goog-Signature=652fa2564154369b7ef19980f27ffe5b14a2e8f916b3a92a2b4f9dc280d4d237495c897424418b7c2d6c3ffda182e762944b680eedc659a8663bb4829cd4eceddd6196c172bfefaaafed40051a99ab3ad850e7c007dd0109f6eaa13ab458b22e75740c1f440772ea1d0526d446f68c7919eaec1303d90599aadb38e59adc5890dbd84bdde0b2571f81a825f5e49cdbbe950141eff6f68331312ea6a60e349e4b7f59637bfa2526520cc1391a3c04d249a56823182f2c6a42111d00fa3091f76ebfd4beefc5b4a61a784043ad3616f98a0aff6f60867285d738218381d4f265568d04386f1f29af09456ec1f09cb432aab9ec76c6491eb770834e57c033b3df56&X-Goog-SignedHeaders=content-type%3Bhost [200 OK, 718B, 172ms]
   ✓  la transferencia en si no esta restringida
 
 → 24 Inmutabilidad: confirmar sobre curso publicado se rechaza
-  POST https://34.24.52.111.sslip.io/api/v1/media/uploads/d3000000-0000-0000-0000-000000000002/complete [409 Conflict, 341B, 110ms]
+  POST https://34.24.52.111.sslip.io/api/v1/media/uploads/d3000000-0000-0000-0000-000000000002/complete [409 Conflict, 341B, 137ms]
   ✓  responde 409
   ✓  con codigo de error course_immutable
 
 → 25 El recurso publicado quedo intacto
-  GET https://34.24.52.111.sslip.io/api/v1/units/d2000000-0000-0000-0000-000000000001/resources [200 OK, 1.03kB, 79ms]
+  GET https://34.24.52.111.sslip.io/api/v1/units/d2000000-0000-0000-0000-000000000001/resources [200 OK, 1.03kB, 103ms]
   ✓  responde 200
   ✓  conserva su objeto original y su estado
 
@@ -133,10 +133,9 @@ Plataforma MOOC - Multimedia
 ├─────────────────────────┼────────────────────┼────────────────────┤
 │              assertions │                 43 │                  0 │
 ├─────────────────────────┴────────────────────┴────────────────────┤
-│ total run duration: 5.8s                                          │
+│ total run duration: 6.5s                                          │
 ├───────────────────────────────────────────────────────────────────┤
 │ total data received: 8.6kB (approx)                               │
 ├───────────────────────────────────────────────────────────────────┤
-│ average response time: 142ms [min: 74ms, max: 575ms, s.d.: 108ms] │
+│ average response time: 178ms [min: 99ms, max: 894ms, s.d.: 158ms] │
 └───────────────────────────────────────────────────────────────────┘
-[OK] collection_media

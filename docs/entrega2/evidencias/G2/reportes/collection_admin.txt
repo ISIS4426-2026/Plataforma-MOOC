@@ -3,117 +3,117 @@ newman
 Plataforma MOOC - Administracion
 
 → 01 Login como Administrador Principal
-  POST https://34.24.52.111.sslip.io/api/v1/auth/login [200 OK, 699B, 604ms]
+  POST https://34.24.52.111.sslip.io/api/v1/auth/login [200 OK, 700B, 750ms]
   ✓  responde 200
   ✓  devuelve token Bearer y datos de usuario admin
 
 → 02 Listar usuarios (Paginacion y Estructura)
-  GET https://34.24.52.111.sslip.io/api/v1/admin/users?limit=10 [200 OK, 2.1kB, 140ms]
+  GET https://34.24.52.111.sslip.io/api/v1/admin/users?limit=10 [200 OK, 2.1kB, 94ms]
   ✓  responde 200
   ✓  estructura de listado con paginacion y usuarios
 
 → 03 Filtrar usuarios por rol (profesor)
-  GET https://34.24.52.111.sslip.io/api/v1/admin/users?role=profesor [200 OK, 584B, 86ms]
+  GET https://34.24.52.111.sslip.io/api/v1/admin/users?role=profesor [200 OK, 584B, 97ms]
   ✓  responde 200
   ✓  todos los usuarios devueltos tienen rol profesor
 
 → 04 Filtrar usuarios por estado (active)
-  GET https://34.24.52.111.sslip.io/api/v1/admin/users?status=active [200 OK, 1.25kB, 149ms]
+  GET https://34.24.52.111.sslip.io/api/v1/admin/users?status=active [200 OK, 1.42kB, 93ms]
   ✓  responde 200
   ✓  todos los usuarios devueltos estan activos
 
 → 05 Consultar detalle de usuario por ID
-  GET https://34.24.52.111.sslip.io/api/v1/admin/users/c0000000-0000-0000-0000-000000000001 [200 OK, 454B, 86ms]
+  GET https://34.24.52.111.sslip.io/api/v1/admin/users/c0000000-0000-0000-0000-000000000001 [200 OK, 454B, 94ms]
   ✓  responde 200
   ✓  datos correctos de usuario y cabecera ETag
 
 → 06 Cambiar rol de estudiante a profesor
-  PATCH https://34.24.52.111.sslip.io/api/v1/admin/users/c0000000-0000-0000-0000-000000000001/role [200 OK, 378B, 101ms]
+  PATCH https://34.24.52.111.sslip.io/api/v1/admin/users/c0000000-0000-0000-0000-000000000001/role [200 OK, 378B, 103ms]
   ✓  responde 200
   ✓  rol actualizado exitosamente a profesor
 
 → 07 Verificar persistencia del nuevo rol
-  GET https://34.24.52.111.sslip.io/api/v1/admin/users/c0000000-0000-0000-0000-000000000001 [200 OK, 452B, 94ms]
+  GET https://34.24.52.111.sslip.io/api/v1/admin/users/c0000000-0000-0000-0000-000000000001 [200 OK, 452B, 89ms]
   ✓  responde 200
   ✓  el usuario persiste con rol profesor
 
 → 08 Restaurar rol de profesor a estudiante
-  PATCH https://34.24.52.111.sslip.io/api/v1/admin/users/c0000000-0000-0000-0000-000000000001/role [200 OK, 380B, 112ms]
+  PATCH https://34.24.52.111.sslip.io/api/v1/admin/users/c0000000-0000-0000-0000-000000000001/role [200 OK, 380B, 105ms]
   ✓  responde 200
   ✓  rol restaurado exitosamente a estudiante
 
 → 09 Suspender cuenta de estudiante
-  PATCH https://34.24.52.111.sslip.io/api/v1/admin/users/c0000000-0000-0000-0000-000000000001/status [200 OK, 457B, 121ms]
+  PATCH https://34.24.52.111.sslip.io/api/v1/admin/users/c0000000-0000-0000-0000-000000000001/status [200 OK, 457B, 119ms]
   ✓  responde 200
   ✓  cuenta suspendida correctamente
 
 → 10 Verificar que el estudiante quedo suspendido
-  GET https://34.24.52.111.sslip.io/api/v1/admin/users/c0000000-0000-0000-0000-000000000001 [200 OK, 457B, 94ms]
+  GET https://34.24.52.111.sslip.io/api/v1/admin/users/c0000000-0000-0000-0000-000000000001 [200 OK, 457B, 98ms]
   ✓  responde 200
   ✓  el estado persiste en suspended
 
 → 11 Reactivar cuenta de estudiante
-  PATCH https://34.24.52.111.sslip.io/api/v1/admin/users/c0000000-0000-0000-0000-000000000001/status [200 OK, 454B, 109ms]
+  PATCH https://34.24.52.111.sslip.io/api/v1/admin/users/c0000000-0000-0000-0000-000000000001/status [200 OK, 454B, 100ms]
   ✓  responde 200
   ✓  cuenta reactivada a active
 
 → 12 Verificar que el estudiante quedo activo
-  GET https://34.24.52.111.sslip.io/api/v1/admin/users/c0000000-0000-0000-0000-000000000001 [200 OK, 454B, 92ms]
+  GET https://34.24.52.111.sslip.io/api/v1/admin/users/c0000000-0000-0000-0000-000000000001 [200 OK, 454B, 93ms]
   ✓  responde 200
   ✓  el estado persiste en active
 
 → 13 Login como usuario no-admin (Estudiante)
-  POST https://34.24.52.111.sslip.io/api/v1/auth/login [200 OK, 702B, 199ms]
+  POST https://34.24.52.111.sslip.io/api/v1/auth/login [200 OK, 702B, 184ms]
   ✓  responde 200
   ✓  sesion obtenida con rol estudiante
 
 → 14 No-admin intenta listar usuarios
-  GET https://34.24.52.111.sslip.io/api/v1/admin/users [403 Forbidden, 295B, 96ms]
+  GET https://34.24.52.111.sslip.io/api/v1/admin/users [403 Forbidden, 295B, 90ms]
   ✓  responde 403
   ✓  codigo forbidden
 
 → 15 No-admin intenta consultar usuario por ID
-  GET https://34.24.52.111.sslip.io/api/v1/admin/users/c0000000-0000-0000-0000-000000000001 [403 Forbidden, 295B, 91ms]
+  GET https://34.24.52.111.sslip.io/api/v1/admin/users/c0000000-0000-0000-0000-000000000001 [403 Forbidden, 295B, 96ms]
   ✓  responde 403
   ✓  codigo forbidden
 
 → 16 No-admin intenta cambiar un rol
-  PATCH https://34.24.52.111.sslip.io/api/v1/admin/users/c0000000-0000-0000-0000-000000000001/role [403 Forbidden, 295B, 97ms]
+  PATCH https://34.24.52.111.sslip.io/api/v1/admin/users/c0000000-0000-0000-0000-000000000001/role [403 Forbidden, 295B, 86ms]
   ✓  responde 403
   ✓  codigo forbidden
 
 → 17 No-admin intenta suspender una cuenta
-  PATCH https://34.24.52.111.sslip.io/api/v1/admin/users/c0000000-0000-0000-0000-000000000001/status [403 Forbidden, 295B, 85ms]
+  PATCH https://34.24.52.111.sslip.io/api/v1/admin/users/c0000000-0000-0000-0000-000000000001/status [403 Forbidden, 295B, 95ms]
   ✓  responde 403
   ✓  codigo forbidden
 
 → 18 Peticion sin autenticacion a listar usuarios
-  GET https://34.24.52.111.sslip.io/api/v1/admin/users [401 Unauthorized, 311B, 81ms]
+  GET https://34.24.52.111.sslip.io/api/v1/admin/users [401 Unauthorized, 311B, 89ms]
   ✓  responde 401
   ✓  cabecera WWW-Authenticate y codigo unauthorized
 
 → 19 Suspender al administrador secundario
-  PATCH https://34.24.52.111.sslip.io/api/v1/admin/users/a0000000-0000-0000-0000-000000000002/status [200 OK, 467B, 103ms]
+  PATCH https://34.24.52.111.sslip.io/api/v1/admin/users/a0000000-0000-0000-0000-000000000002/status [200 OK, 467B, 100ms]
   ✓  responde 200
   ✓  admin secundario suspendido exitosamente
 
 → 20 Intento de suspender al ultimo administrador activo (espera rechazo 409)
-  PATCH https://34.24.52.111.sslip.io/api/v1/admin/users/a0000000-0000-0000-0000-000000000001/status [409 Conflict, 320B, 105ms]
+  PATCH https://34.24.52.111.sslip.io/api/v1/admin/users/a0000000-0000-0000-0000-000000000001/status [409 Conflict, 320B, 99ms]
   ✓  responde 409
   ✓  codigo last_admin_protected y mensaje protector
 
 → 21 Intento de degradar rol del ultimo administrador activo (espera rechazo 409)
-  PATCH https://34.24.52.111.sslip.io/api/v1/admin/users/a0000000-0000-0000-0000-000000000001/role [409 Conflict, 320B, 99ms]
+  PATCH https://34.24.52.111.sslip.io/api/v1/admin/users/a0000000-0000-0000-0000-000000000001/role [409 Conflict, 320B, 96ms]
   ✓  responde 409
   ✓  codigo last_admin_protected y mensaje protector
 
 → 22 Reactivar al administrador secundario
-  PATCH https://34.24.52.111.sslip.io/api/v1/admin/users/a0000000-0000-0000-0000-000000000002/status [200 OK, 464B, 103ms]
+  PATCH https://34.24.52.111.sslip.io/api/v1/admin/users/a0000000-0000-0000-0000-000000000002/status [200 OK, 464B, 98ms]
   ✓  responde 200
   ✓  admin secundario reactivado correctamente
 
 → 23 Verificar que ambos administradores continuan activos
-  GET https://34.24.52.111.sslip.io/api/v1/admin/users?role=administrador [200 OK, 606B, 90ms]
+  GET https://34.24.52.111.sslip.io/api/v1/admin/users?role=administrador [200 OK, 606B, 109ms]
   ✓  responde 200
   ✓  existen al menos 2 administradores activos
 
@@ -130,10 +130,9 @@ Plataforma MOOC - Administracion
 ├─────────────────────────┼────────────────────┼────────────────────┤
 │              assertions │                 46 │                  0 │
 ├─────────────────────────┴────────────────────┴────────────────────┤
-│ total run duration: 5.4s                                          │
+│ total run duration: 4.8s                                          │
 ├───────────────────────────────────────────────────────────────────┤
-│ total data received: 6.62kB (approx)                              │
+│ total data received: 6.79kB (approx)                              │
 ├───────────────────────────────────────────────────────────────────┤
-│ average response time: 127ms [min: 81ms, max: 604ms, s.d.: 104ms] │
+│ average response time: 129ms [min: 86ms, max: 750ms, s.d.: 133ms] │
 └───────────────────────────────────────────────────────────────────┘
-[OK] collection_admin
