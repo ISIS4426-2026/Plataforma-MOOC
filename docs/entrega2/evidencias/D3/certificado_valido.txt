@@ -1,0 +1,89 @@
+================================================================================
+EVIDENCIA D3 - CRITERIO: CERTIFICADO TLS VÁLIDO SIN ADVERTENCIAS
+================================================================================
+Fecha de verificación: 2026-09-27 16:55:23 UTC
+Hostname DNS público: 34.24.52.111.sslip.io
+Entidad emisora (CA): Let's Encrypt Authority (YE1)
+Cifrado negociado: TLSv1.3 con TLS_AES_256_GCM_SHA384
+================================================================================
+
+--- 1. VERIFICACIÓN DE HANDSHAKE TLS CON CLIENTE PÚBLICO (curl -Iv) ---
+
+$ curl -Iv https://34.24.52.111.sslip.io/api/v1/health
+
+*   Trying 34.24.52.111:443...
+* Connected to 34.24.52.111.sslip.io (34.24.52.111) port 443 (#0)
+* ALPN, offering h2
+* ALPN, offering http/1.1
+*  CAfile: /etc/ssl/certs/ca-certificates.crt
+*  CApath: /etc/ssl/certs
+* TLSv1.0 (OUT), TLS header, Certificate Status (22):
+* TLSv1.3 (OUT), TLS handshake, Client hello (1):
+* TLSv1.2 (IN), TLS header, Certificate Status (22):
+* TLSv1.3 (IN), TLS handshake, Server hello (2):
+* TLSv1.2 (IN), TLS header, Finished (20):
+* TLSv1.2 (IN), TLS header, Supplemental data (23):
+* TLSv1.3 (IN), TLS handshake, Encrypted Extensions (8):
+* TLSv1.2 (IN), TLS header, Supplemental data (23):
+* TLSv1.3 (IN), TLS handshake, Certificate (11):
+* TLSv1.2 (IN), TLS header, Supplemental data (23):
+* TLSv1.3 (IN), TLS handshake, CERT verify (15):
+* TLSv1.2 (IN), TLS header, Supplemental data (23):
+* TLSv1.3 (IN), TLS handshake, Finished (20):
+* TLSv1.2 (OUT), TLS header, Finished (20):
+* TLSv1.3 (OUT), TLS change cipher, Change cipher spec (1):
+* TLSv1.2 (OUT), TLS header, Supplemental data (23):
+* TLSv1.3 (OUT), TLS handshake, Finished (20):
+* SSL connection using TLSv1.3 / TLS_AES_256_GCM_SHA384
+* ALPN, server accepted to use http/1.1
+* Server certificate:
+*  subject: CN=34.24.52.111.sslip.io
+*  start date: Sep 27 15:49:45 2026 GMT
+*  expire date: Dec 26 15:49:44 2026 GMT
+*  subjectAltName: host "34.24.52.111.sslip.io" matched cert's "34.24.52.111.sslip.io"
+*  issuer: C=US; O=Let's Encrypt; CN=YE1
+*  SSL certificate verify ok.
+> HEAD /api/v1/health HTTP/1.1
+> Host: 34.24.52.111.sslip.io
+> User-Agent: curl/7.81.0
+> Accept: */*
+> 
+< HTTP/1.1 200 OK
+< Server: nginx/1.27.5
+< Date: Sun, 27 Sep 2026 16:55:23 GMT
+< Content-Type: application/json
+< Content-Length: 82
+< Connection: keep-alive
+< X-Request-Id: 15374a72-f2b4-48e8-8d67-16f42b0c3a80
+
+--- 2. SIMULACIÓN DE RENOVACIÓN AUTÓNOMA (certbot renew --dry-run) ---
+
+$ sudo certbot renew --dry-run
+
+Saving debug log to /var/log/letsencrypt/letsencrypt.log
+
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Processing /etc/letsencrypt/renewal/34.24.52.111.sslip.io.conf
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Account registered.
+Simulating renewal of an existing certificate for 34.24.52.111.sslip.io
+
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Congratulations, all simulated renewals succeeded: 
+  /etc/letsencrypt/live/34.24.52.111.sslip.io/fullchain.pem (success)
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+--- 3. DEPLOY HOOK DE RECARGA DE NGINX CONFIGURADO ---
+
+$ cat /etc/letsencrypt/renewal-hooks/deploy/reload-nginx.sh
+#!/bin/sh
+docker compose -f /home/dfortizr1/mooc/docker-compose.prod.yml exec -T proxy nginx -s reload
+
+================================================================================
+CONCLUSIÓN:
+El certificado emitido por Let's Encrypt valida perfectamente contra el almacén
+público de CA del sistema operativo (SSL certificate verify ok) sin advertencias
+de emisor ni de nombre de host (subjectAltName coincide exactamente). Asimismo,
+el proceso de renovación automática vía Certbot y recarga en caliente de Nginx
+se encuentra validado y operativo.
+================================================================================

@@ -2,6 +2,8 @@ package config
 
 import (
 	"fmt"
+	"net"
+	"net/url"
 	"slices"
 	"strings"
 )
@@ -32,6 +34,18 @@ const (
 	localDBPassword = "moocpassword"
 	localS3Secret   = "minioadmin"
 	localMailHost   = "mailpit"
+
+	// Dominio del remitente por defecto del Compose de produccion. **No esta
+	// registrado**, comprobado con una consulta DNS: no resuelve. Un correo
+	// enviado desde ahi lo rechaza el proveedor --exige que el remitente este
+	// verificado-- o lo descarta el destinatario por SPF.
+	//
+	// El equipo decidio no comprar dominio (issue #126), asi que el remitente es
+	// una direccion real verificada como remitente unico en el proveedor. Este
+	// valor solo sobrevive a un despliegue si nadie lo configuro.
+	//
+	// Si algun dia se registra el dominio, esta constante se borra.
+	unregisteredMailDomain = "plataforma-mooc.online"
 )
 
 // Modos de sslmode que cifran de verdad, para el issue #118 (C1).
@@ -84,6 +98,11 @@ func (c *Config) Validate() error {
 			c.DBMaxIdleConns, c.DBMaxOpenConns))
 	}
 
+	if c.WorkerConcurrency < 0 {
+		problemas = append(problemas, fmt.Sprintf(
+			"WORKER_CONCURRENCY=%d no puede ser negativo", c.WorkerConcurrency))
+	}
+
 	if !strings.EqualFold(c.Environment, EnvironmentProduction) {
 		if len(problemas) == 0 {
 			return nil
@@ -122,23 +141,81 @@ func (c *Config) Validate() error {
 	// y, desde el issue #113, el de verificacion de insignias. Si apunta a
 	// localhost, nada de eso falla de forma visible: los correos se envian y los
 	// enlaces sencillamente no abren.
+	appOrigin, appOriginOK := httpsOrigin(c.AppBaseURL)
 	if c.AppBaseURL == "" {
 		problemas = append(problemas, "APP_BASE_URL vacio: los enlaces de los correos no se pueden construir")
 	} else if strings.Contains(c.AppBaseURL, "localhost") || strings.Contains(c.AppBaseURL, "127.0.0.1") {
-		problemas = append(problemas,
-			"APP_BASE_URL apunta a localhost: los enlaces de verificacion y de insignias no abririan para nadie")
+		problemas = append(problemas, "APP_BASE_URL apunta a localhost: los enlaces publicos no abririan para nadie")
+	} else if !appOriginOK {
+		problemas = append(problemas, "APP_BASE_URL debe ser un origen HTTPS publico sin rutas")
+	}
+	if net.ParseIP(c.TrustedProxyIP) == nil {
+		problemas = append(problemas, "TRUSTED_PROXY_IP debe ser la IP interna fija del proxy")
+	}
+
+	if len(c.CSRFAllowedOrigins) == 0 {
+		problemas = append(problemas, "CSRF_ALLOWED_ORIGINS vacio en produccion")
+	} else {
+		containsAppOrigin := false
+		for _, origin := range c.CSRFAllowedOrigins {
+			parsedOrigin, ok := httpsOrigin(origin)
+			if !ok || parsedOrigin != origin {
+				problemas = append(problemas, "CSRF_ALLOWED_ORIGINS debe contener solo origenes HTTPS sin rutas")
+				break
+			}
+			if appOriginOK && origin == appOrigin {
+				containsAppOrigin = true
+			}
+		}
+		if appOriginOK && !containsAppOrigin {
+			problemas = append(problemas, "CSRF_ALLOWED_ORIGINS debe incluir el origen de APP_BASE_URL")
+		}
 	}
 
 	// Mailpit es el buzon de desarrollo. En la nube el correo sale por un SMTP
-	// real (issue #126), y ademas Google bloquea el puerto 25 saliente, asi que
-	// el proveedor tiene que hablar por 587 o 465.
+	// real (issue #126), y ademas Google bloquea el puerto 25 saliente. Brevo
+	// soporta 587 (preferido), 465 y 2525 (alterno para redes restrictivas).
 	if strings.Contains(strings.ToLower(c.SMTPHost), localMailHost) {
 		problemas = append(problemas,
 			"SMTP_HOST apunta a mailpit: en produccion el correo sale por un SMTP real")
 	}
 	if c.SMTPPort == 25 {
 		problemas = append(problemas,
-			"SMTP_PORT=25: Google bloquea ese puerto saliente en Compute Engine y no se puede abrir; usar 587 o 465")
+			"SMTP_PORT=25: Google bloquea ese puerto saliente en Compute Engine y no se puede abrir; usar 587, 465 o 2525")
+	} else if !slices.Contains([]int{587, 465, 2525}, c.SMTPPort) {
+		problemas = append(problemas,
+			"SMTP_PORT no esta permitido en produccion: usar 587, 465 o 2525")
+	}
+
+	// Issue #126. Sin credenciales, internal/mailer/smtp.go omite la
+	// autenticacion por completo, el proveedor rechaza el mensaje y el fallo es
+	// invisible donde importa: **el registro funciona** --el usuario queda
+	// creado-- y el correo de verificacion no llega nunca. Quien se registra ve
+	// una cuenta que no puede activar y nadie ve un error.
+	//
+	// Es el mismo patron que el resto de este archivo: un valor que en local es
+	// correcto --Mailpit no autentica-- y en la nube significa que algo no se
+	// inyecto.
+	if c.SMTPUsername == "" {
+		problemas = append(problemas,
+			"SMTP_USERNAME vacio: sin credenciales el proveedor rechaza el correo y el registro parece funcionar sin que llegue nada")
+	}
+	if c.SMTPPassword == "" {
+		problemas = append(problemas,
+			"SMTP_PASSWORD vacio: la contrasena del proveedor vive en Secret Manager y se inyecta en ejecucion")
+	}
+
+	// El remitente tiene que ser el que este verificado en el proveedor. La
+	// aplicacion no puede comprobar eso, pero si puede descartar los dos casos
+	// que garantizan un fallo: vacio, y el dominio de ejemplo que no existe.
+	if c.SMTPFrom == "" {
+		problemas = append(problemas, "SMTP_FROM vacio: hace falta el remitente verificado en el proveedor")
+	} else if strings.Contains(strings.ToLower(c.SMTPFrom), unregisteredMailDomain) {
+		problemas = append(problemas, fmt.Sprintf(
+			"SMTP_FROM usa %s, que no es un dominio registrado: el proveedor exige un remitente verificado",
+			unregisteredMailDomain))
+	} else if !strings.Contains(c.SMTPFrom, "@") {
+		problemas = append(problemas, "SMTP_FROM no parece una direccion de correo")
 	}
 
 	// La instancia de Cloud SQL del issue #118 no tiene IP publica y esta en
@@ -169,6 +246,15 @@ func (c *Config) Validate() error {
 		return nil
 	}
 	return unError(problemas)
+}
+
+func httpsOrigin(raw string) (string, bool) {
+	parsed, err := url.Parse(raw)
+	if err != nil || parsed.Scheme != "https" || parsed.Host == "" || parsed.User != nil ||
+		parsed.Path != "" || parsed.RawQuery != "" || parsed.Fragment != "" {
+		return "", false
+	}
+	return parsed.Scheme + "://" + parsed.Host, true
 }
 
 // unError junta los problemas en un solo mensaje. Quien despliega prefiere una

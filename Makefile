@@ -1,4 +1,4 @@
-.PHONY: all build fmt vet lint test test-migrations demo-segment4 demo-segments-1-2 test-stage test-e2e test-postman test-postman-identity test-postman-admin test-postman-authoring test-postman-enrollments test-postman-progress test-postman-quizzes test-postman-media seed seed-clean seed-reset seed-status seed-capacity seed-media check clean run-api run-worker docker-up docker-down
+.PHONY: all build fmt vet lint test test-migrations demo-segment4 demo-segments-1-2 test-stage test-e2e test-postman test-postman-identity test-postman-admin test-postman-authoring test-postman-enrollments test-postman-progress test-postman-quizzes test-postman-media test-postman-cloud seed seed-clean seed-reset seed-status seed-capacity seed-media check clean run-api run-worker docker-up docker-down
 
 all: check
 
@@ -102,6 +102,14 @@ test-postman-quizzes:
 		-e /etc/newman/mooc_docker.postman_environment.json
 
 test-postman: test-postman-identity test-postman-admin test-postman-authoring test-postman-enrollments test-postman-progress test-postman-quizzes test-postman-media
+
+# Corre seis colecciones contra el despliegue real en la nube (issue #128,
+# G2). A diferencia de los objetivos test-postman-* de arriba, no puede
+# limpiar el limitador de login entre colecciones (no hay acceso a Redis
+# desde fuera de la VPC), asi que scripts/test_postman_cloud.sh espacia las
+# corridas en su lugar. Tarda varios minutos por eso.
+test-postman-cloud:
+	@bash ./scripts/test_postman_cloud.sh
 
 seed:
 	@./scripts/seed.sh --load

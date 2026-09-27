@@ -5,6 +5,7 @@ package mailer
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
 	"mime"
 	"net"
@@ -21,22 +22,40 @@ import (
 // on the critical path of registration, so it must fail rather than hang.
 const dialTimeout = 10 * time.Second
 
+// implicitTLSPort es el puerto en el que la sesion va cifrada desde el primer
+// byte, sin STARTTLS (issue #126).
+//
+// Importa porque los dos puertos hablan protocolos distintos: en el 587 se abre
+// en claro y se asciende con STARTTLS, y en el 465 hay que negociar TLS antes de
+// decir nada. Marcar el numero de puerto y no una opcion de configuracion evita
+// una combinacion imposible --465 sin cifrado, 587 con TLS desde el principio--
+// y una pregunta menos para quien despliega.
+//
+// Sin esto, configurar el 465 no da un error de cifrado: la conexion se queda
+// esperando hasta agotar el tiempo, porque el servidor aguarda un saludo TLS que
+// nunca llega.
+const implicitTLSPort = 465
+
 // SMTPMailer is the SMTP implementation of domain.Mailer.
 type SMTPMailer struct {
 	addr     string
 	from     string
 	username string
 	password string
+
+	// implicitTLS distingue el 465 del 587. Ver implicitTLSPort.
+	implicitTLS bool
 }
 
 var _ domain.Mailer = (*SMTPMailer)(nil)
 
 func NewSMTPMailer(cfg *config.Config) *SMTPMailer {
 	return &SMTPMailer{
-		addr:     net.JoinHostPort(cfg.SMTPHost, strconv.Itoa(cfg.SMTPPort)),
-		from:     cfg.SMTPFrom,
-		username: cfg.SMTPUsername,
-		password: cfg.SMTPPassword,
+		addr:        net.JoinHostPort(cfg.SMTPHost, strconv.Itoa(cfg.SMTPPort)),
+		from:        cfg.SMTPFrom,
+		username:    cfg.SMTPUsername,
+		password:    cfg.SMTPPassword,
+		implicitTLS: cfg.SMTPPort == implicitTLSPort,
 	}
 }
 
@@ -47,6 +66,13 @@ func NewSMTPMailer(cfg *config.Config) *SMTPMailer {
 // which fails certificate verification against a container hostname like
 // "mailpit". Here TLS is upgraded only when credentials are configured, which
 // is the case that actually needs protecting.
+//
+// Issue #126. Cuando hay credenciales, el cifrado dejo de ser opcional. Antes se
+// intentaba STARTTLS solo si el servidor lo anunciaba y, si no lo anunciaba, la
+// sesion continuaba en claro con la contrasena dentro. Go lo frena por su cuenta
+// --smtp.PlainAuth se niega a autenticar sin cifrado-- pero el error que produce
+// habla de una conexion sin cifrar y no dice que el servidor no ofrecio STARTTLS,
+// que es la causa. Ahora se comprueba aqui y el mensaje lo dice.
 func (m *SMTPMailer) Send(ctx context.Context, to string, subject string, body string) error {
 	if err := validateHeaderValue(to); err != nil {
 		return fmt.Errorf("invalid recipient: %w", err)
@@ -55,10 +81,9 @@ func (m *SMTPMailer) Send(ctx context.Context, to string, subject string, body s
 		return fmt.Errorf("invalid subject: %w", err)
 	}
 
-	dialer := &net.Dialer{Timeout: dialTimeout}
-	conn, err := dialer.DialContext(ctx, "tcp", m.addr)
+	conn, err := m.dial(ctx)
 	if err != nil {
-		return fmt.Errorf("dial smtp server %s: %w", m.addr, err)
+		return err
 	}
 
 	client, err := smtp.NewClient(conn, m.host())
@@ -69,11 +94,23 @@ func (m *SMTPMailer) Send(ctx context.Context, to string, subject string, body s
 	defer client.Close()
 
 	if m.username != "" {
-		if ok, _ := client.Extension("STARTTLS"); ok {
-			if err := client.StartTLS(nil); err != nil {
+		// En el 465 la conexion ya viene cifrada; en el 587 hay que ascenderla.
+		if !m.implicitTLS {
+			ok, _ := client.Extension("STARTTLS")
+			if !ok {
+				return fmt.Errorf(
+					"el servidor %s no ofrece STARTTLS y hay credenciales configuradas: "+
+						"enviarlas sin cifrar no es aceptable; revisa el puerto (587 con STARTTLS, 465 con TLS directo)",
+					m.addr)
+			}
+			if err := client.StartTLS(&tls.Config{
+				MinVersion: tls.VersionTLS12,
+				ServerName: m.host(),
+			}); err != nil {
 				return fmt.Errorf("start tls: %w", err)
 			}
 		}
+
 		auth := smtp.PlainAuth("", m.username, m.password, m.host())
 		if err := client.Auth(auth); err != nil {
 			return fmt.Errorf("smtp authentication: %w", err)
@@ -101,6 +138,36 @@ func (m *SMTPMailer) Send(ctx context.Context, to string, subject string, body s
 	}
 
 	return client.Quit()
+}
+
+// dial abre la conexion, cifrada desde el principio si el puerto es el de TLS
+// implicito.
+func (m *SMTPMailer) dial(ctx context.Context) (net.Conn, error) {
+	dialer := &net.Dialer{Timeout: dialTimeout}
+
+	if !m.implicitTLS {
+		conn, err := dialer.DialContext(ctx, "tcp", m.addr)
+		if err != nil {
+			return nil, fmt.Errorf("dial smtp server %s: %w", m.addr, err)
+		}
+		return conn, nil
+	}
+
+	// tls.Dialer respeta el contexto, a diferencia de tls.Dial. Importa porque
+	// enviar correo esta en el camino critico del registro: si el servidor no
+	// responde, la peticion tiene que fallar y no quedarse colgada.
+	tlsDialer := &tls.Dialer{
+		NetDialer: dialer,
+		Config: &tls.Config{
+			MinVersion: tls.VersionTLS12,
+			ServerName: m.host(),
+		},
+	}
+	conn, err := tlsDialer.DialContext(ctx, "tcp", m.addr)
+	if err != nil {
+		return nil, fmt.Errorf("dial smtp server %s con TLS directo: %w", m.addr, err)
+	}
+	return conn, nil
 }
 
 func (m *SMTPMailer) host() string {

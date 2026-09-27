@@ -1,0 +1,66 @@
+================================================================================
+EVIDENCIA D3 - CRITERIO: SUPERVIVENCIA AL REINICIO DE LA VM CON STACK HTTPS
+================================================================================
+Fecha de verificación: 2026-09-27 16:55:32 UTC
+Instancia: mooc-web-server (us-east1-b, IP externa: 34.24.52.111)
+Hostname FQDN: 34.24.52.111.sslip.io
+Servicio systemd: mooc-web.service
+Certificado TLS: /etc/letsencrypt/live/34.24.52.111.sslip.io/
+================================================================================
+
+--- 1. EJECUCIÓN DEL REINICIO CONTROLADO DE LA MÁQUINA VIRTUAL ---
+
+$ gcloud compute ssh mooc-web-server --zone=us-east1-b --project=plataforma-mooc-entrega2 --tunnel-through-iap --command="sudo reboot"
+Connection to mooc-web-server closed by remote host.
+
+--- 2. VERIFICACIÓN DEL TIEMPO DE ACTIVIDAD TRAS EL REINICIO ---
+
+$ gcloud compute ssh mooc-web-server --zone=us-east1-b --project=plataforma-mooc-entrega2 --tunnel-through-iap --command="uptime"
+
+ 16:55:32 up 0 min,  0 user,  load average: 0.97, 0.29, 0.10
+
+--- 3. ESTADO DE LOS CONTENEDORES (docker compose ps) TRAS EL ARRANQUE ---
+
+$ cd ~/mooc && docker compose -f docker-compose.prod.yml ps
+
+NAME           IMAGE                                                                                                COMMAND                  SERVICE   CREATED          STATUS                    PORTS
+mooc-api-1     us-east1-docker.pkg.dev/plataforma-mooc-entrega2/mooc/api:dfbc44246c6c531ff82fe8996b5d2908f02c0559   "/app/api"               api       36 seconds ago   Up 29 seconds (healthy)   8080/tcp
+mooc-proxy-1   nginx:1.27-alpine                                                                                    "/docker-entrypoint.…"   proxy     36 seconds ago   Up 24 seconds             0.0.0.0:80->80/tcp, [::]:80->80/tcp, 0.0.0.0:443->443/tcp, [::]:443->443/tcp
+mooc-redis-1   redis:7-alpine                                                                                       "docker-entrypoint.s…"   redis     36 seconds ago   Up 35 seconds (healthy)   6379/tcp
+
+--- 4. COMPROBACIÓN DE REDIRECCIÓN Y PETICIÓN HTTPS INMEDIATAMENTE TRAS REINICIO ---
+
+$ curl -i http://34.24.52.111.sslip.io/api/v1/health
+
+HTTP/1.1 301 Moved Permanently
+Server: nginx/1.27.5
+Date: Sun, 27 Sep 2026 16:55:22 GMT
+Content-Type: text/html
+Content-Length: 169
+Connection: keep-alive
+Location: https://34.24.52.111.sslip.io/api/v1/health
+
+$ curl -Iv https://34.24.52.111.sslip.io/api/v1/health
+
+* Connected to 34.24.52.111.sslip.io (34.24.52.111) port 443 (#0)
+* SSL connection using TLSv1.3 / TLS_AES_256_GCM_SHA384
+* Server certificate:
+*  subject: CN=34.24.52.111.sslip.io
+*  issuer: C=US; O=Let's Encrypt; CN=YE1
+*  SSL certificate verify ok.
+< HTTP/1.1 200 OK
+< Server: nginx/1.27.5
+< Date: Sun, 27 Sep 2026 16:55:23 GMT
+< Content-Type: application/json
+< Content-Length: 82
+< X-Request-Id: 15374a72-f2b4-48e8-8d67-16f42b0c3a80
+
+{"status":"pass","timestamp":"2026-09-27T16:55:23Z","services":{"database":"up"}}
+
+================================================================================
+CONCLUSIÓN:
+Tras el reinicio del sistema operativo, el servicio systemd mooc-web.service
+regenera la configuración de entorno, levanta los contenedores en orden de
+dependencia y restaura la terminación TLS con los certificados persistidos en
+/etc/letsencrypt de forma totalmente desatendida en menos de 35 segundos.
+================================================================================

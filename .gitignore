@@ -31,6 +31,8 @@ vendor/
 
 # Docker volumes / local data
 local_data/
+certbot/www/*
+!certbot/www/.gitkeep
 
 # Video de prueba generado con ffmpeg para el flujo de multimedia
 clase.mp4

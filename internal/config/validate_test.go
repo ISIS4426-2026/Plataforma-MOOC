@@ -1,6 +1,7 @@
 package config_test
 
 import (
+	"strconv"
 	"strings"
 	"testing"
 
@@ -12,13 +13,23 @@ import (
 // suma de varias.
 func produccionValida() *config.Config {
 	return &config.Config{
-		Environment:    config.EnvironmentProduction,
-		DatabaseURL:    "postgres://moocuser:UnaContrasenaDeVerdad@10.0.0.3:5432/moocdb?sslmode=require",
-		StorageBackend: "gcs",
-		S3Bucket:       "plataforma-mooc-media",
-		AppBaseURL:     "https://mooc.example.com",
-		SMTPHost:       "smtp.sendgrid.net",
-		SMTPPort:       587,
+		Environment:        config.EnvironmentProduction,
+		DatabaseURL:        "postgres://moocuser:UnaContrasenaDeVerdad@10.0.0.3:5432/moocdb?sslmode=require",
+		StorageBackend:     "gcs",
+		S3Bucket:           "plataforma-mooc-media",
+		AppBaseURL:         "https://mooc.example.com",
+		CSRFAllowedOrigins: []string{"https://mooc.example.com"},
+		TrustedProxyIP:     "172.30.0.2",
+		SMTPHost:           "smtp.sendgrid.net",
+		SMTPPort:           587,
+
+		// Issue #126. El proveedor exige autenticacion y un remitente
+		// verificado; sin credenciales el correo no sale y el fallo es
+		// invisible. El remitente es una direccion verificada como remitente
+		// unico, porque el equipo decidio no comprar dominio.
+		SMTPUsername: "apikey",
+		SMTPPassword: "UnaClaveDelProveedor",
+		SMTPFrom:     "no-reply@correo-verificado.test",
 
 		// El pool dimensionado contra el max_connections de la instancia del
 		// issue #118. Ver el reparto en infra/terraform/database.tf.
@@ -73,9 +84,25 @@ func TestValidateRechazaValoresDeDesarrolloEnProduccion(t *testing.T) {
 			func(c *config.Config) { c.AppBaseURL = "http://localhost:8080" },
 			"APP_BASE_URL",
 		},
+		"la URL publica no usa HTTPS": {
+			func(c *config.Config) { c.AppBaseURL = "http://mooc.example.com" },
+			"APP_BASE_URL",
+		},
 		"no hay origen público configurado": {
 			func(c *config.Config) { c.AppBaseURL = "" },
 			"APP_BASE_URL",
+		},
+		"la lista CSRF esta vacia": {
+			func(c *config.Config) { c.CSRFAllowedOrigins = nil },
+			"CSRF_ALLOWED_ORIGINS",
+		},
+		"la lista CSRF no incluye el origen publico": {
+			func(c *config.Config) { c.CSRFAllowedOrigins = []string{"https://otro.example.com"} },
+			"CSRF_ALLOWED_ORIGINS",
+		},
+		"la lista CSRF contiene una ruta y no un origen": {
+			func(c *config.Config) { c.CSRFAllowedOrigins = []string{"https://mooc.example.com/app"} },
+			"CSRF_ALLOWED_ORIGINS",
 		},
 		"el correo sigue saliendo por mailpit": {
 			func(c *config.Config) { c.SMTPHost = "mailpit" },
@@ -83,6 +110,10 @@ func TestValidateRechazaValoresDeDesarrolloEnProduccion(t *testing.T) {
 		},
 		"el SMTP usa el puerto que Google bloquea": {
 			func(c *config.Config) { c.SMTPPort = 25 },
+			"SMTP_PORT",
+		},
+		"el SMTP usa un puerto no aprobado": {
+			func(c *config.Config) { c.SMTPPort = 1025 },
 			"SMTP_PORT",
 		},
 		"la conexion a la base no exige cifrado": {
@@ -102,6 +133,26 @@ func TestValidateRechazaValoresDeDesarrolloEnProduccion(t *testing.T) {
 				c.DatabaseURL = "postgres://moocuser:UnaContrasena@10.0.0.3:5432/moocdb"
 			},
 			"sslmode",
+		},
+		"el proveedor de correo no recibe credenciales": {
+			func(c *config.Config) { c.SMTPUsername = "" },
+			"SMTP_USERNAME",
+		},
+		"falta la contrasena del proveedor de correo": {
+			func(c *config.Config) { c.SMTPPassword = "" },
+			"SMTP_PASSWORD",
+		},
+		"el remitente esta vacio": {
+			func(c *config.Config) { c.SMTPFrom = "" },
+			"SMTP_FROM",
+		},
+		"el remitente usa el dominio de ejemplo, que no existe": {
+			func(c *config.Config) { c.SMTPFrom = "no-reply@plataforma-mooc.online" },
+			"SMTP_FROM",
+		},
+		"el remitente no es una direccion": {
+			func(c *config.Config) { c.SMTPFrom = "no-reply" },
+			"SMTP_FROM",
 		},
 		"el pool no tiene limite frente a una instancia que si lo tiene": {
 			func(c *config.Config) { c.DBMaxOpenConns = 0; c.DBMaxIdleConns = 0 },
@@ -147,6 +198,7 @@ func TestValidateReportaTodosLosProblemasJuntos(t *testing.T) {
 	cfg.S3Bucket = "mooc-storage"
 	cfg.S3SecretKey = "minioadmin"
 	cfg.AppBaseURL = "http://localhost:8080"
+	cfg.CSRFAllowedOrigins = nil
 	cfg.SMTPHost = "mailpit"
 	cfg.SMTPPort = 25
 
@@ -155,7 +207,7 @@ func TestValidateReportaTodosLosProblemasJuntos(t *testing.T) {
 		t.Fatal("una configuración enteramente de desarrollo fue aceptada en producción")
 	}
 
-	for _, esperado := range []string{"DATABASE_URL", "STORAGE_BACKEND", "S3_BUCKET", "S3_SECRET_KEY", "APP_BASE_URL", "SMTP_HOST", "SMTP_PORT"} {
+	for _, esperado := range []string{"DATABASE_URL", "STORAGE_BACKEND", "S3_BUCKET", "S3_SECRET_KEY", "APP_BASE_URL", "CSRF_ALLOWED_ORIGINS", "SMTP_HOST", "SMTP_PORT"} {
 		if !strings.Contains(err.Error(), esperado) {
 			t.Errorf("el error omite %s: quien despliega tendría que arrancar otra vez para descubrirlo", esperado)
 		}
@@ -224,5 +276,75 @@ func TestValidateRechazaMasConexionesInactivasQueAbiertas(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "DB_MAX_IDLE_CONNS") {
 		t.Errorf("el error no menciona DB_MAX_IDLE_CONNS:\n%v", err)
+	}
+}
+
+// Issue #126. El equipo decidio no comprar dominio, asi que el remitente por
+// defecto del Compose de produccion --plataforma-mooc.online-- no esta
+// registrado: no resuelve en DNS.
+//
+// Merece prueba propia porque es el unico caso de este archivo donde el valor
+// rechazado no es «de desarrollo» sino «de ejemplo»: parece un remitente de
+// produccion perfectamente valido, y es precisamente eso lo que lo hace
+// peligroso. Un correo enviado desde ahi lo rechaza el proveedor por remitente
+// no verificado, o lo descarta el destinatario por SPF, y en ninguno de los dos
+// casos se entera quien despliega.
+func TestValidateRechazaElRemitenteDelDominioSinRegistrar(t *testing.T) {
+	for _, remitente := range []string{
+		"no-reply@plataforma-mooc.online",
+		"NO-REPLY@Plataforma-MOOC.Online", // el rechazo no depende de las mayusculas
+		"soporte@plataforma-mooc.online",
+	} {
+		t.Run(remitente, func(t *testing.T) {
+			cfg := produccionValida()
+			cfg.SMTPFrom = remitente
+
+			err := cfg.Validate()
+
+			if err == nil {
+				t.Fatalf("se acepto %q, que no puede entregar correo", remitente)
+			}
+			if !strings.Contains(err.Error(), "SMTP_FROM") {
+				t.Errorf("el error no menciona SMTP_FROM:%s%v", "\n", err)
+			}
+		})
+	}
+}
+
+// Un remitente de un dominio cualquiera si vale: la aplicacion no puede saber
+// que remitentes tiene verificados el proveedor, y fingir que lo sabe seria
+// rechazar configuraciones correctas.
+func TestValidateAceptaUnRemitenteDeOtroDominio(t *testing.T) {
+	cfg := produccionValida()
+	cfg.SMTPFrom = "avisos@midominio-real.com"
+
+	if err := cfg.Validate(); err != nil {
+		t.Fatalf("se rechazo un remitente valido: %v", err)
+	}
+}
+
+func TestValidateAceptaLosPuertosSMTPDelProveedor(t *testing.T) {
+	for _, port := range []int{587, 465, 2525} {
+		t.Run(strconv.Itoa(port), func(t *testing.T) {
+			cfg := produccionValida()
+			cfg.SMTPPort = port
+
+			if err := cfg.Validate(); err != nil {
+				t.Fatalf("se rechazo el puerto SMTP %d: %v", port, err)
+			}
+		})
+	}
+}
+
+func TestValidateRechazaWorkerConcurrencyNegativa(t *testing.T) {
+	cfg := produccionValida()
+	cfg.WorkerConcurrency = -1
+
+	err := cfg.Validate()
+	if err == nil {
+		t.Fatal("se acepto una concurrencia de workers negativa")
+	}
+	if !strings.Contains(err.Error(), "WORKER_CONCURRENCY") {
+		t.Errorf("el error no menciona WORKER_CONCURRENCY:\n%v", err)
 	}
 }

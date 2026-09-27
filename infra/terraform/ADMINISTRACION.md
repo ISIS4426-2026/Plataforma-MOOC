@@ -204,7 +204,9 @@ Issue **B4** (#117). Qué es secreto, dónde vive en cada entorno y cómo se rot
 | :--- | :--- | :--- |
 | `POSTGRES_PASSWORD` · `DATABASE_URL` | Valor por defecto de `docker-compose.yml` | **Secret Manager** → `TF_VAR_db_password` y el Compose de la VM |
 | `MINIO_ROOT_PASSWORD` · `S3_ACCESS_KEY` · `S3_SECRET_KEY` | Valor por defecto de `docker-compose.yml` | **No existen.** Con `STORAGE_BACKEND=gcs` las credenciales vienen de la cuenta de servicio adjunta a la VM |
-| `SMTP_USERNAME` · `SMTP_PASSWORD` | Vacías: Mailpit no autentica | **Secret Manager**, credenciales del proveedor (issue #126) |
+| `SMTP_PASSWORD` | Vacía: Mailpit no autentica | **Secret Manager** → `smtp-password`, leído por `sa-web-server` (issue #126) |
+| `SMTP_USERNAME` | Vacía | **Variable normal.** No es un secreto: en SendGrid es la cadena literal `apikey` y en Brevo el correo de la cuenta |
+| `SMTP_FROM` | Remitente de mentira | **Variable normal.** Debe ser el remitente verificado en el proveedor |
 | Credenciales de Terraform | — | **No existen.** Cada integrante usa su identidad personal (ADC) |
 | Credenciales de las VMs | — | **No existen.** Cuenta de servicio adjunta, sin archivo de llave |
 
@@ -322,12 +324,12 @@ el informe de facturación.
 | Bucket del estado de Terraform | 79,77 KiB | ~0,00 USD | Se creó fuera de Terraform; si `destroy` se lo llevara, se llevaría el registro de lo que hay que reconstruir |
 | Bucket de multimedia (C3) | 4 B (solo los prefijos) | ~0,00 USD | Lo gestiona `storage.tf`; con datos reales sí crecería |
 | Artifact Registry (D1) | 106,39 MB | **0,00 USD** | Por debajo del medio gigabyte gratuito. Conservar las imágenes es lo que hace rápida la recreación |
-| Secret Manager | 1 secreto, 1 versión activa | ~0,06 USD | Su ciclo de vida lo gobierna este documento, no el código |
+| Secret Manager | 2 secretos, 2 versiones activas | ~0,12 USD | Contraseñas de base de datos y SMTP; sus valores no pasan por Terraform |
 | VPC, subred, firewall, rango reservado | — | 0,00 USD | No se factura su existencia |
 | Cloud NAT | — | ~0,00 USD **sin VMs** | Se factura por instancia-hora y por datos; con cero VMs no cobra |
 | APIs habilitadas | — | 0,00 USD | Habilitar una API no cuesta; solo los recursos que se creen con ella |
 
-**Total conservado: del orden de 0,06 USD al mes.**
+**Total conservado: del orden de 0,12 USD al mes.**
 
 La conclusión es robusta aunque los precios unitarios varíen, porque **todas las
 cantidades están órdenes de magnitud por debajo de los umbrales de pago**: 106 MB
@@ -345,3 +347,105 @@ precisamente lo que se elimina.
 
 El primero es el que sorprende: una copia de seguridad no es un respaldo si vive
 dentro de lo que vas a borrar.
+
+---
+
+## Correo transaccional en la nube
+
+Issue **F1** (#126). El proveedor elegido es **Brevo SMTP**, plan gratuito:
+`smtp-relay.brevo.com:587` con STARTTLS. Permite 300 envíos diarios, suficiente
+para las pruebas funcionales. El equipo no comprará dominio, por lo que se usa
+un remitente individual verificado con el código que Brevo envía a esa dirección.
+Brevo puede reemplazar visualmente remitentes de dominios gratuitos; es una
+limitación de entrega aceptada, no afecta los enlaces de la plataforma.
+
+Referencias del proveedor:
+
+- <https://help.brevo.com/hc/en-us/articles/7924908994450>
+- <https://help.brevo.com/hc/en-us/articles/208836149>
+- <https://help.brevo.com/hc/en-us/articles/10905415650322>
+
+### 1. Configurar Brevo
+
+1. Crear la cuenta gratuita.
+2. En **Settings → Senders, Domains & Dedicated IPs → Senders**, añadir el correo
+   remitente y verificar el código de seis dígitos.
+3. En **Settings → SMTP & API**, copiar el **SMTP login** y crear una **SMTP
+   key**. La clave se muestra una sola vez. No usar una API key.
+
+### 2. Crear el contenedor con Terraform
+
+`mail.tf` crea `smtp-password` y concede lectura únicamente a
+`sa-web-server`. Se mezcla primero y se ejecuta `terraform apply` desde
+`main`. Las altas propias de F1 son **2 to add**: el secreto vacío y su permiso
+IAM. En el estado actual también aparece **1 to change** sobre
+`google_sql_user.app`: elimina una marca CR que Git Bash dejó en el estado y
+reconcilia la contraseña con la versión de Secret Manager. Es una corrección
+única; el plan debe mantener **0 to destroy**.
+
+### 3. Añadir el valor sin guardarlo en disco
+
+```bash
+gcloud secrets versions add smtp-password \
+  --project=plataforma-mooc-entrega2 --data-file=-
+# Pegar la SMTP key, luego Ctrl+D (Ctrl+Z y Enter en Windows).
+```
+
+Con `--data-file=-` la clave no pasa por el historial ni por Terraform. El
+login SMTP no es la clave: Brevo muestra un correo técnico que puede terminar en
+`@smtp-brevo.com`.
+
+### 4. Configurar la VM sin datos personales en Git
+
+En `mooc-web-server`, crear el archivo de configuración operativa:
+
+```bash
+sudo install -d -m 0755 /etc/mooc
+sudo tee /etc/mooc/web.conf >/dev/null <<'EOF'
+IMAGE_TAG=<SHA_COMPLETO_DE_LA_IMAGEN_PUBLICADA>
+APP_DOMAIN=34.24.52.111.sslip.io
+DB_PRIVATE_IP=10.171.240.3
+SMTP_HOST=smtp-relay.brevo.com
+SMTP_PORT=587
+SMTP_FROM=<CORREO_REMITENTE_VERIFICADO>
+SMTP_USERNAME=<LOGIN_SMTP_DE_BREVO>
+EOF
+sudo chmod 600 /etc/mooc/web.conf
+```
+
+Ese archivo no contiene contraseñas, pero queda fuera del repositorio porque el
+remitente y el login identifican la cuenta del equipo.
+
+El script versionado sustituye el `prepare_env.sh` manual de D2. Lee
+`db-password` y `smtp-password` con la cuenta de servicio de la VM, escribe
+`.env` con modo 600 y no imprime los valores:
+
+```bash
+cd ~/mooc
+chmod +x scripts/prepare_web_env.sh
+ln -sfn scripts/prepare_web_env.sh prepare_env.sh
+./prepare_env.sh
+sudo systemctl restart mooc-web.service
+sudo systemctl --no-pager status mooc-web.service
+```
+
+No reiniciar antes de crear la versión de `smtp-password`: la validación de
+producción detendrá la API si falta una credencial, un remitente o un puerto
+admitido.
+
+### Plan alterno si SMTP saliente falla
+
+1. Probar 587 desde la VM: `nc -vz smtp-relay.brevo.com 587`.
+2. Si la red lo bloquea, cambiar `SMTP_PORT` a **465** (TLS desde el primer
+   byte). El cliente ya implementa ese protocolo.
+3. Si también falla, usar **2525** con STARTTLS, puerto alterno soportado por
+   Brevo.
+4. Si los tres puertos estuvieran bloqueados, la alternativa es implementar el
+   adaptador de API transaccional de Brevo sobre HTTPS/443. Hasta hacerlo se
+   documenta como limitación y no se declara la prueba F1 como aprobada.
+
+### Rotar la credencial
+
+Crear una SMTP key nueva en Brevo, añadirla como versión de `smtp-password`,
+reiniciar solo la API y comprobar un correo. Revocar la clave anterior después
+de esa prueba. El worker no usa SMTP.

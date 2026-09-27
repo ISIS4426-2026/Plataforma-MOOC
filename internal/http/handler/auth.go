@@ -18,6 +18,8 @@ import (
 // attempt to make the server buffer arbitrary input.
 const maxAuthBodyBytes = 16 << 10 // 16 KiB
 
+const SessionCookieName = "__Host-mooc_session"
+
 // AuthHandler exposes public registration, email verification and session
 // management over /api/v1/auth.
 type AuthHandler struct {
@@ -191,6 +193,8 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	http.SetCookie(w, sessionCookie(result.Token, result.Session.ExpiresAt))
+
 	RespondWithJSON(w, http.StatusOK, loginResponse{
 		Token:     result.Token,
 		ExpiresAt: result.Session.ExpiresAt,
@@ -244,7 +248,7 @@ func (h *AuthHandler) ResetPassword(w http.ResponseWriter, r *http.Request) {
 
 // Logout handles POST /api/v1/auth/logout and revokes the presented session.
 func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
-	token, ok := BearerToken(r)
+	token, ok := SessionToken(r)
 	if !ok {
 		RespondWithError(w, http.StatusUnauthorized, "unauthorized",
 			"Se requiere un token de sesión.", nil)
@@ -254,6 +258,10 @@ func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 	if err := h.service.Logout(r.Context(), token); err != nil {
 		h.respondAuthError(w, r, err)
 		return
+	}
+
+	if cookie, err := r.Cookie(SessionCookieName); err == nil && cookie.Value == token {
+		http.SetCookie(w, expiredSessionCookie())
 	}
 
 	w.WriteHeader(http.StatusNoContent)
@@ -390,12 +398,47 @@ func BearerToken(r *http.Request) (string, bool) {
 	return token, true
 }
 
-// clientIP reports the peer address of the connection.
-//
-// Forwarding headers are deliberately ignored: any client can set
-// X-Forwarded-For, so trusting it would let a caller forge the address written
-// into the session record. A proxy-aware version needs a configured list of
-// trusted proxies.
+// SessionToken prefers an explicitly supplied bearer token, then falls back to
+// the browser's session cookie.
+func SessionToken(r *http.Request) (string, bool) {
+	if strings.TrimSpace(r.Header.Get("Authorization")) != "" {
+		return BearerToken(r)
+	}
+
+	cookie, err := r.Cookie(SessionCookieName)
+	if err != nil || cookie.Value == "" {
+		return "", false
+	}
+	return cookie.Value, true
+}
+
+func sessionCookie(token string, expiresAt time.Time) *http.Cookie {
+	return &http.Cookie{
+		Name:     SessionCookieName,
+		Value:    token,
+		Path:     "/",
+		Expires:  expiresAt,
+		HttpOnly: true,
+		Secure:   true,
+		SameSite: http.SameSiteLaxMode,
+	}
+}
+
+func expiredSessionCookie() *http.Cookie {
+	return &http.Cookie{
+		Name:     SessionCookieName,
+		Value:    "",
+		Path:     "/",
+		MaxAge:   -1,
+		HttpOnly: true,
+		Secure:   true,
+		SameSite: http.SameSiteLaxMode,
+	}
+}
+
+// clientIP reports the peer address after ForwardedHeaders has applied metadata
+// from the configured trusted proxy. Requests from other peers retain their
+// actual connection address.
 func clientIP(r *http.Request) string {
 	host, _, err := net.SplitHostPort(r.RemoteAddr)
 	if err != nil {
