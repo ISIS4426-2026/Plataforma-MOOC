@@ -44,6 +44,14 @@ locals {
     # donde el equipo comparte la contrasena de la base, con el mismo IAM que
     # gobierna todo lo demas y dejando registro de quien la lee.
     "secretmanager.googleapis.com",
+
+    # Politicas de agentes de observabilidad (H1, issue #131). Instala el Ops
+    # Agent en las VMs existentes sin recrearlas: cambiar
+    # metadata_startup_script en un google_compute_instance ya desplegado
+    # fuerza su reemplazo (verificado con `terraform plan`, ver
+    # docs/entrega2/evidencias/H1), asi que el agente se instala por esta via
+    # -- una politica de OS Config -- en lugar de por el startup-script.
+    "osconfig.googleapis.com",
   ]
 }
 

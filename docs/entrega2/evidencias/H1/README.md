@@ -1,0 +1,178 @@
+# Evidencia H1 — Instrumentación de las corridas y generador de carga externo (issue #131)
+
+## Estado
+
+| | |
+| :--- | :--- |
+| CPU/memoria/red/disco de ambas VMs, mediante agente | ✅ Política de Ops Agent creada y aplicada (`rolloutState: SUCCEEDED`) — ⏳ confirmación de que ya reportan datos, pendiente (ver abajo) |
+| Conexiones y carga de la base administrada | ✅ Cloud SQL expone estas métricas de forma nativa, sin agente — ver "Base de datos administrada" |
+| Profundidad, antigüedad y tasa de procesamiento de la cola | ✅ [`internal/worker/queue_metrics.go`](../../../../internal/worker/queue_metrics.go) — nuevo, no existía antes |
+| Apuntar al entorno cloud las métricas Prometheus de la Entrega 1 | ⏳ Diseñado, no aplicado — requiere reiniciar las VMs (ver "Lo que queda fuera") |
+| Elegir la herramienta de carga, registrar nombre y versión, justificarla | ✅ Apache JMeter (imagen `justb4/jmeter:latest`, JMeter 5.6.3) |
+| Desplegar el generador fuera de las dos VMs | ✅ Corre en la máquina de Tania, fuera de la VPC — ver "Máquina del generador" |
+| Verificar que el generador no limita los resultados | ⚠️ Parcial — ver "Máquina del generador" |
+
+## Herramienta elegida: Apache JMeter
+
+**Por qué JMeter y no otra cosa:** el docente lo mencionó explícitamente como
+ejemplo válido en el hilo del issue ("puede ser su equipo local apuntando al
+despliegue en la nube con una herramienta como JMeter"), y el equipo lo
+confirmó como elección. Corre vía Docker (`justb4/jmeter:latest`, que empaqueta
+JMeter 5.6.3), igual que Postman/newman ya corre en este proyecto — sin
+instalar Java ni nada más en la máquina de quien ejecuta la prueba.
+
+**Versión:** JMeter 5.6.3 (dentro de la imagen `justb4/jmeter:latest`,
+dígest verificado el 2026-09-27).
+
+## Máquina del generador
+
+Corre en la máquina de Tania (Windows 11), **fuera de las dos VMs de la
+aplicación**, tal como exige el issue.
+
+| | |
+| :--- | ---: |
+| Procesador | AMD Ryzen 5 5500U, 6 núcleos / 12 hilos |
+| Memoria total | 6 133 240 KB (≈ 5.85 GiB) |
+| Memoria libre en el momento de la prueba | 609 496 KB (≈ 595 MiB) — **muy ajustado** |
+| Velocidad de descarga (prueba simple, un solo flujo) | ≈ 5.8 Mbps (0.73 MB/s) |
+
+**Hallazgo real, no cosmético:** con solo ~600 MiB libres de 5.85 GiB
+totales, esta máquina está genuinamente cerca de su propio límite antes de
+generar ninguna carga. Para las corridas de H2/H3 (más hilos, más duración),
+hace falta cerrar aplicaciones (navegador, Docker Desktop si no se está
+usando, etc.) antes de correr, o el cuello de botella medido sería la máquina
+del generador, no la plataforma — exactamente lo que el issue pide evitar.
+
+**Pendiente:** la medición de ancho de banda de arriba es una prueba de un
+solo flujo TCP con `curl`, que subestima la velocidad real. Antes de la
+corrida formal de H2/H3, hace falta una prueba de velocidad real (fast.com o
+speedtest.net) para tener un número confiable como evidencia.
+
+## Smoke test contra la nube real
+
+`docs/entrega2/evidencias/H1/smoke_test.jmx`: 5 usuarios virtuales, 10
+iteraciones cada uno, contra `GET /api/v1/health` y `GET /api/v1/courses`
+(los dos de solo lectura, no tocan datos). No es el recorrido académico
+completo — eso lo define H2 — es la prueba mínima de que el generador
+funciona contra el origen real y deja una primera línea base.
+
+```bash
+bash ./scripts/run_jmeter_smoke.sh
+```
+
+Resultado real (2026-09-27, ver
+[`resultados/smoke_test_20260927_164136.jtl`](./resultados/smoke_test_20260927_164136.jtl)):
+
+```
+summary =    100 in 00:00:17 =    6.0/s Avg:   155 Min:    74 Max:  2637 Err:     0 (0.00%)
+```
+
+100 peticiones, **0 errores**. El máximo de 2637ms corresponde a las
+primeras conexiones (negociación TLS en frío); una vez las conexiones quedan
+abiertas (`keep-alive`), la latencia baja a 74–106ms — coherente con los
+74ms de latencia de red medidos en B1 desde Bogotá hacia `us-east1`.
+
+## Cola: profundidad, antigüedad y tasa de procesamiento
+
+Antes de este issue, el worker solo contaba trabajos **procesados y
+fallidos** (`worker.jobs.processed`, `worker.jobs.failed`,
+`internal/worker/metrics.go`, issue #21). Eso responde "cuántos terminaron",
+no "cuántos hay esperando ahora" ni "qué tan viejo es el más antiguo" — que
+son propiedades de la cola en sí, no de un trabajo que ya pasó por ella.
+
+`internal/worker/queue_metrics.go` (nuevo) agrega tres medidores, uno por
+cola (`critical`, `default`, `low`), leídos directamente de Redis en cada
+lectura de métricas vía `asynq.Inspector`:
+
+| Métrica | Qué mide |
+| :--- | :--- |
+| `worker.queue.pending` | Trabajos esperando a que un worker los tome |
+| `worker.queue.active` | Trabajos siendo procesados ahora mismo |
+| `worker.queue.oldest_pending_age_seconds` | Antigüedad del trabajo en espera más viejo (`asynq.QueueInfo.Latency`) |
+
+Verificado con las pruebas existentes de `internal/worker` (`go test
+./internal/worker/...`, 0 fallos) — no rompe nada de lo que ya había.
+
+## Base de datos administrada
+
+Cloud SQL expone sus propias métricas (conexiones activas, CPU, memoria,
+IOPS del disco) a Cloud Monitoring **sin necesidad de ningún agente**: es
+parte del servicio administrado, activo desde que se creó la instancia en
+C1. No hay nada que instalar aquí — la evidencia es simplemente que la
+instancia `mooc-db-1` aparece en Cloud Monitoring con esas métricas ya
+disponibles.
+
+## CPU, memoria, red y disco de las VMs
+
+Se usó **Ops Agent Policies** (`gcloud compute instances ops-agents
+policies`), el mecanismo que Google Cloud construyó específicamente para
+instalar el Ops Agent en VMs **que ya están corriendo**, sin recrearlas ni
+reiniciarlas — aplicado en segundo plano por el propio sistema operativo de
+cada VM.
+
+```bash
+gcloud compute instances ops-agents policies create mooc-ops-agent \
+  --project=plataforma-mooc-entrega2 --zone=us-east1-b \
+  --file=ops-agent-policy.yaml
+```
+
+```yaml
+agentsRule:
+  packageState: installed
+  version: latest
+instanceFilter:
+  inclusionLabels:
+    - labels:
+        proyecto: plataforma-mooc
+```
+
+El filtro por la etiqueta `proyecto: plataforma-mooc` (que ambas VMs ya
+llevan desde que Terraform las creó) cubre `mooc-web-server` y
+`mooc-worker-server` sin nombrarlas una por una.
+
+**Estado al cerrar esta sesión:** la política se aplicó exitosamente
+(`rolloutState: SUCCEEDED`), y el agente de OS Config de cada VM ya la
+recogió (reinicio visible en el log de arranque, 2026-09-27 16:54 UTC). Las
+métricas de CPU (`agent.googleapis.com/cpu/utilization`) todavía no
+aparecían en Cloud Monitoring al momento de escribir esto — Google declara
+hasta 10-15 minutos para el rollout completo, y quedó fuera de la ventana de
+esta sesión confirmarlo. **Pendiente: volver a consultar Cloud Monitoring
+más tarde y confirmar aquí.**
+
+## Lo que queda fuera de esta sesión
+
+**Conectar las métricas Prometheus de la aplicación (issue #21) a Cloud
+Monitoring.** El diseño ya está resuelto: el Ops Agent soporta un receptor
+`prometheus` que puede apuntar a `localhost:8080/api/v1/metrics` (API) y
+`localhost:9090/metrics` (worker) y reenviarlas junto con las métricas de
+CPU/memoria. **No se aplicó** porque el único camino disponible —escribir
+ese receptor en `/etc/google-cloud-ops-agent/config.yaml`— exige tocar la
+VM, y el camino obvio (`metadata_startup_script` vía Terraform) resultó ser
+destructivo:
+
+```
+$ terraform plan
+  # google_compute_instance.web_server must be replaced
+  # google_compute_instance.worker_server must be replaced
+Plan: 2 to add, 0 to change, 2 to destroy.
+```
+
+Cambiar `metadata_startup_script` en un `google_compute_instance` ya
+desplegado fuerza su reemplazo completo en este proveedor de Terraform —
+habría borrado los certificados HTTPS, el estado de Docker y tumbado la
+plataforma para reconstruirla desde cero. El plan se descartó sin
+aplicarse; `infra/terraform/compute.tf` no cambió.
+
+La vía correcta —actualizar la metadata en caliente con `gcloud compute
+instances add-metadata` y reiniciar la VM (`gcloud compute instances
+reset`) para que el script se vuelva a ejecutar— es factible y ya está
+probada como segura por D3 (`supervivencia_reinicio.txt`: el stack completo
+vuelve solo tras un reinicio), pero implica un corte breve del servicio.
+Queda para una sesión donde el equipo decida el momento, no algo para
+aplicar sin avisar.
+
+## Nunca
+
+Credenciales, llaves ni secretos. La contraseña de la base de datos, usada
+para `terraform plan`, se leyó directamente desde Secret Manager por Tania
+en su propia terminal — nunca pasó por esta sesión.
