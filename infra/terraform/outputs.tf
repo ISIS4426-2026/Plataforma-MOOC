@@ -64,3 +64,13 @@ output "private_vpc_connection_id" {
   value       = google_service_networking_connection.private_vpc_connection.id
 }
 
+output "storage_bucket_name" {
+  description = "Nombre del bucket de Cloud Storage para persistencia multimedia y documentos (C3)."
+  value       = google_storage_bucket.media.name
+}
+
+output "storage_bucket_url" {
+  description = "URL gs:// del bucket de Cloud Storage (C3)."
+  value       = google_storage_bucket.media.url
+}
+

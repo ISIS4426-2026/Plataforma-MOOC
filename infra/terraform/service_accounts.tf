@@ -87,6 +87,7 @@ resource "google_service_account_iam_member" "web_server_can_sign" {
 
 # ---------------------------------------------------------------------------
 # Pendiente para C3
+# Permisos sobre almacenamiento (C3 - issue #120)
 # ---------------------------------------------------------------------------
 #
 # Los permisos sobre el bucket --la API lee, el worker escribe derivados-- se
@@ -100,3 +101,6 @@ resource "google_service_account_iam_member" "web_server_can_sign" {
 #
 # Hasta entonces ninguna de las dos cuentas puede tocar el almacenamiento, que
 # es el valor por defecto correcto: sin permiso explicito, no hay acceso.
+# Los permisos sobre el bucket --la API lee y firma pero no escribe derivados,
+# y el worker escribe exclusivamente derivados HLS-- se gestionan y declaran
+# en storage.tf vinculados al recurso google_storage_bucket.media.
