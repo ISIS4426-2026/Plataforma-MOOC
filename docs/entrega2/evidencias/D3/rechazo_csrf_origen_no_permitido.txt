@@ -1,0 +1,63 @@
+================================================================================
+EVIDENCIA D3 - CRITERIO: RECHAZO CSRF ANTE ORIGEN NO PERMITIDO
+================================================================================
+Fecha de verificación: 2026-09-27 16:56:13 UTC
+Endpoint probado: POST /api/v1/auth/logout (método no seguro / mutación)
+Mecanismo de autenticación: Cookie de sesión (__Host-mooc_session)
+Origen configurado legítimo: https://34.24.52.111.sslip.io
+Código HTTP esperado para orígenes no permitidos: HTTP 403 Forbidden
+================================================================================
+
+--- 1. PETICIÓN CON COOKIE Y ORIGEN MALICIOSO/AJENO (Origin: https://sitio-atacante.test) ---
+
+$ curl -i -s -X POST https://34.24.52.111.sslip.io/api/v1/auth/logout \
+  -b "__Host-mooc_session=[REDACTED_SESSION_TOKEN]" \
+  -H "Origin: https://sitio-atacante.test"
+
+HTTP/1.1 403 Forbidden
+Server: nginx/1.27.5
+Date: Sun, 27 Sep 2026 16:56:13 GMT
+Content-Type: application/json
+Content-Length: 90
+Connection: keep-alive
+X-Request-Id: a8100e2c-df2a-4222-abe9-ea67838b180b
+
+{"code":"csrf_origin_rejected","message":"El origen de la solicitud no está permitido."}
+
+--- 2. PETICIÓN CON COOKIE Y ORIGEN AUSENTE (Sin Origin ni Referer) ---
+
+$ curl -i -s -X POST https://34.24.52.111.sslip.io/api/v1/auth/logout \
+  -b "__Host-mooc_session=[REDACTED_SESSION_TOKEN]"
+
+HTTP/1.1 403 Forbidden
+Server: nginx/1.27.5
+Date: Sun, 27 Sep 2026 16:56:13 GMT
+Content-Type: application/json
+Content-Length: 90
+Connection: keep-alive
+X-Request-Id: 6809edf4-c473-4603-b0d2-c663c7b3397f
+
+{"code":"csrf_origin_rejected","message":"El origen de la solicitud no está permitido."}
+
+--- 3. PETICIÓN CON COOKIE Y ORIGEN LEGÍTIMO (Origin: https://34.24.52.111.sslip.io) ---
+
+$ curl -i -s -X POST https://34.24.52.111.sslip.io/api/v1/auth/logout \
+  -b "__Host-mooc_session=[REDACTED_SESSION_TOKEN]" \
+  -H "Origin: https://34.24.52.111.sslip.io"
+
+HTTP/1.1 204 No Content
+Server: nginx/1.27.5
+Date: Sun, 27 Sep 2026 16:56:14 GMT
+Connection: keep-alive
+Set-Cookie: __Host-mooc_session=; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=Lax
+X-Request-Id: fdec7899-dd94-485e-832c-2ed7f94e0ae9
+
+================================================================================
+CONCLUSIÓN:
+El middleware de protección CSRF (internal/http/middleware/csrf.go) detecta la
+presencia de la cookie de sesión del navegador e intercepta de forma estricta
+cualquier mutación proveniente de un origen externo no autorizado o carente de
+encabezado Origin/Referer, bloqueando ataques de Cross-Site Request Forgery con
+HTTP 403 (código 'csrf_origin_rejected'). Las peticiones legítimas autenticadas
+con el origen permitido son procesadas y completan el ciclo de vida de la sesión.
+================================================================================

@@ -1,0 +1,59 @@
+================================================================================
+EVIDENCIA D3 - CRITERIO: REDIRECCIÓN DE HTTP A HTTPS (PUERTO 80 -> 443)
+================================================================================
+Fecha de verificación: 2026-09-27 16:56:12 UTC
+Hostname DNS público: 34.24.52.111.sslip.io (resuelve a 34.24.52.111)
+Proxy inverso: Nginx 1.27-alpine
+Código de respuesta esperado: HTTP 301 Moved Permanently hacia origen HTTPS
+================================================================================
+
+$ curl -i http://34.24.52.111.sslip.io/api/v1/health
+
+HTTP/1.1 301 Moved Permanently
+Server: nginx/1.27.5
+Date: Sun, 27 Sep 2026 16:56:12 GMT
+Content-Type: text/html
+Content-Length: 169
+Connection: keep-alive
+Location: https://34.24.52.111.sslip.io/api/v1/health
+
+<html>
+<head><title>301 Moved Permanently</title></head>
+<body>
+<center><h1>301 Moved Permanently</h1></center>
+<hr><center>nginx/1.27.5</center>
+</body>
+</html>
+
+================================================================================
+SEGUIMIENTO AUTOMÁTICO DE REDIRECCIÓN (curl -L):
+================================================================================
+
+$ curl -i -L http://34.24.52.111.sslip.io/api/v1/health
+
+HTTP/1.1 301 Moved Permanently
+Server: nginx/1.27.5
+Date: Sun, 27 Sep 2026 16:56:12 GMT
+Content-Type: text/html
+Content-Length: 169
+Connection: keep-alive
+Location: https://34.24.52.111.sslip.io/api/v1/health
+
+HTTP/1.1 200 OK
+Server: nginx/1.27.5
+Date: Sun, 27 Sep 2026 16:56:12 GMT
+Content-Type: application/json
+Content-Length: 82
+Connection: keep-alive
+X-Request-Id: 21fa3924-a714-411a-85ba-27d91e604f32
+
+{"status":"pass","timestamp":"2026-09-27T16:56:12Z","services":{"database":"up"}}
+
+================================================================================
+CONCLUSIÓN:
+Toda petición entrante por HTTP (puerto 80) es redirigida de manera permanente
+y segura (HTTP 301) hacia su contraparte HTTPS (puerto 443), preservando la ruta
+y los parámetros de consulta ($request_uri), a la vez que el endpoint ACME
+(^~ /.well-known/acme-challenge/) permanece habilitado en puerto 80 para la
+renovación autónoma de certificados Let's Encrypt.
+================================================================================
