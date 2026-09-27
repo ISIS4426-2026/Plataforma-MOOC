@@ -1,0 +1,28 @@
+# Configuracion efectiva de la instancia - issue #118 (C1)
+# Fecha: 2026-09-27 04:30 UTC
+#
+# Leido de GCP con gcloud, no del estado de Terraform: es la configuracion
+# real y no la declarada.
+
+=== Criterios del issue, uno por linea ===
++-----------+-------------+----------+------------+----------------+------------------+
+| INSTANCIA |   VERSION   |  REGION  |    ZONA    | DISPONIBILIDAD |      PERFIL      |
++-----------+-------------+----------+------------+----------------+------------------+
+| mooc-db-1 | POSTGRES_16 | us-east1 | us-east1-b | ZONAL          | db-custom-1-3840 |
++-----------+-------------+----------+------------+----------------+------------------+
+
+--- Acceso: sin IP publica, solo privada ---
+PRIVATE	10.171.240.3
+
+--- SSL y red privada ---
+ENCRYPTED_ONLY	False	projects/plataforma-mooc-entrega2/global/networks/mooc-vpc
+
+--- Replicas de lectura (debe estar vacio) ---
+
+(vacio = ninguna)
+
+--- Limite de conexiones declarado ---
+{'name': 'max_connections', 'value': '100'}
+
+--- Almacenamiento y copias ---
+PD_SSD	10	True	20	True	03:00
