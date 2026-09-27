@@ -230,7 +230,10 @@ resource "google_sql_database" "mooc" {
 resource "google_sql_user" "app" {
   name     = "moocuser"
   instance = google_sql_database_instance.main.name
-  password = var.db_password
+  # gcloud on Windows writes CRLF. Git Bash command substitution removes LF
+  # but can leave CR, which made the shared state differ from Secret Manager
+  # and proposed a password change on every plan.
+  password = trimspace(var.db_password)
   project  = var.project_id
 }
 
