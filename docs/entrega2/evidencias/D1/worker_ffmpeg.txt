@@ -1,0 +1,13 @@
+D1 - FFmpeg y ffprobe en la imagen publicada
+Fecha de verificacion: 2026-09-27
+Imagen: us-east1-docker.pkg.dev/plataforma-mooc-entrega2/mooc/worker:df53ded45d01a19b8ae5540340d42d31fce60343
+Plataforma: linux/amd64
+
+Comandos ejecutados dentro del contenedor:
+  docker run --rm --entrypoint ffmpeg IMAGE -version
+  ffmpeg version 6.1.2 Copyright (c) 2000-2024 the FFmpeg developers
+
+  docker run --rm --entrypoint ffprobe IMAGE -version
+  ffprobe version 6.1.2 Copyright (c) 2007-2024 the FFmpeg developers
+
+Resultado: ambos ejecutables responden correctamente.

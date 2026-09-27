@@ -1,0 +1,11 @@
+D1 - Compose de produccion consume imagenes preconstruidas
+Fecha: 2026-09-27
+Commit de imagen: df53ded45d01a19b8ae5540340d42d31fce60343
+
+Salida de docker compose -f docker-compose.prod.yml config:
+  api image=us-east1-docker.pkg.dev/plataforma-mooc-entrega2/mooc/api:df53ded45d01a19b8ae5540340d42d31fce60343 build=none
+  worker image=us-east1-docker.pkg.dev/plataforma-mooc-entrega2/mooc/worker:df53ded45d01a19b8ae5540340d42d31fce60343 build=none
+
+Compose usa referencias image: con el tag SHA completo. Ningun servicio
+contiene configuracion build:, por lo que las VMs descargan las imagenes y no
+compilan el codigo durante el despliegue.

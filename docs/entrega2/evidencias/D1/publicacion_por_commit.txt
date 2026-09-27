@@ -1,0 +1,23 @@
+D1 - Publicacion de imagenes en Artifact Registry
+Verificado: 2026-09-27 06:09 UTC
+Proyecto: plataforma-mooc-entrega2
+Region: us-east1
+Repositorio: mooc (formato DOCKER)
+Tags inmutables: true
+Commit: df53ded45d01a19b8ae5540340d42d31fce60343
+
+Imagen API
+  Tag: us-east1-docker.pkg.dev/plataforma-mooc-entrega2/mooc/api:df53ded45d01a19b8ae5540340d42d31fce60343
+  Digest: sha256:ac20dd12b8d3f0ef176b9b15ff23f7aa8e7140e4b13849e846e832d656326c46
+  Plataforma: linux/amd64
+  Tamano: 71518398 bytes
+
+Imagen worker
+  Tag: us-east1-docker.pkg.dev/plataforma-mooc-entrega2/mooc/worker:df53ded45d01a19b8ae5540340d42d31fce60343
+  Digest: sha256:3e21c0f3f8472b6b6cb7771806ecb5a457034c4c59d534c5926123356f7f470d
+  Plataforma: linux/amd64
+  Tamano: 199061332 bytes
+
+Permisos de lectura confirmados para las cuentas de servicio sa-web-server y
+sa-worker-server mediante roles/artifactregistry.reader. No se incluyen
+credenciales ni salidas de autenticacion.
