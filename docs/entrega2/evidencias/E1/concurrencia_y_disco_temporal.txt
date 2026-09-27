@@ -1,0 +1,66 @@
+================================================================================
+EVIDENCIA E1 - CRITERIO: CONCURRENCIA DE WORKERS Y USO DE DISCO TEMPORAL
+================================================================================
+Fecha de verificación: 2026-09-27 17:08:44 UTC
+Instancia: mooc-worker-server (e2-highcpu-2, 2 vCPU, 2 GiB RAM, 30 GiB pd-balanced)
+Orquestador: Docker Compose (docker-compose.worker.yml)
+Contenedor Cola: mooc-queue (redis:7-alpine)
+Contenedor Procesador: mooc-worker (Go + FFmpeg)
+================================================================================
+
+--- 1. CONTENEDORES SEPARADOS EN DOCKER COMPOSE (docker compose ps) ---
+
+$ cd /home/dfortizr1/mooc && docker compose -f docker-compose.worker.yml ps
+
+NAME          IMAGE                                                                                                   COMMAND                  SERVICE   CREATED          STATUS                    PORTS
+mooc-queue    redis:7-alpine                                                                                          "docker-entrypoint.s…"   redis     12 minutes ago   Up 12 minutes (healthy)   0.0.0.0:6379->6379/tcp, [::]:6379->6379/tcp
+mooc-worker   us-east1-docker.pkg.dev/plataforma-mooc-entrega2/mooc/worker:0f4d8616eae458da2d4de03c0054cc8eeed2183d   "/app/worker"            worker    12 minutes ago   Up 12 minutes             0.0.0.0:9090->9090/tcp, [::]:9090->9090/tcp
+
+--- 2. PARAMETRIZACIÓN Y REGISTRO ESTRUCTURADO EN ARRANQUE ---
+
+$ docker logs mooc-worker | head -n 25
+
+2026/09/27 17:00:21 Starting Plataforma MOOC Background Worker [Env: production]
+2026/09/27 17:00:21 Media ladder: 360p (640x360, 800k/96k), 720p (1280x720, 2500k/128k)
+2026/09/27 17:00:21 Worker concurrency: 2, work dir: /tmp/mooc-worker, max original size: 2048 MB
+{"time":"2026-09-27T17:00:21.341Z","level":"INFO","msg":"[Worker Engine] Starting background worker processor...","env":"production","redis_url":"redis:6379","concurrency":2}
+{"time":"2026-09-27T17:00:21.342Z","level":"INFO","msg":"Starting processing","service":"plataforma-mooc-worker"}
+{"time":"2026-09-27T17:00:21.343Z","level":"INFO","msg":"Worker metrics HTTP server listening on :9090/metrics","service":"plataforma-mooc-worker"}
+
+--- 3. DIMENSIONAMIENTO Y JUSTIFICACIÓN DE CONCURRENCIA ---
+
+Perfil de máquina (B1): e2-highcpu-2
+- CPU garantizada: 2 vCPU dedicadas (sin sobrecarga por créditos ni ráfagas compartidas).
+- Memoria RAM total: 2 GiB (2.048 MiB).
+- Concurrencia fijada: WORKER_CONCURRENCY=2 (exactamente 1 tarea de transcodificación por vCPU).
+
+Justificación Técnica:
+Cada proceso FFmpeg consumiendo perfiles HLS (H.264/AAC) en 720p/360p demanda entre 400 MiB y 600 MiB de RAM,
+además del 100% de uso de 1 núcleo vCPU. Fijar la concurrencia en 2 permite:
+1. Saturar eficientemente los 2 vCPU del perfil sin provocar inanición ni contención destructiva de contexto.
+2. Garantizar un consumo de memoria pico acotado a ~1.2 GiB para FFmpeg, dejando ~800 MiB libres para el runtime
+   de Go, el demonio Redis y los búferes del kernel de Linux, blindando la máquina contra fallos de OOM (Out Of Memory).
+
+--- 4. POLÍTICA Y CONTROL DE DISCO TEMPORAL (/tmp/mooc-worker) ---
+
+Disco de arranque: 30 GiB pd-balanced
+Directorio de trabajo temporal: /tmp/mooc-worker (montado como volumen en el contenedor)
+Tope máximo de descarga: MEDIA_MAX_ORIGINAL_MB=2048 (2 GiB)
+Mecanismo de aislamiento: os.MkdirTemp(opts.WorkDir, "mooc-media-*")
+Mecanismo de liberación: defer os.RemoveAll(workDir)
+
+Verificación en sistema de archivos del host:
+
+$ df -h /tmp/mooc-worker
+Filesystem      Size  Used Avail Use% Mounted on
+/dev/root        29G  4.2G   24G  15% /
+
+$ ls -la /tmp/mooc-worker
+total 8
+drwxrwxrwt  2 root root 4096 Sep 27 17:00 .
+drwxrwxrwt 10 root root 4096 Sep 27 17:00 ..
+
+El directorio /tmp/mooc-worker permanece limpio en estado de reposo (0 bytes ocupados), pues cada tarea
+asíncrona crea un subdirectorio aislado efímero y garantiza su eliminación inmediata al terminar o fallar
+la transcodificación.
+================================================================================

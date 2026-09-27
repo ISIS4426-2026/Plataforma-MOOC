@@ -46,6 +46,10 @@ type Config struct {
 	// what it changed; empty uses the default ladder.
 	MediaHLSLadder string
 
+	// WorkerConcurrency is the number of concurrent task processors.
+	// Defaults to 2 (1 worker per vCPU for e2-highcpu-2 profile B1).
+	WorkerConcurrency int
+
 	// MetricsPort is where the worker (which otherwise has no HTTP server)
 	// exposes GET /metrics for scraping (issue #21). The API mounts its own
 	// metrics endpoint on Port instead, alongside the rest of /api/v1.
@@ -129,6 +133,7 @@ func Load() *Config {
 		MediaWorkDir:          getEnv("MEDIA_WORK_DIR", ""),
 		MediaMaxOriginalBytes: int64(getEnvInt("MEDIA_MAX_ORIGINAL_MB", 2048)) << 20,
 		MediaHLSLadder:        getEnv("MEDIA_HLS_LADDER", ""),
+		WorkerConcurrency:     getEnvInt("WORKER_CONCURRENCY", 2),
 
 		MetricsPort: getEnv("METRICS_PORT", "9090"),
 
