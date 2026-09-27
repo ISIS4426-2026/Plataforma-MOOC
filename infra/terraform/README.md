@@ -202,6 +202,24 @@ realista de corromperlo.
 **Si el estado se corrompiera**, el bucket tiene versionado: la versión anterior
 sigue ahí y se puede restaurar.
 
+### Un archivo por componente
+
+Antes de las reglas, la convención que evita la mitad de los roces: **cada issue
+escribe en su propio archivo**. Así tres personas tocan tres archivos distintos y
+`git` no tiene nada que fusionar.
+
+| Archivo | Issue |
+| :--- | :--- |
+| `network.tf` | B3 — VPC, subredes y firewall |
+| `secrets.tf` | B4 — gestión de secretos |
+| `storage.tf` | C3 — bucket y su IAM |
+| `database.tf` | C1 — Cloud SQL |
+| `compute.tf` | D2 y E1 — las dos VMs |
+
+`versions.tf`, `variables.tf`, `main.tf`, `outputs.tf` y `service_accounts.tf` ya
+existen y son de todos: cambiarlos sí puede generar conflicto, así que conviene
+avisar antes de tocarlos.
+
 ### Las cinco reglas
 
 1. **Nunca editar el estado a mano** ni descargarlo al repositorio. Contiene la
