@@ -1,0 +1,67 @@
+================================================================================
+EVIDENCIA C3: OBJETO NO LEGIBLE POR URL PUBLICA SIN FIRMA
+================================================================================
+Criterio: Un objeto no es legible por URL publica sin firma
+          El bucket tiene acceso publico deshabilitado (public_access_prevention = "enforced").
+Fecha de ejecucion: 2026-09-27
+Bucket: plataforma-mooc-entrega2-media (us-east1)
+Objeto de prueba: originals/test_api_allowed.txt
+================================================================================
+
+--- 1. CONFIGURACION DE BLOQUEO PUBLICO DEL BUCKET ---
+public_access_prevention: enforced
+uniform_bucket_level_access: true
+
+--- 2. INTENTO DE ACCESO PUBLICO ANONIMO SIN FIRMA ---
+Comando: curl -i https://storage.googleapis.com/plataforma-mooc-entrega2-media/originals/test_api_allowed.txt
+
+Resultado:
+HTTP/2 403 
+content-type: application/xml; charset=UTF-8
+x-guploader-uploadid: AP6rU83WZLiZbxYYeByx7_z88T5vyKwm3OJBoKppiU0pKH6kuW1CHOj9DRgPGF4QXKBTfv7xV0EnYm4
+content-length: 414
+access-control-allow-origin: *
+access-control-expose-headers: *
+date: Sun, 27 Sep 2026 03:06:50 GMT
+expires: Sun, 27 Sep 2026 03:06:50 GMT
+cache-control: private, max-age=0
+server: UploadServer
+alt-svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
+
+<?xml version='1.0' encoding='UTF-8'?><Error><Code>AccessDenied</Code><Message>Access denied.</Message><Details>Anonymous caller does not have storage.objects.get access to the Google Cloud Storage object. Permission 'storage.objects.get' denied on resource '//storage.googleapis.com/projects/_/buckets/plataforma-mooc-entrega2-media/objects/originals/test_api_allowed.txt' (or it may not exist).</Details></Error>
+
+--- 3. ACCESO MEDIANTE URL FIRMADA V4 AUTORIZADA POR LA API ---
+Generando URL firmada (validez 10m) usando la identidad sa-web-server...
+URL Firmada generada: https://plataforma-mooc-entrega2-media.storage.googleapis.com/originals/test_api_allowed.txt?x-goog-signature=5cf043d3cf4b52bbec0aad1bc5f149bbb845c4faaf0ddb656d9893606b8fcc1860b77744ed5ae3cfd93e44110817ecf46e548ebd1b952815dcbfc1ab9e922e514139c0a91711258675cbc4fc6c0ff92715033cfd3a31b2d03a88b594809c05b8f7f70197b935724b47143117eb2de491d4797e1aee5d5408115c2e85cec25257f785158dc3b13f1b0369869930a071b9567f6710e2769e1ac66463b1a203f3d7228351c75aa3d0f776774020916d0430526305f90c9dc8a6bf2b40e76932085a8c76c18ff525c175281b3503cc0b445e75036c059289dfe514cd19f62b2d198ce42ec1348866401406491efbb8509ea13868906382a227c5d3e33ab7078d4a14&x-goog-algorithm=GOOG4-RSA-SHA256&x-goog-credential=sa-web-server%40plataforma-mooc-entrega2.iam.gserviceaccount.com%2F20260927%2Fus-east1%2Fstorage%2Fgoog4_request&x-goog-date=20260927T030651Z&x-goog-expires=600&x-goog-signedheaders=host
+
+Consumiendo el objeto mediante la URL firmada (cliente anonimo):
+HTTP/2 200 
+content-type: text/plain
+x-guploader-uploadid: AP6rU80WVMYF5WYQJkfdHw-PAUIxbdWKkXdswcfDjFe07g4UFxxCpjxaydyD8_TGExtF144L
+expires: Sun, 27 Sep 2026 03:06:53 GMT
+date: Sun, 27 Sep 2026 03:06:53 GMT
+cache-control: private, max-age=0
+last-modified: Sun, 27 Sep 2026 03:06:35 GMT
+etag: "9bdf2c3a2dc80fdf2e2af7d6e5472eca"
+x-goog-generation: 1790478395851580
+x-goog-metageneration: 1
+x-goog-stored-content-encoding: identity
+x-goog-stored-content-length: 47
+x-goog-hash: crc32c=ra87cA==
+x-goog-hash: md5=m98sOi3ID98uKvfW5Ucuyg==
+x-goog-storage-class: STANDARD
+accept-ranges: bytes
+content-length: 47
+access-control-allow-origin: *
+access-control-expose-headers: *
+server: UploadServer
+alt-svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
+
+Carga autorizada de archivo original por la API
+================================================================================
+CONCLUSION:
+1. Una solicitud HTTP sin firma recibe HTTP 403 Forbidden (Access Denied).
+2. El bucket impone public_access_prevention: enforced y no permite lecturas anonimas.
+3. El mismo objeto es accesible (HTTP 200 OK) unicamente cuando se provee una URL
+   firmada criptograficamente por la cuenta autorizada de la API (sa-web-server).
+================================================================================

@@ -1,0 +1,80 @@
+================================================================================
+EVIDENCIA C3: VERIFICACION CORS PARA CARGA DIRECTA
+================================================================================
+Criterio: Una carga directa desde un origen externo pasa la verificacion CORS
+Fecha de ejecucion: 2026-09-27
+Bucket: plataforma-mooc-entrega2-media (us-east1)
+Origen externo simulado: https://plataforma-mooc-frontend.example.com
+================================================================================
+
+--- 1. CONFIGURACION CORS EN EL BUCKET ---
+cors_config:
+- maxAgeSeconds: 3600
+  method:
+  - GET
+  - HEAD
+  - PUT
+  - OPTIONS
+  origin:
+  - '*'
+  responseHeader:
+  - '*'
+
+--- 2. SOLICITUD PREFLIGHT OPTIONS DESDE ORIGEN EXTERNO ---
+Comando:
+curl -i -X OPTIONS "https://storage.googleapis.com/plataforma-mooc-entrega2-media/originals/video_carga_directa.mp4" \
+  -H "Origin: https://plataforma-mooc-frontend.example.com" \
+  -H "Access-Control-Request-Method: PUT" \
+  -H "Access-Control-Request-Headers: Content-Type"
+
+Resultado preflight:
+HTTP/2 200 
+x-guploader-uploadid: AP6rU82ZQKOdr0k6v3izA4rforDaDiZs5QBSJbDrbQ2WNWkyToEFtJSEekXgNeChZfdwGQQ
+access-control-allow-origin: *
+access-control-max-age: 3600
+access-control-allow-methods: GET,HEAD,PUT,OPTIONS
+access-control-allow-headers: Content-Type
+date: Sun, 27 Sep 2026 03:07:10 GMT
+expires: Sun, 27 Sep 2026 03:07:10 GMT
+cache-control: private, max-age=0
+content-length: 0
+server: UploadServer
+content-type: text/html; charset=UTF-8
+alt-svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
+
+
+
+--- 3. CARGA DIRECTA HTTP PUT CON URL FIRMADA Y ORIGEN EXTERNO ---
+Generando URL firmada para PUT con content-type: video/mp4 (validez 10m)...
+URL Firmada para subida directa (PUT): https://plataforma-mooc-entrega2-media.storage.googleapis.com/originals/video_carga_directa.mp4?x-goog-signature=5825f7be83148ff02e35ae42bae9f0bbbef1244d065dec83f4aa362bf7bafb90cb0dda2c2a858775930bae10a00802ec653540568021ba6363cde3a54db75ab6d0ec3c22bce0bf125b136e2ab1ccbbdf2577a52d7a5bdbb5b0595162b7c94087f46bed44aa314778112a0abeffbad8b6088eada3bd293b064eaccf6a00ad715460db9ec64d5cae09eca74b8887af5e3b3b6fb6df043f6c21aba2bb860d1ec49db7f2583d66045410d25f589efe8b617186b9fe143b2f0d8d119afb88df27a5d53531f8b810da04e45b5710ea5e601bcd609cf0b6c25f139614eac99e72e7a768dffd69eeecb155c86d05fe9ea6419b917bfdd66306bc42c3283655a63ce798fe&x-goog-algorithm=GOOG4-RSA-SHA256&x-goog-credential=sa-web-server%40plataforma-mooc-entrega2.iam.gserviceaccount.com%2F20260927%2Fus-east1%2Fstorage%2Fgoog4_request&x-goog-date=20260927T030710Z&x-goog-expires=600&x-goog-signedheaders=content-type%3Bhost
+
+Ejecutando carga directa (PUT) simulando la peticion del navegador con cabecera Origin:
+HTTP/2 200 
+x-guploader-uploadid: AP6rU82W2GzREsGpEqwAnuxw9JHJDgu7tmy8Tya4eBLkJtFHOSCLDNbkONvYX1nmhvq4y0g
+etag: "b516fc2c5243aa7e0baba1f6f8b0c4ff"
+x-goog-generation: 1790478432651998
+x-goog-metageneration: 1
+x-goog-hash: crc32c=pAvmTQ==
+x-goog-hash: md5=tRb8LFJDqn4Lq6H2+LDE/w==
+x-goog-stored-content-length: 49
+x-goog-stored-content-encoding: identity
+access-control-allow-origin: *
+access-control-expose-headers: *, Content-Length, Content-Type, Date, Server, Transfer-Encoding, X-GUploader-UploadID, X-Google-Trace
+content-length: 0
+date: Sun, 27 Sep 2026 03:07:12 GMT
+server: UploadServer
+content-type: text/html; charset=UTF-8
+alt-svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
+
+
+================================================================================
+CONCLUSION:
+1. La peticion preflight OPTIONS desde un origen externo devuelve HTTP 200 con:
+   - access-control-allow-origin: * (permite el origen del cliente web)
+   - access-control-allow-methods: GET,HEAD,PUT,OPTIONS (autoriza el metodo PUT de carga directa)
+   - access-control-allow-headers: Content-Type
+   - access-control-max-age: 3600
+2. La carga directa (HTTP PUT) con la URL firmada emitida por la API se completa
+   exitosamente (HTTP 200 OK) e incluye la cabecera access-control-allow-origin,
+   satisfaciendo la verificacion CORS del navegador.
+================================================================================

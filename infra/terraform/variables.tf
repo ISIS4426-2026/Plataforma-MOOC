@@ -66,3 +66,21 @@ variable "labels" {
     gestion  = "terraform"
   }
 }
+
+variable "storage_bucket_name" {
+  description = <<-EOT
+    Nombre unico del bucket de Cloud Storage para almacenar originales,
+    derivados HLS, documentos y miniaturas (C3).
+  EOT
+  type        = string
+  default     = "plataforma-mooc-entrega2-media"
+}
+
+variable "storage_cors_origins" {
+  description = <<-EOT
+    Lista de origenes autorizados en la configuracion CORS para permitir
+    cargas directas desde clientes web / navegadores externos (C3).
+  EOT
+  type        = list(string)
+  default     = ["*"]
+}
