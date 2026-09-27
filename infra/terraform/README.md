@@ -110,12 +110,33 @@ repositorio por accidente.
 
 **3. Exportar la contraseña de la base**
 
+La contraseña vive en **Secret Manager**, en el mismo proyecto. No hay que
+pedírsela a nadie ni copiarla a mano: se lee al abrir la terminal.
+
 ```bash
-export TF_VAR_db_password='...'   # la misma para todo el equipo; pedírsela a quien administra el proyecto
+export TF_VAR_db_password="$(gcloud secrets versions access latest \
+  --secret=db-password --project=plataforma-mooc-entrega2)"
 ```
 
-Va por entorno y nunca por el repositorio. En Windows con PowerShell:
-`$env:TF_VAR_db_password = '...'`.
+En PowerShell:
+
+```powershell
+$env:TF_VAR_db_password = (gcloud secrets versions access latest `
+  --secret=db-password --project=plataforma-mooc-entrega2)
+```
+
+Hay que repetirlo **en cada terminal nueva**: las variables de entorno no
+sobreviven al cierre de la sesión.
+
+> **Léela siempre así, no la copies a mano.** Si cada uno guardara su propia
+> copia, bastaría una errata para que dos personas tuvieran valores distintos, y
+> a partir de C1 cada `apply` cambiaría la contraseña de la base por la de quien
+> lo ejecutó, **rompiendo las conexiones de la aplicación**. El vaivén sería
+> difícil de diagnosticar, porque el código es idéntico para todos y lo que
+> difiere es el entorno. Leyéndola de una única fuente, no puede ocurrir.
+
+Si el comando falla por permisos, pide el rol `secretmanager.secretAccessor`
+a quien administra el proyecto.
 
 ---
 
@@ -181,7 +202,25 @@ realista de corromperlo.
 **Si el estado se corrompiera**, el bucket tiene versionado: la versión anterior
 sigue ahí y se puede restaurar.
 
-### Las cuatro reglas
+### Un archivo por componente
+
+Antes de las reglas, la convención que evita la mitad de los roces: **cada issue
+escribe en su propio archivo**. Así tres personas tocan tres archivos distintos y
+`git` no tiene nada que fusionar.
+
+| Archivo | Issue |
+| :--- | :--- |
+| `network.tf` | B3 — VPC, subredes y firewall |
+| `secrets.tf` | B4 — gestión de secretos |
+| `storage.tf` | C3 — bucket y su IAM |
+| `database.tf` | C1 — Cloud SQL |
+| `compute.tf` | D2 y E1 — las dos VMs |
+
+`versions.tf`, `variables.tf`, `main.tf`, `outputs.tf` y `service_accounts.tf` ya
+existen y son de todos: cambiarlos sí puede generar conflicto, así que conviene
+avisar antes de tocarlos.
+
+### Las cinco reglas
 
 1. **Nunca editar el estado a mano** ni descargarlo al repositorio. Contiene la
    contraseña de la base en claro.
@@ -192,6 +231,10 @@ sigue ahí y se puede restaurar.
 3. **Un `apply` a la vez.** El bloqueo lo impone, pero avisar en el chat evita
    la espera.
 4. **`git pull` antes de planificar.** Siempre.
+5. **La contraseña se lee de Secret Manager, no se copia.** Si un `plan` propone
+   cambiar la contraseña de la base sin que nadie haya tocado el código, es esto:
+   alguien tiene exportado otro valor. No apliques — pregunta en el chat del
+   equipo.
 
 ---
 
