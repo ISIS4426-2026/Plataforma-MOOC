@@ -22,7 +22,7 @@ Crea el bucket del estado con versionado y sin posibilidad de hacerse público.
 Es el único recurso que Terraform no puede crear solo: necesita un sitio donde
 guardar el estado antes de tener estado.
 
-Después, dar acceso a los otros tres integrantes. Son **siete roles por
+Después, dar acceso a los otros tres integrantes. Son **ocho roles por
 persona**, y esa cifra es la lección de este issue: `roles/editor` parece
 bastarse solo y no se basta.
 
@@ -36,7 +36,8 @@ for ROL in \
   roles/iam.serviceAccountUser \
   roles/storage.admin \
   roles/compute.networkAdmin \
-  roles/servicenetworking.networksAdmin
+  roles/servicenetworking.networksAdmin \
+  roles/artifactregistry.admin
 do
   gcloud projects add-iam-policy-binding plataforma-mooc-entrega2 \
     --member="user:${CORREO}" --role="${ROL}" --condition=None
@@ -52,9 +53,10 @@ done
 | `storage.admin` | El bucket del estado, y el IAM del bucket de la aplicación (C3) |
 | `compute.networkAdmin` | Reservar el rango de direcciones de la conexión privada (C1) |
 | `servicenetworking.networksAdmin` | Crear el *peering* con Cloud SQL (C1) |
+| `artifactregistry.admin` | Asignar permisos IAM en repositorios de Artifact Registry (`google_artifact_registry_repository_iam_member`) |
 
-**Por qué siete y no uno.** `roles/editor` permite crear casi cualquier recurso
-pero **no gestiona ni IAM ni redes de servicio**. Eso se descubrió tres veces por
+**Por qué ocho y no uno.** `roles/editor` permite crear casi cualquier recurso
+pero **no gestiona IAM de proyecto/recursos ni redes de servicio**. Eso se descubrió por
 las malas, siempre igual: alguien a mitad de un `terraform apply`, un error de
 permisos, y el trabajo detenido hasta que quien administra estuviera disponible.
 Concederlos todos de entrada evita esa ronda.
