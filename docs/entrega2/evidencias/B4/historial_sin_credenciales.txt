@@ -1,0 +1,27 @@
+El historial de git no contiene credenciales (issue #117)
+========================================================
+Fecha: 2026-09-27 01:53 UTC
+
+1) Archivos sensibles que nunca fueron versionados
+
+   .env                                       nunca versionado
+   .env.local                                 nunca versionado
+   application_default_credentials.json       nunca versionado
+   terraform.tfstate                          nunca versionado
+
+2) Archivos que coinciden con los patrones de secreto del .gitignore
+
+   coincidencias en todo el historial: 0
+
+3) Lo unico que sí se versiona es la plantilla, con los secretos vacios
+
+   44:POSTGRES_PASSWORD=
+   55:DATABASE_URL=
+   85:MINIO_ROOT_PASSWORD=
+   105:S3_ACCESS_KEY=
+   107:S3_SECRET_KEY=
+   160:SMTP_USERNAME=
+   162:SMTP_PASSWORD=
+
+   Ninguna lleva valor. Las marcadas [SECRETO] en .env.example se rellenan en
+   el .env local --ignorado por git-- y en la nube llegan desde Secret Manager.

@@ -22,8 +22,9 @@ Crea el bucket del estado con versionado y sin posibilidad de hacerse público.
 Es el único recurso que Terraform no puede crear solo: necesita un sitio donde
 guardar el estado antes de tener estado.
 
-Después, dar acceso a los otros tres integrantes. Son **cuatro roles por
-persona**, y ninguno sobra:
+Después, dar acceso a los otros tres integrantes. Son **siete roles por
+persona**, y esa cifra es la lección de este issue: `roles/editor` parece
+bastarse solo y no se basta.
 
 ```bash
 CORREO="companero@gmail.com"
@@ -32,32 +33,57 @@ for ROL in \
   roles/editor \
   roles/resourcemanager.projectIamAdmin \
   roles/iam.serviceAccountAdmin \
-  roles/storage.admin
+  roles/iam.serviceAccountUser \
+  roles/storage.admin \
+  roles/compute.networkAdmin \
+  roles/servicenetworking.networksAdmin
 do
   gcloud projects add-iam-policy-binding plataforma-mooc-entrega2 \
     --member="user:${CORREO}" --role="${ROL}" --condition=None
 done
 ```
 
-| Rol | Para qué |
+| Rol | Sin él falla |
 | :--- | :--- |
-| `editor` | Crear la mayoría de los recursos y habilitar APIs |
-| `resourcemanager.projectIamAdmin` | Asignar roles a las cuentas de servicio |
-| `iam.serviceAccountAdmin` | Crear las cuentas de servicio y editar sus políticas |
-| `storage.admin` | Leer y escribir el estado en el bucket, y más adelante el IAM del bucket de la aplicación (C3) |
+| `editor` | Crear la mayoría de recursos y habilitar APIs |
+| `resourcemanager.projectIamAdmin` | Asignar roles a las cuentas de servicio (B2) |
+| `iam.serviceAccountAdmin` | Crear las cuentas de servicio y editar sus políticas (B2) |
+| `iam.serviceAccountUser` | **Adjuntar** una cuenta de servicio a una VM (D2, E1) |
+| `storage.admin` | El bucket del estado, y el IAM del bucket de la aplicación (C3) |
+| `compute.networkAdmin` | Reservar el rango de direcciones de la conexión privada (C1) |
+| `servicenetworking.networksAdmin` | Crear el *peering* con Cloud SQL (C1) |
 
-**`roles/editor` no alcanza por sí solo**, y esto sorprende: editor permite
-crear casi cualquier recurso pero **no gestionar políticas de IAM**. Sin
-`projectIamAdmin`, el `terraform apply` de un compañero avanza hasta los
-`google_project_iam_member` y falla ahí por permisos.
+**Por qué siete y no uno.** `roles/editor` permite crear casi cualquier recurso
+pero **no gestiona ni IAM ni redes de servicio**. Eso se descubrió tres veces por
+las malas, siempre igual: alguien a mitad de un `terraform apply`, un error de
+permisos, y el trabajo detenido hasta que quien administra estuviera disponible.
+Concederlos todos de entrada evita esa ronda.
 
-La alternativa contundente es `roles/owner`, que lo cubre todo de una vez. Es
-defendible en un equipo de cuatro que ya comparte un proyecto de clase; los
-cuatro roles de arriba son la versión acotada.
+### Sobre conceder Owner
+
+Sería más simple que mantener siete roles, pero **no se puede hacer por línea de
+comandos en este proyecto**:
+
+```
+INVALID_ARGUMENT: SOLO_MUST_INVITE_OWNERS
+```
+
+Los proyectos **sin organización** —como el nuestro— obligan a invitar a los
+propietarios desde la consola web, y la persona invitada debe **aceptar la
+invitación por correo**. No es una limitación de permisos de quien la concede,
+es una protección de la plataforma.
+
+Si se decide hacerlo: Consola → **IAM y administración** → **IAM** → *Otorgar
+acceso* → el correo, rol **Propietario** → y que cada uno acepte el correo que
+recibe. Los siete roles de arriba quedarían redundantes y se pueden retirar.
+
+Ten en cuenta lo que implica: un propietario puede borrar el proyecto, cambiar
+la facturación y quitarle el acceso a los demás. En un equipo de cuatro que ya
+comparte un proyecto de clase es asumible, pero es una decisión, no un trámite.
 
 Conviene además darles **`roles/billing.costsManager` sobre la cuenta de
-facturación**, para que las alertas de presupuesto de B1 les lleguen también a
-ellos y no solo a quien la creó:
+facturación**, para que las alertas de presupuesto configuradas en B1 les
+lleguen también a ellos y no solo a quien la creó:
 
 ```bash
 gcloud billing accounts add-iam-policy-binding CUENTA_DE_FACTURACION \
@@ -84,7 +110,10 @@ for ROL in \
   roles/editor \
   roles/resourcemanager.projectIamAdmin \
   roles/iam.serviceAccountAdmin \
-  roles/storage.admin
+  roles/iam.serviceAccountUser \
+  roles/storage.admin \
+  roles/compute.networkAdmin \
+  roles/servicenetworking.networksAdmin
 do
   gcloud projects remove-iam-policy-binding plataforma-mooc-entrega2 \
     --member="user:${CORREO}" --role="${ROL}"
@@ -162,3 +191,71 @@ aplicación desplegada seguirá usando la anterior hasta que se reinicie.
 El estado de Terraform **contiene la contraseña en claro**. Por eso el bucket se
 creó con prevención de acceso público y solo el equipo tiene permiso sobre él.
 Secret Manager es de dónde se lee, no un sustituto de esa precaución.
+
+---
+
+## Inventario de configuración sensible
+
+Issue **B4** (#117). Qué es secreto, dónde vive en cada entorno y cómo se rota.
+
+| Variable | En local | En la nube |
+| :--- | :--- | :--- |
+| `POSTGRES_PASSWORD` · `DATABASE_URL` | Valor por defecto de `docker-compose.yml` | **Secret Manager** → `TF_VAR_db_password` y el Compose de la VM |
+| `MINIO_ROOT_PASSWORD` · `S3_ACCESS_KEY` · `S3_SECRET_KEY` | Valor por defecto de `docker-compose.yml` | **No existen.** Con `STORAGE_BACKEND=gcs` las credenciales vienen de la cuenta de servicio adjunta a la VM |
+| `SMTP_USERNAME` · `SMTP_PASSWORD` | Vacías: Mailpit no autentica | **Secret Manager**, credenciales del proveedor (issue #126) |
+| Credenciales de Terraform | — | **No existen.** Cada integrante usa su identidad personal (ADC) |
+| Credenciales de las VMs | — | **No existen.** Cuenta de servicio adjunta, sin archivo de llave |
+
+**Tres de las cinco filas dicen «no existen», y es el resultado que más vale.**
+Un secreto que no existe no se filtra, no caduca y no hay que rotarlo. Se
+consiguió eligiendo identidades adjuntas en lugar de archivos de llave, tanto
+para Terraform como para las VMs.
+
+### Por qué `docker-compose.yml` sí lleva contraseñas
+
+`moocpassword` y `minioadmin` están en el repositorio, en los valores por
+defecto del Compose, y eso es deliberado: **no protegen nada**. Son las
+credenciales de unos contenedores que solo existen en la máquina de quien los
+levanta, y tenerlas ahí es lo que permite clonar el repositorio y arrancar sin
+configurar nada.
+
+Lo que las hace inofensivas no es la promesa de que nadie las use en la nube,
+sino que **el arranque en producción las rechaza**:
+`internal/config/validate.go` comprueba con `APP_ENV=production` que la cadena
+de conexión no las conserve, que el almacenamiento no sea MinIO, que
+`APP_BASE_URL` no apunte a localhost y que el correo no salga por Mailpit ni
+por el puerto 25. Si alguna sobrevive a un despliegue, el proceso no arranca y
+dice cuál.
+
+### Rotar la contraseña de la base
+
+1. Añadir una versión nueva al secreto (ver [Rotarla](#rotarla) más arriba).
+2. `terraform apply` desde `main`, para que el cambio llegue a PostgreSQL.
+3. **Reiniciar la API y el worker**, o seguirán usando la anterior: la leyeron
+   al arrancar.
+4. Avisar al equipo: quien tenga una terminal abierta debe volver a exportar
+   `TF_VAR_db_password`.
+
+El orden importa. Rotar el secreto sin aplicar deja la base con la contraseña
+vieja y al equipo con la nueva; aplicar sin reiniciar deja los procesos con la
+vieja contra una base que ya cambió.
+
+### Rotar las credenciales de SMTP
+
+Las emite el proveedor, así que la rotación empieza allí. Después:
+
+```bash
+gcloud secrets versions add smtp-password \
+  --project=plataforma-mooc-entrega2 --data-file=-
+```
+
+Y reiniciar la API, que es quien envía correo. El worker no lo necesita.
+
+### Si una credencial se filtra
+
+Rotar primero, investigar después. Una versión nueva en Secret Manager y un
+`terraform apply` tardan minutos; averiguar quién vio qué, no.
+
+Si lo filtrado fue **el estado de Terraform** —que contiene la contraseña de la
+base en claro—, hay que rotarla aunque el bucket vuelva a estar privado: el
+estado la lleva dentro, y un objeto que estuvo expuesto se considera expuesto.

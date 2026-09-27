@@ -1,0 +1,12 @@
+La aplicacion arranca solo con configuracion inyectada (issue #117)
+===================================================================
+Fecha: 2026-09-27 01:53 UTC
+
+El criterio solo significa algo si arrancar sin la configuracion falla.
+internal/config/validate.go lo impone cuando APP_ENV=production.
+
+--- Arranque con APP_ENV=production y la configuracion de desarrollo ---
+
+   {"time":"2026-09-27T01:53:51.644029373Z","level":"ERROR","msg":"api server terminated","error":"la configuracion de produccion conserva valores de desarrollo:\n  - DATABASE_URL conserva la contrasena de desarrollo: la de la nube vive en Secret Manager\n  - STORAGE_BACKEND=minio en produccion: la nube usa el almacenamiento administrado (gcs)\n  - S3_SECRET_KEY conserva el valor de desarrollo\n  - APP_BASE_URL apunta a localhost: los enlaces de verificacion y de insignias no abririan para nadie\n  - SMTP_HOST apunta a mailpit: en produccion el correo sale por un SMTP real\n  - SMTP_PORT=25: Google bloquea ese puerto saliente en Compute Engine y no se puede abrir; usar 587 o 465"}
+
+   codigo de salida: 1

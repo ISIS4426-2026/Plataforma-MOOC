@@ -1,0 +1,54 @@
+# Contexto de construccion de las imagenes (issue #117).
+#
+# Sin este archivo, el `COPY . .` de los Dockerfiles mete en el contexto de
+# construccion todo lo que hay en el repositorio: el .env con credenciales, el
+# historial de git, el estado de Terraform si alguien lo dejo caer, y las
+# evidencias.
+#
+# La imagen final no los conserva --es una construccion multietapa y solo copia
+# el binario--, pero el contexto sí viaja al demonio de Docker y la etapa
+# constructora sí los contiene. Que un secreto no acabe en la imagen por suerte
+# del diseño no es lo mismo que no entrar nunca.
+#
+# Y de paso: excluirlos hace la construccion mas rapida y estable, porque el
+# contexto deja de invalidarse cada vez que cambia un documento.
+
+# --- Credenciales. Ninguna de estas debe entrar jamas al contexto. ---
+.env
+.env.*
+!.env.example
+*-sa-key.json
+*service-account*.json
+application_default_credentials.json
+
+# --- Estado e infraestructura. El estado de Terraform contiene la contrasena
+#     de la base en claro. ---
+infra/
+*.tfstate
+*.tfstate.*
+.terraform/
+
+# --- Historial y metadatos del repositorio ---
+.git/
+.gitignore
+.github/
+.dockerignore
+
+# --- Documentacion y evidencias: no se compilan ---
+docs/
+*.md
+!README.md
+
+# --- Artefactos de desarrollo ---
+bin/
+local_data/
+*.exe
+*.test
+*.out
+coverage.txt
+clase.mp4
+clase_test.mp4
+
+# --- Entornos de editor ---
+.idea/
+.vscode/
