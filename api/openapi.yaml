@@ -1397,8 +1397,22 @@ paths:
       tags:
         - Quizzes
       summary: Submit quiz answers for server-side evaluation
-      description: Evaluates submitted answer options strictly on the server side. Correct answer key is never exposed.
+      description: >
+        Grades an attempt. The score is computed on the server by reading the
+        answer key inside the same transaction that records the submission; the
+        key is never loaded into any layer that could return it.
+
+        **Send an Idempotency-Key.** It is what makes a retry safe: the same key
+        replays the recorded grade instead of consuming another attempt. Without
+        one, a client that retries after a timeout spends an attempt it did not
+        mean to spend.
+
+        Requires an active enrollment, which excludes the course's author. They
+        can read their own quiz with the answer key, but grading them would put
+        the author in the statistics of their own course.
       operationId: submitQuiz
+      security:
+        - bearerAuth: []
       parameters:
         - name: quiz_id
           in: path
@@ -1406,7 +1420,7 @@ paths:
           schema:
             type: string
             format: uuid
-          description: Unique identifier of the quiz resource.
+          description: Unique identifier of the quiz.
         - $ref: '#/components/parameters/IdempotencyKey'
       requestBody:
         required: true
@@ -1428,8 +1442,195 @@ paths:
           $ref: '#/components/responses/400BadRequest'
         '401':
           $ref: '#/components/responses/401Unauthorized'
+        '403':
+          description: The caller has no active enrollment in the course.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
         '404':
           $ref: '#/components/responses/404NotFound'
+        '409':
+          description: >
+            No attempts left, or the course is not published. A refused
+            submission consumes nothing.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /quizzes/{quiz_id}/submissions/me:
+    get:
+      tags:
+        - Quizzes
+      summary: List the caller's own attempts at a quiz
+      description: >
+        Every attempt the caller made, most recent first, with its score and
+        whether it passed. Never includes which option was correct.
+      operationId: listMyQuizSubmissions
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: quiz_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: The caller's attempts.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/QuizSubmissionResponse'
+        '401':
+          $ref: '#/components/responses/401Unauthorized'
+        '404':
+          $ref: '#/components/responses/404NotFound'
+
+  /resources/{resource_id}/quiz:
+    post:
+      tags:
+        - Quizzes
+      summary: Create the quiz of a resource
+      description: >
+        Attaches a quiz to a resource of type `quiz`. One quiz per resource.
+
+        Authoring, so it follows the same rules as the rest of the hierarchy:
+        the author or an administrator only, and refused on a published course,
+        because a quiz is part of the content that publication freezes.
+      operationId: createQuiz
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: resource_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateQuizRequest'
+      responses:
+        '201':
+          description: Quiz created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QuizResponse'
+        '400':
+          $ref: '#/components/responses/400BadRequest'
+        '401':
+          $ref: '#/components/responses/401Unauthorized'
+        '403':
+          $ref: '#/components/responses/403Forbidden'
+        '404':
+          $ref: '#/components/responses/404NotFound'
+        '409':
+          description: The resource already has a quiz, or the course is published.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    get:
+      tags:
+        - Quizzes
+      summary: Read the quiz of a resource
+      description: >
+        **What comes back depends on who asks, and the difference is not
+        cosmetic.**
+
+        The author and administrators get `questions_with_key`, where every
+        option says whether it is correct. Anyone else gets `questions`, where no
+        such field exists — and not because it was stripped on the way out: the
+        student's read is a different query that never selects the column. A
+        serialization mistake cannot leak what was never loaded.
+
+        A student also needs an active enrollment, like any other course content.
+      operationId: getQuiz
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: resource_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: The quiz, with or without the answer key.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QuizResponse'
+        '401':
+          $ref: '#/components/responses/401Unauthorized'
+        '403':
+          description: The caller has no active enrollment in the course.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          $ref: '#/components/responses/404NotFound'
+
+  /quizzes/{quiz_id}/questions:
+    post:
+      tags:
+        - Quizzes
+      summary: Add a question with its options
+      description: >
+        Appends a question at the end of the quiz, with its options, in one
+        transaction: a question without options cannot be answered, and leaving
+        one half-created would be worse than not creating it.
+
+        Exactly one option must be marked correct, and there must be at least
+        two: fewer makes choosing meaningless, and none correct makes the
+        question ungradable.
+      operationId: addQuizQuestion
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: quiz_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddQuestionRequest'
+      responses:
+        '201':
+          description: Question created, with the ids of its options.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QuizQuestionWithKey'
+        '400':
+          $ref: '#/components/responses/400BadRequest'
+        '401':
+          $ref: '#/components/responses/401Unauthorized'
+        '403':
+          $ref: '#/components/responses/403Forbidden'
+        '404':
+          $ref: '#/components/responses/404NotFound'
+        '409':
+          description: The course is published, so its content is frozen.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
   /progress/heartbeat:
     post:
@@ -2638,17 +2839,181 @@ components:
         - submission_id
         - score
         - passed
+        - attempt
       properties:
         submission_id:
           type: string
           format: uuid
         score:
-          type: number
-          format: float
-          example: 85.5
+          type: integer
+          minimum: 0
+          maximum: 100
+          example: 75
+          description: >
+            Percentage of correct answers, rounded to the nearest integer, and
+            always computed on the server. Integer and not decimal because that
+            is what the column holds: two correct out of three is 67.
         passed:
           type: boolean
           example: true
+          description: Whether the score reached the quiz's passing score.
+        attempt:
+          type: integer
+          minimum: 1
+          example: 1
+          description: Which attempt this was, starting at 1.
+        attempts_remaining:
+          type: integer
+          minimum: 0
+          example: 2
+          description: >
+            How many attempts are left after this one. Absent when listing past
+            attempts, where only the grade of each one is meaningful.
+        submitted_at:
+          type: string
+          format: date-time
+
+    CreateQuizRequest:
+      type: object
+      required: [title]
+      properties:
+        title:
+          type: string
+          example: "Evaluación diagnóstica"
+        passing_score:
+          type: integer
+          minimum: 0
+          maximum: 100
+          default: 70
+          description: Percentage from which the quiz is passed.
+        max_attempts:
+          type: integer
+          minimum: 1
+          default: 3
+          description: >
+            How many times a student may take it. Per quiz and not global,
+            because it is the author's decision, like the passing score.
+
+    AddQuestionRequest:
+      type: object
+      required: [prompt, options]
+      properties:
+        prompt:
+          type: string
+          example: "¿Cómo se valida el progreso de los estudiantes?"
+        options:
+          type: array
+          minItems: 2
+          description: >
+            At least two, and **exactly one** marked correct. The order they are
+            sent in is the order they will be presented.
+          items:
+            type: object
+            required: [text]
+            properties:
+              text:
+                type: string
+              is_correct:
+                type: boolean
+                default: false
+
+    QuizOption:
+      type: object
+      description: An option as a student sees it. There is no field for the answer key.
+      required: [id, text, position]
+      properties:
+        id:
+          type: string
+          format: uuid
+        text:
+          type: string
+        position:
+          type: integer
+          description: >
+            The order the author set. Without it there would be none: options
+            created together share a timestamp, and the tie-break would fall to
+            a random identifier.
+
+    QuizOptionWithKey:
+      type: object
+      description: >
+        An option as its author sees it. A separate schema from QuizOption, not
+        the same one with an optional field, so the student's view has nowhere to
+        put the answer key.
+      required: [id, text, position, is_correct]
+      properties:
+        id:
+          type: string
+          format: uuid
+        text:
+          type: string
+        position:
+          type: integer
+        is_correct:
+          type: boolean
+
+    QuizQuestion:
+      type: object
+      required: [id, prompt, position, options]
+      properties:
+        id:
+          type: string
+          format: uuid
+        prompt:
+          type: string
+        position:
+          type: integer
+        options:
+          type: array
+          items:
+            $ref: '#/components/schemas/QuizOption'
+
+    QuizQuestionWithKey:
+      type: object
+      required: [id, prompt, position, options]
+      properties:
+        id:
+          type: string
+          format: uuid
+        prompt:
+          type: string
+        position:
+          type: integer
+        options:
+          type: array
+          items:
+            $ref: '#/components/schemas/QuizOptionWithKey'
+
+    QuizResponse:
+      type: object
+      required: [id, resource_id, title, passing_score, max_attempts]
+      description: >
+        Carries **either** `questions` **or** `questions_with_key`, never both.
+        Which one depends on who asked, and they are different schemas so the
+        student's view has no field where the answer key could fit.
+      properties:
+        id:
+          type: string
+          format: uuid
+        resource_id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        passing_score:
+          type: integer
+        max_attempts:
+          type: integer
+        questions:
+          type: array
+          description: Present for students. No answer key.
+          items:
+            $ref: '#/components/schemas/QuizQuestion'
+        questions_with_key:
+          type: array
+          description: Present only for the author and administrators.
+          items:
+            $ref: '#/components/schemas/QuizQuestionWithKey'
 
     ProgressHeartbeatRequest:
       type: object

@@ -233,7 +233,7 @@ make seed-status
 
 ## Importación y Ejecución de Colecciones Postman
 
-La suite de pruebas Postman / Newman evalúa exhaustivamente el sistema con **166 casos de prueba únicos, 197 peticiones ejecutadas y 359 aserciones automáticas**.
+La suite de pruebas Postman / Newman evalúa exhaustivamente el sistema con **194 casos de prueba únicos, 225 peticiones ejecutadas y 415 aserciones automáticas**.
 
 ### Opción A: Ejecución Automatizada desatendida con Newman en Docker (Recomendado)
 **No requiere instalar nada en su máquina.** Se ejecuta dentro de la red de Docker Compose con un solo comando:
@@ -248,6 +248,7 @@ También puede correr colecciones de manera individual:
 * `make test-postman-authoring`: Jerarquía de 4 niveles, ETag, validación multi-error 422, inmutabilidad 409, stable_id (60 aserciones).
 * `make test-postman-enrollments`: Inscripción, retiro, reinscripción conservando el registro, y el control de acceso al contenido (36 aserciones).
 * `make test-postman-progress`: Latidos de progreso, avance que no se infla al repetirlos, insignia al completar, GET condicional con ETag y verificación pública sin sesión (64 aserciones).
+* `make test-postman-quizzes`: Autoría de cuestionarios, calificación en servidor, límite de intentos, envío idempotente y la clave de respuestas que nunca llega al estudiante (56 aserciones).
 * `make test-postman-media`: Carga directa al almacenamiento de objetos, confirmación idempotente, URLs firmadas, inmutabilidad 409 (43 aserciones).
 
 ### Opción B: Ejecución en Postman Desktop
@@ -258,6 +259,7 @@ También puede correr colecciones de manera individual:
    * `collection_authoring.postman_collection.json`
    * `collection_enrollments.postman_collection.json`
    * `collection_progress.postman_collection.json`
+   * `collection_quizzes.postman_collection.json`
    * `collection_media.postman_collection.json`
    * `mooc_local.postman_environment.json`
 3. En la esquina superior derecha, seleccione el entorno: **`Plataforma MOOC - Local`**.
@@ -331,7 +333,7 @@ El archivo `Makefile` provee comandos estandarizados para asegurar la calidad de
 * [Guía de Demostración para Evaluadores: Segmentos 1 y 2 (`docs/e2e/DEMO_SEGMENTOS_1_Y_2.md`)](docs/e2e/DEMO_SEGMENTOS_1_Y_2.md): Runbook interactivo para sustentar la entrega.
 * [Guion Técnico y Libreto del Video de Demostración (`docs/e2e/README_GUION_VIDEO_DEMO.md`)](docs/e2e/README_GUION_VIDEO_DEMO.md): Guion completo para grabación del video cubriendo los 9 segmentos de la Sección 10.2.
 * [Catálogo de Datos Sintéticos (`docs/DATOS_SINTETICOS.md`)](docs/DATOS_SINTETICOS.md): Semillas determinísticas, credenciales y cursos.
-* [Especificación de Colecciones Postman (`docs/postman/README.md`)](docs/postman/README.md): Detalle técnico de las 166 peticiones y 359 aserciones.
+* [Especificación de Colecciones Postman (`docs/postman/README.md`)](docs/postman/README.md): Detalle técnico de las 194 peticiones y 415 aserciones.
 * [Infraestructura como Código (`infra/terraform/README.md`)](infra/terraform/README.md): Aprovisionamiento con Terraform, estado remoto compartido y **cómo trabaja el equipo sobre la misma infraestructura sin conflictos**. Instalación para Windows, macOS y Linux.
 * [Administración del Proyecto de GCP (`infra/terraform/ADMINISTRACION.md`)](infra/terraform/ADMINISTRACION.md): Tareas de una sola vez — bootstrap del estado remoto, altas y bajas de integrantes.
 * [Configuración Efectiva y Marco de Costos (`docs/entrega2/CONFIGURACION_Y_COSTOS.md`)](docs/entrega2/CONFIGURACION_Y_COSTOS.md): Proveedor, región, perfiles de VM, estimación fechada, presupuesto y política de encendido y apagado.

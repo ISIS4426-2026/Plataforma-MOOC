@@ -17,6 +17,7 @@ import (
 	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/http/middleware"
 	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/media"
 	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/progress"
+	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/quiz"
 	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/structure"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/metric"
@@ -57,6 +58,7 @@ type Deps struct {
 	Media            *media.Service
 	Enrollment       *enrollment.Service
 	Progress         *progress.Service
+	Quiz             *quiz.Service
 	Audit            domain.AuditRepository
 	RateLimiter      domain.RateLimiter
 	IdempotencyStore domain.IdempotencyStore
@@ -97,6 +99,7 @@ func NewServer(cfg *config.Config, deps Deps, logger *slog.Logger) *Server {
 	mediaHandler := handler.NewMediaHandler(deps.Media, logger)
 	enrollmentHandler := handler.NewEnrollmentHandler(deps.Enrollment, logger)
 	progressHandler := handler.NewProgressHandler(deps.Progress, cfg.AppBaseURL, logger)
+	quizHandler := handler.NewQuizHandler(deps.Quiz, logger)
 
 	// requireAuth guards the endpoints that act on behalf of a signed-in user.
 	// It is applied per route rather than globally so the public endpoints stay
@@ -296,6 +299,30 @@ func NewServer(cfg *config.Config, deps Deps, logger *slog.Logger) *Server {
 	// without an account is not verifiable, and the unguessable code in the path
 	// is what limits the answer to whoever was handed the badge.
 	mux.HandleFunc("GET /api/v1/badges/verify/{verification_code}", progressHandler.VerifyBadge)
+
+	// Quizzes (issue #112). La autoria sigue el mismo guardado que el resto de
+	// la jerarquia academica, y el repositorio aplica ademas la inmutabilidad
+	// del curso publicado.
+	mux.Handle("POST /api/v1/resources/{resourceID}/quiz",
+		requireAuthor(idempotent(http.HandlerFunc(quizHandler.CreateQuiz)).ServeHTTP))
+	mux.Handle("POST /api/v1/quizzes/{quizID}/questions",
+		requireAuthor(idempotent(http.HandlerFunc(quizHandler.AddQuestion)).ServeHTTP))
+
+	// La lectura la abre cualquier sesion, pero lo que devuelve depende de
+	// quien pregunta: al autor se le carga la clave de respuestas desde la base
+	// y al estudiante no. Son dos consultas distintas, no un filtrado.
+	mux.Handle("GET /api/v1/resources/{resourceID}/quiz",
+		requireAuth(http.HandlerFunc(quizHandler.Get)))
+
+	// Presentar exige inscripcion activa, que el servicio comprueba.
+	//
+	// Idempotency-Key aqui no es opcional en la practica: el enunciado pide que
+	// «el envio definitivo sea idempotente», y es este middleware el que hace
+	// que un reintento devuelva la misma calificacion sin consumir otro intento.
+	mux.Handle("POST /api/v1/quizzes/{quizID}/submissions",
+		requireAuth(idempotent(http.HandlerFunc(quizHandler.Submit))))
+	mux.Handle("GET /api/v1/quizzes/{quizID}/submissions/me",
+		requireAuth(http.HandlerFunc(quizHandler.Submissions)))
 
 	// A badge as its own resource, for the student who earned it. It needs a
 	// session even though verification does not: this response carries the

@@ -1,0 +1,164 @@
+==> Running Quizzes Postman/Newman automated integration tests...
+newman
+
+Plataforma MOOC - Quizzes y Calificacion
+
+→ 01 Login como Profesor
+  POST http://api:8080/api/v1/auth/login [200 OK, 494B, 155ms]
+  ✓  responde 200
+
+→ 02 Login como Estudiante
+  POST http://api:8080/api/v1/auth/login [200 OK, 500B, 83ms]
+  ✓  responde 200
+
+→ 03 Crear el curso de la corrida
+  POST http://api:8080/api/v1/courses [201 Created, 430B, 16ms]
+  ✓  responde 201
+
+→ 04 Crear el modulo
+  POST http://api:8080/api/v1/courses/86709dcc-b2b8-499e-a035-383fab7510d0/modules [201 Created, 358B, 13ms]
+  ✓  responde 201
+
+→ 05 Crear la unidad
+  POST http://api:8080/api/v1/modules/089cd433-01ec-4042-bd51-f4c3fd24c1fb/units [201 Created, 358B, 12ms]
+  ✓  responde 201
+
+→ 06 Crear el recurso de tipo quiz
+  POST http://api:8080/api/v1/units/2220eb78-6172-4060-a920-f80ca5da4787/resources [201 Created, 465B, 14ms]
+  ✓  responde 201
+
+→ 07 Rechazo: un cuestionario solo cuelga de un recurso de tipo quiz
+  POST http://api:8080/api/v1/resources/d3000000-0000-0000-0000-000000000002/quiz [400 Bad Request, 242B, 10ms]
+  ✓  responde 400
+  ✓  con codigo de error invalid_input
+
+→ 08 Crear el cuestionario
+  POST http://api:8080/api/v1/resources/cd0fc220-0353-4337-87b0-456cc076b2bb/quiz [201 Created, 334B, 19ms]
+  ✓  responde 201
+  ✓  guarda la politica de aprobacion y de intentos
+
+→ 09 Rechazo: un segundo cuestionario en el mismo recurso
+  POST http://api:8080/api/v1/resources/cd0fc220-0353-4337-87b0-456cc076b2bb/quiz [409 Conflict, 275B, 12ms]
+  ✓  responde 409
+  ✓  con codigo de error quiz_conflict
+
+→ 10 Rechazo: una pregunta sin opcion correcta
+  POST http://api:8080/api/v1/quizzes/59d6b409-cd5e-4acf-a670-c506048c2b77/questions [400 Bad Request, 242B, 6ms]
+  ✓  responde 400
+  ✓  con codigo de error invalid_input
+
+→ 11 Rechazo: una pregunta con una sola opcion
+  POST http://api:8080/api/v1/quizzes/59d6b409-cd5e-4acf-a670-c506048c2b77/questions [400 Bad Request, 242B, 5ms]
+  ✓  responde 400
+  ✓  con codigo de error invalid_input
+
+→ 12 Agregar la pregunta 1
+  POST http://api:8080/api/v1/quizzes/59d6b409-cd5e-4acf-a670-c506048c2b77/questions [201 Created, 450B, 22ms]
+  ✓  responde 201
+  ✓  devuelve las opciones con su clave y su orden
+
+→ 13 Agregar la pregunta 2
+  POST http://api:8080/api/v1/quizzes/59d6b409-cd5e-4acf-a670-c506048c2b77/questions [201 Created, 450B, 21ms]
+  ✓  responde 201
+  ✓  devuelve las opciones con su clave y su orden
+
+→ 14 El autor lee el cuestionario CON la clave
+  GET http://api:8080/api/v1/resources/cd0fc220-0353-4337-87b0-456cc076b2bb/quiz [200 OK, 920B, 10ms]
+  ✓  responde 200
+  ✓  trae questions_with_key y no questions
+  ✓  cada pregunta tiene exactamente una correcta
+
+→ 15 Publicar el curso
+  POST http://api:8080/api/v1/courses/86709dcc-b2b8-499e-a035-383fab7510d0/publish [200 OK, 503B, 17ms]
+  ✓  responde 200
+  ✓  queda publicado
+
+→ 16 Rechazo: agregar preguntas a un curso publicado
+  POST http://api:8080/api/v1/quizzes/59d6b409-cd5e-4acf-a670-c506048c2b77/questions [409 Conflict, 269B, 12ms]
+  ✓  responde 409
+  ✓  con codigo de error course_immutable
+
+→ 17 Rechazo: leer el cuestionario sin inscripcion
+  GET http://api:8080/api/v1/resources/cd0fc220-0353-4337-87b0-456cc076b2bb/quiz [403 Forbidden, 249B, 11ms]
+  ✓  responde 403
+  ✓  con codigo de error forbidden
+
+→ 18 Rechazo: presentar sin inscripcion
+  POST http://api:8080/api/v1/quizzes/59d6b409-cd5e-4acf-a670-c506048c2b77/submissions [403 Forbidden, 249B, 11ms]
+  ✓  responde 403
+  ✓  con codigo de error forbidden
+
+→ 19 Inscripcion en el curso
+  POST http://api:8080/api/v1/courses/86709dcc-b2b8-499e-a035-383fab7510d0/enrollments [200 OK, 372B, 22ms]
+  ✓  responde 200
+  ✓  queda inscrito
+
+→ 20 El estudiante lee el cuestionario SIN la clave
+  GET http://api:8080/api/v1/resources/cd0fc220-0353-4337-87b0-456cc076b2bb/quiz [200 OK, 837B, 12ms]
+  ✓  responde 200
+  ✓  el cuerpo no contiene la cadena is_correct
+  ✓  trae questions y no questions_with_key
+  ✓  las opciones llegan completas y ordenadas
+
+→ 21 Rechazo: un envio sin respuestas
+  POST http://api:8080/api/v1/quizzes/59d6b409-cd5e-4acf-a670-c506048c2b77/submissions [400 Bad Request, 242B, 6ms]
+  ✓  responde 400
+  ✓  con codigo de error invalid_input
+
+→ 22 Intento 1: todo incorrecto
+  POST http://api:8080/api/v1/quizzes/59d6b409-cd5e-4acf-a670-c506048c2b77/submissions [200 OK, 316B, 18ms]
+  ✓  responde 200
+  ✓  califica en cero y no aprueba
+  ✓  es el intento 1 y quedan 2
+
+→ 23 Intento 2: todo correcto
+  POST http://api:8080/api/v1/quizzes/59d6b409-cd5e-4acf-a670-c506048c2b77/submissions [200 OK, 317B, 34ms]
+  ✓  responde 200
+  ✓  califica en 100 y aprueba
+  ✓  es el intento 2 y queda 1
+
+→ 24 El mismo envio repetido no consume otro intento
+  POST http://api:8080/api/v1/quizzes/59d6b409-cd5e-4acf-a670-c506048c2b77/submissions [200 OK, 342B, 7ms]
+  ✓  responde 200
+  ✓  devuelve exactamente la misma calificacion
+
+→ 25 Intento 3: el ultimo permitido
+  POST http://api:8080/api/v1/quizzes/59d6b409-cd5e-4acf-a670-c506048c2b77/submissions [200 OK, 317B, 23ms]
+  ✓  responde 200
+  ✓  es el intento 3 y no quedan mas
+
+→ 26 Rechazo: superar el limite de intentos
+  POST http://api:8080/api/v1/quizzes/59d6b409-cd5e-4acf-a670-c506048c2b77/submissions [409 Conflict, 275B, 13ms]
+  ✓  responde 409
+  ✓  con codigo de error quiz_conflict
+
+→ 27 Mis intentos: exactamente tres
+  GET http://api:8080/api/v1/quizzes/59d6b409-cd5e-4acf-a670-c506048c2b77/submissions/me [200 OK, 640B, 10ms]
+  ✓  responde 200
+  ✓  hay tres intentos, del mas reciente al mas antiguo
+  ✓  el historial tampoco filtra la clave
+
+→ 28 Aprobar el cuestionario completo su recurso
+  GET http://api:8080/api/v1/progress/courses/86709dcc-b2b8-499e-a035-383fab7510d0 [200 OK, 667B, 8ms]
+  ✓  responde 200
+  ✓  el recurso del cuestionario cuenta como completado
+
+┌─────────────────────────┬───────────────────┬──────────────────┐
+│                         │          executed │           failed │
+├─────────────────────────┼───────────────────┼──────────────────┤
+│              iterations │                 1 │                0 │
+├─────────────────────────┼───────────────────┼──────────────────┤
+│                requests │                28 │                0 │
+├─────────────────────────┼───────────────────┼──────────────────┤
+│            test-scripts │                28 │                0 │
+├─────────────────────────┼───────────────────┼──────────────────┤
+│      prerequest-scripts │                 4 │                0 │
+├─────────────────────────┼───────────────────┼──────────────────┤
+│              assertions │                56 │                0 │
+├─────────────────────────┴───────────────────┴──────────────────┤
+│ total run duration: 1365ms                                     │
+├────────────────────────────────────────────────────────────────┤
+│ total data received: 6.52kB (approx)                           │
+├────────────────────────────────────────────────────────────────┤
+│ average response time: 21ms [min: 5ms, max: 155ms, s.d.: 29ms] │
+└────────────────────────────────────────────────────────────────┘

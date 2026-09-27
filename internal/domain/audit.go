@@ -99,6 +99,17 @@ const (
 	// what anyone auditing the platform would come looking for.
 	AuditActionCourseCompleted AuditAction = "progress.course_completed"
 	AuditActionBadgeIssued     AuditAction = "badge.issued"
+
+	// Quizzes (issue #112). La autoria se audita como cualquier otra: quien
+	// cambio la evaluacion de un curso es exactamente lo que alguien vendria a
+	// preguntar.
+	//
+	// Los envios tambien, y a diferencia de los latidos de progreso aqui si
+	// compensa: son pocos --el limite de intentos los acota- y cada uno produce
+	// una calificacion que puede reclamarse.
+	AuditActionQuizCreated       AuditAction = "quiz.created"
+	AuditActionQuizQuestionAdded AuditAction = "quiz.question_added"
+	AuditActionQuizSubmitted     AuditAction = "quiz.submitted"
 )
 
 // AuditEntry is one immutable record of an action.
