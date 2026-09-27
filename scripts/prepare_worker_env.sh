@@ -50,7 +50,7 @@ S3_BUCKET="${S3_BUCKET:-plataforma-mooc-entrega2-media}"
 # One worker per vCPU of the e2-highcpu-2 profile. Raising it past the core
 # count does not transcode faster, it just risks the OOM killer on 2 GiB.
 WORKER_CONCURRENCY="${WORKER_CONCURRENCY:-2}"
-MEDIA_WORK_DIR="${MEDIA_WORK_DIR:-/tmp/mooc-worker}"
+MEDIA_WORK_DIR="${MEDIA_WORK_DIR:-/tmp/mooc-media}"
 MEDIA_MAX_ORIGINAL_MB="${MEDIA_MAX_ORIGINAL_MB:-2048}"
 
 required=(IMAGE_TAG DB_PRIVATE_IP)

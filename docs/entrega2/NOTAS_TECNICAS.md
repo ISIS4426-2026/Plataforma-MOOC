@@ -30,6 +30,7 @@ salieron de errores que costaron una tarde y se habrían evitado leyéndolas.
 | 18 | Terraform y el arranque deben interpretar igual los secretos creados desde Windows | C1, D2, E1, F1 |
 | 19 | Lo versionado tiene que reproducir lo que hacía lo que reemplaza — *`REDIS_URL`, **#166*** | D2, E1, F1, G3 |
 | 20 | El worker no podía arrancar en producción: validaba la configuración de la API | E1, F1, G3, I1 |
+| 21 | Un bind mount del host y un contenedor sin privilegios no se llevan bien | E1, G3, H4, H5 |
 
 ---
 
@@ -889,3 +890,46 @@ La lección: una comprobación de arranque que solo se puede satisfacer
 contradiciendo el modelo de permisos no protege nada, empuja a saltárselo. Si dos
 procesos comparten binario de configuración pero no superficie, la validación
 tiene que distinguirlos.
+
+---
+
+## 21. Un bind mount del host y un contenedor sin privilegios no se llevan bien
+
+**Afecta a:** E1, G3, H4 y H5.
+
+El tercero de la cadena que impedía procesar video en la nube, y el más fácil de
+pasar por alto porque el contenedor **no se cae**: arranca, toma la tarea, falla,
+la reintenta tres veces y la archiva.
+
+```
+ERROR media job failed ... error="create work directory:
+      mkdir /tmp/mooc-worker/mooc-media-898389567: permission denied"
+```
+
+`Dockerfile.worker` hace lo correcto: crea un usuario `app` sin privilegios,
+prepara `/tmp/mooc-media` a su nombre y declara `MEDIA_WORK_DIR` apuntando ahí.
+El Compose lo sobreescribía con `/tmp/mooc-worker` y montaba esa ruta del host.
+Docker crea el directorio de un bind mount que no existe **como `root`, con modo
+755**, así que `app` —uid 100— podía leerlo y no escribir en él.
+
+Las dos mitades estaban bien por separado: la imagen, endurecida; el montaje,
+pensado para que el espacio temporal viviera en el disco de 30 GiB de la VM y se
+pudiera medir. Juntas no funcionaban, y el síntoma aparecía en la tercera capa
+—una tarea que se reintenta— lejos de la causa.
+
+La salida **no** es `chmod 777` ni correr el contenedor como root: las dos anulan
+lo que la imagen construyó. Es un **volumen con nombre montado sobre la ruta que
+la imagen ya declara**. Docker lo inicializa copiando la propiedad del directorio
+del contenedor, así que nace perteneciendo a `app`:
+
+```
+$ docker exec mooc-worker id
+uid=100(app) gid=101(app)
+$ docker exec mooc-worker ls -ld /tmp/mooc-media
+drwxr-xr-x 2 app app 4096 /tmp/mooc-media
+```
+
+Sigue en el disco de la VM y se sigue midiendo, con `docker system df -v` en
+lugar de `du`. Un `chown` a mano en el host habría funcionado hasta la siguiente
+recreación de la VM —la lección de la nota 19 otra vez—; el volumen está
+declarado en `docker-compose.worker.yml` y sobrevive.

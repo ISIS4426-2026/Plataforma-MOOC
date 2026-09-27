@@ -99,7 +99,9 @@ func (r *run) note(name, request, state string, ok bool, detail string) bool {
 		mark = "FALLA"
 	}
 	fmt.Fprintf(r.log, "[%s] %-58s %-44s %s -> %s\n", mark, name, request, "—", state)
-	if detail != "" {
+	// The detail explains a failure, so printing it on a step that passed would
+	// contradict the line above it.
+	if !ok && detail != "" {
 		fmt.Fprintf(r.log, "        %s\n", detail)
 	}
 	return ok

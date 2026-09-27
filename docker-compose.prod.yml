@@ -104,7 +104,7 @@ services:
       - S3_BUCKET=${S3_BUCKET:-plataforma-mooc-entrega2-media}
       - GCP_PROJECT_ID=${GCP_PROJECT_ID:-plataforma-mooc-entrega2}
       - WORKER_CONCURRENCY=${WORKER_CONCURRENCY:-2}
-      - MEDIA_WORK_DIR=${MEDIA_WORK_DIR:-/tmp/mooc-worker}
+      - MEDIA_WORK_DIR=${MEDIA_WORK_DIR:-/tmp/mooc-media}
       - MEDIA_MAX_ORIGINAL_MB=${MEDIA_MAX_ORIGINAL_MB:-2048}
       - MEDIA_HLS_LADDER=${MEDIA_HLS_LADDER:-}
       - DB_MAX_OPEN_CONNS=${DB_MAX_OPEN_CONNS:-25}
@@ -112,7 +112,19 @@ services:
       - DB_CONN_MAX_LIFETIME=${DB_CONN_MAX_LIFETIME:-5m}
       - METRICS_PORT=9090
     volumes:
-      - /tmp/mooc-worker:/tmp/mooc-worker
+      # Volumen con nombre, no un bind mount del host.
+      #
+      # La imagen corre como el usuario `app` y prepara /tmp/mooc-media a su
+      # nombre (Dockerfile.worker). Un bind mount de /tmp/mooc-worker lo crea
+      # Docker en el host como root, y el contenedor no puede escribir dentro:
+      # cada tarea moria con `mkdir ...: permission denied` y se reintentaba
+      # hasta la DLQ. Lo encontro G3.
+      #
+      # Un volumen con nombre montado sobre la ruta que la imagen ya declara
+      # hereda su propiedad al inicializarse, asi que el worker escribe sin
+      # privilegios extra y el espacio sigue en el disco de la VM, medible con
+      # `docker system df -v`. Ver la nota 21 de docs/entrega2/NOTAS_TECNICAS.md.
+      - worker_scratch:/tmp/mooc-media
     ports:
       - "${WORKER_METRICS_PORT:-9090}:9090"
 
@@ -125,6 +137,9 @@ services:
     profiles:
       - worker
     restart: unless-stopped
+
+volumes:
+  worker_scratch:
 
 networks:
   backend:
