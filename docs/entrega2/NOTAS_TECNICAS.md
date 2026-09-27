@@ -27,6 +27,7 @@ salieron de errores que costaron una tarde y se habrían evitado leyéndolas.
 | 15 | Cloud SQL no tiene el hook que aplica el esquema en local | C1, C2, D2, E1, I6 |
 | 16 | Un `apply` desde una rama borra el trabajo de otro, y no falla al hacerlo | **todos los de infra**: B3, C1, C3, D2, E1, F1, G4, I6 |
 | 17 | SMTP 587, 465 y 2525 no hablan exactamente igual | F1, G3, I1 |
+| 18 | Terraform y el arranque deben interpretar igual los secretos creados desde Windows | C1, D2, E1, F1 |
 
 ---
 
@@ -769,3 +770,22 @@ creó un `prepare_env.sh` no versionado que reintroducía una clave de ejemplo e
 cada reinicio. F1 lo reemplaza por `scripts/prepare_web_env.sh`: el script está
 en Git, mientras que la contraseña viene de Secret Manager y el remitente/login
 permanecen en `/etc/mooc/web.conf`, fuera del repositorio.
+
+---
+
+## 18. Terraform y el arranque deben interpretar igual los secretos creados desde Windows
+
+**Afecta a:** C1, D2, E1 y F1.
+
+Una contraseña creada con PowerShell o Git Bash puede conservar un retorno de
+carro final. C1 ya aplica `trimspace(var.db_password)` al usuario de Cloud SQL;
+el script de arranque debe hacer la misma normalización antes de construir
+`DATABASE_URL`. Si cada lado interpreta el mismo secreto de forma distinta, la
+API recibe `28P01 password authentication failed` aunque Secret Manager,
+Terraform e IAM estén configurados correctamente.
+
+El script también puede ejecutarse mediante un enlace simbólico ubicado en la
+raíz del despliegue. Derivar el repositorio directamente desde
+`BASH_SOURCE[0]` hacía que escribiera `.env` en el directorio padre. Primero se
+resuelve la ruta real con `readlink -f`; así una invocación directa y la de
+systemd preparan exactamente el mismo archivo.
