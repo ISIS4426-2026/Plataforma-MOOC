@@ -4,7 +4,7 @@
 
 | | |
 | :--- | :--- |
-| CPU/memoria/red/disco de ambas VMs, mediante agente | ✅ Política de Ops Agent creada y aplicada (`rolloutState: SUCCEEDED`) — ⏳ confirmación de que ya reportan datos, pendiente (ver abajo) |
+| CPU/memoria/red/disco de ambas VMs, mediante agente | ✅ Instalado, activo y reportando datos reales en Cloud Monitoring — ver abajo |
 | Conexiones y carga de la base administrada | ✅ Cloud SQL expone estas métricas de forma nativa, sin agente — ver "Base de datos administrada" |
 | Profundidad, antigüedad y tasa de procesamiento de la cola | ✅ [`internal/worker/queue_metrics.go`](../../../../internal/worker/queue_metrics.go) — nuevo, no existía antes |
 | Apuntar al entorno cloud las métricas Prometheus de la Entrega 1 | ⏳ Diseñado, no aplicado — requiere reiniciar las VMs (ver "Lo que queda fuera") |
@@ -130,14 +130,48 @@ El filtro por la etiqueta `proyecto: plataforma-mooc` (que ambas VMs ya
 llevan desde que Terraform las creó) cubre `mooc-web-server` y
 `mooc-worker-server` sin nombrarlas una por una.
 
-**Estado al cerrar esta sesión:** la política se aplicó exitosamente
-(`rolloutState: SUCCEEDED`), y el agente de OS Config de cada VM ya la
-recogió (reinicio visible en el log de arranque, 2026-09-27 16:54 UTC). Las
-métricas de CPU (`agent.googleapis.com/cpu/utilization`) todavía no
-aparecían en Cloud Monitoring al momento de escribir esto — Google declara
-hasta 10-15 minutos para el rollout completo, y quedó fuera de la ventana de
-esta sesión confirmarlo. **Pendiente: volver a consultar Cloud Monitoring
-más tarde y confirmar aquí.**
+**Hallazgo real durante la verificación:** la política se creó con
+`rolloutState: SUCCEEDED`, pero 45+ minutos después las métricas seguían sin
+aparecer, y `sudo systemctl status google-cloud-ops-agent` en la VM
+respondía `Unit ... could not be found` — el agente nunca se instaló. La
+causa: a las dos VMs les faltaba la metadata `enable-osconfig = "TRUE"`, que
+el agente de OS Config necesita para *actuar* sobre una política asignada,
+no solo para recibirla. Sin ella, `rolloutState: SUCCEEDED` describe que la
+asignación de la política se creó correctamente en el backend de Google, no
+que algo se haya instalado en la VM — una distinción que el propio comando
+no deja clara.
+
+**La corrección:**
+
+```bash
+gcloud compute instances add-metadata mooc-web-server --zone=us-east1-b \
+  --metadata=enable-osconfig=TRUE
+gcloud compute instances add-metadata mooc-worker-server --zone=us-east1-b \
+  --metadata=enable-osconfig=TRUE
+```
+
+Aplicada primero en caliente contra las VMs (sin reiniciarlas: a diferencia
+de `metadata_startup_script`, una clave de metadata cualquiera sí se
+actualiza sin forzar el reemplazo de la instancia — confirmado con
+`terraform plan` mostrando `0 to destroy` después de declarar la misma
+metadata en `compute.tf`), y declarada también en Terraform
+(`google_compute_instance.web_server.metadata` /
+`.worker_server.metadata`) para que quede en el estado del equipo y no como
+un cambio hecho solo a mano. `terraform apply`: **1 to add, 0 to change, 0
+to destroy** — únicamente registró la API `osconfig.googleapis.com`, ya
+habilitada manualmente, como recurso gestionado.
+
+**Confirmado, verificado dos veces de forma independiente:**
+1. Un compañero (conectado a `mooc-web-server` por otro motivo) corrió
+   `sudo systemctl status google-cloud-ops-agent` y confirmó `active
+   (running)`.
+2. La API de Cloud Monitoring devuelve series de tiempo reales para las dos
+   instancias, con el desglose completo por estado de CPU:
+
+```
+instancia 2554794830132975210 (mooc-web-server)    | idle: 97.27%  user: 1.61%  system: 0.98%
+instancia 6977342437443558222 (mooc-worker-server) | idle: 97.95%  ...
+```
 
 ## Lo que queda fuera de esta sesión
 
