@@ -9,6 +9,11 @@ COPY . .
 
 RUN CGO_ENABLED=0 GOOS=linux go build -o /app/bin/worker ./cmd/worker
 
+# seed-media (issue #127/G1) reuses this same image because it needs ffmpeg
+# and the same runtime dependencies as the worker; it is not part of the
+# service that runs by default, only invoked one-off via `make seed-media`.
+RUN CGO_ENABLED=0 GOOS=linux go build -o /app/bin/seed-media ./cmd/seed-media
+
 FROM alpine:3.22
 
 # The media pipeline shells out to ffmpeg and ffprobe, so they are part of the
@@ -20,6 +25,7 @@ RUN apk add --no-cache ffmpeg ca-certificates \
 
 WORKDIR /app
 COPY --from=builder --chown=app:app /app/bin/worker /app/worker
+COPY --from=builder --chown=app:app /app/bin/seed-media /app/seed-media
 
 # Originals are downloaded and renditions written here before upload. Declaring
 # it keeps the scratch space in one known place, so disk use during a load test

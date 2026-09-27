@@ -8,11 +8,14 @@ set -e
 #   ./scripts/seed.sh [opción]
 #
 # Opciones:
-#   --load     (Por defecto) Carga el dataset sintético determinístico.
-#   --clean    Limpia todas las tablas de la base de datos y la caché de Redis.
-#   --reset    Ejecuta --clean y luego --load para restaurar el estado inicial.
-#   --status   Muestra un resumen del estado actual de datos en la base de datos.
-#   --help     Muestra esta ayuda.
+#   --load           (Por defecto) Carga el dataset sintético determinístico.
+#   --load-capacity  Carga el dataset funcional y además la semilla de
+#                     capacidad (issue #127/G1): 200 estudiantes adicionales
+#                     para los guiones de carga de H2/H3.
+#   --clean          Limpia todas las tablas de la base de datos y la caché de Redis.
+#   --reset          Ejecuta --clean y luego --load para restaurar el estado inicial.
+#   --status         Muestra un resumen del estado actual de datos en la base de datos.
+#   --help           Muestra esta ayuda.
 # ============================================================================
 
 GREEN='\033[0;32m'
@@ -28,6 +31,7 @@ PROJECT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 SEEDS_DIR="${SCRIPT_DIR}/seeds"
 
 SEED_SQL="${SEEDS_DIR}/synthetic_data.sql"
+CAPACITY_SQL="${SEEDS_DIR}/capacity_data.sql"
 CLEAN_SQL="${SEEDS_DIR}/clean_data.sql"
 
 # Detectar comando de ejecución (Docker Compose vs psql directo)
@@ -84,6 +88,16 @@ cmd_load() {
     echo -e "${YELLOW}==> Cargando seed de datos sintéticos (${SEED_SQL})...${NC}"
     run_psql "$SEED_SQL"
     echo -e "${GREEN}[✔] Datos sintéticos cargados exitosamente de forma determinística.${NC}\n"
+    cmd_status
+}
+
+cmd_load_capacity() {
+    show_header
+    echo -e "${YELLOW}==> Cargando seed de datos sintéticos (${SEED_SQL})...${NC}"
+    run_psql "$SEED_SQL"
+    echo -e "${YELLOW}==> Cargando semilla de capacidad (${CAPACITY_SQL})...${NC}"
+    run_psql "$CAPACITY_SQL"
+    echo -e "${GREEN}[✔] Datos funcionales y de capacidad cargados exitosamente.${NC}\n"
     cmd_status
 }
 
@@ -152,6 +166,9 @@ case "$ACTION" in
     --load|load)
         cmd_load
         ;;
+    --load-capacity|load-capacity)
+        cmd_load_capacity
+        ;;
     --clean|clean)
         cmd_clean
         ;;
@@ -165,7 +182,8 @@ case "$ACTION" in
     --help|help|-h)
         echo "Uso: ./scripts/seed.sh [--load | --clean | --reset | --status | --help]"
         echo ""
-        echo "  --load    Carga el seed determinístico de datos sintéticos."
+        echo "  --load           Carga el seed determinístico de datos sintéticos."
+        echo "  --load-capacity  Carga el seed funcional y la semilla de capacidad (G1)."
         echo "  --clean   Limpia las tablas de la BD relacional y la caché Redis."
         echo "  --reset   Limpia y vuelve a cargar los datos determinísticos."
         echo "  --status  Muestra conteos de usuarios, cursos, jerarquía y auditoría."

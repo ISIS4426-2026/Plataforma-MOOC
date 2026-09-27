@@ -1,0 +1,5054 @@
+{
+  "generated_at": "2026-09-27T17:12:15.090785618Z",
+  "course_id": "d9000000-0000-0000-0000-000000000001",
+  "course_stable_id": "e9000000-0000-0000-0000-000000000001",
+  "bucket": "mooc-storage",
+  "storage_backend": "minio",
+  "profiles": [
+    {
+      "profile": "corto",
+      "label": "Video de prueba: perfil corto (2 min, 1280x720)",
+      "duration_seconds": 120,
+      "resource_id": "d9300000-0000-0000-0000-000000000001",
+      "resource_stable_id": "e9300000-0000-0000-0000-000000000001",
+      "source_resolution": "1280x720",
+      "ladder": [
+        "360p(800kbps video + 96kbps audio)",
+        "720p(2500kbps video + 128kbps audio)"
+      ],
+      "original": {
+        "key": "originals/e9300000-0000-0000-0000-000000000001/0d89f308-c5c7-45ce-910a-8420cd3b8261.mp4",
+        "kind": "original",
+        "content_type": "video/mp4",
+        "size_bytes": 2599196,
+        "sha256": "fb447faceab29c2c536c751f0bf1e4f0f448b1d0f95a073c2cd0ed2191a49f66"
+      },
+      "derivatives": [
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000001/master.m3u8",
+          "kind": "derivative",
+          "content_type": "application/vnd.apple.mpegurl",
+          "size_bytes": 155,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000001/360p.m3u8",
+          "kind": "derivative",
+          "content_type": "application/vnd.apple.mpegurl",
+          "size_bytes": 668,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000001/360p_0000.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 764972,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000001/360p_0001.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 890368,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000001/360p_0002.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 840924,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000001/360p_0003.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 779448,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000001/360p_0004.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 896572,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000001/360p_0005.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 802948,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000001/360p_0006.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 808212,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000001/360p_0007.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 903340,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000001/360p_0008.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 784524,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000001/360p_0009.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 838480,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000001/360p_0010.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 887548,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000001/360p_0011.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 763092,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000001/360p_0012.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 867056,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000001/360p_0013.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 855964,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000001/360p_0014.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 780952,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000001/360p_0015.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 883224,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000001/360p_0016.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 589192,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000001/720p.m3u8",
+          "kind": "derivative",
+          "content_type": "application/vnd.apple.mpegurl",
+          "size_bytes": 668,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000001/720p_0000.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 787156,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000001/720p_0001.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1202260,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000001/720p_0002.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1418648,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000001/720p_0003.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 793548,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000001/720p_0004.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1316188,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000001/720p_0005.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1400036,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000001/720p_0006.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 836412,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000001/720p_0007.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1411504,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000001/720p_0008.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1386312,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000001/720p_0009.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 973088,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000001/720p_0010.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1428048,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000001/720p_0011.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1402480,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000001/720p_0012.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1092468,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000001/720p_0013.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1395712,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000001/720p_0014.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 809716,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000001/720p_0015.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1246628,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000001/720p_0016.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 957484,
+          "sha256": ""
+        }
+      ]
+    },
+    {
+      "profile": "medio",
+      "label": "Video de prueba: perfil medio (10 min, 1280x720)",
+      "duration_seconds": 600,
+      "resource_id": "d9300000-0000-0000-0000-000000000002",
+      "resource_stable_id": "e9300000-0000-0000-0000-000000000002",
+      "source_resolution": "1280x720",
+      "ladder": [
+        "360p(800kbps video + 96kbps audio)",
+        "720p(2500kbps video + 128kbps audio)"
+      ],
+      "original": {
+        "key": "originals/e9300000-0000-0000-0000-000000000002/09fafd86-ea19-4d4a-ac20-854132ba3fc0.mp4",
+        "kind": "original",
+        "content_type": "video/mp4",
+        "size_bytes": 13006511,
+        "sha256": "0bc2fc905a49f3dc971ad0e69adf8aadb7c7607fe51efdb75de025e37d4244e1"
+      },
+      "derivatives": [
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/master.m3u8",
+          "kind": "derivative",
+          "content_type": "application/vnd.apple.mpegurl",
+          "size_bytes": 155,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/360p.m3u8",
+          "kind": "derivative",
+          "content_type": "application/vnd.apple.mpegurl",
+          "size_bytes": 2745,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/360p_0000.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 762340,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/360p_0001.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 890932,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/360p_0002.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 843180,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/360p_0003.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 777380,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/360p_0004.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 896572,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/360p_0005.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 804076,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/360p_0006.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 809152,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/360p_0007.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 903340,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/360p_0008.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 781704,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/360p_0009.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 838104,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/360p_0010.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 889992,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/360p_0011.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 764408,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/360p_0012.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 867432,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/360p_0013.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 856340,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/360p_0014.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 782268,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/360p_0015.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 883224,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/360p_0016.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 827576,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/360p_0017.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 799188,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/360p_0018.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 899768,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/360p_0019.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 789976,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/360p_0020.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 823440,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/360p_0021.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 904844,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/360p_0022.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 764220,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/360p_0023.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 856904,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/360p_0024.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 877020,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/360p_0025.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 770048,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/360p_0026.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 877772,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/360p_0027.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 851452,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/360p_0028.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 774936,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/360p_0029.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 890932,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/360p_0030.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 804640,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/360p_0031.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 812724,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/360p_0032.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 902776,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/360p_0033.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 784336,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/360p_0034.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 838856,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/360p_0035.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 884352,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/360p_0036.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 765536,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/360p_0037.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 865552,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/360p_0038.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 867432,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/360p_0039.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 774372,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/360p_0040.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 883412,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/360p_0041.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 828328,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/360p_0042.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 791292,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/360p_0043.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 901272,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/360p_0044.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 787720,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/360p_0045.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 820620,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/360p_0046.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 898452,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/360p_0047.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 774372,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/360p_0048.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 861604,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/360p_0049.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 877584,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/360p_0050.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 762152,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/360p_0051.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 881720,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/360p_0052.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 851640,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/360p_0053.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 773244,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/360p_0054.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 890744,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/360p_0055.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 805768,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/360p_0056.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 809152,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/360p_0057.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 902400,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/360p_0058.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 787532,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/360p_0059.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 844872,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/360p_0060.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 888112,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/360p_0061.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 761212,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/360p_0062.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 875704,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/360p_0063.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 867056,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/360p_0064.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 770048,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/360p_0065.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 880968,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/360p_0066.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 827012,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/360p_0067.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 800128,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/360p_0068.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 901648,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/360p_0069.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 792044,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/360p_0070.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 815920,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/360p_0071.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 896760,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/360p_0072.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 777944,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/360p_0073.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 862356,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/360p_0074.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 875516,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/360p_0075.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 762340,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/360p_0076.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 880216,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/360p_0077.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 849948,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/360p_0078.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 773244,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/360p_0079.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 890932,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/360p_0080.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 804828,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/360p_0081.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 812912,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/360p_0082.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 903528,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/360p_0083.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 283128,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/720p.m3u8",
+          "kind": "derivative",
+          "content_type": "application/vnd.apple.mpegurl",
+          "size_bytes": 2745,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/720p_0000.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 786968,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/720p_0001.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1202260,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/720p_0002.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1419024,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/720p_0003.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 793548,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/720p_0004.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1316188,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/720p_0005.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1400412,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/720p_0006.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 836412,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/720p_0007.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1411504,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/720p_0008.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1385748,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/720p_0009.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 973088,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/720p_0010.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1428048,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/720p_0011.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1402480,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/720p_0012.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1092468,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/720p_0013.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1395712,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/720p_0014.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 809716,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/720p_0015.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1246628,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/720p_0016.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1391576,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/720p_0017.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 828328,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/720p_0018.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1388380,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/720p_0019.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1409436,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/720p_0020.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 893376,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/720p_0021.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1424664,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/720p_0022.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1413008,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/720p_0023.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1031556,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/720p_0024.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1405864,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/720p_0025.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 812348,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/720p_0026.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1178760,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/720p_0027.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1413948,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/720p_0028.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 790728,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/720p_0029.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1307352,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/720p_0030.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1395148,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/720p_0031.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 833592,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/720p_0032.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1399472,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/720p_0033.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1387252,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/720p_0034.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 967072,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/720p_0035.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1406992,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/720p_0036.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1399284,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/720p_0037.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1093784,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/720p_0038.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1392516,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/720p_0039.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 800880,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/720p_0040.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1246816,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/720p_0041.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1375220,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/720p_0042.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 809340,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/720p_0043.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1382364,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/720p_0044.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1402292,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/720p_0045.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 887548,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/720p_0046.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1393268,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/720p_0047.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1403420,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/720p_0048.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1029864,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/720p_0049.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1395524,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/720p_0050.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 798812,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/720p_0051.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1176504,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/720p_0052.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1401916,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/720p_0053.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 788848,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/720p_0054.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1304156,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/720p_0055.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1400224,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/720p_0056.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 838104,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/720p_0057.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1407180,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/720p_0058.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1401352,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/720p_0059.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 978164,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/720p_0060.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1418272,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/720p_0061.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1384996,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/720p_0062.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1111832,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/720p_0063.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1414136,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/720p_0064.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 811784,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/720p_0065.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1243244,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/720p_0066.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1384620,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/720p_0067.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 822500,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/720p_0068.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1383304,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/720p_0069.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1403044,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/720p_0070.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 889240,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/720p_0071.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1397028,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/720p_0072.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1401540,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/720p_0073.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1029488,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/720p_0074.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1397968,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/720p_0075.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 801068,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/720p_0076.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1172556,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/720p_0077.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1402292,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/720p_0078.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 788472,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/720p_0079.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1306412,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/720p_0080.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1394396,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/720p_0081.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 830960,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/720p_0082.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1397592,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000002/720p_0083.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 463984,
+          "sha256": ""
+        }
+      ]
+    },
+    {
+      "profile": "largo",
+      "label": "Video de prueba: perfil largo (30 min, 1280x720)",
+      "duration_seconds": 1800,
+      "resource_id": "d9300000-0000-0000-0000-000000000003",
+      "resource_stable_id": "e9300000-0000-0000-0000-000000000003",
+      "source_resolution": "1280x720",
+      "ladder": [
+        "360p(800kbps video + 96kbps audio)",
+        "720p(2500kbps video + 128kbps audio)"
+      ],
+      "original": {
+        "key": "originals/e9300000-0000-0000-0000-000000000003/bc7079a3-d893-49e6-bc35-0887c7a62701.mp4",
+        "kind": "original",
+        "content_type": "video/mp4",
+        "size_bytes": 39029758,
+        "sha256": "92b3c4488ac943aa45db9ebe0c72d7ebccf5da5c99a602088a636cb2f3992cd0"
+      },
+      "derivatives": [
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/master.m3u8",
+          "kind": "derivative",
+          "content_type": "application/vnd.apple.mpegurl",
+          "size_bytes": 155,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p.m3u8",
+          "kind": "derivative",
+          "content_type": "application/vnd.apple.mpegurl",
+          "size_bytes": 7891,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0000.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 762340,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0001.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 891308,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0002.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 841112,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0003.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 779072,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0004.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 896196,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0005.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 804076,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0006.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 808776,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0007.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 903716,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0008.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 780764,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0009.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 838668,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0010.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 886984,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0011.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 763844,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0012.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 867056,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0013.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 855588,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0014.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 782268,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0015.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 883224,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0016.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 827576,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0017.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 797496,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0018.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 902212,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0019.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 791480,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0020.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 822312,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0021.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 905972,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0022.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 766476,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0023.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 856904,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0024.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 876080,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0025.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 770236,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0026.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 877960,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0027.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 851452,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0028.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 772680,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0029.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 891872,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0030.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 807084,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0031.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 811784,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0032.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 902776,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0033.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 781516,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0034.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 838856,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0035.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 883412,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0036.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 765724,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0037.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 865552,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0038.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 866680,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0039.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 773432,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0040.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 883788,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0041.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 827764,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0042.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 790916,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0043.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 902212,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0044.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 789788,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0045.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 819304,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0046.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 897324,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0047.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 775876,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0048.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 862168,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0049.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 875892,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0050.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 762716,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0051.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 880028,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0052.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 853708,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0053.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 771928,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0054.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 890744,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0055.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 805768,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0056.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 810092,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0057.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 903716,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0058.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 784900,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0059.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 844684,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0060.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 888112,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0061.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 762152,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0062.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 873448,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0063.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 867244,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0064.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 772868,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0065.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 880404,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0066.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 827952,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0067.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 799188,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0068.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 901272,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0069.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 792420,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0070.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 815920,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0071.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 897324,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0072.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 775124,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0073.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 862732,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0074.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 876832,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0075.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 761588,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0076.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 880404,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0077.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 848820,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0078.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 773244,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0079.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 890932,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0080.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 804828,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0081.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 812536,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0082.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 903716,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0083.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 784524,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0084.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 839608,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0085.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 886608,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0086.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 764972,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0087.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 866492,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0088.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 866868,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0089.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 775876,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0090.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 883412,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0091.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 826636,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0092.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 790728,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0093.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 899204,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0094.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 789976,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0095.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 820620,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0096.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 898452,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0097.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 773432,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0098.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 861040,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0099.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 878336,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0100.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 769108,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0101.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 878336,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0102.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 854084,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0103.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 777756,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0104.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 894692,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0105.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 806520,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0106.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 805580,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0107.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 898264,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0108.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 785464,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0109.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 847128,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0110.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 888112,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0111.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 764220,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0112.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 865928,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0113.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 867056,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0114.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 773432,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0115.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 883224,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0116.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 828140,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0117.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 791668,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0118.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 901084,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0119.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 790916,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0120.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 817048,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0121.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 896572,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0122.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 776064,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0123.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 863108,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0124.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 877396,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0125.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 761212,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0126.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 881908,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0127.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 851076,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0128.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 774184,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0129.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 892060,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0130.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 805204,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0131.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 811408,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0132.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 902588,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0133.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 784336,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0134.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 838480,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0135.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 885480,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0136.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 764972,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0137.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 866304,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0138.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 858032,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0139.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 780576,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0140.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 884728,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0141.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 823252,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0142.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 790728,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0143.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 902212,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0144.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 785088,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0145.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 825132,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0146.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 900708,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0147.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 772868,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0148.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 852204,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0149.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 879464,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0150.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 763092,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0151.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 878148,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0152.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 847692,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0153.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 783772,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0154.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 897512,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0155.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 803136,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0156.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 803888,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0157.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 902964,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0158.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 786404,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0159.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 841300,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0160.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 884728,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0161.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 764972,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0162.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 875892,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0163.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 868184,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0164.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 768920,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0165.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 879840,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0166.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 834156,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0167.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 788096,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0168.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 902588,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0169.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 786404,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0170.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 824192,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0171.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 900896,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0172.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 770424,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0173.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 852204,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0174.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 876456,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0175.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 762904,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0176.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 878900,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0177.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 844684,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0178.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 780012,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0179.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 893752,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0180.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 800880,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0181.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 804076,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0182.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 907100,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0183.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 780576,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0184.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 838668,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0185.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 886232,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0186.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 768920,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0187.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 870628,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0188.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 861228,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0189.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 776252,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0190.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 883036,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0191.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 822688,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0192.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 791292,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0193.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 902588,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0194.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 785464,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0195.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 824756,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0196.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 907476,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0197.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 764596,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0198.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 859724,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0199.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 879088,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0200.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 771552,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0201.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 879652,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0202.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 847880,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0203.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 781140,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0204.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 896572,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0205.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 807460,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0206.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 802572,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0207.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 899580,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0208.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 787344,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0209.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 838104,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0210.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 885104,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0211.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 767980,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0212.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 868184,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0213.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 859912,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0214.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 777756,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0215.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 881908,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0216.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 824944,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0217.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 790916,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0218.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 901836,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0219.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 785088,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0220.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 821748,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0221.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 900708,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0222.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 771928,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0223.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 853332,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0224.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 878712,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0225.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 762904,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0226.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 879464,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0227.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 844496,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0228.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 779448,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0229.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 896572,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0230.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 799564,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0231.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 802760,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0232.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 905220,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0233.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 778696,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0234.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 840172,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0235.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 882096,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0236.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 767416,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0237.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 874200,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0238.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 851452,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0239.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 779824,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0240.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 884540,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0241.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 833592,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0242.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 796180,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0243.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 898076,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0244.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 789412,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0245.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 824192,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0246.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 907288,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0247.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 766100,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0248.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 859912,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/360p_0249.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 885292,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p.m3u8",
+          "kind": "derivative",
+          "content_type": "application/vnd.apple.mpegurl",
+          "size_bytes": 7891,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0000.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 788284,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0001.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1201320,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0002.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1418648,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0003.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 794112,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0004.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1316188,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0005.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1400412,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0006.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 836412,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0007.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1411504,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0008.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1386312,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0009.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 973088,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0010.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1428048,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0011.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1402480,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0012.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1092468,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0013.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1395712,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0014.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 809716,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0015.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1246628,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0016.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1391764,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0017.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 827200,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0018.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1388380,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0019.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1409436,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0020.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 893376,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0021.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1424664,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0022.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1413008,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0023.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1031556,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0024.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1405864,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0025.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 812348,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0026.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1178760,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0027.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1415640,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0028.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 790728,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0029.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1307352,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0030.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1395148,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0031.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 833028,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0032.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1399472,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0033.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1388568,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0034.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 967072,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0035.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1406992,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0036.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1399284,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0037.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1093784,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0038.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1392516,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0039.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 800880,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0040.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1246816,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0041.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1375220,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0042.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 808776,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0043.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1382364,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0044.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1402292,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0045.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 887548,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0046.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1393268,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0047.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1403420,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0048.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1029864,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0049.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1395524,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0050.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 798812,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0051.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1176504,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0052.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1401916,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0053.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 788848,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0054.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1304156,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0055.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1400224,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0056.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 838104,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0057.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1407180,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0058.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1401352,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0059.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 978164,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0060.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1418084,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0061.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1385184,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0062.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1111832,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0063.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1414136,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0064.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 811784,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0065.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1243244,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0066.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1384620,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0067.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 822688,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0068.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1383304,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0069.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1404548,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0070.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 889052,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0071.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1397028,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0072.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1401540,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0073.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1029488,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0074.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1397968,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0075.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 801068,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0076.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1172556,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0077.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1406616,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0078.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 788472,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0079.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1306412,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0080.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1394396,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0081.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 831336,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0082.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1397592,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0083.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1378792,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0084.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 971772,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0085.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1410752,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0086.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1393644,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0087.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1093032,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0088.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1400600,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0089.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 806708,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0090.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1249260,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0091.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1372588,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0092.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 807648,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0093.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1379168,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0094.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1394396,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0095.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 884728,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0096.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1390636,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0097.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1401164,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0098.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1032496,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0099.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1407368,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0100.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 811220,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0101.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1180640,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0102.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1419776,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0103.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 797872,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0104.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1323520,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0105.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1409060,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0106.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 837352,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0107.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1411316,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0108.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1401728,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0109.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 977600,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0110.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1416768,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0111.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1390636,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0112.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1092092,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0113.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1392516,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0114.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 802008,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0115.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1244748,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0116.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1372024,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0117.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 809152,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0118.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1375408,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0119.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1392892,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0120.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 886984,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0121.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1394584,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0122.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1388004,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0123.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1025540,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0124.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1391200,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0125.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 799564,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0126.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1173684,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0127.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1404924,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0128.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 789224,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0129.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1307728,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0130.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1398532,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0131.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 830584,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0132.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1397404,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0133.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1375032,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0134.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 970644,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0135.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1411880,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0136.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1390260,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0137.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1088332,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0138.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1395148,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0139.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 812348,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0140.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1240612,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0141.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1375220,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0142.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 805016,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0143.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1383868,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0144.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1387252,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0145.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 891872,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0146.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1394208,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0147.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1394960,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0148.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1023096,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0149.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1394772,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0150.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 793924,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0151.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1169360,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0152.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1401728,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0153.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 797308,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0154.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1327280,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0155.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1410376,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0156.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 830960,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0157.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1402856,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0158.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1406240,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0159.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 978916,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0160.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1409812,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0161.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1381988,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0162.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1116532,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0163.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1413572,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0164.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 806332,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0165.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1243996,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0166.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1385936,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0167.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 807836,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0168.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1387440,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0169.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1379168,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0170.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 890744,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0171.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1394208,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0172.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1396840,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0173.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1022344,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0174.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1391200,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0175.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 796180,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0176.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1172744,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0177.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1392140,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0178.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 794676,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0179.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1307540,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0180.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1387816,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0181.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 830208,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0182.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1409436,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0183.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1380296,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0184.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 970456,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0185.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1407744,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0186.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1392892,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0187.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1099612,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0188.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1391388,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0189.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 812536,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0190.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1241176,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0191.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1373716,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0192.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 802572,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0193.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1381236,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0194.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1383868,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0195.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 894692,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0196.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1424852,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0197.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1393456,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0198.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1032872,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0199.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1398532,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0200.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 811220,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0201.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1173120,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0202.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1403232,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0203.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 795616,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0204.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1326716,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0205.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1400224,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0206.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 833216,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0207.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1394208,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0208.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1384244,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0209.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 968200,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0210.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1408872,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0211.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1389320,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0212.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1099800,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0213.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1394208,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0214.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 813288,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0215.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1238168,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0216.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1370520,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0217.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 807836,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0218.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1387064,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0219.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1381236,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0220.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 881532,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0221.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1392704,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0222.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1394208,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0223.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1024224,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0224.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1395336,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0225.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 793924,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0226.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1169360,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0227.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1397592,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0228.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 795240,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0229.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1312428,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0230.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1384056,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0231.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 830208,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0232.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1404360,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0233.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1373340,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0234.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 966884,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0235.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1401728,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0236.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1377476,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0237.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1116532,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0238.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1419776,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0239.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 806144,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0240.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1245500,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0241.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1392516,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0242.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 826260,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0243.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1374844,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0244.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1403044,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0245.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 893564,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0246.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1426356,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0247.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1398720,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0248.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1034376,
+          "sha256": ""
+        },
+        {
+          "key": "hls/e9300000-0000-0000-0000-000000000003/720p_0249.ts",
+          "kind": "derivative",
+          "content_type": "video/mp2t",
+          "size_bytes": 1424852,
+          "sha256": ""
+        }
+      ]
+    }
+  ],
+  "total_objects": 714,
+  "total_bytes": 765799558,
+  "reconciliation_discrepancies": null,
+  "reconciliation_ok": true,
+  "no_prior_objects_note": "La Entrega 1 nunca implementó almacenamiento de objetos: no existían objetos previos que migrar. Todo lo que hay bajo originals/ y hls/ para este dataset lo escribió este comando."
+}
