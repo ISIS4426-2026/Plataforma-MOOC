@@ -42,7 +42,12 @@ func main() {
 
 	// El worker comparte la base y el almacenamiento con la API, asi que
 	// arrancar con configuracion de desarrollo tiene las mismas consecuencias.
-	if err := cfg.Validate(); err != nil {
+	//
+	// No comparte la superficie HTTP ni el correo: no sirve peticiones y no
+	// manda mensajes, y mail.tf le niega el secreto de SMTP a proposito. Exigirle
+	// esos valores lo dejaba en bucle de reinicio en produccion --lo encontro
+	// G3-- salvo que se le diera una credencial que no debe tener.
+	if err := cfg.ValidateWorker(); err != nil {
 		log.Fatalf("Invalid configuration: %v", err)
 	}
 
