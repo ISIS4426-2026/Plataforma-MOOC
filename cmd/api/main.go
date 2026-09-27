@@ -20,6 +20,7 @@ import (
 	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/observability"
 	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/postgres"
 	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/progress"
+	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/quiz"
 	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/storage"
 	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/structure"
 	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/worker"
@@ -156,6 +157,19 @@ func run(logger *slog.Logger) error {
 		Enrollments: enrollmentRepo,
 	}, logger)
 
+	// El servicio de quizzes recibe el de progreso: aprobar un cuestionario
+	// completa su recurso, y que lo registre el servidor es lo coherente con que
+	// el enunciado rechace los avances enviados por el cliente.
+	quizService := quiz.NewService(quiz.Deps{
+		Quizzes:   postgres.NewQuizRepository(db),
+		Resources: resourceRepo,
+		Units:     unitRepo,
+		Modules:   moduleRepo,
+		Courses:   courseRepo,
+		Access:    enrollmentService,
+		Progress:  progressService,
+	}, logger)
+
 	structureService := structure.NewService(structure.Deps{
 		Courses:   courseRepo,
 		Modules:   moduleRepo,
@@ -208,6 +222,7 @@ func run(logger *slog.Logger) error {
 		Media:            mediaService,
 		Enrollment:       enrollmentService,
 		Progress:         progressService,
+		Quiz:             quizService,
 		Audit:            postgres.NewAuditRepository(db),
 		RateLimiter:      cache.NewRateLimiter(redisClient),
 		IdempotencyStore: cache.NewIdempotencyStore(redisClient),

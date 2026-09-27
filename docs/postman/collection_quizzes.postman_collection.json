@@ -1,0 +1,1597 @@
+{
+  "info": {
+    "name": "Plataforma MOOC - Quizzes y Calificacion",
+    "description": "Autoria de cuestionarios, presentacion y calificacion en servidor (issue #112).\n\nLa coleccion **monta su propio curso** en cada corrida, con su cuestionario y sus preguntas. No es un capricho: los intentos de un quiz se agotan, asi que reutilizar uno sembrado haria que la segunda ejecucion no pudiera presentar nada. Con un curso nuevo los intentos siempre empiezan en cero y la coleccion es re-ejecutable sin reiniciar la base.\n\nComprueba los tres criterios de aceptacion del issue: que un reenvio con la misma clave de idempotencia devuelva la misma calificacion sin gastar un intento, que superar el limite responda 409 sin dejar rastro, y que la clave de respuestas no aparezca en ninguna respuesta al estudiante.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "01 Login como Profesor",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"responde 200\", function () { pm.response.to.have.status(200); });",
+              "pm.environment.set(\"professorToken\", pm.response.json().token);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"{{professorEmail}}\",\n  \"password\": \"{{professorPassword}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/auth/login",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "auth",
+            "login"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "02 Login como Estudiante",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"responde 200\", function () { pm.response.to.have.status(200); });",
+              "pm.environment.set(\"studentToken\", pm.response.json().token);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"{{studentEmail}}\",\n  \"password\": \"{{studentPassword}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/auth/login",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "auth",
+            "login"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "03 Crear el curso de la corrida",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "var d = pm.response.json();",
+              "pm.environment.set(\"quizCourseId\", d.id);",
+              "pm.environment.set(\"idemKeyBase\", \"quiz-\" + Date.now());",
+              "pm.test(\"responde 201\", function () { pm.response.to.have.status(201); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{professorToken}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"Curso de evaluacion {{$timestamp}}\",\n  \"description\": \"Curso creado por la coleccion de quizzes para que los intentos empiecen en cero.\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/courses",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "courses"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "04 Crear el modulo",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.environment.set(\"quizModuleId\", pm.response.json().id);",
+              "pm.test(\"responde 201\", function () { pm.response.to.have.status(201); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{professorToken}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"Modulo de evaluacion\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/courses/{{quizCourseId}}/modules",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "courses",
+            "{{quizCourseId}}",
+            "modules"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "05 Crear la unidad",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.environment.set(\"quizUnitId\", pm.response.json().id);",
+              "pm.test(\"responde 201\", function () { pm.response.to.have.status(201); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{professorToken}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"Unidad de evaluacion\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/modules/{{quizModuleId}}/units",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "modules",
+            "{{quizModuleId}}",
+            "units"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "06 Crear el recurso de tipo quiz",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.environment.set(\"quizResourceId\", pm.response.json().id);",
+              "pm.test(\"responde 201\", function () { pm.response.to.have.status(201); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{professorToken}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"Cuestionario del curso\",\n  \"type\": \"quiz\",\n  \"is_visible\": true,\n  \"is_mandatory\": true\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/units/{{quizUnitId}}/resources",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "units",
+            "{{quizUnitId}}",
+            "resources"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "07 Rechazo: un cuestionario solo cuelga de un recurso de tipo quiz",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Colgar un cuestionario de un video dejaria contenido que ningun cliente sabria presentar.",
+              "pm.test(\"responde 400\", function () { pm.response.to.have.status(400); });",
+              "pm.test(\"con codigo de error invalid_input\", function () {",
+              "    pm.expect(pm.response.json().code).to.eql(\"invalid_input\");",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{professorToken}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"No deberia crearse\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/resources/{{seededPublishedVideoResourceId}}/quiz",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "resources",
+            "{{seededPublishedVideoResourceId}}",
+            "quiz"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "08 Crear el cuestionario",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "var d = pm.response.json();",
+              "pm.environment.set(\"quizId\", d.id);",
+              "pm.test(\"responde 201\", function () { pm.response.to.have.status(201); });",
+              "pm.test(\"guarda la politica de aprobacion y de intentos\", function () {",
+              "    pm.expect(d.passing_score).to.eql(70);",
+              "    pm.expect(d.max_attempts).to.eql(3);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{professorToken}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"Evaluacion diagnostica\",\n  \"passing_score\": 70,\n  \"max_attempts\": 3\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/resources/{{quizResourceId}}/quiz",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "resources",
+            "{{quizResourceId}}",
+            "quiz"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "09 Rechazo: un segundo cuestionario en el mismo recurso",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Con dos cuestionarios en un recurso, preguntar por el del recurso no tendria una respuesta sino dos.",
+              "pm.test(\"responde 409\", function () { pm.response.to.have.status(409); });",
+              "pm.test(\"con codigo de error quiz_conflict\", function () {",
+              "    pm.expect(pm.response.json().code).to.eql(\"quiz_conflict\");",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{professorToken}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"Duplicado\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/resources/{{quizResourceId}}/quiz",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "resources",
+            "{{quizResourceId}}",
+            "quiz"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "10 Rechazo: una pregunta sin opcion correcta",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Una pregunta sin respuesta correcta no evalua nada.",
+              "pm.test(\"responde 400\", function () { pm.response.to.have.status(400); });",
+              "pm.test(\"con codigo de error invalid_input\", function () {",
+              "    pm.expect(pm.response.json().code).to.eql(\"invalid_input\");",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{professorToken}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"prompt\": \"Pregunta sin clave\",\n  \"options\": [\n    { \"text\": \"A\", \"is_correct\": false },\n    { \"text\": \"B\", \"is_correct\": false }\n  ]\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/quizzes/{{quizId}}/questions",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "quizzes",
+            "{{quizId}}",
+            "questions"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "11 Rechazo: una pregunta con una sola opcion",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Con una sola opcion, elegir no significa nada.",
+              "pm.test(\"responde 400\", function () { pm.response.to.have.status(400); });",
+              "pm.test(\"con codigo de error invalid_input\", function () {",
+              "    pm.expect(pm.response.json().code).to.eql(\"invalid_input\");",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{professorToken}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"prompt\": \"Pregunta con una opcion\",\n  \"options\": [\n    { \"text\": \"Unica\", \"is_correct\": true }\n  ]\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/quizzes/{{quizId}}/questions",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "quizzes",
+            "{{quizId}}",
+            "questions"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "12 Agregar la pregunta 1",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "var d = pm.response.json();",
+              "pm.test(\"responde 201\", function () { pm.response.to.have.status(201); });",
+              "pm.test(\"devuelve las opciones con su clave y su orden\", function () {",
+              "    pm.expect(d.options).to.be.an(\"array\").with.lengthOf(2);",
+              "    pm.expect(d.options[0].position).to.eql(0);",
+              "    pm.expect(d.options[1].position).to.eql(1);",
+              "    var correctas = d.options.filter(function (o) { return o.is_correct; });",
+              "    pm.expect(correctas).to.have.lengthOf(1);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{professorToken}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"prompt\": \"Pregunta 1\",\n  \"options\": [\n    { \"text\": \"Opcion A\", \"is_correct\": true },\n    { \"text\": \"Opcion B\", \"is_correct\": false }\n  ]\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/quizzes/{{quizId}}/questions",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "quizzes",
+            "{{quizId}}",
+            "questions"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "13 Agregar la pregunta 2",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "var d = pm.response.json();",
+              "pm.test(\"responde 201\", function () { pm.response.to.have.status(201); });",
+              "pm.test(\"devuelve las opciones con su clave y su orden\", function () {",
+              "    pm.expect(d.options).to.be.an(\"array\").with.lengthOf(2);",
+              "    pm.expect(d.options[0].position).to.eql(0);",
+              "    pm.expect(d.options[1].position).to.eql(1);",
+              "    var correctas = d.options.filter(function (o) { return o.is_correct; });",
+              "    pm.expect(correctas).to.have.lengthOf(1);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{professorToken}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"prompt\": \"Pregunta 2\",\n  \"options\": [\n    { \"text\": \"Opcion B\", \"is_correct\": true },\n    { \"text\": \"Opcion A\", \"is_correct\": false }\n  ]\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/quizzes/{{quizId}}/questions",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "quizzes",
+            "{{quizId}}",
+            "questions"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "14 El autor lee el cuestionario CON la clave",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"responde 200\", function () { pm.response.to.have.status(200); });",
+              "// El autor necesita ver la clave: es la que acaba de escribir.",
+              "pm.test(\"trae questions_with_key y no questions\", function () {",
+              "    var d = pm.response.json();",
+              "    pm.expect(d.questions_with_key).to.be.an(\"array\").with.lengthOf(2);",
+              "    pm.expect(d.questions).to.be.undefined;",
+              "});",
+              "pm.test(\"cada pregunta tiene exactamente una correcta\", function () {",
+              "    pm.response.json().questions_with_key.forEach(function (q) {",
+              "        var correctas = q.options.filter(function (o) { return o.is_correct; });",
+              "        pm.expect(correctas).to.have.lengthOf(1);",
+              "    });",
+              "});",
+              "// Se guardan los ids para poder responder bien y mal mas adelante.",
+              "var d = pm.response.json();",
+              "var buenas = [], malas = [];",
+              "d.questions_with_key.forEach(function (q) {",
+              "    q.options.forEach(function (o) {",
+              "        var par = { question_id: q.id, selected_option_id: o.id };",
+              "        if (o.is_correct) { buenas.push(par); } else { malas.push(par); }",
+              "    });",
+              "});",
+              "pm.environment.set(\"respuestasCorrectas\", JSON.stringify(buenas));",
+              "pm.environment.set(\"respuestasIncorrectas\", JSON.stringify(malas));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{professorToken}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/resources/{{quizResourceId}}/quiz",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "resources",
+            "{{quizResourceId}}",
+            "quiz"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "15 Publicar el curso",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"responde 200\", function () { pm.response.to.have.status(200); });",
+              "pm.test(\"queda publicado\", function () {",
+              "    pm.expect(pm.response.json().status).to.eql(\"published\");",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{professorToken}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/courses/{{quizCourseId}}/publish",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "courses",
+            "{{quizCourseId}}",
+            "publish"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "16 Rechazo: agregar preguntas a un curso publicado",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// El cuestionario es contenido del curso: publicarlo lo congela como a todo lo demas.",
+              "pm.test(\"responde 409\", function () { pm.response.to.have.status(409); });",
+              "pm.test(\"con codigo de error course_immutable\", function () {",
+              "    pm.expect(pm.response.json().code).to.eql(\"course_immutable\");",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{professorToken}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"prompt\": \"Pregunta tardia\",\n  \"options\": [\n    { \"text\": \"A\", \"is_correct\": true },\n    { \"text\": \"B\", \"is_correct\": false }\n  ]\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/quizzes/{{quizId}}/questions",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "quizzes",
+            "{{quizId}}",
+            "questions"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "17 Rechazo: leer el cuestionario sin inscripcion",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// El cuestionario es contenido del curso y exige inscripcion activa.",
+              "pm.test(\"responde 403\", function () { pm.response.to.have.status(403); });",
+              "pm.test(\"con codigo de error forbidden\", function () {",
+              "    pm.expect(pm.response.json().code).to.eql(\"forbidden\");",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{studentToken}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/resources/{{quizResourceId}}/quiz",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "resources",
+            "{{quizResourceId}}",
+            "quiz"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "18 Rechazo: presentar sin inscripcion",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Criterio del issue: presentar exige inscripcion activa.",
+              "pm.test(\"responde 403\", function () { pm.response.to.have.status(403); });",
+              "pm.test(\"con codigo de error forbidden\", function () {",
+              "    pm.expect(pm.response.json().code).to.eql(\"forbidden\");",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{studentToken}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"answers\": [{ \"question_id\": \"00000000-0000-0000-0000-000000000000\", \"selected_option_id\": \"00000000-0000-0000-0000-000000000000\" }]\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/quizzes/{{quizId}}/submissions",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "quizzes",
+            "{{quizId}}",
+            "submissions"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "19 Inscripcion en el curso",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"responde 200\", function () { pm.response.to.have.status(200); });",
+              "pm.test(\"queda inscrito\", function () {",
+              "    pm.expect(pm.response.json().status).to.eql(\"active\");",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{studentToken}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/courses/{{quizCourseId}}/enrollments",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "courses",
+            "{{quizCourseId}}",
+            "enrollments"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "20 El estudiante lee el cuestionario SIN la clave",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"responde 200\", function () { pm.response.to.have.status(200); });",
+              "// Tercer criterio de aceptacion: la clave correcta nunca llega al",
+              "// cliente. No se comprueba campo por campo sino sobre el texto crudo de",
+              "// la respuesta, que es la unica forma de afirmar que no esta en ninguna",
+              "// parte.",
+              "pm.test(\"el cuerpo no contiene la cadena is_correct\", function () {",
+              "    pm.expect(pm.response.text()).to.not.include(\"is_correct\");",
+              "});",
+              "pm.test(\"trae questions y no questions_with_key\", function () {",
+              "    var d = pm.response.json();",
+              "    pm.expect(d.questions).to.be.an(\"array\").with.lengthOf(2);",
+              "    pm.expect(d.questions_with_key).to.be.undefined;",
+              "});",
+              "pm.test(\"las opciones llegan completas y ordenadas\", function () {",
+              "    pm.response.json().questions.forEach(function (q) {",
+              "        pm.expect(q.options).to.have.lengthOf(2);",
+              "        pm.expect(q.options[0].position).to.eql(0);",
+              "        q.options.forEach(function (o) {",
+              "            pm.expect(o).to.not.have.property(\"is_correct\");",
+              "        });",
+              "    });",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{studentToken}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/resources/{{quizResourceId}}/quiz",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "resources",
+            "{{quizResourceId}}",
+            "quiz"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "21 Rechazo: un envio sin respuestas",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Un envio vacio no es un intento.",
+              "pm.test(\"responde 400\", function () { pm.response.to.have.status(400); });",
+              "pm.test(\"con codigo de error invalid_input\", function () {",
+              "    pm.expect(pm.response.json().code).to.eql(\"invalid_input\");",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{studentToken}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"answers\": []\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/quizzes/{{quizId}}/submissions",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "quizzes",
+            "{{quizId}}",
+            "submissions"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "22 Intento 1: todo incorrecto",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.environment.set(\"idemIntento1\", pm.environment.get(\"idemKeyBase\") + \"-1\");"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "var d = pm.response.json();",
+              "pm.test(\"responde 200\", function () { pm.response.to.have.status(200); });",
+              "pm.test(\"califica en cero y no aprueba\", function () {",
+              "    pm.expect(d.score).to.eql(0);",
+              "    pm.expect(d.passed).to.eql(false);",
+              "});",
+              "pm.test(\"es el intento 1 y quedan 2\", function () {",
+              "    pm.expect(d.attempt).to.eql(1);",
+              "    pm.expect(d.attempts_remaining).to.eql(2);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{studentToken}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          },
+          {
+            "key": "Idempotency-Key",
+            "value": "{{idemIntento1}}",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"answers\": {{respuestasIncorrectas}}\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/quizzes/{{quizId}}/submissions",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "quizzes",
+            "{{quizId}}",
+            "submissions"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "23 Intento 2: todo correcto",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.environment.set(\"idemIntento2\", pm.environment.get(\"idemKeyBase\") + \"-2\");"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "var d = pm.response.json();",
+              "pm.environment.set(\"envioIntento2\", d.submission_id);",
+              "pm.environment.set(\"scoreIntento2\", String(d.score));",
+              "pm.test(\"responde 200\", function () { pm.response.to.have.status(200); });",
+              "pm.test(\"califica en 100 y aprueba\", function () {",
+              "    pm.expect(d.score).to.eql(100);",
+              "    pm.expect(d.passed).to.eql(true);",
+              "});",
+              "pm.test(\"es el intento 2 y queda 1\", function () {",
+              "    pm.expect(d.attempt).to.eql(2);",
+              "    pm.expect(d.attempts_remaining).to.eql(1);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{studentToken}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          },
+          {
+            "key": "Idempotency-Key",
+            "value": "{{idemIntento2}}",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"answers\": {{respuestasCorrectas}}\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/quizzes/{{quizId}}/submissions",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "quizzes",
+            "{{quizId}}",
+            "submissions"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "24 El mismo envio repetido no consume otro intento",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"responde 200\", function () { pm.response.to.have.status(200); });",
+              "// Primer criterio de aceptacion. La clave de idempotencia hace que un",
+              "// reintento devuelva la calificacion ya registrada en lugar de gastar",
+              "// otro intento: es lo que protege a un cliente que reintenta tras un",
+              "// tiempo de espera agotado.",
+              "//",
+              "// La concurrencia real no se puede reproducir con newman, que es",
+              "// secuencial; la cubre TestQuizRepositoryConcurrentSubmissionsRespectTheLimit.",
+              "pm.test(\"devuelve exactamente la misma calificacion\", function () {",
+              "    var d = pm.response.json();",
+              "    pm.expect(d.submission_id).to.eql(pm.environment.get(\"envioIntento2\"));",
+              "    pm.expect(d.attempt).to.eql(2);",
+              "    pm.expect(String(d.score)).to.eql(pm.environment.get(\"scoreIntento2\"));",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{studentToken}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          },
+          {
+            "key": "Idempotency-Key",
+            "value": "{{idemIntento2}}",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"answers\": {{respuestasCorrectas}}\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/quizzes/{{quizId}}/submissions",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "quizzes",
+            "{{quizId}}",
+            "submissions"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "25 Intento 3: el ultimo permitido",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.environment.set(\"idemIntento3\", pm.environment.get(\"idemKeyBase\") + \"-3\");"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"responde 200\", function () { pm.response.to.have.status(200); });",
+              "pm.test(\"es el intento 3 y no quedan mas\", function () {",
+              "    var d = pm.response.json();",
+              "    pm.expect(d.attempt).to.eql(3);",
+              "    pm.expect(d.attempts_remaining).to.eql(0);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{studentToken}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          },
+          {
+            "key": "Idempotency-Key",
+            "value": "{{idemIntento3}}",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"answers\": {{respuestasCorrectas}}\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/quizzes/{{quizId}}/submissions",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "quizzes",
+            "{{quizId}}",
+            "submissions"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "26 Rechazo: superar el limite de intentos",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.environment.set(\"idemIntento4\", pm.environment.get(\"idemKeyBase\") + \"-4\");"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Segundo criterio de aceptacion: superar el limite devuelve conflicto, no un intento extra.",
+              "pm.test(\"responde 409\", function () { pm.response.to.have.status(409); });",
+              "pm.test(\"con codigo de error quiz_conflict\", function () {",
+              "    pm.expect(pm.response.json().code).to.eql(\"quiz_conflict\");",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{studentToken}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          },
+          {
+            "key": "Idempotency-Key",
+            "value": "{{idemIntento4}}",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"answers\": {{respuestasCorrectas}}\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/quizzes/{{quizId}}/submissions",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "quizzes",
+            "{{quizId}}",
+            "submissions"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "27 Mis intentos: exactamente tres",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"responde 200\", function () { pm.response.to.have.status(200); });",
+              "// El intento rechazado no dejo rastro.",
+              "pm.test(\"hay tres intentos, del mas reciente al mas antiguo\", function () {",
+              "    var items = pm.response.json().items;",
+              "    pm.expect(items).to.have.lengthOf(3);",
+              "    pm.expect(items[0].attempt).to.eql(3);",
+              "    pm.expect(items[2].attempt).to.eql(1);",
+              "});",
+              "pm.test(\"el historial tampoco filtra la clave\", function () {",
+              "    pm.expect(pm.response.text()).to.not.include(\"is_correct\");",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{studentToken}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/quizzes/{{quizId}}/submissions/me",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "quizzes",
+            "{{quizId}}",
+            "submissions",
+            "me"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "28 Aprobar el cuestionario completo su recurso",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"responde 200\", function () { pm.response.to.have.status(200); });",
+              "// El servidor registra el avance por si mismo al aprobar, en lugar de",
+              "// esperar un latido del cliente. Es lo coherente con que el enunciado",
+              "// rechace los porcentajes enviados por el cliente.",
+              "pm.test(\"el recurso del cuestionario cuenta como completado\", function () {",
+              "    var d = pm.response.json();",
+              "    pm.expect(d.completed_count).to.be.at.least(1);",
+              "    pm.expect(d.percentage).to.eql(100);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{studentToken}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/progress/courses/{{quizCourseId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "progress",
+            "courses",
+            "{{quizCourseId}}"
+          ]
+        }
+      },
+      "response": []
+    }
+  ]
+}

@@ -125,6 +125,27 @@ func (s *Service) Report(ctx context.Context, actor Actor, hb domain.Heartbeat) 
 	return updated, badge, nil
 }
 
+// MarkResourceCompleted records that a student finished a resource, without a
+// heartbeat from the client.
+//
+// It exists for the quiz service: when the server grades a submission as passed,
+// it knows first-hand that the student completed that resource. The spec
+// rejects progress reported by clients, and this is the other side of that rule
+// -- progress the server establishes itself.
+//
+// It records zero dwell time on purpose. The time the student spent is already
+// in the heartbeats they sent while answering; inventing a duration here would
+// put a number in progress_events that nothing observed.
+func (s *Service) MarkResourceCompleted(ctx context.Context, studentID, resourceID string, entry *domain.AuditEntry) error {
+	at, err := s.deps.Progress.Locate(ctx, resourceID)
+	if err != nil {
+		return err
+	}
+	hb := domain.Heartbeat{StudentID: studentID, ResourceID: resourceID, DwellTimeSeconds: 0, Completed: true}
+	_, _, err = s.deps.Progress.RecordHeartbeat(ctx, hb, at, entry)
+	return err
+}
+
 // Course returns the actor's own progress in a course, and their badge for it
 // when they have one.
 //

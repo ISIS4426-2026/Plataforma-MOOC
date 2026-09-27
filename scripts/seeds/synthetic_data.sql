@@ -205,14 +205,15 @@ ON CONFLICT (id) DO UPDATE SET
 -- ----------------------------------------------------------------------------
 -- 6. QUIZZES, PREGUNTAS Y OPCIONES
 -- ----------------------------------------------------------------------------
-INSERT INTO quizzes (id, resource_id, title, passing_score, created_at, updated_at)
+INSERT INTO quizzes (id, resource_id, title, passing_score, max_attempts, created_at, updated_at)
 VALUES
     ('fa000000-0000-0000-0000-000000000001', 'd3000000-0000-0000-0000-000000000003',
-     'Evaluación de Conceptos de Arquitectura Cloud', 70,
+     'Evaluación de Conceptos de Arquitectura Cloud', 70, 3,
      '2026-09-03 08:42:00+00', '2026-09-03 08:42:00+00')
 ON CONFLICT (id) DO UPDATE SET
     title = EXCLUDED.title,
-    passing_score = EXCLUDED.passing_score;
+    passing_score = EXCLUDED.passing_score,
+    max_attempts = EXCLUDED.max_attempts;
 
 INSERT INTO quiz_questions (id, quiz_id, prompt, position, created_at)
 VALUES
@@ -227,27 +228,32 @@ ON CONFLICT (id) DO UPDATE SET
     prompt = EXCLUDED.prompt,
     position = EXCLUDED.position;
 
-INSERT INTO quiz_options (id, question_id, text, is_correct, created_at)
+-- La posición es obligatoria desde la migración 000007: es lo que fija el orden
+-- en que se presentan las opciones. Sin ella, todas quedarían en cero y la
+-- restricción UNIQUE (question_id, position) rechazaría la segunda de cada
+-- pregunta.
+INSERT INTO quiz_options (id, question_id, text, is_correct, position, created_at)
 VALUES
     -- Opciones Pregunta 1
     ('fc000000-0000-0000-0000-000000000001', 'fb000000-0000-0000-0000-000000000001',
-     'Exclusivamente en almacenamiento de objetos (S3/MinIO) vía URLs prefirmadas', true, '2026-09-03 08:45:00+00'),
+     'Exclusivamente en almacenamiento de objetos (S3/MinIO) vía URLs prefirmadas', true, 0, '2026-09-03 08:45:00+00'),
 
     ('fc000000-0000-0000-0000-000000000002', 'fb000000-0000-0000-0000-000000000001',
-     'En la base de datos relacional PostgreSQL como campos BYTEA', false, '2026-09-03 08:45:00+00'),
+     'En la base de datos relacional PostgreSQL como campos BYTEA', false, 1, '2026-09-03 08:45:00+00'),
 
     ('fc000000-0000-0000-0000-000000000003', 'fb000000-0000-0000-0000-000000000001',
-     'En el sistema de archivos temporal de los workers', false, '2026-09-03 08:45:00+00'),
+     'En el sistema de archivos temporal de los workers', false, 2, '2026-09-03 08:45:00+00'),
 
     -- Opciones Pregunta 2
     ('fc000000-0000-0000-0000-000000000004', 'fb000000-0000-0000-0000-000000000002',
-     'Estrictamente en servidor mediante heartbeats verificados, permanencia y eventos', true, '2026-09-03 08:46:00+00'),
+     'Estrictamente en servidor mediante heartbeats verificados, permanencia y eventos', true, 0, '2026-09-03 08:46:00+00'),
 
     ('fc000000-0000-0000-0000-000000000005', 'fb000000-0000-0000-0000-000000000002',
-     'El cliente envía directamente su porcentaje completado vía HTTP', false, '2026-09-03 08:46:00+00')
+     'El cliente envía directamente su porcentaje completado vía HTTP', false, 1, '2026-09-03 08:46:00+00')
 ON CONFLICT (id) DO UPDATE SET
     text = EXCLUDED.text,
-    is_correct = EXCLUDED.is_correct;
+    is_correct = EXCLUDED.is_correct,
+    position = EXCLUDED.position;
 
 -- ----------------------------------------------------------------------------
 -- 7. INSCRIPCIONES (Issue #111)

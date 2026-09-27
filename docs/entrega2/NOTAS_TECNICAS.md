@@ -334,12 +334,18 @@ Solo se corrigió el spec donde estaba realmente mal: el latido pedía `course_i
 `resource_stable_id`, con lo que un cliente podía reclamar progreso en un curso que
 nunca abrió, y un `stable_id` no identifica *qué versión*.
 
-Para A5 hay un detalle más: el spec documenta **solo el envío** del quiz, no la
-autoría (crear preguntas y opciones). Esos endpoints habrá que añadirlos al
-contrato, no reconciliarlos. Y `is_approved` **todavía no considera quizzes**:
-hoy es «todos los recursos obligatorios completados». Cuando A5 aterrice, la
-aprobación gana un segundo término, y eso toca `resourceCounts.approved()` en
-`internal/postgres/progress_repository.go`.
+**A5 ya aterrizó**, y confirmó el patrón: el spec documentaba solo el envío del
+quiz, así que los tres endpoints de autoría y lectura hubo que **añadirlos** al
+contrato, no reconciliarlos. El que sí estaba documentado se corrigió en dos
+puntos —le faltaban `security`, el 403 de inscripción y el 409 de intentos
+agotados, y declaraba `score` como decimal cuando la columna es entera.
+
+Sobre la aprobación del curso, la solución fue más simple de lo previsto.
+`resourceCounts.approved()` **no cambió**: sigue siendo «todos los recursos
+obligatorios completados». Lo que ocurre es que **aprobar un quiz completa su
+recurso**, y lo registra el servidor al calificar en lugar de esperar un latido
+del cliente. Así los quizzes entran en la aprobación del curso por la puerta que
+ya existía, sin un segundo término que mantener en dos sitios.
 
 ---
 
