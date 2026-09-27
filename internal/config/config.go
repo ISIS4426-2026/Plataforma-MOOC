@@ -89,11 +89,13 @@ type Config struct {
 	// again.
 	IdempotencyTTL time.Duration
 
-	// CSRFAllowedOrigins lists the origins allowed to send state-changing
-	// requests. Empty disables the check, which is the right default while no
-	// browser client exists: with no frontend deployed there is no origin to
-	// trust, and rejecting everything would break the API for every caller.
+	// CSRFAllowedOrigins lists the browser origins allowed to send state-changing
+	// requests. Production requires this list for cookie-authenticated requests;
+	// Bearer clients without browser origin headers remain compatible.
 	CSRFAllowedOrigins []string
+
+	// TrustedProxyIP is the one proxy allowed to supply X-Forwarded headers.
+	TrustedProxyIP string
 
 	// Rate limits for the sensitive endpoints. The defaults are sized for
 	// development; production should tighten them, particularly on login.
@@ -149,6 +151,7 @@ func Load() *Config {
 		IdempotencyTTL: getEnvDuration("IDEMPOTENCY_TTL", 24*time.Hour),
 
 		CSRFAllowedOrigins: getEnvList("CSRF_ALLOWED_ORIGINS"),
+		TrustedProxyIP:     getEnv("TRUSTED_PROXY_IP", ""),
 
 		RateLimitLoginAttempts:    getEnvInt("RATE_LIMIT_LOGIN_ATTEMPTS", 10),
 		RateLimitLoginWindow:      getEnvDuration("RATE_LIMIT_LOGIN_WINDOW", time.Minute),

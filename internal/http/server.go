@@ -346,6 +346,7 @@ func NewServer(cfg *config.Config, deps Deps, logger *slog.Logger) *Server {
 	// including the ones CSRF rejects, and CSRF is innermost so a forged
 	// request is refused before it reaches a handler.
 	root := middleware.Chain(mux,
+		middleware.ForwardedHeaders(cfg.TrustedProxyIP),
 		middleware.RequestID(),
 		middleware.Tracing(tracer, meter),
 		middleware.RequestLogger(logger),

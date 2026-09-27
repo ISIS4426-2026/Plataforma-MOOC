@@ -10,26 +10,19 @@ import (
 	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/http/handler"
 )
 
-// CSRF protection for a token-authenticated API.
+// CSRF protection for requests authenticated by browser session cookies.
 //
 // # Why this is an origin check and not a synchroniser token
 //
 // Cross-site request forgery works because the browser attaches the victim's
-// credentials to a request the attacker triggered. That requires credentials
-// the browser sends automatically, which means cookies. This API authenticates
-// with `Authorization: Bearer <token>`, a header no browser ever attaches on
-// its own, so a forged cross-site request arrives unauthenticated and is
-// rejected by the auth middleware before it can change anything.
+// credentials to a request the attacker triggered. Session cookies are sent
+// automatically, so mutating requests carrying one must declare an allowlisted
+// Origin or Referer. Bearer tokens remain available to API clients and are not
+// attached automatically by browsers.
 //
-// A double-submit cookie or synchroniser token would therefore protect nothing
-// that is not already protected, while adding a token to mint, store, rotate
-// and hand to the frontend. What does add value, and is what OWASP recommends
-// for APIs, is verifying where the request claims to come from: browsers set
-// Origin on every state-changing cross-site request and scripts cannot forge
-// it. That is what this middleware enforces.
-//
-// If the frontend ever moves to cookie-based sessions, this check stops being
-// sufficient on its own and a synchroniser token has to be added alongside it.
+// This middleware verifies the browser-supplied request origin against an
+// exact allowlist. Requests with no cookie and no Origin/Referer remain
+// compatible with non-browser Bearer clients.
 const (
 	HeaderOrigin  = "Origin"
 	HeaderReferer = "Referer"
@@ -37,9 +30,8 @@ const (
 
 // CSRFConfig lists the origins allowed to submit state-changing requests.
 type CSRFConfig struct {
-	// AllowedOrigins are matched exactly, scheme and port included. An empty
-	// list disables the check, which is only appropriate while no browser
-	// client exists yet.
+	// AllowedOrigins are matched exactly, scheme and port included. Production
+	// configuration requires a non-empty list.
 	AllowedOrigins []string
 }
 
@@ -49,11 +41,9 @@ type CSRFConfig struct {
 // requiring an origin on them would break ordinary navigation and link
 // previews.
 //
-// A request with neither Origin nor Referer is allowed through. Those headers
-// are absent only for non-browser clients such as curl, Postman or another
-// service, and those cannot be the vehicle of a forgery: CSRF needs a browser
-// that holds the victim's credentials. Rejecting them would break the API for
-// every legitimate non-browser caller while stopping no attack.
+// A request with neither Origin nor Referer is allowed through only when it
+// does not carry the browser session cookie. Bearer credentials are explicit
+// and are not attached automatically by browsers.
 func CSRF(cfg CSRFConfig, logger *slog.Logger) Middleware {
 	if logger == nil {
 		logger = slog.Default()
@@ -61,18 +51,25 @@ func CSRF(cfg CSRFConfig, logger *slog.Logger) Middleware {
 
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if len(cfg.AllowedOrigins) == 0 || isSafeMethod(r.Method) {
+			if isSafeMethod(r.Method) {
 				next.ServeHTTP(w, r)
 				return
 			}
 
+			_, cookieErr := r.Cookie(handler.SessionCookieName)
+			hasSessionCookie := cookieErr == nil
 			declared, present := declaredOrigin(r)
 			if !present {
+				if !hasSessionCookie {
+					next.ServeHTTP(w, r)
+					return
+				}
+			} else if len(cfg.AllowedOrigins) == 0 && !hasSessionCookie {
 				next.ServeHTTP(w, r)
 				return
 			}
 
-			if !slices.Contains(cfg.AllowedOrigins, declared) {
+			if !present || !slices.Contains(cfg.AllowedOrigins, declared) {
 				logger.WarnContext(r.Context(), "rejected request from untrusted origin",
 					slog.String("request_id", RequestIDFrom(r.Context())),
 					slog.String("origin", declared),

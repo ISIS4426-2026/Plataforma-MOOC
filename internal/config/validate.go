@@ -2,6 +2,8 @@ package config
 
 import (
 	"fmt"
+	"net"
+	"net/url"
 	"slices"
 	"strings"
 )
@@ -122,11 +124,35 @@ func (c *Config) Validate() error {
 	// y, desde el issue #113, el de verificacion de insignias. Si apunta a
 	// localhost, nada de eso falla de forma visible: los correos se envian y los
 	// enlaces sencillamente no abren.
+	appOrigin, appOriginOK := httpsOrigin(c.AppBaseURL)
 	if c.AppBaseURL == "" {
 		problemas = append(problemas, "APP_BASE_URL vacio: los enlaces de los correos no se pueden construir")
 	} else if strings.Contains(c.AppBaseURL, "localhost") || strings.Contains(c.AppBaseURL, "127.0.0.1") {
-		problemas = append(problemas,
-			"APP_BASE_URL apunta a localhost: los enlaces de verificacion y de insignias no abririan para nadie")
+		problemas = append(problemas, "APP_BASE_URL apunta a localhost: los enlaces publicos no abririan para nadie")
+	} else if !appOriginOK {
+		problemas = append(problemas, "APP_BASE_URL debe ser un origen HTTPS publico sin rutas")
+	}
+	if net.ParseIP(c.TrustedProxyIP) == nil {
+		problemas = append(problemas, "TRUSTED_PROXY_IP debe ser la IP interna fija del proxy")
+	}
+
+	if len(c.CSRFAllowedOrigins) == 0 {
+		problemas = append(problemas, "CSRF_ALLOWED_ORIGINS vacio en produccion")
+	} else {
+		containsAppOrigin := false
+		for _, origin := range c.CSRFAllowedOrigins {
+			parsedOrigin, ok := httpsOrigin(origin)
+			if !ok || parsedOrigin != origin {
+				problemas = append(problemas, "CSRF_ALLOWED_ORIGINS debe contener solo origenes HTTPS sin rutas")
+				break
+			}
+			if appOriginOK && origin == appOrigin {
+				containsAppOrigin = true
+			}
+		}
+		if appOriginOK && !containsAppOrigin {
+			problemas = append(problemas, "CSRF_ALLOWED_ORIGINS debe incluir el origen de APP_BASE_URL")
+		}
 	}
 
 	// Mailpit es el buzon de desarrollo. En la nube el correo sale por un SMTP
@@ -169,6 +195,15 @@ func (c *Config) Validate() error {
 		return nil
 	}
 	return unError(problemas)
+}
+
+func httpsOrigin(raw string) (string, bool) {
+	parsed, err := url.Parse(raw)
+	if err != nil || parsed.Scheme != "https" || parsed.Host == "" || parsed.User != nil ||
+		parsed.Path != "" || parsed.RawQuery != "" || parsed.Fragment != "" {
+		return "", false
+	}
+	return parsed.Scheme + "://" + parsed.Host, true
 }
 
 // unError junta los problemas en un solo mensaje. Quien despliega prefiere una
