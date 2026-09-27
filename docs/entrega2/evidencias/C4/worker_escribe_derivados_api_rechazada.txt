@@ -1,0 +1,134 @@
+================================================================================
+EVIDENCIA C4 - CRITERIO 4: EL WORKER ESCRIBE DERIVADOS Y LA API NO PUEDE
+================================================================================
+Criterio: El worker escribe derivados y la API no puede
+Fecha de ejecucion: 2026-09-27T04:48:06Z
+Bucket evaluado: plataforma-mooc-entrega2-media (us-east1)
+Cuenta API:    sa-web-server@plataforma-mooc-entrega2.iam.gserviceaccount.com
+Cuenta Worker: sa-worker-server@plataforma-mooc-entrega2.iam.gserviceaccount.com
+Mecanismo: Politicas IAM con Condiciones CEL (Common Expression Language)
+================================================================================
+
+--- 1. EVALUACION DE PERMISOS DEL WORKER (sa-worker-server@plataforma-mooc-entrega2.iam.gserviceaccount.com) ---
+
+Operacion 1.1: El worker escribe derivados HLS en 'hls/'
+  Destino: hls/test_c4_worker_dc5eb7c4/master.m3u8
+  Accion: POST /upload/storage/v1/b/plataforma-mooc-entrega2-media/o?name=hls/test_c4_worker_dc5eb7c4/master.m3u8
+  Resultado HTTP: 200 OK (HTTP/2 200)
+  Respuesta de Google Cloud Storage:
+{
+  "kind": "storage#object",
+  "id": "plataforma-mooc-entrega2-media/hls/test_c4_worker_dc5eb7c4/master.m3u8/1790484498309605",
+  "selfLink": "https://www.googleapis.com/storage/v1/b/plataforma-mooc-entrega2-media/o/hls%2Ftest_c4_worker_dc5eb7c4%2Fmaster.m3u8",
+  "mediaLink": "https://storage.googleapis.com/download/storage/v1/b/plataforma-mooc-entrega2-media/o/hls%2Ftest_c4_worker_dc5eb7c4%2Fmaster.m3u8?generation=1790484498309605&alt=media",
+  "name": "hls/test_c4_worker_dc5eb7c4/master.m3u8",
+  "bucket": "plataforma-mooc-entrega2-media",
+  "generation": "1790484498309605",
+  "metageneration": "1",
+  "contentType": "application/vnd.apple.mpegurl",
+  "storageClass": "STANDARD",
+  "size": "89",
+  "md5Hash": "UZo7xsboQQRvkdBbFGWG3w==",
+  "crc32c": "tMe93A==",
+  "etag": "COXD/cP6jZcDEAE=",
+  "timeCreated": "2026-09-27T04:48:18.314Z",
+  "updated": "2026-09-27T04:48:18.314Z",
+  "timeStorageClassUpdated": "2026-09-27T04:48:18.314Z",
+  "timeFinalized": "2026-09-27T04:48:18.314Z"
+}
+
+
+Operacion 1.2: El worker intenta escribir en 'originals/' (fuera de su dominio)
+  Destino: originals/test_c4_worker_forbidden_9304ed8a.mp4
+  Accion: POST /upload/storage/v1/b/plataforma-mooc-entrega2-media/o?name=originals/test_c4_worker_forbidden_9304ed8a.mp4
+  Resultado HTTP: 403 Forbidden (HTTP/2 403)
+  Respuesta de Google Cloud Storage:
+{
+  "error": {
+    "code": 403,
+    "message": "sa-worker-server@plataforma-mooc-entrega2.iam.gserviceaccount.com does not have storage.objects.create access to the Google Cloud Storage object. Permission 'storage.objects.create' denied on resource '//storage.googleapis.com/projects/_/buckets/plataforma-mooc-entrega2-media/objects/originals/test_c4_worker_forbidden_9304ed8a.mp4' (or it may not exist).",
+    "errors": [
+      {
+        "message": "sa-worker-server@plataforma-mooc-entrega2.iam.gserviceaccount.com does not have storage.objects.create access to the Google Cloud Storage object. Permission 'storage.objects.create' denied on resource '//storage.googleapis.com/projects/_/buckets/plataforma-mooc-entrega2-media/objects/originals/test_c4_worker_forbidden_9304ed8a.mp4' (or it may not exist).",
+        "domain": "global",
+        "reason": "forbidden"
+      }
+    ]
+  }
+}
+
+
+--- 2. EVALUACION DE PERMISOS DE LA API (sa-web-server@plataforma-mooc-entrega2.iam.gserviceaccount.com) ---
+
+Operacion 2.1: La API intenta escribir en el prefijo de derivados 'hls/'
+  Destino: hls/test_c4_api_forbidden_fefa4d20/master.m3u8
+  Accion: POST /upload/storage/v1/b/plataforma-mooc-entrega2-media/o?name=hls/test_c4_api_forbidden_fefa4d20/master.m3u8
+  Resultado HTTP: 403 Forbidden (HTTP/2 403)
+  Respuesta de Google Cloud Storage:
+{
+  "error": {
+    "code": 403,
+    "message": "sa-web-server@plataforma-mooc-entrega2.iam.gserviceaccount.com does not have storage.objects.create access to the Google Cloud Storage object. Permission 'storage.objects.create' denied on resource '//storage.googleapis.com/projects/_/buckets/plataforma-mooc-entrega2-media/objects/hls/test_c4_api_forbidden_fefa4d20/master.m3u8' (or it may not exist).",
+    "errors": [
+      {
+        "message": "sa-web-server@plataforma-mooc-entrega2.iam.gserviceaccount.com does not have storage.objects.create access to the Google Cloud Storage object. Permission 'storage.objects.create' denied on resource '//storage.googleapis.com/projects/_/buckets/plataforma-mooc-entrega2-media/objects/hls/test_c4_api_forbidden_fefa4d20/master.m3u8' (or it may not exist).",
+        "domain": "global",
+        "reason": "forbidden"
+      }
+    ]
+  }
+}
+
+
+Operacion 2.2: La API escribe en su prefijo autorizado 'originals/'
+  Destino: originals/test_c4_api_allowed_b281cabc.mp4
+  Accion: POST /upload/storage/v1/b/plataforma-mooc-entrega2-media/o?name=originals/test_c4_api_allowed_b281cabc.mp4
+  Resultado HTTP: 200 OK (HTTP/2 200)
+  Respuesta de Google Cloud Storage:
+{
+  "kind": "storage#object",
+  "id": "plataforma-mooc-entrega2-media/originals/test_c4_api_allowed_b281cabc.mp4/1790484499249212",
+  "selfLink": "https://www.googleapis.com/storage/v1/b/plataforma-mooc-entrega2-media/o/originals%2Ftest_c4_api_allowed_b281cabc.mp4",
+  "mediaLink": "https://storage.googleapis.com/download/storage/v1/b/plataforma-mooc-entrega2-media/o/originals%2Ftest_c4_api_allowed_b281cabc.mp4?generation=1790484499249212&alt=media",
+  "name": "originals/test_c4_api_allowed_b281cabc.mp4",
+  "bucket": "plataforma-mooc-entrega2-media",
+  "generation": "1790484499249212",
+  "metageneration": "1",
+  "contentType": "video/mp4",
+  "storageClass": "STANDARD",
+  "size": "28",
+  "md5Hash": "ehPgaxqxmeIrq3VaOGSyEg==",
+  "crc32c": "SBT0vQ==",
+  "etag": "CLzwtsT6jZcDEAE=",
+  "timeCreated": "2026-09-27T04:48:19.253Z",
+  "updated": "2026-09-27T04:48:19.253Z",
+  "timeStorageClassUpdated": "2026-09-27T04:48:19.253Z",
+  "timeFinalized": "2026-09-27T04:48:19.253Z"
+}
+
+
+--- 3. MATRIZ DE ACCESO EFECTIVA EN GOOGLE CLOUD STORAGE ---
+
++-----------------------+--------------------+---------------------+
+| Identidad             | Prefijo originals/ | Prefijo hls/        |
++-----------------------+--------------------+---------------------+
+| sa-web-server (API)   | PERMITIDO (200 OK) | DENEGADO (403 CEL)  |
+| sa-worker-server      | DENEGADO (403 CEL) | PERMITIDO (200 OK)  |
++-----------------------+--------------------+---------------------+
+
+Condicion CEL en Terraform (infra/terraform/storage.tf):
+- API (sa-web-server):
+  resource.name.startsWith("projects/_/buckets/plataforma-mooc-entrega2-media/objects/originals/") ||
+  resource.name.startsWith("projects/_/buckets/plataforma-mooc-entrega2-media/objects/documents/") ||
+  resource.name.startsWith("projects/_/buckets/plataforma-mooc-entrega2-media/objects/thumbnails/")
+
+- Worker (sa-worker-server):
+  resource.name.startsWith("projects/_/buckets/plataforma-mooc-entrega2-media/objects/hls/")
+
+================================================================================
+CONCLUSION:
+Se comprueba empiricamente que el worker escribe exitosamente derivados HLS en hls/
+y tiene denegada la escritura en originals/. De forma simetrica, la cuenta de la API
+tiene estrictamente prohibida la escritura en hls/ (HTTP 403 Forbidden), garantizando
+el principio de menor privilegio y la separacion de responsabilidades.
+================================================================================

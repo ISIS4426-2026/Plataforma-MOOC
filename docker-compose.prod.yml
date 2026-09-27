@@ -1,0 +1,75 @@
+# ==============================================================================
+# Plataforma MOOC - Docker Compose para Producción en la Nube (Issue C4)
+# ==============================================================================
+# Define la ejecución de los componentes de la aplicación en la nube:
+# - MinIO y minio-policy han sido retirados: la persistencia binaria se delega
+#   completamente en el almacenamiento administrado de Google Cloud Storage (C3).
+# - Mailpit ha sido retirado: el correo se envía a través de un servicio SMTP real.
+# - Las credenciales y configuraciones sensibles se inyectan en ejecución desde
+#   Secret Manager o variables de entorno, sin valores en duro en el repositorio.
+# - La autenticación con Cloud Storage se realiza mediante las identidades adjuntas
+#   a las máquinas virtuales (ADC) con permisos disjuntos por componente:
+#     * sa-web-server (API): firma URLs V4 y lectura de objetos.
+#     * sa-worker-server (Worker): escribe exclusivamente derivados HLS en hls/.
+# ==============================================================================
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    ports:
+      - "${API_PORT:-8080}:8080"
+    environment:
+      - APP_ENV=production
+      - PORT=8080
+      - DATABASE_URL=${DATABASE_URL}
+      - REDIS_URL=${REDIS_URL}
+      - STORAGE_BACKEND=gcs
+      - S3_BUCKET=${S3_BUCKET:-plataforma-mooc-entrega2-media}
+      - GCP_PROJECT_ID=${GCP_PROJECT_ID:-plataforma-mooc-entrega2}
+      - MEDIA_UPLOAD_URL_TTL=${MEDIA_UPLOAD_URL_TTL:-24h}
+      - MEDIA_DOWNLOAD_URL_TTL=${MEDIA_DOWNLOAD_URL_TTL:-1h}
+      - MEDIA_MAX_UPLOAD_MB=${MEDIA_MAX_UPLOAD_MB:-1024}
+      - DB_MAX_OPEN_CONNS=${DB_MAX_OPEN_CONNS:-25}
+      - DB_MAX_IDLE_CONNS=${DB_MAX_IDLE_CONNS:-25}
+      - DB_CONN_MAX_LIFETIME=${DB_CONN_MAX_LIFETIME:-5m}
+      - SMTP_HOST=${SMTP_HOST}
+      - SMTP_PORT=${SMTP_PORT:-587}
+      - SMTP_FROM=${SMTP_FROM}
+      - SMTP_USERNAME=${SMTP_USERNAME}
+      - SMTP_PASSWORD=${SMTP_PASSWORD}
+      - SESSION_TTL=${SESSION_TTL:-24h}
+      - APP_BASE_URL=${APP_BASE_URL}
+      - EMAIL_VERIFICATION_TTL=${EMAIL_VERIFICATION_TTL:-24h}
+      - PASSWORD_RESET_TTL=${PASSWORD_RESET_TTL:-1h}
+      - CSRF_ALLOWED_ORIGINS=${CSRF_ALLOWED_ORIGINS:-}
+      - IDEMPOTENCY_TTL=${IDEMPOTENCY_TTL:-24h}
+      - RATE_LIMIT_LOGIN_ATTEMPTS=${RATE_LIMIT_LOGIN_ATTEMPTS:-10}
+      - RATE_LIMIT_LOGIN_WINDOW=${RATE_LIMIT_LOGIN_WINDOW:-1m}
+      - RATE_LIMIT_REGISTER_ATTEMPTS=${RATE_LIMIT_REGISTER_ATTEMPTS:-50}
+      - RATE_LIMIT_REGISTER_WINDOW=${RATE_LIMIT_REGISTER_WINDOW:-1h}
+      - RATE_LIMIT_RECOVERY_ATTEMPTS=${RATE_LIMIT_RECOVERY_ATTEMPTS:-50}
+      - RATE_LIMIT_RECOVERY_WINDOW=${RATE_LIMIT_RECOVERY_WINDOW:-1h}
+    restart: unless-stopped
+
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    environment:
+      - APP_ENV=production
+      - DATABASE_URL=${DATABASE_URL}
+      - REDIS_URL=${REDIS_URL}
+      - STORAGE_BACKEND=gcs
+      - S3_BUCKET=${S3_BUCKET:-plataforma-mooc-entrega2-media}
+      - GCP_PROJECT_ID=${GCP_PROJECT_ID:-plataforma-mooc-entrega2}
+      - MEDIA_MAX_ORIGINAL_MB=${MEDIA_MAX_ORIGINAL_MB:-2048}
+      - MEDIA_HLS_LADDER=${MEDIA_HLS_LADDER:-}
+      - DB_MAX_OPEN_CONNS=${DB_MAX_OPEN_CONNS:-25}
+      - DB_MAX_IDLE_CONNS=${DB_MAX_IDLE_CONNS:-25}
+      - DB_CONN_MAX_LIFETIME=${DB_CONN_MAX_LIFETIME:-5m}
+      - METRICS_PORT=9090
+    ports:
+      - "${WORKER_METRICS_PORT:-9090}:9090"
+    restart: unless-stopped

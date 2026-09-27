@@ -14,6 +14,8 @@ type Config struct {
 	RedisURL    string
 	S3Endpoint  string
 	S3Bucket    string
+	GCPProjectID string
+	GCSSignerAccount string
 
 	// Object storage. StorageBackend picks the adapter at runtime rather than
 	// at build time, so the same binary runs against MinIO locally and against
@@ -109,8 +111,10 @@ func Load() *Config {
 		Port:        getEnv("PORT", "8080"),
 		DatabaseURL: getEnv("DATABASE_URL", "postgres://postgres:postgres@localhost:5432/mooc?sslmode=disable"),
 		RedisURL:    getEnv("REDIS_URL", "localhost:6379"),
-		S3Endpoint:  getEnv("S3_ENDPOINT", "http://localhost:9000"),
-		S3Bucket:    getEnv("S3_BUCKET", "mooc-storage"),
+		S3Endpoint:  getEnv("STORAGE_ENDPOINT", getEnv("S3_ENDPOINT", "http://localhost:9000")),
+		S3Bucket:    getEnv("STORAGE_BUCKET", getEnv("S3_BUCKET", "mooc-storage")),
+		GCPProjectID: getEnv("GCP_PROJECT_ID", getEnv("GOOGLE_CLOUD_PROJECT", "plataforma-mooc-entrega2")),
+		GCSSignerAccount: getEnv("GCS_SIGNER_ACCOUNT", getEnv("STORAGE_SIGNER_ACCOUNT", "")),
 
 		StorageBackend: getEnv("STORAGE_BACKEND", "minio"),
 		S3AccessKey:    getEnv("S3_ACCESS_KEY", getEnv("MINIO_ROOT_USER", "minioadmin")),

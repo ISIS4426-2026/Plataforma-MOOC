@@ -1,0 +1,92 @@
+================================================================================
+EVIDENCIA C4 - CRITERIO 2: CARGA DIRECTA COMPLETA SIN QUE EL ARCHIVO PASE POR LA API
+================================================================================
+Criterio: Carga directa completa sin que el archivo pase por la API
+Fecha de ejecucion: 2026-09-27T04:48:06Z
+Bucket de destino: plataforma-mooc-entrega2-media (us-east1)
+Objeto cargado: originals/f6baed72-e148-4bc9-93c4-df0a344f2958/4cd31e61-efac-4290-b8ad-bae5c64b89dc.mp4
+Tamano transferido: 5242880 bytes (5.00 MiB)
+================================================================================
+
+--- 1. TRANSFERENCIA DIRECTA CLIENTE -> GOOGLE CLOUD STORAGE ---
+
+Metodo: PUT
+Destino: https://storage.googleapis.com/plataforma-mooc-entrega2-media/originals/f6baed72-e148-4bc9-93c4-df0a344f2958/4cd31e61-efac-4290-b8ad-bae5c64b89dc.mp4?X-Goog-Algorithm=GOOG4-RSA-SHA256&X-Goog-Credential=sa-web-server%40plataforma-mooc-entrega2.iam.gserviceaccount.com%2F20260927%2Fauto%2Fstorage%2Fgoog4_request&X-Goog-Date=20260927T044809Z&X-Goog-Expires=86399&X-Goog-Signature=7ace220fd9b1edd760d7c7736125a7e539dc830ea6bd107e2aea23ae248f3f40f7454952f86ac90a9890cebbbca52a9128282a3f0154cff773c0072653f5e17eda80219b10a85c33e62416b19442da6fff53d360b7188fec0a7c982b730a6440b64e62e3788c5674278a7846750e0f9628354ebcfb1d03637c59385ee24488782e7bbea83e16f73d915bed1ff23d6532b477a810e505736be50295010837fcbcf78984860d3b4d1eb237d039c66cebf6b3c871e0ad66713eb0e8c1a061f67c47adc159c7b1850453ff23baec607a021b733c5933199f4a336579917959c1fa71a440e7f622679b26942b5464b890e5d9ada7b2adda40201a95ffde7d4feeaa5a&X-Goog-SignedHeaders=content-type%3Bhost
+Cabeceras Enviadas por el Cliente:
+  Content-Type: video/mp4
+  Content-Length: 5242880
+
+Respuesta de Google Cloud Storage:
+Status: 200 OK (HTTP/2 200)
+Cabeceras de Respuesta:
+Etag: "b8fc857a25e7958868c2f003d5e0952d"
+X-Goog-Stored-Content-Length: 5242880
+X-Goog-Stored-Content-Encoding: identity
+Vary: Origin
+Content-Type: text/html; charset=UTF-8
+Alt-Svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
+X-Goog-Generation: 1790484491153855
+X-Goog-Metageneration: 1
+X-Goog-Hash: crc32c=MDaLrw==
+X-Goog-Hash: md5=uPyFeiXnlYhowvAD1eCVLQ==
+Content-Length: 0
+Date: Sun, 27 Sep 2026 04:48:11 GMT
+Server: UploadServer
+X-Guploader-Uploadid: AP6rU83MoMHsB3x6a-z4562o2x9O23FzPk0IUydXrXMADes2wkY2f0gTnvHWUbErGXSQVvdHP1mFt3A
+
+Cuerpo de Respuesta: (Vacio - HTTP 200 OK confirmado)
+Tiempo de transferencia directa: 1.253354076s
+
+--- 2. VERIFICACION DE METADATOS DIRECTO EN EL BUCKET ADMINISTRADO (StatObject) ---
+
+Bucket: plataforma-mooc-entrega2-media
+Nombre de Objeto: originals/f6baed72-e148-4bc9-93c4-df0a344f2958/4cd31e61-efac-4290-b8ad-bae5c64b89dc.mp4
+Tamano en Bucket: 5242880 bytes
+Content-Type Registrado: video/mp4
+Generation ID: 1790484491153855
+Metageneration: 1
+MD5 Hash: b8fc857a25e7958868c2f003d5e0952d
+CRC32C Checksum: 808881071
+Storage Class: STANDARD
+Fecha de Creacion: 2026-09-27T04:48:11Z
+
+--- 3. CONFIRMACION DE CARGA ANTE LA API (POST /api/v1/media/uploads/{id}/complete) ---
+
+Una vez que los bytes residen en Google Cloud Storage, el cliente notifica a la API
+unicamente con la clave del objeto y la clave de idempotencia (sin enviar ningun byte
+del archivo multimedia).
+
+Solicitud:
+POST /api/v1/media/uploads/9df2af5b-b241-4260-b256-04df07e7d7a0/complete
+Cabeceras:
+  Authorization: Bearer [REDACTED_PROFESSOR_SESSION_TOKEN]
+  Content-Type: application/json
+  Idempotency-Key: [GENERATED_UUID]
+
+Cuerpo:
+{"object_key":"originals/f6baed72-e148-4bc9-93c4-df0a344f2958/4cd31e61-efac-4290-b8ad-bae5c64b89dc.mp4"}
+
+Respuesta de la API (HTTP 202 Accepted):
+{"id":"9df2af5b-b241-4260-b256-04df07e7d7a0","stable_id":"f6baed72-e148-4bc9-93c4-df0a344f2958","unit_id":"9126871b-35e5-4569-a306-d3bec1229484","title":"Video Demostracion C4: Almacenamiento Administrado","type":"video","position":0,"is_visible":true,"is_mandatory":true,"allow_download":false,"object_key":"originals/f6baed72-e148-4bc9-93c4-df0a344f2958/4cd31e61-efac-4290-b8ad-bae5c64b89dc.mp4","processing_status":"pending"}
+
+
+--- 4. DEMOSTRACION ARQUITECTONICA DE DESACOPLAMIENTO DE CARGA ---
+
+1. Flujo de Datos Binarios:
+   [Navegador / Cliente Web] ===== (PUT 5 MB) =====> [Google Cloud Storage: storage.googleapis.com]
+                                                                |
+                                                      (Objeto persistido)
+                                                                |
+   [Navegador / Cliente Web] --- (POST complete: solo key) ---> [API Server] ---> [StatObject verificacion]
+
+2. Cero Consumo de Ancho de Banda en el Servidor Web:
+   - Los 5.00 MiB fueron transmitidos a traves de la red de Google Cloud Storage.
+   - La API nunca recibio payloads multipart ni buffers en memoria del archivo de video.
+   - La API unicamente ejecuto la autorizacion previa (presign) y la verificacion posterior (complete).
+
+================================================================================
+CONCLUSION:
+La carga directa opera de manera integral contra el bucket administrado de GCP.
+El archivo viajo punto a punto hacia Google Cloud Storage sin intermediacion ni
+paso de bytes por el servidor de la API REST.
+================================================================================

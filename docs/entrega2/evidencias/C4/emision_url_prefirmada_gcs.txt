@@ -1,0 +1,56 @@
+================================================================================
+EVIDENCIA C4 - CRITERIO 1: EMISION DE URL PREFIRMADA CONTRA EL BUCKET REAL
+================================================================================
+Criterio: El endpoint de URL prefirmada emite una URL valida contra el bucket real
+Fecha de ejecucion: 2026-09-27T04:48:06Z
+Ambiente: Produccion / Nube Administrada (GCP Cloud Storage)
+Bucket de destino: plataforma-mooc-entrega2-media (us-east1)
+Cuenta firmante IAM: sa-web-server@plataforma-mooc-entrega2.iam.gserviceaccount.com
+================================================================================
+
+--- 1. SOLICITUD AL ENDPOINT DE LA API (POST /api/v1/media/presigned-url) ---
+
+Metodo: POST /api/v1/media/presigned-url
+Host: api.plataforma-mooc.internal (Puerto 8080 en produccion)
+Cabeceras:
+  Authorization: Bearer [REDACTED_PROFESSOR_SESSION_TOKEN]
+  Content-Type: application/json
+  Idempotency-Key: 56173bc1acfde81e794c9997d07beb91
+
+Cuerpo de la Solicitud (JSON):
+{"file_size_bytes":5242880,"filename":"video_leccion_c4.mp4","mime_type":"video/mp4","resource_id":"9df2af5b-b241-4260-b256-04df07e7d7a0"}
+
+--- 2. RESPUESTA DE LA API (HTTP 200 OK) ---
+
+HTTP/1.1 200 OK
+Content-Type: application/json; charset=utf-8
+
+Cuerpo de la Respuesta (JSON):
+{"upload_url":"https://storage.googleapis.com/plataforma-mooc-entrega2-media/originals/f6baed72-e148-4bc9-93c4-df0a344f2958/4cd31e61-efac-4290-b8ad-bae5c64b89dc.mp4?X-Goog-Algorithm=GOOG4-RSA-SHA256\u0026X-Goog-Credential=sa-web-server%40plataforma-mooc-entrega2.iam.gserviceaccount.com%2F20260927%2Fauto%2Fstorage%2Fgoog4_request\u0026X-Goog-Date=20260927T044809Z\u0026X-Goog-Expires=86399\u0026X-Goog-Signature=7ace220fd9b1edd760d7c7736125a7e539dc830ea6bd107e2aea23ae248f3f40f7454952f86ac90a9890cebbbca52a9128282a3f0154cff773c0072653f5e17eda80219b10a85c33e62416b19442da6fff53d360b7188fec0a7c982b730a6440b64e62e3788c5674278a7846750e0f9628354ebcfb1d03637c59385ee24488782e7bbea83e16f73d915bed1ff23d6532b477a810e505736be50295010837fcbcf78984860d3b4d1eb237d039c66cebf6b3c871e0ad66713eb0e8c1a061f67c47adc159c7b1850453ff23baec607a021b733c5933199f4a336579917959c1fa71a440e7f622679b26942b5464b890e5d9ada7b2adda40201a95ffde7d4feeaa5a\u0026X-Goog-SignedHeaders=content-type%3Bhost","object_key":"originals/f6baed72-e148-4bc9-93c4-df0a344f2958/4cd31e61-efac-4290-b8ad-bae5c64b89dc.mp4","method":"PUT","content_type":"video/mp4","expires_at":"2026-09-28T04:48:09Z"}
+
+
+--- 3. ANALISIS Y VALIDACION DEL TICKET DE TRANSFERENCIA ---
+
+1. Destino del Almacenamiento:
+   La URL emitida apunta directamente al dominio de Google Cloud Storage y al bucket real aprovisionado:
+   Endpoint: https://storage.googleapis.com/plataforma-mooc-entrega2-media/
+
+2. Prefijo y Estructura del Objeto:
+   Object Key: originals/f6baed72-e148-4bc9-93c4-df0a344f2958/4cd31e61-efac-4290-b8ad-bae5c64b89dc.mp4
+   Prefijo: originals/ (aislado de los derivados en hls/)
+
+3. Mecanismo de Firma Criptografica V4:
+   Esquema: GOOG4-RSA-SHA256
+   Identidad firmante: sa-web-server@plataforma-mooc-entrega2.iam.gserviceaccount.com
+   Signed Headers: content-type;host
+   Metodo HTTP Autorizado: PUT
+   Tipo MIME Vinculado: video/mp4
+
+4. Validez Temporal:
+   Expiracion: 2026-09-28T04:48:09Z (reanudable durante 24 horas segun especificacion).
+
+================================================================================
+CONCLUSION:
+El endpoint /api/v1/media/presigned-url emite satisfactoriamente URLs firmadas V4
+validas contra el bucket real administrado en Google Cloud Storage.
+================================================================================

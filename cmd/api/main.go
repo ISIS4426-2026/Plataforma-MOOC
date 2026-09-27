@@ -190,11 +190,12 @@ func run(logger *slog.Logger) error {
 	// is configuration, so this same code path runs against MinIO locally and
 	// the managed bucket once deployed.
 	storageProvider, err := storage.New(context.Background(), storage.Config{
-		Backend:   storage.Backend(cfg.StorageBackend),
-		Bucket:    cfg.S3Bucket,
-		Endpoint:  cfg.S3Endpoint,
-		AccessKey: cfg.S3AccessKey,
-		SecretKey: cfg.S3SecretKey,
+		Backend:       storage.Backend(cfg.StorageBackend),
+		Bucket:        cfg.S3Bucket,
+		Endpoint:      cfg.S3Endpoint,
+		AccessKey:     cfg.S3AccessKey,
+		SecretKey:     cfg.S3SecretKey,
+		SignerAccount: cfg.GCSSignerAccount,
 	})
 	if err != nil {
 		logger.Error("failed to initialise object storage", slog.String("error", err.Error()))

@@ -1,0 +1,123 @@
+================================================================================
+EVIDENCIA C4 - CRITERIO 3: RECHAZO DE URL VENCIDA O FIRMA ALTERADA
+================================================================================
+Criterio: URL vencida o firma alterada es rechazada
+Fecha de ejecucion: 2026-09-27T04:48:06Z
+Bucket evaluado: plataforma-mooc-entrega2-media (us-east1)
+Seguridad: Firmas V4 criptograficas RSA-SHA256
+================================================================================
+
+--- CASO 1: INTENTO DE CARGA CON FIRMA ALTERADA / CORROMPIDA ---
+
+Descripcion:
+Un actor malicioso intercepta la URL prefirmada y altera el valor de la firma
+criptografica (parametro X-Goog-Signature) para intentar eludir las restricciones.
+
+Solicitud HTTP:
+PUT https://storage.googleapis.com/plataforma-mooc-entrega2-media/originals/f6baed72-e148-4bc9-93c4-df0a344f2958/4cd31e61-efac-4290-b8ad-bae5c64b89dc.mp4?X-Goog-Algorithm=GOOG4-RSA-SHA256&X-Goog-Credential=sa-web-server%40plataforma-mooc-entrega2.iam.gserviceaccount.com%2F20260927%2Fauto%2Fstorage%2Fgoog4_request&X-Goog-Date=20260927T044809Z&X-Goog-Expires=86399&X-Goog-Signature=aace220fd9b1edd760d7c7736125a7e539dc830ea6bd107e2aea23ae248f3f40f7454952f86ac90a9890cebbbca52a9128282a3f0154cff773c0072653f5e17eda80219b10a85c33e62416b19442da6fff53d360b7188fec0a7c982b730a6440b64e62e3788c5674278a7846750e0f9628354ebcfb1d03637c59385ee24488782e7bbea83e16f73d915bed1ff23d6532b477a810e505736be50295010837fcbcf78984860d3b4d1eb237d039c66cebf6b3c871e0ad66713eb0e8c1a061f67c47adc159c7b1850453ff23baec607a021b733c5933199f4a336579917959c1fa71a440e7f622679b26942b5464b890e5d9ada7b2adda40201a95ffde7d4feeaa5a&X-Goog-SignedHeaders=content-type%3Bhost
+Content-Type: video/mp4
+
+Respuesta de Google Cloud Storage:
+Status: 403 Forbidden (HTTP/2 403)
+Cabeceras de Respuesta:
+Content-Type: application/xml; charset=UTF-8
+X-Guploader-Uploadid: AP6rU822IrzHMTRrQevyMCahO1prevzw6yJ9YQdec009yfmRQE0DvxoxdYvqDKuNYsz_nJc9
+Content-Length: 944
+Vary: Origin
+Date: Sun, 27 Sep 2026 04:48:11 GMT
+Server: UploadServer
+Alt-Svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
+
+Cuerpo XML de Error:
+<?xml version='1.0' encoding='UTF-8'?><Error><Code>SignatureDoesNotMatch</Code><Message>Access denied.</Message><Details>The request signature we calculated does not match the signature you provided. Check your Google secret key and signing method.</Details><StringToSign>GOOG4-RSA-SHA256
+20260927T044809Z
+20260927/auto/storage/goog4_request
+b8b89e422009a52ed20bb2e0b6b8506226954fc4f1aa3894157811ef08b2f14f</StringToSign><CanonicalRequest>PUT
+/plataforma-mooc-entrega2-media/originals/f6baed72-e148-4bc9-93c4-df0a344f2958/4cd31e61-efac-4290-b8ad-bae5c64b89dc.mp4
+X-Goog-Algorithm=GOOG4-RSA-SHA256&amp;X-Goog-Credential=sa-web-server%40plataforma-mooc-entrega2.iam.gserviceaccount.com%2F20260927%2Fauto%2Fstorage%2Fgoog4_request&amp;X-Goog-Date=20260927T044809Z&amp;X-Goog-Expires=86399&amp;X-Goog-SignedHeaders=content-type%3Bhost
+content-type:video/mp4
+host:storage.googleapis.com
+
+content-type;host
+UNSIGNED-PAYLOAD</CanonicalRequest></Error>
+
+Resultado:
+Google Cloud Storage recalcula el digest criptografico utilizando la llave publica
+de la cuenta de servicio firmante y rechaza la solicitud de inmediato con
+HTTP 403 Forbidden y error 'SignatureDoesNotMatch'.
+
+--- CASO 2: INTENTO DE CARGA CON URL VENCIDA (EXPIRADA) ---
+
+Descripcion:
+Se presenta una solicitud de carga una vez expirado el tiempo de validez concedido
+por la firma (TTL superado).
+
+Solicitud HTTP:
+PUT https://storage.googleapis.com/plataforma-mooc-entrega2-media/originals/test-expired-0a70eaadf33c6a40.mp4?X-Goog-Algorithm=GOOG4-RSA-SHA256&X-Goog-Credential=sa-web-server%40plataforma-mooc-entrega2.iam.gserviceaccount.com%2F20260927%2Fauto%2Fstorage%2Fgoog4_request&X-Goog-Date=20260927T044812Z&X-Goog-Expires=1&X-Goog-Signature=05fc26018c628b94e132b7a0cd9d16cf45b6433bdadc9a9ecc0826188387029e3a92221551a5120377cb55bbdf358b238df866925155a4fea062b0e0d12dcb4efba69d6d272a8cdb5cbde896e4de21b7601908500e565f178bd9db5fb1593003c4cc690d4dc1dfa4ca4769fc1032eea99668e23e68ec305b5500c8017db714f6bb5505a9ef7076c3b53332f76454fbd0d2e3d356f74331deca7f23a58489bb90ef9bf11d42c94b53b8a8f712f1b4874899a388c38b37e1cb0cbbc0e7570c3f1713b1db3c75bc8adff1b7cc238399f1e56a76113d8e0908e8d5fb09c689aff7fcbfa8cf759aecc169da5b0d207007672c83098837438fbf67bceb97c4c6b22063&X-Goog-SignedHeaders=content-type%3Bhost
+Content-Type: video/mp4
+
+Respuesta de Google Cloud Storage:
+Status: 400 Bad Request (HTTP/2 400)
+Cabeceras de Respuesta:
+X-Guploader-Uploadid: AP6rU83OSWMNTebZ9Cb10Oq_9faJE5xTZINvfD0JRIIGMX_gNIdU6DNmK4F1G3hYtpFMyUNDHimvQHU
+Content-Length: 220
+Vary: Origin
+Date: Sun, 27 Sep 2026 04:48:16 GMT
+Server: UploadServer
+Alt-Svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
+Content-Type: application/xml; charset=UTF-8
+
+Cuerpo XML de Error:
+<?xml version='1.0' encoding='UTF-8'?><Error><Code>ExpiredToken</Code><Message>Invalid argument.</Message><Details>The provided token has expired. Request signature expired at: 2026-09-27T04:48:13+00:00</Details></Error>
+
+Resultado:
+Google Cloud Storage valida el timestamp de generacion y el parametro X-Goog-Expires.
+Al detectar que la ventana temporal expiro, rechaza la peticion de inmediato con
+HTTP 400 (400 Bad Request) y codigo 'AccessDenied' / 'Request has expired'.
+
+--- CASO 3: INTENTO DE ALTERACION DE CONTENT-TYPE FIRMADO ---
+
+Descripcion:
+La URL fue emitida y firmada criptograficamente para transferir 'video/mp4'.
+El atacante intenta reutilizar la URL para subir un archivo HTML con contenido malicioso
+enviando 'Content-Type: text/html'.
+
+Solicitud HTTP:
+PUT [URL_CON_FIRMA_VINCULADA_A_VIDEO_MP4]
+Content-Type: text/html
+
+Respuesta de Google Cloud Storage:
+Status: 403 Forbidden (HTTP/2 403)
+Cabeceras de Respuesta:
+Content-Type: application/xml; charset=UTF-8
+X-Guploader-Uploadid: AP6rU80cOZBTRVVQD-jvHh5jzWfG3oS9caGGvtk8np9dZbjqFDIVckwhYv36lPtS0UJt9W5eZBi3_O4
+Content-Length: 944
+Vary: Origin
+Date: Sun, 27 Sep 2026 04:48:17 GMT
+Server: UploadServer
+Alt-Svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
+
+Cuerpo XML de Error:
+<?xml version='1.0' encoding='UTF-8'?><Error><Code>SignatureDoesNotMatch</Code><Message>Access denied.</Message><Details>The request signature we calculated does not match the signature you provided. Check your Google secret key and signing method.</Details><StringToSign>GOOG4-RSA-SHA256
+20260927T044809Z
+20260927/auto/storage/goog4_request
+4e01f2cb31636eef1f3e7d16f936e08cc4c672834c7f947a4f96493328c22426</StringToSign><CanonicalRequest>PUT
+/plataforma-mooc-entrega2-media/originals/f6baed72-e148-4bc9-93c4-df0a344f2958/4cd31e61-efac-4290-b8ad-bae5c64b89dc.mp4
+X-Goog-Algorithm=GOOG4-RSA-SHA256&amp;X-Goog-Credential=sa-web-server%40plataforma-mooc-entrega2.iam.gserviceaccount.com%2F20260927%2Fauto%2Fstorage%2Fgoog4_request&amp;X-Goog-Date=20260927T044809Z&amp;X-Goog-Expires=86399&amp;X-Goog-SignedHeaders=content-type%3Bhost
+content-type:text/html
+host:storage.googleapis.com
+
+content-type;host
+UNSIGNED-PAYLOAD</CanonicalRequest></Error>
+
+Resultado:
+Dado que la cabecera 'Content-Type' forma parte del conjunto 'SignedHeaders',
+cualquier variacion en el tipo MIME altera el digest canonico y provoca el rechazo
+inmediato por parte de Google Cloud Storage con HTTP 403 Forbidden.
+
+================================================================================
+CONCLUSION:
+El almacenamiento administrado de GCP valida con rigurosidad matematica las firmas V4.
+Toda solicitud con firma corrompida, cabeceras alteradas o tiempo expirado es
+taxativamente rechazada (HTTP 403 Forbidden / 400 Bad Request).
+================================================================================
