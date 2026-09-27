@@ -410,7 +410,8 @@ SMTP_PORT=587
 SMTP_FROM=<CORREO_REMITENTE_VERIFICADO>
 SMTP_USERNAME=<LOGIN_SMTP_DE_BREVO>
 EOF
-sudo chmod 600 /etc/mooc/web.conf
+sudo chown root:dfortizr1 /etc/mooc/web.conf
+sudo chmod 640 /etc/mooc/web.conf
 ```
 
 Ese archivo no contiene contraseñas, pero queda fuera del repositorio porque el

@@ -4,7 +4,11 @@ set -Eeuo pipefail
 # Builds the runtime .env used by docker-compose.prod.yml on the Web Server VM.
 # Secret values are fetched with the VM service account and never printed.
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Resolve the real script location before deriving the repository directory.
+# systemd invokes this file through prepare_env.sh, which is a symbolic link at
+# the repository root.
+SCRIPT_PATH="$(readlink -f "${BASH_SOURCE[0]}")"
+SCRIPT_DIR="$(cd "$(dirname "${SCRIPT_PATH}")" && pwd)"
 REPO_DIR="${MOOC_REPO_DIR:-$(cd "${SCRIPT_DIR}/.." && pwd)}"
 CONFIG_FILE="${MOOC_WEB_CONFIG_FILE:-/etc/mooc/web.conf}"
 ENV_FILE="${REPO_DIR}/.env"
@@ -50,6 +54,12 @@ command -v python3 >/dev/null || fail "python3 is required on the VM"
 
 DB_PASSWORD="$(gcloud secrets versions access latest --secret=db-password --project="${GCP_PROJECT_ID}")"
 SMTP_PASSWORD="$(gcloud secrets versions access latest --secret=smtp-password --project="${GCP_PROJECT_ID}")"
+
+# Keep this normalization aligned with trimspace(var.db_password) on the
+# google_sql_user resource. A secret created from PowerShell or Git Bash can
+# retain a trailing carriage return even though command substitution removes
+# the trailing line feed.
+DB_PASSWORD="$(DB_PASSWORD="${DB_PASSWORD}" python3 -c 'import os; print(os.environ["DB_PASSWORD"].strip(), end="")')"
 
 [[ -n "${DB_PASSWORD}" ]] || fail "db-password has no usable value"
 [[ -n "${SMTP_PASSWORD}" ]] || fail "smtp-password has no usable value"
