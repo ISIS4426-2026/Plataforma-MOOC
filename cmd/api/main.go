@@ -54,6 +54,14 @@ func main() {
 func run(logger *slog.Logger) error {
 	cfg := config.Load()
 
+	// Antes de abrir nada. Un despliegue con la configuracion de desarrollo no
+	// falla de forma visible: arranca y funciona lo suficiente como para
+	// parecer correcto, mientras los correos apuntan a localhost y los archivos
+	// van a un MinIO que en la nube no existe. Mejor no arrancar.
+	if err := cfg.Validate(); err != nil {
+		return err
+	}
+
 	startupCtx, cancelStartup := context.WithTimeout(context.Background(), startupTimeout)
 	defer cancelStartup()
 

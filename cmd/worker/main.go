@@ -40,6 +40,12 @@ func main() {
 		return
 	}
 
+	// El worker comparte la base y el almacenamiento con la API, asi que
+	// arrancar con configuracion de desarrollo tiene las mismas consecuencias.
+	if err := cfg.Validate(); err != nil {
+		log.Fatalf("Invalid configuration: %v", err)
+	}
+
 	log.Printf("Starting Plataforma MOOC Background Worker [Env: %s]\n", cfg.Environment)
 
 	// Traces and metrics (issue #21): the worker gets its own service name
