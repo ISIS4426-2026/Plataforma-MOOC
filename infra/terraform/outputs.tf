@@ -33,3 +33,34 @@ output "enabled_services" {
   description = "APIs habilitadas en el proyecto."
   value       = sort([for s in google_project_service.required : s.service])
 }
+
+output "vpc_name" {
+  description = "Nombre de la VPC principal."
+  value       = google_compute_network.vpc.name
+}
+
+output "vpc_id" {
+  description = "ID de la VPC principal."
+  value       = google_compute_network.vpc.id
+}
+
+output "subnet_name" {
+  description = "Nombre de la subred para las VMs."
+  value       = google_compute_subnetwork.subnet.name
+}
+
+output "subnet_id" {
+  description = "ID de la subred para las VMs."
+  value       = google_compute_subnetwork.subnet.id
+}
+
+output "subnet_cidr" {
+  description = "Rango CIDR de la subred de las VMs."
+  value       = google_compute_subnetwork.subnet.ip_cidr_range
+}
+
+output "private_vpc_connection_id" {
+  description = "ID de la conexión de peering de red privada para Cloud SQL (C1)."
+  value       = google_service_networking_connection.private_vpc_connection.id
+}
+
