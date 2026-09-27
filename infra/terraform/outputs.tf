@@ -64,6 +64,8 @@ output "private_vpc_connection_id" {
   value       = google_service_networking_connection.private_vpc_connection.id
 }
 
+# --- Almacenamiento de objetos (issue #120, C3) ------------------------------
+
 output "storage_bucket_name" {
   description = "Nombre del bucket de Cloud Storage para persistencia multimedia y documentos (C3)."
   value       = google_storage_bucket.media.name
@@ -74,3 +76,73 @@ output "storage_bucket_url" {
   value       = google_storage_bucket.media.url
 }
 
+# --- Base de datos administrada (issue #118, C1) -----------------------------
+#
+# Nada de lo que sale por aqui es secreto. La contrasena no es una salida a
+# proposito: vive en Secret Manager y en el estado, y no hay razon para que
+# ademas la imprima `terraform output`.
+
+output "db_instance_name" {
+  description = "Nombre de la instancia de Cloud SQL."
+  value       = google_sql_database_instance.main.name
+}
+
+output "db_connection_name" {
+  description = <<-EOT
+    Identificador de conexion (proyecto:region:instancia). Lo consume el proxy
+    de autenticacion de Cloud SQL y aparece en los comandos de `gcloud sql`.
+  EOT
+  value       = google_sql_database_instance.main.connection_name
+}
+
+output "db_private_ip" {
+  description = <<-EOT
+    IP privada de la instancia. Es la unica direccion que tiene: el host de
+    DATABASE_URL en las VMs de D2 y E1.
+  EOT
+  value       = google_sql_database_instance.main.private_ip_address
+}
+
+output "db_public_ip" {
+  description = <<-EOT
+    Debe salir vacio. Es la comprobacion en codigo del criterio «sin IP
+    publica»: si algun dia trae valor, alguien activo ipv4_enabled.
+  EOT
+  value       = google_sql_database_instance.main.public_ip_address
+}
+
+output "db_name" {
+  description = "Nombre de la base de datos de la aplicacion."
+  value       = google_sql_database.mooc.name
+}
+
+output "db_user" {
+  description = "Usuario de la aplicacion. La contrasena va aparte, por Secret Manager."
+  value       = google_sql_user.app.name
+}
+
+output "db_max_connections" {
+  description = <<-EOT
+    Limite de conexiones declarado en la instancia. Es el numero contra el que
+    hay que dimensionar DB_MAX_OPEN_CONNS en la API y en el worker; el reparto
+    esta en los comentarios de database.tf.
+  EOT
+  value       = var.db_max_connections
+}
+
+output "database_url_template" {
+  description = <<-EOT
+    Cadena de conexion lista para las VMs, con la contrasena como marcador.
+    Quien despliega sustituye CONTRASENA por el valor de Secret Manager.
+
+    El `sslmode=require` no es decorativo: la instancia esta en ENCRYPTED_ONLY
+    y rechaza cualquier conexion en claro, y el arranque en produccion tambien
+    lo exige (internal/config/validate.go).
+  EOT
+  value = format(
+    "postgres://%s:CONTRASENA@%s:5432/%s?sslmode=require",
+    google_sql_user.app.name,
+    google_sql_database_instance.main.private_ip_address,
+    google_sql_database.mooc.name,
+  )
+}

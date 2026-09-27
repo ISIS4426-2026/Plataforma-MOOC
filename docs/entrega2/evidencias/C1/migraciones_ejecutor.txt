@@ -1,0 +1,157 @@
+# Ejecutor de migraciones - issue #118 (C1)
+# Fecha: 2026-09-27 02:47 UTC
+#
+# Base de prueba VACIA, que es el estado en el que nace la instancia de
+# Cloud SQL. Se usa PostgreSQL 16, la misma version que declara database.tf.
+# Ninguna contrasena de este archivo protege nada: son las del Compose local.
+
+===================================================================
+ 1. Base vacia: aplica las siete migraciones
+===================================================================
+==> Base: c1_evidencia en PostgreSQL 16.15 on x86_64-pc-linux-musl, compiled by gcc (Alpine 15.2.0) 15.2.0, 64-bit
+
+==> Aplicando   000001_init_schema
+==> Aplicando   000002_auth_tokens
+==> Aplicando   000003_academic_ordering
+==> Aplicando   000004_audit_immutability
+==> Aplicando   000005_resource_downloadable
+==> Aplicando   000006_enrollments
+==> Aplicando   000007_quiz_attempts
+
+==> 7 migracion(es) aplicada(s).
+==> Comprueba el resultado con: /repo/scripts/migrate.sh --verify
+
+===================================================================
+ 2. Se repite: no debe hacer nada (es lo que lo hace re-ejecutable
+    tras anadir una migracion nueva)
+===================================================================
+==> Base: c1_evidencia en PostgreSQL 16.15 on x86_64-pc-linux-musl, compiled by gcc (Alpine 15.2.0) 15.2.0, 64-bit
+NOTICE:  relation "schema_migrations" already exists, skipping
+
+    ya aplicada  000001_init_schema
+    ya aplicada  000002_auth_tokens
+    ya aplicada  000003_academic_ordering
+    ya aplicada  000004_audit_immutability
+    ya aplicada  000005_resource_downloadable
+    ya aplicada  000006_enrollments
+    ya aplicada  000007_quiz_attempts
+
+==> Nada que aplicar: el esquema ya esta al dia.
+==> Comprueba el resultado con: /repo/scripts/migrate.sh --verify
+
+===================================================================
+ 3. Una migracion que falla no deja rastro
+
+    Se introduce a proposito una 000008 con un CREATE TABLE valido
+    seguido de SQL invalido. El CREATE se ejecuta y luego falla, asi
+    que si la transaccion no fuera unica quedarian la tabla a medias
+    y --peor-- el registro diciendo que se aplico.
+===================================================================
+==> Base: c1_evidencia en PostgreSQL 16.15 on x86_64-pc-linux-musl, compiled by gcc (Alpine 15.2.0) 15.2.0, 64-bit
+NOTICE:  relation "schema_migrations" already exists, skipping
+
+    ya aplicada  000001_init_schema
+    ya aplicada  000002_auth_tokens
+    ya aplicada  000003_academic_ordering
+    ya aplicada  000004_audit_immutability
+    ya aplicada  000005_resource_downloadable
+    ya aplicada  000006_enrollments
+    ya aplicada  000007_quiz_attempts
+==> Aplicando   000008_prueba_atomicidad
+psql:/repo/migrations/000008_prueba_atomicidad.up.sql:2: ERROR:  syntax error at or near "ESTO"
+LINE 1: ESTO NO ES SQL VALIDO;
+        ^
+
+--- codigo de salida: 3  (distinto de 0: el fallo se propaga) ---
+
+--- que quedo en la base ---
+ version 
+---------
+(0 rows)
+
+ tabla_a_medias 
+----------------
+              0
+(1 row)
+
+Las dos consultas vacias/cero: ni registro ni tabla a medias.
+
+===================================================================
+ 4. Verificacion del esquema resultante
+===================================================================
+==> Base: c1_evidencia en PostgreSQL 16.15 on x86_64-pc-linux-musl, compiled by gcc (Alpine 15.2.0) 15.2.0, 64-bit
+NOTICE:  relation "schema_migrations" already exists, skipping
+
+==> Tablas del esquema public
+        table_name         | columnas 
+---------------------------+----------
+ audit_logs                |        8
+ badges                    |        7
+ courses                   |        9
+ email_verification_tokens |        6
+ enrollments               |        6
+ modules                   |        6
+ password_reset_tokens     |        6
+ progress_events           |        7
+ quiz_options              |        6
+ quiz_questions            |        5
+ quiz_submissions          |        8
+ quizzes                   |        7
+ resources                 |       13
+ schema_migrations         |        2
+ student_progress          |        7
+ units                     |        6
+ user_sessions             |       10
+ users                     |        8
+(18 rows)
+
+==> Restricciones que sostienen las garantias del dominio
+              conname              | diferible |                           definicion                           
+-----------------------------------+-----------+----------------------------------------------------------------
+ courses_stable_id_version_key     | f         | UNIQUE (stable_id, version)
+ uq_quiz_options_question_position | t         | UNIQUE (question_id, "position") DEFERRABLE INITIALLY DEFERRED
+ uq_quiz_questions_quiz_position   | t         | UNIQUE (quiz_id, "position") DEFERRABLE INITIALLY DEFERRED
+ uq_quiz_submissions_attempt       | f         | UNIQUE (quiz_id, student_id, attempt)
+ uq_quizzes_resource               | f         | UNIQUE (resource_id)
+(5 rows)
+
+    Las cinco presentes.
+==> Disparadores de inmutabilidad de la auditoria (migracion 000004)
+   tabla    |      disparador      
+------------+----------------------
+ audit_logs | audit_logs_no_delete
+ audit_logs | audit_logs_no_update
+(2 rows)
+
+==> Limite de conexiones de la instancia frente al pool
+ max_connections | reservadas | en_uso_ahora 
+-----------------+------------+--------------
+ 100             | 3          |            7
+(1 row)
+
+==> Migraciones registradas
+           version            |          applied_at           
+------------------------------+-------------------------------
+ 000001_init_schema           | 2026-09-27 02:47:10.619142+00
+ 000002_auth_tokens           | 2026-09-27 02:47:11.3459+00
+ 000003_academic_ordering     | 2026-09-27 02:47:11.493666+00
+ 000004_audit_immutability    | 2026-09-27 02:47:11.593404+00
+ 000005_resource_downloadable | 2026-09-27 02:47:11.654356+00
+ 000006_enrollments           | 2026-09-27 02:47:11.717565+00
+ 000007_quiz_attempts         | 2026-09-27 02:47:11.825702+00
+(7 rows)
+
+
+===================================================================
+ 5. --baseline se niega a adoptar una base vacia
+
+    Aplicado por error sobre una base sin tablas dejaria la tabla de
+    control diciendo que todo se aplico y una base sin nada, y el
+    script no volveria a intentarlo. Por eso comprueba antes.
+===================================================================
+==> Base: c1_evidencia en PostgreSQL 16.15 on x86_64-pc-linux-musl, compiled by gcc (Alpine 15.2.0) 15.2.0, 64-bit
+ERROR: la base no tiene tablas, asi que no hay nada que adoptar.
+       Ejecuta el script sin --baseline para aplicar las migraciones.
+--- codigo de salida: 1  (1: se nego) ---
+
+# Base de prueba eliminada.

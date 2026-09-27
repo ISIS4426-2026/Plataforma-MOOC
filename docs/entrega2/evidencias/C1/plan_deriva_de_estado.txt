@@ -1,0 +1,497 @@
+# terraform plan - issue #118 (C1)
+# Fecha: 2026-09-27 03:05 UTC  ·  Rama: feat/c1-cloudsql  ·  proveedor google 8.4.0
+#
+# LEER LA ULTIMA LINEA CON CONTEXTO: 'Plan: 5 to add, 0 to change, 9 to destroy'.
+#
+#   - Los 5 'to add' son C1: instancia, base, usuario y los dos permisos de
+#     lectura del secreto. Es el efecto de este issue.
+#
+#   - Los 9 'to destroy' NO son de C1 y no deben aplicarse. Son los recursos
+#     de C3 (bucket, su IAM y sus prefijos), que estan en el estado compartido
+#     y vivos en GCP, pero cuyo storage.tf no esta en main ni en ninguna rama
+#     remota: se aplicaron desde codigo sin publicar. Cualquier apply -desde
+#     main o desde una rama- los propondria destruir hasta que ese archivo se
+#     suba y se mezcle.
+#
+# Por eso C1 NO se aplico. La secuencia correcta esta en el README de esta
+# carpeta: mezclar primero, aplicar despues, y siempre desde main.
+#
+# La contrasena aparece como (sensitive value): Terraform no la imprime.
+
+google_storage_bucket_iam_member.api_viewer: Refreshing state... [id=b/plataforma-mooc-entrega2-media/roles/storage.objectViewer/serviceAccount:sa-web-server@plataforma-mooc-entrega2.iam.gserviceaccount.com]
+google_storage_bucket_iam_member.api_creator_non_derivatives: Refreshing state... [id=b/plataforma-mooc-entrega2-media/roles/storage.objectCreator/serviceAccount:sa-web-server@plataforma-mooc-entrega2.iam.gserviceaccount.com/api_deny_derivatives_write/La cuenta de la API solo puede crear objetos en originals, documents y thumbnails, nunca en derivados HLS/resource.type == "storage.googleapis.com/Object" && (
+  resource.name.startsWith("projects/_/buckets/plataforma-mooc-entrega2-media/objects/originals/") ||
+  resource.name.startsWith("projects/_/buckets/plataforma-mooc-entrega2-media/objects/documents/") ||
+  resource.name.startsWith("projects/_/buckets/plataforma-mooc-entrega2-media/objects/thumbnails/")
+)
+]
+google_storage_bucket_iam_member.worker_derivatives_manager: Refreshing state... [id=b/plataforma-mooc-entrega2-media/roles/storage.objectUser/serviceAccount:sa-worker-server@plataforma-mooc-entrega2.iam.gserviceaccount.com/worker_write_derivatives_only/El worker solo puede crear, actualizar y gestionar objetos bajo el prefijo hls//resource.type == "storage.googleapis.com/Object" &&
+resource.name.startsWith("projects/_/buckets/plataforma-mooc-entrega2-media/objects/hls/")
+]
+google_storage_bucket_iam_member.worker_viewer: Refreshing state... [id=b/plataforma-mooc-entrega2-media/roles/storage.objectViewer/serviceAccount:sa-worker-server@plataforma-mooc-entrega2.iam.gserviceaccount.com]
+google_storage_bucket_object.prefixes["hls/"]: Refreshing state... [id=plataforma-mooc-entrega2-media-hls/]
+google_storage_bucket_object.prefixes["thumbnails/"]: Refreshing state... [id=plataforma-mooc-entrega2-media-thumbnails/]
+google_compute_network.vpc: Refreshing state... [id=projects/plataforma-mooc-entrega2/global/networks/mooc-vpc]
+google_storage_bucket_object.prefixes["originals/"]: Refreshing state... [id=plataforma-mooc-entrega2-media-originals/]
+google_storage_bucket_object.prefixes["documents/"]: Refreshing state... [id=plataforma-mooc-entrega2-media-documents/]
+google_service_account.web_server: Refreshing state... [id=projects/plataforma-mooc-entrega2/serviceAccounts/sa-web-server@plataforma-mooc-entrega2.iam.gserviceaccount.com]
+data.google_secret_manager_secret.db_password: Reading...
+google_service_account.worker_server: Refreshing state... [id=projects/plataforma-mooc-entrega2/serviceAccounts/sa-worker-server@plataforma-mooc-entrega2.iam.gserviceaccount.com]
+google_project_service.required["compute.googleapis.com"]: Refreshing state... [id=plataforma-mooc-entrega2/compute.googleapis.com]
+google_project_service.required["iam.googleapis.com"]: Refreshing state... [id=plataforma-mooc-entrega2/iam.googleapis.com]
+google_project_service.required["servicenetworking.googleapis.com"]: Refreshing state... [id=plataforma-mooc-entrega2/servicenetworking.googleapis.com]
+google_project_service.required["sqladmin.googleapis.com"]: Refreshing state... [id=plataforma-mooc-entrega2/sqladmin.googleapis.com]
+google_project_service.required["storage.googleapis.com"]: Refreshing state... [id=plataforma-mooc-entrega2/storage.googleapis.com]
+google_project_service.required["iamcredentials.googleapis.com"]: Refreshing state... [id=plataforma-mooc-entrega2/iamcredentials.googleapis.com]
+google_project_service.required["secretmanager.googleapis.com"]: Refreshing state... [id=plataforma-mooc-entrega2/secretmanager.googleapis.com]
+google_service_account_iam_member.web_server_can_sign: Refreshing state... [id=projects/plataforma-mooc-entrega2/serviceAccounts/sa-web-server@plataforma-mooc-entrega2.iam.gserviceaccount.com/roles/iam.serviceAccountTokenCreator/serviceAccount:sa-web-server@plataforma-mooc-entrega2.iam.gserviceaccount.com]
+data.google_secret_manager_secret.db_password: Read complete after 1s [id=projects/plataforma-mooc-entrega2/secrets/db-password]
+google_compute_subnetwork.subnet: Refreshing state... [id=projects/plataforma-mooc-entrega2/regions/us-east1/subnetworks/mooc-subnet]
+google_compute_global_address.private_ip_alloc: Refreshing state... [id=projects/plataforma-mooc-entrega2/global/addresses/mooc-private-ip-alloc]
+google_compute_firewall.allow_ssh_iap: Refreshing state... [id=projects/plataforma-mooc-entrega2/global/firewalls/mooc-allow-ssh-iap]
+google_compute_firewall.allow_web_ingress: Refreshing state... [id=projects/plataforma-mooc-entrega2/global/firewalls/mooc-allow-web-ingress]
+google_compute_router.router: Refreshing state... [id=projects/plataforma-mooc-entrega2/regions/us-east1/routers/mooc-router]
+google_storage_bucket.media: Refreshing state... [id=plataforma-mooc-entrega2-media]
+google_compute_firewall.allow_internal: Refreshing state... [id=projects/plataforma-mooc-entrega2/global/firewalls/mooc-allow-internal]
+google_service_networking_connection.private_vpc_connection: Refreshing state... [id=projects%2Fplataforma-mooc-entrega2%2Fglobal%2Fnetworks%2Fmooc-vpc:servicenetworking.googleapis.com]
+google_compute_router_nat.nat: Refreshing state... [id=plataforma-mooc-entrega2/us-east1/mooc-router/mooc-nat]
+google_project_iam_member.common["worker-cloudsql.client"]: Refreshing state... [id=plataforma-mooc-entrega2/roles/cloudsql.client/serviceAccount:sa-worker-server@plataforma-mooc-entrega2.iam.gserviceaccount.com]
+google_project_iam_member.common["worker-logging.logWriter"]: Refreshing state... [id=plataforma-mooc-entrega2/roles/logging.logWriter/serviceAccount:sa-worker-server@plataforma-mooc-entrega2.iam.gserviceaccount.com]
+google_project_iam_member.common["web-cloudsql.client"]: Refreshing state... [id=plataforma-mooc-entrega2/roles/cloudsql.client/serviceAccount:sa-web-server@plataforma-mooc-entrega2.iam.gserviceaccount.com]
+google_project_iam_member.common["worker-monitoring.metricWriter"]: Refreshing state... [id=plataforma-mooc-entrega2/roles/monitoring.metricWriter/serviceAccount:sa-worker-server@plataforma-mooc-entrega2.iam.gserviceaccount.com]
+google_project_iam_member.common["web-monitoring.metricWriter"]: Refreshing state... [id=plataforma-mooc-entrega2/roles/monitoring.metricWriter/serviceAccount:sa-web-server@plataforma-mooc-entrega2.iam.gserviceaccount.com]
+google_project_iam_member.common["web-logging.logWriter"]: Refreshing state... [id=plataforma-mooc-entrega2/roles/logging.logWriter/serviceAccount:sa-web-server@plataforma-mooc-entrega2.iam.gserviceaccount.com]
+
+Terraform used the selected providers to generate the following execution
+plan. Resource actions are indicated with the following symbols:
+  + create
+  - destroy
+
+Terraform will perform the following actions:
+
+  # google_secret_manager_secret_iam_member.db_password_readers["web"] will be created
+  + resource "google_secret_manager_secret_iam_member" "db_password_readers" {
+      + etag      = (known after apply)
+      + id        = (known after apply)
+      + member    = "serviceAccount:sa-web-server@plataforma-mooc-entrega2.iam.gserviceaccount.com"
+      + project   = "plataforma-mooc-entrega2"
+      + role      = "roles/secretmanager.secretAccessor"
+      + secret_id = "db-password"
+    }
+
+  # google_secret_manager_secret_iam_member.db_password_readers["worker"] will be created
+  + resource "google_secret_manager_secret_iam_member" "db_password_readers" {
+      + etag      = (known after apply)
+      + id        = (known after apply)
+      + member    = "serviceAccount:sa-worker-server@plataforma-mooc-entrega2.iam.gserviceaccount.com"
+      + project   = "plataforma-mooc-entrega2"
+      + role      = "roles/secretmanager.secretAccessor"
+      + secret_id = "db-password"
+    }
+
+  # google_sql_database.mooc will be created
+  + resource "google_sql_database" "mooc" {
+      + charset         = (known after apply)
+      + collation       = (known after apply)
+      + deletion_policy = "ABANDON"
+      + id              = (known after apply)
+      + instance        = "mooc-db-1"
+      + name            = "moocdb"
+      + project         = "plataforma-mooc-entrega2"
+      + self_link       = (known after apply)
+    }
+
+  # google_sql_database_instance.main will be created
+  + resource "google_sql_database_instance" "main" {
+      + available_maintenance_versions       = (known after apply)
+      + connection_name                      = (known after apply)
+      + database_version                     = "POSTGRES_16"
+      + deletion_policy                      = "DELETE"
+      + deletion_protection                  = true
+      + dns_name                             = (known after apply)
+      + dns_names                            = (known after apply)
+      + encryption_key_name                  = (known after apply)
+      + enforce_new_sql_network_architecture = (known after apply)
+      + first_ip_address                     = (known after apply)
+      + id                                   = (known after apply)
+      + instance_type                        = (known after apply)
+      + ip_address                           = (known after apply)
+      + maintenance_version                  = (known after apply)
+      + master_instance_name                 = (known after apply)
+      + name                                 = "mooc-db-1"
+      + node_count                           = (known after apply)
+      + private_ip_address                   = (known after apply)
+      + project                              = "plataforma-mooc-entrega2"
+      + psc_service_attachment_link          = (known after apply)
+      + public_ip_address                    = (known after apply)
+      + region                               = "us-east1"
+      + replica_names                        = (known after apply)
+      + root_password_wo                     = (write-only attribute)
+      + self_link                            = (known after apply)
+      + server_ca_cert                       = (sensitive value)
+      + service_account_email_address        = (known after apply)
+
+      + replica_configuration (known after apply)
+
+      + replication_cluster (known after apply)
+
+      + settings {
+          + activation_policy                = "ALWAYS"
+          + availability_type                = "ZONAL"
+          + connector_enforcement            = (known after apply)
+          + data_api_access                  = (known after apply)
+          + data_disk_provisioned_iops       = (known after apply)
+          + data_disk_provisioned_throughput = (known after apply)
+          + disk_autoresize                  = true
+          + disk_autoresize_limit            = 20
+          + disk_size                        = 10
+          + disk_type                        = "PD_SSD"
+          + edition                          = "ENTERPRISE"
+          + effective_availability_type      = (known after apply)
+          + pricing_plan                     = "PER_USE"
+          + replication_lag_max_seconds      = (known after apply)
+          + tier                             = "db-custom-1-3840"
+          + user_labels                      = {
+              + "entrega"  = "2"
+              + "gestion"  = "terraform"
+              + "proyecto" = "plataforma-mooc"
+            }
+          + version                          = (known after apply)
+
+          + backup_configuration {
+              + backup_tier                    = (known after apply)
+              + enabled                        = true
+              + point_in_time_recovery_enabled = false
+              + start_time                     = "03:00"
+              + transaction_log_retention_days = (known after apply)
+
+              + backup_retention_settings {
+                  + retained_backups = 3
+                  + retention_unit   = "COUNT"
+                }
+            }
+
+          + connection_pool_config (known after apply)
+
+          + data_cache_config (known after apply)
+
+          + database_flags {
+              + name  = "max_connections"
+              + value = "100"
+            }
+
+          + insights_config {
+              + query_insights_enabled  = true
+              + query_plans_per_minute  = (known after apply)
+              + query_string_length     = (known after apply)
+              + record_application_tags = true
+              + record_client_address   = false
+            }
+
+          + ip_configuration {
+              + ipv4_enabled    = false
+              + private_network = "projects/plataforma-mooc-entrega2/global/networks/mooc-vpc"
+              + server_ca_mode  = (known after apply)
+              + ssl_mode        = "ENCRYPTED_ONLY"
+            }
+
+          + location_preference {
+              + zone = "us-east1-b"
+            }
+
+          + maintenance_window {
+              + day          = 7
+              + hour         = 6
+              + update_track = "stable"
+            }
+
+          + read_pool_auto_scale_config (known after apply)
+        }
+    }
+
+  # google_sql_user.app will be created
+  + resource "google_sql_user" "app" {
+      + deletion_policy         = "DELETE"
+      + host                    = (known after apply)
+      + iam_email               = (known after apply)
+      + id                      = (known after apply)
+      + instance                = "mooc-db-1"
+      + name                    = "moocuser"
+      + password                = (sensitive value)
+      + password_wo             = (write-only attribute)
+      + project                 = "plataforma-mooc-entrega2"
+      + sql_server_user_details = (known after apply)
+    }
+
+  # google_storage_bucket.media will be destroyed
+  # (because google_storage_bucket.media is not in configuration)
+  - resource "google_storage_bucket" "media" {
+      - default_event_based_hold    = false -> null
+      - deletion_policy             = "DELETE" -> null
+      - effective_labels            = {
+          - "entrega"                    = "2"
+          - "gestion"                    = "terraform"
+          - "goog-terraform-provisioned" = "true"
+          - "proyecto"                   = "plataforma-mooc"
+        } -> null
+      - enable_object_retention     = false -> null
+      - force_destroy               = true -> null
+      - id                          = "plataforma-mooc-entrega2-media" -> null
+      - labels                      = {
+          - "entrega"  = "2"
+          - "gestion"  = "terraform"
+          - "proyecto" = "plataforma-mooc"
+        } -> null
+      - location                    = "US-EAST1" -> null
+      - name                        = "plataforma-mooc-entrega2-media" -> null
+      - project                     = "plataforma-mooc-entrega2" -> null
+      - project_number              = 921648860819 -> null
+      - public_access_prevention    = "enforced" -> null
+      - requester_pays              = false -> null
+      - self_link                   = "https://www.googleapis.com/storage/v1/b/plataforma-mooc-entrega2-media" -> null
+      - storage_class               = "STANDARD" -> null
+      - terraform_labels            = {
+          - "entrega"                    = "2"
+          - "gestion"                    = "terraform"
+          - "goog-terraform-provisioned" = "true"
+          - "proyecto"                   = "plataforma-mooc"
+        } -> null
+      - time_created                = "2026-09-27T03:02:06.986Z" -> null
+      - uniform_bucket_level_access = true -> null
+      - updated                     = "2026-09-27T03:02:21.232Z" -> null
+      - url                         = "gs://plataforma-mooc-entrega2-media" -> null
+
+      - cors {
+          - max_age_seconds = 3600 -> null
+          - method          = [
+              - "GET",
+              - "HEAD",
+              - "PUT",
+              - "OPTIONS",
+            ] -> null
+          - origin          = [
+              - "*",
+            ] -> null
+          - response_header = [
+              - "*",
+            ] -> null
+        }
+
+      - hierarchical_namespace {
+          - enabled = false -> null
+        }
+
+      - lifecycle_rule {
+          - action {
+              - type          = "AbortIncompleteMultipartUpload" -> null
+                # (1 unchanged attribute hidden)
+            }
+          - condition {
+              - age                                     = 1 -> null
+              - days_since_custom_time                  = 0 -> null
+              - days_since_noncurrent_time              = 0 -> null
+              - matches_prefix                          = [] -> null
+              - matches_storage_class                   = [] -> null
+              - matches_suffix                          = [] -> null
+              - num_newer_versions                      = 0 -> null
+              - send_age_if_zero                        = false -> null
+              - send_days_since_custom_time_if_zero     = false -> null
+              - send_days_since_noncurrent_time_if_zero = false -> null
+              - send_num_newer_versions_if_zero         = false -> null
+              - size_above_bytes                        = 0 -> null
+              - size_below_bytes                        = 0 -> null
+              - with_state                              = "ANY" -> null
+                # (3 unchanged attributes hidden)
+            }
+        }
+
+      - soft_delete_policy {
+          - effective_time             = "2026-09-27T03:02:06.986Z" -> null
+          - retention_duration_seconds = 604800 -> null
+        }
+    }
+
+  # google_storage_bucket_iam_member.api_creator_non_derivatives will be destroyed
+  # (because google_storage_bucket_iam_member.api_creator_non_derivatives is not in configuration)
+  - resource "google_storage_bucket_iam_member" "api_creator_non_derivatives" {
+      - bucket = "b/plataforma-mooc-entrega2-media" -> null
+      - etag   = "CAU=" -> null
+      - id     = <<-EOT
+            b/plataforma-mooc-entrega2-media/roles/storage.objectCreator/serviceAccount:sa-web-server@plataforma-mooc-entrega2.iam.gserviceaccount.com/api_deny_derivatives_write/La cuenta de la API solo puede crear objetos en originals, documents y thumbnails, nunca en derivados HLS/resource.type == "storage.googleapis.com/Object" && (
+              resource.name.startsWith("projects/_/buckets/plataforma-mooc-entrega2-media/objects/originals/") ||
+              resource.name.startsWith("projects/_/buckets/plataforma-mooc-entrega2-media/objects/documents/") ||
+              resource.name.startsWith("projects/_/buckets/plataforma-mooc-entrega2-media/objects/thumbnails/")
+            )
+        EOT -> null
+      - member = "serviceAccount:sa-web-server@plataforma-mooc-entrega2.iam.gserviceaccount.com" -> null
+      - role   = "roles/storage.objectCreator" -> null
+
+      - condition {
+          - description = "La cuenta de la API solo puede crear objetos en originals, documents y thumbnails, nunca en derivados HLS" -> null
+          - expression  = <<-EOT
+                resource.type == "storage.googleapis.com/Object" && (
+                  resource.name.startsWith("projects/_/buckets/plataforma-mooc-entrega2-media/objects/originals/") ||
+                  resource.name.startsWith("projects/_/buckets/plataforma-mooc-entrega2-media/objects/documents/") ||
+                  resource.name.startsWith("projects/_/buckets/plataforma-mooc-entrega2-media/objects/thumbnails/")
+                )
+            EOT -> null
+          - title       = "api_deny_derivatives_write" -> null
+        }
+    }
+
+  # google_storage_bucket_iam_member.api_viewer will be destroyed
+  # (because google_storage_bucket_iam_member.api_viewer is not in configuration)
+  - resource "google_storage_bucket_iam_member" "api_viewer" {
+      - bucket = "b/plataforma-mooc-entrega2-media" -> null
+      - etag   = "CAU=" -> null
+      - id     = "b/plataforma-mooc-entrega2-media/roles/storage.objectViewer/serviceAccount:sa-web-server@plataforma-mooc-entrega2.iam.gserviceaccount.com" -> null
+      - member = "serviceAccount:sa-web-server@plataforma-mooc-entrega2.iam.gserviceaccount.com" -> null
+      - role   = "roles/storage.objectViewer" -> null
+    }
+
+  # google_storage_bucket_iam_member.worker_derivatives_manager will be destroyed
+  # (because google_storage_bucket_iam_member.worker_derivatives_manager is not in configuration)
+  - resource "google_storage_bucket_iam_member" "worker_derivatives_manager" {
+      - bucket = "b/plataforma-mooc-entrega2-media" -> null
+      - etag   = "CAU=" -> null
+      - id     = <<-EOT
+            b/plataforma-mooc-entrega2-media/roles/storage.objectUser/serviceAccount:sa-worker-server@plataforma-mooc-entrega2.iam.gserviceaccount.com/worker_write_derivatives_only/El worker solo puede crear, actualizar y gestionar objetos bajo el prefijo hls//resource.type == "storage.googleapis.com/Object" &&
+            resource.name.startsWith("projects/_/buckets/plataforma-mooc-entrega2-media/objects/hls/")
+        EOT -> null
+      - member = "serviceAccount:sa-worker-server@plataforma-mooc-entrega2.iam.gserviceaccount.com" -> null
+      - role   = "roles/storage.objectUser" -> null
+
+      - condition {
+          - description = "El worker solo puede crear, actualizar y gestionar objetos bajo el prefijo hls/" -> null
+          - expression  = <<-EOT
+                resource.type == "storage.googleapis.com/Object" &&
+                resource.name.startsWith("projects/_/buckets/plataforma-mooc-entrega2-media/objects/hls/")
+            EOT -> null
+          - title       = "worker_write_derivatives_only" -> null
+        }
+    }
+
+  # google_storage_bucket_iam_member.worker_viewer will be destroyed
+  # (because google_storage_bucket_iam_member.worker_viewer is not in configuration)
+  - resource "google_storage_bucket_iam_member" "worker_viewer" {
+      - bucket = "b/plataforma-mooc-entrega2-media" -> null
+      - etag   = "CAU=" -> null
+      - id     = "b/plataforma-mooc-entrega2-media/roles/storage.objectViewer/serviceAccount:sa-worker-server@plataforma-mooc-entrega2.iam.gserviceaccount.com" -> null
+      - member = "serviceAccount:sa-worker-server@plataforma-mooc-entrega2.iam.gserviceaccount.com" -> null
+      - role   = "roles/storage.objectViewer" -> null
+    }
+
+  # google_storage_bucket_object.prefixes["documents/"] will be destroyed
+  # (because google_storage_bucket_object.prefixes is not in configuration)
+  - resource "google_storage_bucket_object" "prefixes" {
+      - bucket              = "plataforma-mooc-entrega2-media" -> null
+      - content             = (sensitive value) -> null
+      - content_type        = "text/plain; charset=utf-8" -> null
+      - crc32c              = "csDdjw==" -> null
+      - deletion_policy     = "DELETE" -> null
+      - detect_md5hash      = "chXunH2dwinSkhpA6JnsXw==" -> null
+      - event_based_hold    = false -> null
+      - generation          = 1790478127936763 -> null
+      - id                  = "plataforma-mooc-entrega2-media-documents/" -> null
+      - md5hash             = "chXunH2dwinSkhpA6JnsXw==" -> null
+      - md5hexhash          = "7215ee9c7d9dc229d2921a40e899ec5f" -> null
+      - media_link          = "https://storage.googleapis.com/download/storage/v1/b/plataforma-mooc-entrega2-media/o/documents%2F?generation=1790478127936763&alt=media" -> null
+      - metadata            = {} -> null
+      - name                = "documents/" -> null
+      - output_name         = "documents/" -> null
+      - self_link           = "https://www.googleapis.com/storage/v1/b/plataforma-mooc-entrega2-media/o/documents%2F" -> null
+      - storage_class       = "STANDARD" -> null
+      - temporary_hold      = false -> null
+        # (6 unchanged attributes hidden)
+    }
+
+  # google_storage_bucket_object.prefixes["hls/"] will be destroyed
+  # (because google_storage_bucket_object.prefixes is not in configuration)
+  - resource "google_storage_bucket_object" "prefixes" {
+      - bucket              = "plataforma-mooc-entrega2-media" -> null
+      - content             = (sensitive value) -> null
+      - content_type        = "text/plain; charset=utf-8" -> null
+      - crc32c              = "csDdjw==" -> null
+      - deletion_policy     = "DELETE" -> null
+      - detect_md5hash      = "chXunH2dwinSkhpA6JnsXw==" -> null
+      - event_based_hold    = false -> null
+      - generation          = 1790478127952658 -> null
+      - id                  = "plataforma-mooc-entrega2-media-hls/" -> null
+      - md5hash             = "chXunH2dwinSkhpA6JnsXw==" -> null
+      - md5hexhash          = "7215ee9c7d9dc229d2921a40e899ec5f" -> null
+      - media_link          = "https://storage.googleapis.com/download/storage/v1/b/plataforma-mooc-entrega2-media/o/hls%2F?generation=1790478127952658&alt=media" -> null
+      - metadata            = {} -> null
+      - name                = "hls/" -> null
+      - output_name         = "hls/" -> null
+      - self_link           = "https://www.googleapis.com/storage/v1/b/plataforma-mooc-entrega2-media/o/hls%2F" -> null
+      - storage_class       = "STANDARD" -> null
+      - temporary_hold      = false -> null
+        # (6 unchanged attributes hidden)
+    }
+
+  # google_storage_bucket_object.prefixes["originals/"] will be destroyed
+  # (because google_storage_bucket_object.prefixes is not in configuration)
+  - resource "google_storage_bucket_object" "prefixes" {
+      - bucket              = "plataforma-mooc-entrega2-media" -> null
+      - content             = (sensitive value) -> null
+      - content_type        = "text/plain; charset=utf-8" -> null
+      - crc32c              = "csDdjw==" -> null
+      - deletion_policy     = "DELETE" -> null
+      - detect_md5hash      = "chXunH2dwinSkhpA6JnsXw==" -> null
+      - event_based_hold    = false -> null
+      - generation          = 1790478127936268 -> null
+      - id                  = "plataforma-mooc-entrega2-media-originals/" -> null
+      - md5hash             = "chXunH2dwinSkhpA6JnsXw==" -> null
+      - md5hexhash          = "7215ee9c7d9dc229d2921a40e899ec5f" -> null
+      - media_link          = "https://storage.googleapis.com/download/storage/v1/b/plataforma-mooc-entrega2-media/o/originals%2F?generation=1790478127936268&alt=media" -> null
+      - metadata            = {} -> null
+      - name                = "originals/" -> null
+      - output_name         = "originals/" -> null
+      - self_link           = "https://www.googleapis.com/storage/v1/b/plataforma-mooc-entrega2-media/o/originals%2F" -> null
+      - storage_class       = "STANDARD" -> null
+      - temporary_hold      = false -> null
+        # (6 unchanged attributes hidden)
+    }
+
+  # google_storage_bucket_object.prefixes["thumbnails/"] will be destroyed
+  # (because google_storage_bucket_object.prefixes is not in configuration)
+  - resource "google_storage_bucket_object" "prefixes" {
+      - bucket              = "plataforma-mooc-entrega2-media" -> null
+      - content             = (sensitive value) -> null
+      - content_type        = "text/plain; charset=utf-8" -> null
+      - crc32c              = "csDdjw==" -> null
+      - deletion_policy     = "DELETE" -> null
+      - detect_md5hash      = "chXunH2dwinSkhpA6JnsXw==" -> null
+      - event_based_hold    = false -> null
+      - generation          = 1790478127973432 -> null
+      - id                  = "plataforma-mooc-entrega2-media-thumbnails/" -> null
+      - md5hash             = "chXunH2dwinSkhpA6JnsXw==" -> null
+      - md5hexhash          = "7215ee9c7d9dc229d2921a40e899ec5f" -> null
+      - media_link          = "https://storage.googleapis.com/download/storage/v1/b/plataforma-mooc-entrega2-media/o/thumbnails%2F?generation=1790478127973432&alt=media" -> null
+      - metadata            = {} -> null
+      - name                = "thumbnails/" -> null
+      - output_name         = "thumbnails/" -> null
+      - self_link           = "https://www.googleapis.com/storage/v1/b/plataforma-mooc-entrega2-media/o/thumbnails%2F" -> null
+      - storage_class       = "STANDARD" -> null
+      - temporary_hold      = false -> null
+        # (6 unchanged attributes hidden)
+    }
+
+Plan: 5 to add, 0 to change, 9 to destroy.
+
+Changes to Outputs:
+  + database_url_template         = (known after apply)
+  + db_connection_name            = (known after apply)
+  + db_instance_name              = "mooc-db-1"
+  + db_max_connections            = 100
+  + db_name                       = "moocdb"
+  + db_private_ip                 = (known after apply)
+  + db_public_ip                  = (known after apply)
+  + db_user                       = "moocuser"
+  - storage_bucket_name           = "plataforma-mooc-entrega2-media" -> null
+  - storage_bucket_url            = "gs://plataforma-mooc-entrega2-media" -> null
+
+─────────────────────────────────────────────────────────────────────────────
+
+Note: You didn't use the -out option to save this plan, so Terraform can't
+guarantee to take exactly these actions if you run "terraform apply" now.
