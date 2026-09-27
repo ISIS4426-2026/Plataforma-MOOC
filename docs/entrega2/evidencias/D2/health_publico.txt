@@ -1,0 +1,33 @@
+================================================================================
+EVIDENCIA D2 - CRITERIO 1: HEALTHCHECK PÚBLICO DESDE INTERNET
+================================================================================
+Fecha de verificación: 2026-09-27 14:41:31 UTC
+Punto de acceso público: http://34.24.52.111/api/v1/health
+Puerto público: 80 (HTTP)
+Infraestructura: VM mooc-web-server (e2-highcpu-2) en us-east1-b
+Proxy Inverso: Nginx 1.27-alpine
+Backend: API Go modular en puerto interno 8080
+Base de datos administrada: Cloud SQL (10.171.240.3:5432, sslmode=require)
+================================================================================
+
+$ curl -i -s http://34.24.52.111/api/v1/health
+
+HTTP/1.1 200 OK
+Server: nginx/1.27.5
+Date: Sun, 27 Sep 2026 14:41:31 GMT
+Content-Type: application/json
+Content-Length: 82
+Connection: keep-alive
+X-Request-Id: 4b396b01-9b7c-4b95-a201-b3d6637f89a9
+
+{"status":"pass","timestamp":"2026-09-27T14:41:31Z","services":{"database":"up"}}
+
+================================================================================
+ANÁLISIS DE LA RESPUESTA:
+1. Tráfico externo recibido en el puerto 80 por el proxy inverso Nginx.
+2. Nginx reenvía la petición al contenedor api en la red interna de Docker (:8080).
+3. El handler NewHealthHandler (internal/http/server.go:136) realiza un PingContext
+   contra la base de datos relacional Cloud SQL sobre la red privada mooc-subnet
+   (IP privada 10.171.240.3) exigiendo conexión TLS (sslmode=require).
+4. La base responde satisfactoriamente, retornando estado 'pass' y HTTP 200 OK.
+================================================================================

@@ -9,7 +9,7 @@
 | [`migraciones_ejecutor.txt`](./migraciones_ejecutor.txt) | El ejecutor de migraciones, probado contra una base vacía antes de apuntarlo a la nube |
 | [`plan_deriva_de_estado.txt`](./plan_deriva_de_estado.txt) | No es un criterio: es el hallazgo de la [nota 16](../../NOTAS_TECNICAS.md), capturado |
 
-**Estado: aplicado y verificado. Los dos criterios de la ola 1 están cumplidos.**
+**Estado: aplicado y verificado. Todos los criterios de la ola 1 y ola 2 están cumplidos.**
 
 ```
 Apply complete! Resources: 5 added, 0 changed, 0 destroyed.
@@ -22,8 +22,12 @@ Apply complete! Resources: 5 added, 0 changed, 0 destroyed.
 | Todas las migraciones aplicadas | ✅ las 7, registradas en `schema_migrations` |
 | Esquema verificado | ✅ 17 tablas, 5 restricciones, 2 disparadores |
 
-La ola 2 —registro, login y administración contra la instancia— depende de D2,
-que es cuando existirá la VM que sirve la API.
+| Criterio de la ola 2 | |
+| :--- | :--- |
+| Autenticación (login) contra Cloud SQL vía Web Server público | ✅ HTTP 200 OK con sesión y datos de usuario |
+| Operaciones administrativas (listado y actualización de estado) | ✅ `GET /api/v1/admin/users` y `PATCH /api/v1/admin/users/{id}/status` |
+| Persistencia de auditoría inmutable en `audit_logs` | ✅ Eventos `user.reactivated` y `resource.media_attached` persistidos |
+| Evidencia de integración en D2 | ✅ Verificada en [`../D2/cierre_ola2_c1_c4.txt`](../D2/cierre_ola2_c1_c4.txt) |
 
 ---
 

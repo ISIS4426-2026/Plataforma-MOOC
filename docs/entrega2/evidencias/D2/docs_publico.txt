@@ -1,0 +1,77 @@
+================================================================================
+EVIDENCIA D2 - CRITERIO: DOCUMENTACIÓN OPENAPI Y SWAGGER DESDE INTERNET
+================================================================================
+Fecha de verificación: 2026-09-27 14:41:46 UTC
+Punto de acceso público: http://34.24.52.111/api/docs
+Especificación OpenAPI: http://34.24.52.111/api/v1/openapi.yaml
+================================================================================
+
+--- 1. CONSULTA A LA INTERFAZ DE DOCUMENTACIÓN (GET /api/docs) ---
+
+$ curl -i -s http://34.24.52.111/api/docs | head -n 25
+
+HTTP/1.1 200 OK
+Server: nginx/1.27.5
+Date: Sun, 27 Sep 2026 14:41:38 GMT
+Content-Type: text/html; charset=utf-8
+Connection: keep-alive
+X-Request-Id: 8bd64edc-408d-4b20-82f8-1dec5ca82f3b
+Transfer-Encoding: chunked
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Plataforma MOOC — API v1</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5.17.14/swagger-ui.css">
+  <style>
+    body { margin: 0; background: #fafafa; }
+    .topbar { display: none; }
+  </style>
+</head>
+<body>
+  <div id="swagger-ui"></div>
+  <script src="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5.17.14/swagger-ui-bundle.js" crossorigin></script>
+  <script>
+    window.ui = SwaggerUIBundle({
+      url: '/api/v1/openapi.yaml',
+      dom_id: '#swagger-ui',
+...
+
+
+--- 2. CONSULTA A LA ESPECIFICACIÓN OPENAPI (GET /api/v1/openapi.yaml) ---
+
+$ curl -i -s http://34.24.52.111/api/v1/openapi.yaml | head -n 20
+
+HTTP/1.1 200 OK
+Server: nginx/1.27.5
+Date: Sun, 27 Sep 2026 14:41:46 GMT
+Content-Type: application/yaml; charset=utf-8
+Transfer-Encoding: chunked
+Connection: keep-alive
+X-Request-Id: 8ee55c02-b751-41f0-8d2f-b7de30108883
+
+openapi: 3.1.0
+info:
+  title: Plataforma MOOC API
+  description: >
+    Official REST API specification for the Massive Open Online Course (MOOC) platform (ISIS4426 Cloud Course).
+    All endpoints require HTTP/JSON communications and strictly reside under the `/api/v1` path prefix.
+  version: 1.0.0
+  contact:
+    name: MOOC Engineering Team
+    email: support@mooc-platform.example.com
+    url: https://mooc-platform.example.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: /api/v1
+
+================================================================================
+CONCLUSIÓN:
+Tanto la documentación interactiva Swagger UI como el contrato OpenAPI 3.1
+se sirven correctamente a través del proxy inverso en el puerto 80 desde Internet.
+================================================================================

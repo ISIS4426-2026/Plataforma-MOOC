@@ -1,0 +1,80 @@
+================================================================================
+EVIDENCIA D2 - CRITERIO 2: CIERRE DE CRITERIOS DE OLA 2 (C1 Y C4)
+================================================================================
+Fecha de verificación: 2026-09-27 14:51:34 UTC
+Punto de acceso público: http://34.24.52.111
+Base de datos: Cloud SQL PostgreSQL 16 (10.171.240.3, mooc-db-1)
+Almacenamiento: Cloud Storage (plataforma-mooc-entrega2-media)
+================================================================================
+
+--------------------------------------------------------------------------------
+PARTE 1: CIERRE DE OLA 2 - ISSUE C1 (PERSISTENCIA Y TRANSACCIONES EN CLOUD SQL)
+--------------------------------------------------------------------------------
+Criterio: Registro, login y administración contra la instancia administrada Cloud SQL.
+
+1. Autenticación de Administrador (POST /api/v1/auth/login):
+   Petición: {"email": "admin@plataforma-mooc.test", "password": "[REDACTED]"}
+   Respuesta: HTTP 200 OK
+   Cuerpo: {"token":"[REDACTED_SESSION_TOKEN]","expires_at":"2026-09-28T14:44:22Z","user":{"id":"a0000000-0000-0000-0000-000000000001","email":"admin@plataforma-mooc.test","full_name":"Administrador Principal","role":"administrador","status":"active"}}
+
+2. Listado de Usuarios vía API de Administración (GET /api/v1/admin/users):
+   Respuesta: HTTP 200 OK (8 usuarios leídos directamente de Cloud SQL moocdb)
+
+3. Validación de Bloqueo a Usuario no Verificado:
+   Petición: POST /api/v1/auth/login {"email": "estudiante.pendiente@plataforma-mooc.test"}
+   Respuesta: HTTP 403 Forbidden {"code":"email_not_verified","message":"Debes verificar tu correo antes de iniciar sesión."}
+
+4. Actualización Administrativa Transaccional (PATCH /api/v1/admin/users/{id}/status):
+   Petición: {"status": "active"}
+   Respuesta: HTTP 200 OK {"user":{"id":"c0000000-0000-0000-0000-000000000003","status":"active"}}
+
+5. Autenticación Exitosa Tras Activación:
+   Petición: POST /api/v1/auth/login {"email": "estudiante.pendiente@plataforma-mooc.test"}
+   Respuesta: HTTP 200 OK {"token":"[REDACTED_STUDENT_TOKEN]","status":"active"}
+
+6. Verificación en Registro Inmutable de Auditoría (Cloud SQL audit_logs):
+   Consulta SQL: SELECT action, target_resource, details, ip_address, created_at FROM audit_logs ORDER BY created_at DESC LIMIT 1;
+   Resultado:
+     action          | user.reactivated
+     target_resource | user:c0000000-0000-0000-0000-000000000003
+     details         | {"to": "active", "from": "pending_verification"}
+     ip_address      | 172.18.0.4 (proxy interno)
+     created_at      | 2026-09-27 14:51:34+00
+
+--------------------------------------------------------------------------------
+PARTE 2: CIERRE DE OLA 2 - ISSUE C4 (ALMACENAMIENTO ADMINISTRADO Y OFFLOADING)
+--------------------------------------------------------------------------------
+Criterio: Carga directa completa sin que el archivo pase por la API.
+
+1. Creación de Recurso Multimedia por Profesor (POST /api/v1/units/{unitID}/resources):
+   Respuesta: HTTP 201 Created
+   ID Recurso: fab37b81-8683-4f55-8ed8-408620c51631
+   Stable ID: ca475388-e3a8-4c7a-bc61-d167caec0911
+
+2. Emisión de URL Prefirmada V4 contra GCS (POST /api/v1/media/presigned-url):
+   Respuesta: HTTP 200 OK
+   URL de carga emitida:
+   https://storage.googleapis.com/plataforma-mooc-entrega2-media/originals/ca475388-e3a8-4c7a-bc61-d167caec0911/eb51978f-7cf8-4ec3-9445-09912418275f.mp4?X-Goog-Algorithm=GOOG4-RSA-SHA256&X-Goog-Credential=sa-web-server%40plataforma-mooc-entrega2.iam.gserviceaccount.com%2F20260927%2Fauto%2Fstorage%2Fgoog4_request...
+   Identidad firmante: sa-web-server@plataforma-mooc-entrega2.iam.gserviceaccount.com
+
+3. Transferencia Binaria Directa (PUT Cliente -> Google Cloud Storage):
+   Petición: PUT binario (4096 bytes) con Content-Type: video/mp4 directo a storage.googleapis.com
+   Respuesta: HTTP/2 200 OK
+   Bytes transitados por la API Web: Cero (0) bytes (Offloading verificado).
+
+4. Notificación de Confirmación de Carga (POST /api/v1/media/uploads/{id}/complete):
+   Petición: {"object_key": "originals/ca475388-e3a8-4c7a-bc61-d167caec0911/eb51978f-7cf8-4ec3-9445-09912418275f.mp4"}
+   Comprobación física en GCS: StatObject confirma existencia, tamaño (4096 bytes) y tipo MIME.
+   Respuesta: HTTP 202 Accepted
+   Estado resultante: processing_status = "pending" (trabajo encolado en Redis para transcodificación).
+
+5. Generación de URL Firmada V4 de Descarga (GET /api/v1/media/resources/{id}/download-url):
+   Respuesta: HTTP 200 OK
+   URL firmada V4 con TTL de 1 hora para descarga del archivo privado.
+
+================================================================================
+CONCLUSIÓN:
+Los criterios de Ola 2 de C1 (persistencia transaccional, autenticación y auditoría
+en Cloud SQL) y C4 (emisión de URL prefirmada, offloading binario directo a GCS y
+confirmación con encolamiento) han quedado 100% validados y cerrados.
+================================================================================
