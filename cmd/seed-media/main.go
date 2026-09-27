@@ -219,6 +219,8 @@ func main() {
 
 	mediaProcessor := handler.NewMediaProcessor(
 		storageProvider,
+		// Un solo bucket: la siembra corre contra el entorno local.
+		nil,
 		resourceRepo,
 		runner,
 		handler.MediaProcessorOptions{WorkDir: runDir, Ladder: ladder},

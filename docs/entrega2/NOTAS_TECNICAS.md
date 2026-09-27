@@ -10,7 +10,7 @@ salieron de errores que costaron una tarde y se habrían evitado leyéndolas.
 | | Hallazgo | Afecta a |
 | :--- | :--- | :--- |
 | 1 | La URL firmada lleva el host dentro de la firma | C4, G2, H4, H5 |
-| 1b | HLS multi-archivo no funciona detrás de URLs firmadas — *y en la nube el prefijo público no es aplicable, **#167*** | C3, C4, G3, H4, H5, I1 |
+| 1b | HLS multi-archivo no funciona detrás de URLs firmadas — *en la nube, un bucket aparte para los derivados, **#167*** | C3, C4, G3, H4, H5, I1 |
 | 2 | MinIO retiró sus imágenes públicas | cualquier `docker compose up` |
 | 3 | Las posiciones del seed estaban desfasadas en uno | G1, G2, G3 |
 | 4 | El estado `available` del enunciado es `completed` en el código | A3, I1, I3 |
@@ -127,25 +127,41 @@ wget    http://.../originals/<stable_id>/...      → 403 Forbidden
 
 En local lo aplica el servicio `minio-policy` de `docker-compose.yml`.
 
-### En la nube esa decisión no se puede aplicar tal como está escrita
+### En la nube no es un prefijo, es un bucket
 
 Esta nota decía que C3 solo tenía que replicar la política en el bucket
-administrado. **No es posible**, y G3 lo descubrió midiéndolo: `hls/` responde
+administrado. **No se puede**, y G3 lo descubrió midiéndolo: `hls/` respondía
 `403` de forma anónima, y la condición IAM que parecería resolverlo no existe
 como opción. **IAM no admite condiciones en enlaces concedidos a `allUsers` ni a
 `allAuthenticatedUsers`**, así que con acceso uniforme a nivel de bucket o es
 público el bucket entero —que es justo lo que esta decisión descarta— o no hay
-prefijo público.
+prefijo público. Y por encima de IAM, el bucket lleva
+`public_access_prevention = "enforced"`, que bloquea cualquier exposición pública
+aunque la política lo permitiera.
 
-Lo que separa «no está» de «no puedo leer» es pedir un objeto que no existe:
+Lo que separa «no está» de «no puedo leer» es pedir un objeto que no existe: un
+bucket público responde `404`, uno privado `403`.
 
 ```
-GET /hls/no-existe-a-proposito/master.m3u8   → 403   (404 si el prefijo fuera público)
+GET /hls/no-existe-a-proposito/master.m3u8   → 403   (404 si fuera público)
 GET /originals/no-existe/x.mp4               → 403   (correcto, es privado)
 ```
 
-Queda abierto en **#167** con las tres salidas reales evaluadas; la de un bucket
-aparte para los derivados es la única que no degrada la postura de seguridad.
+**Resuelto en #167 separando los derivados a su propio bucket**,
+`plataforma-mooc-entrega2-hls`, que es de lectura pública sin condiciones porque
+el bucket entero es material derivado. El de media no cambia: los originales, los
+documentos y las miniaturas conservan `public_access_prevention = "enforced"` y
+no pueden exponerse ni por error.
+
+Se descartaron las otras dos salidas. Desactivar el acceso uniforme para usar ACL
+por objeto retrocede en la postura de seguridad y GCS lo desaconseja. Servir
+`hls/` detrás del proxy funciona —las rutas relativas resuelven contra el proxy,
+sin firmar ni reescribir nada— pero mete todo el tráfico de video por la VM web,
+que es lo que el reparto de carga evita, y falsearía las mediciones de H4 y H5.
+
+El worker recibe el destino en `MEDIA_HLS_BUCKET`. **Vacío significa un solo
+bucket**, que es como sigue funcionando el entorno local: ahí el prefijo lo abre
+el servicio `minio-policy` y no hace falta nada más.
 
 ---
 

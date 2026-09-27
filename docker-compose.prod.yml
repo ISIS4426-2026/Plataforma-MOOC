@@ -104,6 +104,9 @@ services:
       - S3_BUCKET=${S3_BUCKET:-plataforma-mooc-entrega2-media}
       - GCP_PROJECT_ID=${GCP_PROJECT_ID:-plataforma-mooc-entrega2}
       - WORKER_CONCURRENCY=${WORKER_CONCURRENCY:-2}
+      # Los derivados van a un bucket propio, de lectura publica (#167). Vacio
+      # deja el comportamiento de un solo bucket, que es el de MinIO en local.
+      - MEDIA_HLS_BUCKET=${MEDIA_HLS_BUCKET:-}
       - MEDIA_WORK_DIR=${MEDIA_WORK_DIR:-/tmp/mooc-media}
       - MEDIA_MAX_ORIGINAL_MB=${MEDIA_MAX_ORIGINAL_MB:-2048}
       - MEDIA_HLS_LADDER=${MEDIA_HLS_LADDER:-}

@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/config"
+	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/domain"
 	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/observability"
 	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/postgres"
 	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/storage"
@@ -87,6 +88,25 @@ func main() {
 		log.Fatalf("Failed to initialise object storage: %v\n", err)
 	}
 
+	// Los derivados pueden vivir en otro bucket. En la nube viven aparte porque
+	// un prefijo publico dentro de un bucket privado no es representable en IAM
+	// (#167); en local no hace falta y MEDIA_HLS_BUCKET viene vacio, con lo que
+	// el procesador escribe donde mismo.
+	var derivativesProvider domain.StorageProvider
+	if cfg.HLSBucket != "" && cfg.HLSBucket != cfg.S3Bucket {
+		derivativesProvider, err = storage.New(context.Background(), storage.Config{
+			Backend:   storage.Backend(cfg.StorageBackend),
+			Bucket:    cfg.HLSBucket,
+			Endpoint:  cfg.S3Endpoint,
+			AccessKey: cfg.S3AccessKey,
+			SecretKey: cfg.S3SecretKey,
+		})
+		if err != nil {
+			log.Fatalf("Failed to initialise the derivatives bucket %q: %v\n", cfg.HLSBucket, err)
+		}
+		log.Printf("Derivatives bucket: %s\n", cfg.HLSBucket)
+	}
+
 	runner := transcode.NewRunner()
 	if err := runner.Available(); err != nil {
 		// Better to refuse to start than to accept media jobs and fail every one
@@ -105,6 +125,7 @@ func main() {
 
 	mediaProcessor := handler.NewMediaProcessor(
 		storageProvider,
+		derivativesProvider,
 		postgres.NewResourceRepository(db),
 		runner,
 		handler.MediaProcessorOptions{

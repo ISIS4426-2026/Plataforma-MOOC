@@ -180,7 +180,9 @@ func newHarness(t *testing.T) *harness {
 	tc := &fakeTranscoder{info: &transcode.MediaInfo{HasVideo: true, HasAudio: true, Width: 1920, Height: 1080, DurationSeconds: 12}}
 
 	return &harness{
-		proc:      NewMediaProcessor(store, resources, tc, MediaProcessorOptions{WorkDir: t.TempDir()}, discardLogger()),
+		// nil como destino de derivados: el mismo almacen para todo, que es el
+		// caso local. El bucket aparte tiene su propia prueba.
+		proc:      NewMediaProcessor(store, nil, resources, tc, MediaProcessorOptions{WorkDir: t.TempDir()}, discardLogger()),
 		store:     store,
 		resources: resources,
 		tc:        tc,
@@ -427,4 +429,44 @@ func TestHLSContentType(t *testing.T) {
 
 func discardLogger() *slog.Logger {
 	return slog.New(slog.NewTextHandler(io.Discard, nil))
+}
+
+// Con un almacén de derivados aparte, las renditions salen ahí y el de los
+// originales no se toca. Es lo que sostiene la separación de #167: el bucket
+// público recibe lo que el worker genera y nada más, y el original que subió el
+// autor se queda donde estaba, privado.
+func TestMediaProcessorEscribeLosDerivadosEnSuPropioAlmacen(t *testing.T) {
+	originals := newFakeStore()
+	originals.objects[originalKey] = bytes.Repeat([]byte("v"), 4096)
+	derivados := newFakeStore()
+
+	resources := &fakeResources{resource: &domain.Resource{
+		ID: resourceID, StableID: stableID, Type: domain.ResourceTypeVideo,
+		ObjectKey: originalKey, ProcessingStatus: string(domain.ResourceProcessingPending),
+	}}
+	tc := &fakeTranscoder{info: &transcode.MediaInfo{
+		HasVideo: true, HasAudio: true, Width: 1920, Height: 1080, DurationSeconds: 12,
+	}}
+
+	proc := NewMediaProcessor(originals, derivados, resources, tc,
+		MediaProcessorOptions{WorkDir: t.TempDir()}, discardLogger())
+
+	if err := proc.Handle(context.Background(), mediaTask(t)); err != nil {
+		t.Fatalf("Handle: %v", err)
+	}
+
+	if len(derivados.put) == 0 {
+		t.Fatal("el almacén de derivados no recibió nada")
+	}
+	for key := range derivados.put {
+		if !strings.HasPrefix(key, "hls/"+stableID+"/") {
+			t.Errorf("derivado fuera del prefijo esperado: %s", key)
+		}
+	}
+
+	// El almacén de los originales solo se leyó. Una escritura ahí significaría
+	// que el worker sigue pudiendo tocar el bucket privado.
+	if len(originals.put) != 0 {
+		t.Errorf("el worker escribió en el almacén de originales: %v", originals.put)
+	}
 }

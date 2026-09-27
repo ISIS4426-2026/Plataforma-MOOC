@@ -8,12 +8,22 @@ import (
 )
 
 type Config struct {
-	Environment      string
-	Port             string
-	DatabaseURL      string
-	RedisURL         string
-	S3Endpoint       string
-	S3Bucket         string
+	Environment string
+	Port        string
+	DatabaseURL string
+	RedisURL    string
+	S3Endpoint  string
+	S3Bucket    string
+
+	// HLSBucket es el bucket de los derivados, cuando viven aparte del resto.
+	//
+	// Vacio significa "el mismo que S3Bucket", que es como funciona el entorno
+	// local: MinIO abre el prefijo hls/ con una politica y basta. En la nube no
+	// se puede hacer eso --IAM no admite condiciones en enlaces a allUsers, asi
+	// que un prefijo publico dentro de un bucket privado no existe (#167)--, de
+	// modo que los derivados van a un bucket propio que si es de lectura
+	// publica, y los originales se quedan donde estan.
+	HLSBucket        string
 	GCPProjectID     string
 	GCSSignerAccount string
 
@@ -119,6 +129,7 @@ func Load() *Config {
 		RedisURL:         getEnv("REDIS_URL", "localhost:6379"),
 		S3Endpoint:       getEnv("STORAGE_ENDPOINT", getEnv("S3_ENDPOINT", "http://localhost:9000")),
 		S3Bucket:         getEnv("STORAGE_BUCKET", getEnv("S3_BUCKET", "mooc-storage")),
+		HLSBucket:        getEnv("MEDIA_HLS_BUCKET", ""),
 		GCPProjectID:     getEnv("GCP_PROJECT_ID", getEnv("GOOGLE_CLOUD_PROJECT", "plataforma-mooc-entrega2")),
 		GCSSignerAccount: getEnv("GCS_SIGNER_ACCOUNT", getEnv("STORAGE_SIGNER_ACCOUNT", "")),
 

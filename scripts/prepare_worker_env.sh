@@ -47,6 +47,12 @@ set +a
 GCP_PROJECT_ID="${GCP_PROJECT_ID:-plataforma-mooc-entrega2}"
 S3_BUCKET="${S3_BUCKET:-plataforma-mooc-entrega2-media}"
 
+# El bucket de los derivados, que es el unico de lectura publica (#167). Va
+# aparte porque un prefijo publico dentro de un bucket privado no se puede
+# expresar en IAM, y separarlos deja los originales con
+# public_access_prevention = "enforced".
+MEDIA_HLS_BUCKET="${MEDIA_HLS_BUCKET:-plataforma-mooc-entrega2-hls}"
+
 # One worker per vCPU of the e2-highcpu-2 profile. Raising it past the core
 # count does not transcode faster, it just risks the OOM killer on 2 GiB.
 WORKER_CONCURRENCY="${WORKER_CONCURRENCY:-2}"
@@ -95,6 +101,7 @@ DATABASE_URL='postgres://moocuser:${ENCODED_DB_PASSWORD}@${DB_PRIVATE_IP}:5432/m
 REDIS_URL='redis:6379'
 STORAGE_BACKEND='gcs'
 S3_BUCKET='${S3_BUCKET}'
+MEDIA_HLS_BUCKET='${MEDIA_HLS_BUCKET}'
 GCP_PROJECT_ID='${GCP_PROJECT_ID}'
 WORKER_CONCURRENCY='${WORKER_CONCURRENCY}'
 MEDIA_WORK_DIR='${MEDIA_WORK_DIR}'

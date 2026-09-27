@@ -52,7 +52,8 @@ const (
 func main() {
 	var (
 		base      = flag.String("base", "", "origen HTTPS del despliegue (por omisión, el de docs/postman/mooc_cloud.postman_environment.json)")
-		bucket    = flag.String("bucket", "plataforma-mooc-entrega2-media", "bucket de Cloud Storage del despliegue")
+		bucket    = flag.String("bucket", "plataforma-mooc-entrega2-media", "bucket privado de originales, documentos y miniaturas")
+		hlsBucket = flag.String("bucket-hls", "plataforma-mooc-entrega2-hls", "bucket de derivados HLS, de lectura pública (#167)")
 		videoPath = flag.String("video", "docs/media/clase.mp4", "mp4 real que se sube en el tramo de multimedia")
 		outDir    = flag.String("salida", "docs/entrega2/evidencias/G3", "directorio donde se escribe la evidencia")
 		wait      = flag.Duration("espera", 4*time.Minute, "cuánto esperar a que el worker termine la transcodificación")
@@ -109,7 +110,7 @@ func main() {
 	fmt.Fprintf(r.log, "Bucket  : %s\n", *bucket)
 	fmt.Fprintf(r.log, "Inicio  : %s\n", r.started.Format(time.RFC3339))
 
-	journey(r, *bucket, video, *wait)
+	journey(r, *bucket, *hlsBucket, video, *wait)
 
 	tablePath := filepath.Join(root, filepath.FromSlash(*outDir), "resultados.md")
 	if err := r.writeTable(tablePath, origin); err != nil {
@@ -130,8 +131,10 @@ func main() {
 
 // journey walks the six flows in the order a real course lives through them, so
 // each one inherits the state the previous one left behind.
-func journey(r *run, bucket string, video []byte, wait time.Duration) {
+func journey(r *run, bucket, hlsBucket string, video []byte, wait time.Duration) {
 	bucketOrigin := "https://storage.googleapis.com/" + bucket
+	// Los derivados viven en su propio bucket, que es el unico publico (#167).
+	hlsOrigin := "https://storage.googleapis.com/" + hlsBucket
 
 	// ---- entorno -----------------------------------------------------------
 
@@ -456,17 +459,18 @@ func journey(r *run, bucket string, video []byte, wait time.Duration) {
 		final == "completed",
 		fmt.Sprintf("el recurso no alcanzó \"completed\" en %s; la tarea no llegó al worker o falló", wait))
 
-	// Whether hls/ is readable without a signature has to be asked separately from
-	// whether the worker wrote anything, because a private bucket answers 403 to a
-	// missing object too. A deliberately absent key discriminates: 404 means the
-	// prefix is public and the object is not there, 403 means the prefix is not
-	// public and the manifest could never be played however well the worker ran.
-	res = r.api.absolute("GET", bucketOrigin+"/hls/no-existe-a-proposito/master.m3u8", nil, nil)
-	r.check("El prefijo hls/ admite lectura sin firma", res, 404,
-		"un objeto inexistente responde 404 (prefijo público) y no 403 (prefijo privado)",
+	// Whether the derivatives are readable without a signature has to be asked
+	// separately from whether the worker wrote anything, because a private bucket
+	// answers 403 to a missing object too. A deliberately absent key
+	// discriminates: 404 means the bucket is public and the object is not there,
+	// 403 means it is not public and the manifest could never be played however
+	// well the worker ran.
+	res = r.api.absolute("GET", hlsOrigin+"/hls/no-existe-a-proposito/master.m3u8", nil, nil)
+	r.check("El bucket de derivados admite lectura sin firma", res, 404,
+		"un objeto inexistente responde 404 (bucket público) y no 403 (bucket privado)",
 		res.err == nil)
 
-	master := bucketOrigin + "/" + storage.HLSMasterKey(videoRes.StableID)
+	master := hlsOrigin + "/" + storage.HLSMasterKey(videoRes.StableID)
 	res = r.api.absolute("GET", master, nil, nil)
 	body := string(res.body)
 	r.check("Un reproductor consume el manifiesto HLS sin firma", res, 200,

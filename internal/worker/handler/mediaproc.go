@@ -65,16 +65,31 @@ type MediaProcessorOptions struct {
 // it, upload the results, and mark it completed. Any step can fail, and the
 // resource is left in a state that says which.
 type MediaProcessor struct {
-	store      ObjectStore
-	resources  ResourceStore
-	transcoder Transcoder
-	opts       MediaProcessorOptions
-	logger     *slog.Logger
+	store ObjectStore
+	// derivatives is where the renditions land. It is usually the same store as
+	// the originals, and in the cloud it is not: IAM has no way to make one
+	// prefix of a private bucket publicly readable, because conditions are not
+	// allowed on bindings to allUsers. So the derivatives -- and only the
+	// derivatives, which is what a player must fetch without a signature -- live
+	// in a bucket of their own, while the originals the author uploaded stay
+	// private where they are. See #167 and note 1b of NOTAS_TECNICAS.md.
+	derivatives ObjectStore
+	resources   ResourceStore
+	transcoder  Transcoder
+	opts        MediaProcessorOptions
+	logger      *slog.Logger
 }
 
-func NewMediaProcessor(store ObjectStore, resources ResourceStore, transcoder Transcoder, opts MediaProcessorOptions, logger *slog.Logger) *MediaProcessor {
+// NewMediaProcessor wires the pipeline. derivatives may be nil, and then the
+// renditions are written to the same store as the originals -- which is the
+// local setup, where MinIO opens the hls/ prefix with a bucket policy and one
+// bucket is enough.
+func NewMediaProcessor(store, derivatives ObjectStore, resources ResourceStore, transcoder Transcoder, opts MediaProcessorOptions, logger *slog.Logger) *MediaProcessor {
 	if logger == nil {
 		logger = slog.Default()
+	}
+	if derivatives == nil {
+		derivatives = store
 	}
 	if opts.MaxOriginalBytes <= 0 {
 		opts.MaxOriginalBytes = 2 << 30 // 2 GiB
@@ -82,7 +97,10 @@ func NewMediaProcessor(store ObjectStore, resources ResourceStore, transcoder Tr
 	if len(opts.Ladder) == 0 {
 		opts.Ladder = transcode.DefaultLadder
 	}
-	return &MediaProcessor{store: store, resources: resources, transcoder: transcoder, opts: opts, logger: logger}
+	return &MediaProcessor{
+		store: store, derivatives: derivatives, resources: resources,
+		transcoder: transcoder, opts: opts, logger: logger,
+	}
 }
 
 // Handle is the asynq entry point for task.TypeMediaProcess.
@@ -289,7 +307,7 @@ func (p *MediaProcessor) uploadDerivatives(ctx context.Context, outDir, prefix s
 		}
 
 		key := prefix + "/" + e.Name()
-		err = p.store.PutObject(ctx, key, hlsContentType(e.Name()), f, stat.Size())
+		err = p.derivatives.PutObject(ctx, key, hlsContentType(e.Name()), f, stat.Size())
 		_ = f.Close()
 		if err != nil {
 			return count, fmt.Errorf("upload %s: %w", key, err)
