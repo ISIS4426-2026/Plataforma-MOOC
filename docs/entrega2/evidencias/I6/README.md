@@ -14,7 +14,7 @@ permite reconstruir el entorno y dejando registrado qué sigue costando.
 | :--- | :---: |
 | Evidencias cargadas antes de tocar nada | ✅ §1 |
 | Respaldo final conservado | ✅ §2 |
-| Recreación ensayada, con tiempo registrado | ✅ §3 — ensayada en C2, no se repite |
+| Recreación ensayada, con tiempo registrado | ✅ §3 — **verificada de nuevo sobre el entorno vacío: 61/61** |
 | Instancia de base de datos eliminada | ⏳ §5 |
 | Revisión de lo que sigue costando | ✅ §4 |
 | Qué se conserva, su costo y cómo recrear | ✅ §4 y §6 |
@@ -65,23 +65,63 @@ el repositorio bajo el tag:
 > Requiere conceder escritura en el bucket a la cuenta de servicio de la
 > instancia. El contenido es el mismo que reproducen las semillas.
 
-## 3. La recreación, ya ensayada en C2
+## 3. La recreación, verificada de extremo a extremo
 
-No se repite el ensayo. **C2 (#119) lo cerró con evidencia** y repetirlo tendría
-un costo concreto: Google **retiene el nombre de una instancia borrada durante
-siete días**, así que cada ciclo de destrucción y recreación consume una
-generación del nombre. Si el equipo docente pide sustentación síncrona dentro de
-esa ventana, cada ensayo extra obliga a subir `db_instance_generation` otra vez.
+C2 (#119) ya había ensayado la restauración, y aquí se repitió **sobre el entorno
+realmente vacío**, que es el escenario que importa: la instancia eliminada, las
+VMs apagadas y nada que reaprovechar.
 
-| Lo que C2 demostró | |
+| | Resultado |
 | :--- | :--- |
-| Restauración sobre una instancia nueva | Contenido idéntico fila por fila |
-| Procedimiento ejecutable por cualquier integrante | `scripts/recrear-entorno.sh`, corrido contra la nube |
-| Tiempo desde el código | **210 s** |
-| Tiempo desde una copia | **528 s** |
+| Instancia recreada con Terraform | ✅ `mooc-db-1`, IP privada **`10.171.240.10`** |
+| Esquema aplicado | ✅ 7 migraciones |
+| Datos sintéticos sembrados | ✅ |
+| VMs encendidas y servicios arriba | ✅ |
+| **Recorrido E2E completo** | ✅ **61 de 61, 0 fallos, 18 s** |
 
-Detalle en [`../C2/README.md`](../C2/README.md) y
-[`../C2/ensayo_de_restauracion.txt`](../C2/ensayo_de_restauracion.txt).
+El ensayo previo de C2 —contenido idéntico fila por fila, **210 s** desde el
+código y **528 s** desde una copia— está en [`../C2/README.md`](../C2/README.md).
+
+### Tres cosas que esta recreación desmintió o dejó al descubierto
+
+**1. El nombre de la instancia se pudo reutilizar de inmediato.**
+[`infra/terraform/README.md`](../../../../infra/terraform/README.md) advierte que
+Google retiene el nombre de una instancia borrada **durante siete días** y que por
+eso existe `db_instance_generation`. No ocurrió: `mooc-db-1` se eliminó y, menos
+de una hora después, un `apply` sin esa variable la recreó con el mismo nombre y
+sin error. La variable sigue siendo la salida correcta **si** algún día choca,
+pero la advertencia no debe leerse como una certeza.
+
+**2. `scripts/recrear-entorno.sh` no completó desde Windows.** Falla al preparar
+su VM temporal, en `gcloud compute ssh`, con **segmentation fault** de
+`plink.exe` — el cliente SSH que gcloud usa en Windows, no la VM ni la base. El
+script borró su VM temporal al abortar, así que no dejó recursos huérfanos.
+
+> **La vía alterna que sí funcionó** —y que conviene preferir, porque no crea
+> nada— es usar una VM que ya está dentro de la VPC, que es el único requisito
+> real: la base no tiene IP pública. Está en los **pasos 5 y 6 de §6**.
+
+**3. La IP privada de la base escrita a mano rompió el arranque dos veces.**
+Cada recreación de la instancia da una dirección nueva del rango de peering
+—`10.171.240.3` → `.8` → `.10` en esta sesión—, y los dos `/etc/mooc/*.conf` la
+llevan copiada. El síntoma no señala a la causa: `/api/v1/health` responde `200`
+porque el *ping* a una base equivocada o vacía funciona igual, y lo que falla es
+cualquier consulta real.
+
+Es el mismo patrón de la nota 19 con `QUEUE_PRIVATE_IP`. **Lo primero que habría
+que arreglar si hay una entrega siguiente:** que `prepare_web_env.sh` resuelva la
+dirección con `terraform output` en el arranque, como ya resuelve los secretos con
+Secret Manager, en lugar de leerla de un archivo que alguien edita a mano.
+
+### Qué comprobar siempre tras recrear
+
+| Comprobación | Qué debe dar |
+| :--- | :--- |
+| `terraform output -raw db_private_ip` | La IP **nueva**; nunca reutilizar la anterior |
+| `grep -c` de la IP nueva en `~/mooc/.env`, en cada VM | `1` — confirma que `prepare_env.sh` regeneró el archivo |
+| `GET /api/v1/health` | `200` con `database: up` — **necesario pero no suficiente** |
+| `GET /api/v1/courses` | `200` con datos — esto sí prueba que el esquema existe |
+| `make test-e2e-cloud` | **61 de 61** |
 
 ## 4. Costos: antes y después
 
@@ -119,6 +159,23 @@ direcciones IP, explicada abajo.
 | Artifact Registry, Secret Manager | marginal | Las imágenes del tag y los secretos que la recreación necesita |
 | **Total residual** | **≈ 20,67** | |
 
+### Cuánto cuesta encender el entorno para una sustentación
+
+**No hay tarifa por crear ni por eliminar recursos**: se paga por el tiempo que
+existen. Derivado de la tabla mensual de arriba:
+
+| | USD/hora |
+| :--- | ---: |
+| Instancia de Cloud SQL | 0,0675 |
+| Almacenamiento de la base | 0,0023 |
+| Cómputo de las dos VMs | 0,0989 |
+| **Todo encendido** | **0,169** · 4,05 USD/día |
+| Apagado: discos, IPv4 y buckets | 0,028 · 0,68 USD/día |
+
+Un ensayo de recreación de dos horas cuesta **unos 0,34 USD**. Recrear es barato;
+lo caro es olvidarse el entorno encendido: cada día completo se come el 8 % del
+crédito activo de 50 USD.
+
 ### Por qué apagar las VMs y no solo borrar la base
 
 El enunciado solo exige eliminar la instancia de base de datos, pero advierte en
@@ -141,22 +198,68 @@ evaluado.
 
 ## 5. Procedimiento de eliminación
 
-La instancia tiene protección contra borrado, así que **`terraform destroy` a
-secas falla** con `cannot destroy instance because deletion_protection is set to
-true`. Hay que quitarla en el código primero, y el `apply` va desde `main`.
+### Desde dónde se ejecuta
+
+Lo que más se presta a confusión al recrear bajo presión es **en qué máquina va
+cada comando**. Los archivos `/etc/mooc/*.conf` viven dentro de las VMs, no en el
+portátil, y Terraform solo se ejecuta desde fuera.
+
+| Comando | Dónde |
+| :--- | :--- |
+| `terraform apply` · `terraform output` | Tu máquina, en `infra/terraform/`, desde `main` |
+| `sed` sobre `/etc/mooc/*.conf` | **Dentro de cada VM**, por SSH con túnel IAP |
+| `systemctl restart` | **Dentro de cada VM** |
+| `gcloud compute instances start/stop` | Tu máquina — no depende de la rama ni del estado |
+| `migrate.sh` y la semilla | **Dentro de una VM de la VPC** — la base no tiene IP pública |
+| `make test-e2e-cloud` | Tu máquina, en la raíz del repositorio |
+
+
+| | |
+| :--- | :--- |
+| **Rama** | **`main`**, después de hacer merge y con `git pull` hecho |
+| **Directorio** | `infra/terraform/` para los comandos de Terraform |
+| **Máquina** | La tuya, con `gcloud` autenticado — **no** por SSH dentro de una VM |
+
+**El `apply` va desde `main`, nunca desde una rama de trabajo.** Es la regla 6 de
+[`infra/terraform/README.md`](../../../../infra/terraform/README.md) y la que más
+daño hace al romperse: el estado de Terraform es compartido pero el código no, así
+que aplicar desde una rama que no tiene el archivo de otra persona hace que
+Terraform **proponga destruir sus recursos** — y el `apply` no falla al hacerlo,
+funciona perfectamente.
+
+Aquí el riesgo es concreto: si `deletion_protection = false` está mergeado en
+`main` pero ejecutas desde una rama anterior, el código dice `true`, la protección
+no se quita y el `destroy` falla. Y al revés, una rama desactualizada puede
+proponer borrar las VMs o los buckets.
 
 ```bash
-# 1. En infra/terraform/database.tf: deletion_protection = false
-#    (commit y merge a main antes de aplicar)
+git checkout main
+git pull --ff-only
+grep -n "deletion_protection" infra/terraform/database.tf   # debe decir false
+```
 
+### Los comandos
+
+La instancia tenía protección contra borrado, así que **`terraform destroy` a
+secas falla** con `cannot destroy instance because deletion_protection is set to
+true`. Por eso el `apply` va primero: no borra nada, solo aplica el
+`deletion_protection = false` que ya está en `main`.
+
+```bash
 cd infra/terraform
+
 export TF_VAR_db_password="$(gcloud secrets versions access latest \
   --secret=db-password --project=plataforma-mooc-entrega2 | tr -d '\r\n')"
 
-terraform apply                                    # quita la protección, no borra nada
-terraform destroy -target=google_sql_database_instance.main   # ahora sí
+# 1. Aplica el cambio ya mergeado. No borra nada.
+terraform apply
 
-# 2. Apagar las dos VMs, conservando sus discos y sus IPs
+# 2. Elimina UNICAMENTE la instancia de base de datos.
+terraform destroy -target=google_sql_database_instance.main
+
+# 3. Apaga las dos VMs conservando sus discos y sus IPs.
+#    Esto es gcloud, no Terraform: no depende de la rama ni del estado.
+cd ../..
 gcloud compute instances stop mooc-web-server mooc-worker-server \
   --zone=us-east1-b --project=plataforma-mooc-entrega2
 ```
@@ -165,50 +268,154 @@ gcloud compute instances stop mooc-web-server mooc-worker-server \
 > también las VMs, los buckets y la red. Lo que este cierre elimina es **solo la
 > instancia de base de datos**.
 
-## 6. Cómo recrear el entorno para una sustentación
+## 6. Cómo recrear el entorno, paso a paso
+
+**Este es el orden que se ejecutó y verificó**, no un plan teórico. Cada paso dice
+en qué máquina va, que es lo que más se presta a confusión.
+
+### Paso 1 — Recrear la base · *tu máquina, en `main`*
 
 ```bash
+git checkout main && git pull --ff-only
 cd infra/terraform
 export TF_VAR_db_password="$(gcloud secrets versions access latest \
   --secret=db-password --project=plataforma-mooc-entrega2 | tr -d '\r\n')"
 
-# El nombre anterior queda reservado siete días: hay que subir la generación.
-terraform apply -var='db_instance_generation=2'
-
-gcloud compute instances start mooc-web-server mooc-worker-server \
-  --zone=us-east1-b --project=plataforma-mooc-entrega2
+terraform apply
 ```
 
-Después, el esquema y los datos con
-[`scripts/recrear-entorno.sh`](../../../../scripts/recrear-entorno.sh), que
-ejecuta las tres fases —aprovisionar, migrar y sembrar— y que C2 midió en
-**210 s** desde el código.
+El plan debe decir **3 to add** —instancia, base y usuario— y nada que destruir.
 
-**Dos cosas cambian y hay que comprobarlas al encender:**
+> Si el `apply` falla por conflicto de nombre, el nombre anterior sigue
+> reservado: repite con `-var='db_instance_generation=2'`. En esta recreación
+> **no hizo falta** (§3).
 
-1. **Las IPs privadas de las VMs no son fijas.** La subred las asigna por DHCP y
-   una máquina recreada recibe otra. `QUEUE_PRIVATE_IP` en `/etc/mooc/web.conf`
-   y `DB_PRIVATE_IP` en ambos archivos se leen con `terraform output`, nunca se
-   copian. Al arrancar, `grep '^REDIS_URL=' ~/mooc/.env` debe apuntar al Worker
-   Server.
-2. **La base nace vacía.** Terraform crea la instancia y el usuario, no el
-   esquema.
-
-La comprobación final, de punta a punta:
+### Paso 2 — Anotar la IP privada nueva · *tu máquina*
 
 ```bash
-make test-e2e-cloud     # 61 pasos; el recurso de video debe llegar a "completed"
+terraform output -raw db_private_ip
 ```
 
-Procedimiento detallado en
+**Nunca reutilices la anterior.** Cada instancia recibe una dirección distinta del
+rango de peering; en esta sesión fueron `10.171.240.3`, `.8` y `.10`.
+
+### Paso 3 — Encender las VMs · *tu máquina*
+
+```bash
+gcloud compute instances start mooc-web-server mooc-worker-server \
+  --zone=us-east1-b --project=plataforma-mooc-entrega2
+
+gcloud compute instances list --project=plataforma-mooc-entrega2
+```
+
+Comprueba de paso las IPs privadas de las VMs: las asigna DHCP y podrían haber
+cambiado, lo que afectaría a `QUEUE_PRIVATE_IP`.
+
+### Paso 4 — Apuntar las VMs a la base nueva · *dentro de cada VM*
+
+```
+! gcloud compute ssh mooc-web-server --zone=us-east1-b --tunnel-through-iap --project=plataforma-mooc-entrega2
+```
+
+```bash
+IP_BASE=10.171.240.10      # la del paso 2
+sudo sed -i "s/^DB_PRIVATE_IP=.*/DB_PRIVATE_IP=${IP_BASE}/" /etc/mooc/web.conf
+sudo grep -E '^DB_PRIVATE_IP=|^QUEUE_PRIVATE_IP=' /etc/mooc/web.conf
+```
+
+Lo mismo en `mooc-worker-server` sobre `/etc/mooc/worker.conf`.
+
+### Paso 5 — Copiar esquema y semilla a la VPC · *tu máquina*
+
+La base no tiene IP pública, así que hay que migrar desde dentro. Se usa la VM
+web, que ya está ahí: **no hace falta crear nada**.
+
+```bash
+# desde la raíz del repositorio
+gcloud compute scp --recurse migrations scripts/migrate.sh scripts/seeds \
+  mooc-web-server:/tmp/ --zone=us-east1-b --tunnel-through-iap \
+  --project=plataforma-mooc-entrega2
+```
+
+> `scripts/recrear-entorno.sh` automatiza esto creando una VM temporal, pero
+> **falla desde Windows** (§3). Esta vía es la que funcionó.
+
+### Paso 6 — Aplicar esquema y datos · *dentro de la VM web*
+
+`migrate.sh` deriva la ruta de las migraciones desde su propia ubicación, así que
+hay que respetar la estructura `scripts/` junto a `migrations/`:
+
+```bash
+mkdir -p ~/mig/scripts && cp -r /tmp/migrations /tmp/seeds ~/mig/
+cp /tmp/migrate.sh ~/mig/scripts/
+command -v psql >/dev/null || sudo apt-get install -y -qq postgresql-client
+
+cd ~/mig
+export PGPASSWORD=$(gcloud secrets versions access latest \
+  --secret=db-password --project=plataforma-mooc-entrega2 | tr -d '\r\n')
+ENC=$(python3 -c "import urllib.parse,sys;print(urllib.parse.quote(sys.argv[1],safe=''))" "$PGPASSWORD")
+IP_BASE=10.171.240.10      # la del paso 2
+export DATABASE_URL="postgres://moocuser:${ENC}@${IP_BASE}:5432/moocdb?sslmode=require"
+
+bash ./scripts/migrate.sh
+psql -h "${IP_BASE}" -U moocuser -d moocdb -v ON_ERROR_STOP=1 -f seeds/synthetic_data.sql
+```
+
+Deben aplicarse **7 migraciones** y la semilla terminar sin error.
+
+### Paso 7 — Levantar la aplicación · *dentro de cada VM*
+
+```bash
+sudo systemctl restart mooc-web.service          # y mooc-worker.service en la otra
+sudo grep -c 10.171.240.10 /home/dfortizr1/mooc/.env    # la del paso 2; debe dar 1
+sudo docker ps --format 'table {{.Names}}	{{.Status}}'
+```
+
+El `grep -c` en **1** es lo que confirma que `prepare_env.sh` regeneró el `.env`
+leyendo el `.conf` del paso 4. Si da `0`, el `sed` no se aplicó antes del
+reinicio.
+
+### Paso 8 — Verificar · *tu máquina*
+
+```bash
+curl -s https://34.24.52.111.sslip.io/api/v1/health     # 200, database: up
+curl -s https://34.24.52.111.sslip.io/api/v1/courses    # 200 CON datos
+make test-e2e-cloud                                     # 61 de 61
+```
+
+**`health` no basta.** Responde `200` contra una base vacía, porque solo hace
+*ping*. Lo que prueba que el esquema existe es que el catálogo devuelva cursos.
+
+---
+
+Procedimiento complementario en
 [`../../OPERACION_Y_CAPACIDAD.md`](../../OPERACION_Y_CAPACIDAD.md) y en
 [`ADMINISTRACION.md`](../../../../infra/terraform/ADMINISTRACION.md).
 
-## 7. Registro de la ejecución
+## 7. Restaurar la protección contra borrado
+
+`deletion_protection` está hoy en **`false`** en `database.tf`, porque sin eso
+`terraform destroy` no puede eliminar la instancia. Ese estado **no debe quedarse
+así**: mientras lo esté, cualquier `destroy` —incluido uno accidental sin
+`-target`— se lleva la base sin resistencia.
+
+**El orden importa.** Si queda pendiente una eliminación definitiva, se hace
+primero y se restaura la protección después, en el commit de cierre:
+
+```
+eliminar la instancia → deletion_protection = true → commit → merge a main
+```
+
+Así se ahorra un `apply` extra y, sobre todo, **el repositorio queda declarando la
+postura segura** para quien recree el entorno más adelante desde este código.
+
+## 8. Registro de la ejecución
 
 | | |
 | :--- | :--- |
 | Fecha de eliminación | *(pendiente)* |
+| Recreación verificada | 2026-09-28 · `mooc-db-1` en `10.171.240.10` · E2E 61/61 en 18 s |
+| `deletion_protection` restaurado a `true` | *(pendiente)* |
 | Generación de la instancia eliminada | `mooc-db-1` |
 | Copias existentes al eliminar | 3 — una automática y dos bajo demanda, borradas con la instancia |
 | VMs apagadas | *(pendiente)* |
