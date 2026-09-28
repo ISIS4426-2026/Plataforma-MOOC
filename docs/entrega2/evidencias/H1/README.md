@@ -7,7 +7,7 @@
 | CPU/memoria/red/disco de ambas VMs, mediante agente | ✅ Instalado, activo y reportando datos reales en Cloud Monitoring — ver abajo |
 | Conexiones y carga de la base administrada | ✅ Cloud SQL expone estas métricas de forma nativa, sin agente — ver "Base de datos administrada" |
 | Profundidad, antigüedad y tasa de procesamiento de la cola | ✅ [`internal/worker/queue_metrics.go`](../../../../internal/worker/queue_metrics.go) — nuevo, no existía antes |
-| Apuntar al entorno cloud las métricas Prometheus de la Entrega 1 | ⏳ Diseñado, no aplicado — requiere reiniciar las VMs (ver "Lo que queda fuera") |
+| Apuntar al entorno cloud las métricas Prometheus de la Entrega 1 | ⚠️ Worker: ✅ reportando (`up=1`). API: 🛑 configurado pero no reporta (`up=0`) — falta un redeploy, ver "Worker sí, API todavía no" |
 | Elegir la herramienta de carga, registrar nombre y versión, justificarla | ✅ Apache JMeter (imagen `justb4/jmeter:latest`, JMeter 5.6.3) |
 | Desplegar el generador fuera de las dos VMs | ✅ Corre en la máquina de Tania, fuera de la VPC — ver "Máquina del generador" |
 | Verificar que el generador no limita los resultados | ⚠️ Parcial — ver "Máquina del generador" |
@@ -173,16 +173,10 @@ instancia 2554794830132975210 (mooc-web-server)    | idle: 97.27%  user: 1.61%  
 instancia 6977342437443558222 (mooc-worker-server) | idle: 97.95%  ...
 ```
 
-## Lo que queda fuera de esta sesión
+## Conectar las métricas Prometheus de la app (issue #21) a Cloud Monitoring
 
-**Conectar las métricas Prometheus de la aplicación (issue #21) a Cloud
-Monitoring.** El diseño ya está resuelto: el Ops Agent soporta un receptor
-`prometheus` que puede apuntar a `localhost:8080/api/v1/metrics` (API) y
-`localhost:9090/metrics` (worker) y reenviarlas junto con las métricas de
-CPU/memoria. **No se aplicó** porque el único camino disponible —escribir
-ese receptor en `/etc/google-cloud-ops-agent/config.yaml`— exige tocar la
-VM, y el camino obvio (`metadata_startup_script` vía Terraform) resultó ser
-destructivo:
+**No hizo falta reiniciar ninguna VM**, al final. La vía que se descartó
+primero (`metadata_startup_script` vía Terraform) sí era destructiva:
 
 ```
 $ terraform plan
@@ -195,15 +189,89 @@ Cambiar `metadata_startup_script` en un `google_compute_instance` ya
 desplegado fuerza su reemplazo completo en este proveedor de Terraform —
 habría borrado los certificados HTTPS, el estado de Docker y tumbado la
 plataforma para reconstruirla desde cero. El plan se descartó sin
-aplicarse; `infra/terraform/compute.tf` no cambió.
+aplicarse.
 
-La vía correcta —actualizar la metadata en caliente con `gcloud compute
-instances add-metadata` y reiniciar la VM (`gcloud compute instances
-reset`) para que el script se vuelva a ejecutar— es factible y ya está
-probada como segura por D3 (`supervivencia_reinicio.txt`: el stack completo
-vuelve solo tras un reinicio), pero implica un corte breve del servicio.
-Queda para una sesión donde el equipo decida el momento, no algo para
-aplicar sin avisar.
+**La vía que sí funcionó:** un `OSPolicyAssignment` de OS Config (el mismo
+mecanismo que instaló el propio Ops Agent) con un recurso de tipo `file`,
+que escribe `/etc/google-cloud-ops-agent/config.yaml` directamente —sin
+tocar `metadata_startup_script`, sin SSH, sin reiniciar la VM—:
+
+```bash
+gcloud compute os-config os-policy-assignments create app-metrics-web \
+  --project=plataforma-mooc-entrega2 --location=us-east1-b \
+  --file=ops-agent-config-web.yaml   # receptor prometheus -> localhost:8080/api/v1/metrics
+
+gcloud compute os-config os-policy-assignments create app-metrics-worker \
+  --project=plataforma-mooc-entrega2 --location=us-east1-b \
+  --file=ops-agent-config-worker.yaml  # receptor prometheus -> localhost:9090/metrics
+```
+
+Las dos máquinas necesitaban configuraciones distintas (puerto y ruta
+diferentes), así que primero se les agregó una etiqueta propia
+(`componente: web` / `componente: worker`, `gcloud compute instances
+add-labels`, aditivo) para poder dirigir cada política a la VM correcta.
+Confirmado con `os-policy-assignment-reports`: **1/1 policies compliant**
+en las dos.
+
+Escribir el archivo no reinicia el servicio que lo lee. Para eso sí hacía
+falta una sesión en la VM — y ahí apareció el segundo hallazgo real de esta
+sesión: **a Tania le faltaba el permiso `iap.tunnelInstances.accessViaIAP`**,
+así que cualquier intento de `gcloud compute ssh --tunnel-through-iap` fallaba
+con `Remote side unexpectedly closed network connection`, sin importar
+cuántas veces se reintentara. `--troubleshoot` lo diagnosticó en un
+párrafo. Con `resourcemanager.projectIamAdmin` (que Tania ya tenía), se
+concedió el rol a sí misma:
+
+```bash
+gcloud projects add-iam-policy-binding plataforma-mooc-entrega2 \
+  --member="user:tmicheldiaz@gmail.com" --role="roles/iap.tunnelResourceAccessor"
+```
+
+Con el permiso puesto, conectó por SSH y corrió en las dos VMs:
+
+```bash
+sudo systemctl restart google-cloud-ops-agent
+```
+
+Reinicia solo el agente de monitoreo, no la aplicación — cero impacto en
+lo que sirve la plataforma.
+
+### Worker sí, API todavía no
+
+Verificado contra la métrica `up` que el propio receptor Prometheus del
+Ops Agent reporta por cada objetivo (1 = scrape exitoso, 0 = fallido):
+
+| VM | Objetivo | `up` |
+| :--- | :--- | :---: |
+| `mooc-worker-server` | `localhost:9090/metrics` | **1** ✅ |
+| `mooc-web-server` | `localhost:8080/api/v1/metrics` | **0** 🛑 |
+
+El worker publica su puerto de métricas al host en
+`docker-compose.prod.yml` (`"${WORKER_METRICS_PORT:-9090}:9090"`) porque no
+tiene ningún otro servidor HTTP con el que compartirlo. La API **no**: no
+tiene ninguna sección `ports:` en absoluto, porque hasta ahora nada externo
+a la red de Docker necesitaba llegar a ella directamente —nginx la alcanza
+por la red interna de Compose, no por `localhost`—. El Ops Agent corre como
+servicio del sistema operativo, **fuera** de la red de Docker, así que
+`localhost:8080` no resuelve a nada desde donde él está parado. Por eso el
+receptor del worker funciona y el de la API no: no es un problema del
+receptor ni de la política, es que el puerto nunca estuvo expuesto al host
+para empezar.
+
+**Corregido en código** (`docker-compose.prod.yml`), publicando el puerto
+solo en `127.0.0.1` (nunca en `0.0.0.0`: nginx sigue siendo el único camino
+de entrada desde fuera de la VM):
+
+```yaml
+api:
+  ports:
+    - "127.0.0.1:8080:8080"
+```
+
+**No se aplicó todavía** porque exige un redeploy real del contenedor
+`api` en la VM (el mismo ciclo que D1/D2 ya establecieron: mergear, y
+luego quien haga el despliegue lo aplica) — no algo para forzar al cierre
+de una sesión larga sin avisar.
 
 ## Nunca
 
