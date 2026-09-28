@@ -14,19 +14,19 @@ El documento principal consolidado se encuentra publicado en:
 | Criterio de la Rúbrica Oficial | Evidencia en el Repositorio | Sección en Informe | Estado |
 | :--- | :--- | :---: | :---: |
 | **Definición de cada escenario y niveles de carga** | Recorridos detallados, endpoints exactos, 200 cuentas sintéticas y 3 perfiles de video | §1.1 y §2.1 | ✅ |
-| **Herramientas, versiones e infraestructura efectiva** | Apache JMeter 5.6.3 (`justb4/jmeter`), Go Capacity Engine, FFmpeg 6.1, `mooc-web-server` (`e2-small`), `mooc-worker-server` (`e2-highcpu-2`), Cloud SQL PostgreSQL 16.4 | §1.2 y §2.2 | ✅ |
+| **Herramientas, versiones e infraestructura efectiva** | Apache JMeter 5.6.3 (`justb4/jmeter`), Go Capacity Engine, FFmpeg 6.1, `mooc-web-server` (`e2-highcpu-2`), `mooc-worker-server` (`e2-highcpu-2`), Cloud SQL PostgreSQL 16.4 | §1.2 y §2.2 | ✅ |
 | **Generador ejecutado fuera de las VMs** | Generador operando desde máquina externa local (Windows 11, Ryzen 5 5500U, midiendo ~74 ms RTT a `us-east1`) | §1.2 y §2.2 | ✅ |
 | **Condiciones mantenidas fijas** | Concurrencia de workers fija en 2 (`WORKER_CONCURRENCY=2`), pool de BD fijo en 25 (`DB_MAX_OPEN_CONNS`), mezcla 64% L / 36% E fija | §1.1, §1.2, §2.1, §2.2 | ✅ |
 | **Resultados numéricos por corrida y variación** | Tabulación de percentiles p50, p95, p99, throughput (req/s y vid/min), errores y métricas de infraestructura | §1.4 y §2.4 | ✅ |
 | **Métricas correlacionadas de aplicación e infraestructura** | CPU de Web Server (Ops Agent), conexiones y CPU de Cloud SQL, profundidad y antigüedad de cola Asynq | §1.5 y §2.4 | ✅ |
-| **Punto de degradación o máximo probado** | Escenario 1: degradación entre 50 y 100 usuarios (~28 req/s). Escenario 2: saturación de cola en Nivel 3 ($\lambda > \mu$, 12 tareas en ráfaga N4) | §1.6 y §2.8 | ✅ |
-| **Cuello de botella primario sustentado con evidencia** | Escenario 1: CPU compartida en `e2-small` + pool de 25 conexiones en Go. Escenario 2: vCPU física en Worker Server (FFmpeg 100% vCPU) | §1.6 y §2.8 | ✅ |
+| **Punto de degradación o máximo probado** | Escenario 1: **no se alcanzó degradación**; máximo probado 200 usuarios (32,8 pet./s), declarado explícitamente como máximo probado y no como capacidad máxima. Escenario 2: saturación de cola en Nivel 3 ($\lambda > \mu$, 12 tareas en ráfaga N4) | §1.6 y §2.8 | ✅ |
+| **Cuello de botella primario sustentado con evidencia** | Escenario 1: no se alcanzó saturación hasta 200 usuarios; el máximo probado no es la capacidad máxima. Escenario 2: vCPU física en Worker Server (FFmpeg 100% vCPU) | §1.6 y §2.8 | ✅ |
 | **Comprobación de envío duplicado sin doble calificación** | Paso 11 con misma `Idempotency-Key` (mismo `submission_id`) y verificación directa en Cloud SQL (0 duplicados) | §1.7 | ✅ |
 | **Decisión de reproductor real (TTFF y stalls)** | Sonda de eventos HTML5/MSE (TTFF 48–52 ms, 0 stalls), justificando por qué HTTP puro no prueba renderizado | §2.6 | ✅ |
 | **Cadencia de streaming real vs descarga greedy** | Pacing de 6.0 s ($\pm 0.5$ s) contrastado contra descarga masiva sin pausas (> 120 MB/s), aislando riesgos de egreso | §2.5 | ✅ |
 | **Drenaje de cola y verificación terminal de consistencia** | Vaciado cronometrado (6.4 s) y consulta SQL de integridad: 57 videos completados, 0 en fallo / DLQ | §2.7 | ✅ |
 | **Limitaciones del experimento** | IP única, ancho de banda del generador, limitador de login por seguridad | §1.8 | ✅ |
-| **Propuesta de evolución respaldada con mediciones** | Read Replicas en Cloud SQL, PgBouncer, Cloud CDN para HLS y MIG autoescalable de workers | §1.9 y §2.9 | ✅ |
+| **Propuesta de evolución respaldada con mediciones** | Escenario 1: confirmar el origen de la espera al conectar, `ssl_session_cache` y HTTP/2 en nginx — **sin evidencia** para réplicas de lectura ni cambio de VM. Escenario 2: Cloud CDN para HLS y grupo autoescalable de workers | §1.9 y §2.9 | ✅ |
 | **Publicación formal en ruta requerida** | [`capacity-planning/pruebas_de_carga_entrega2.md`](../../../../capacity-planning/pruebas_de_carga_entrega2.md) | Documento raíz | ✅ |
 | **Política estricta de seguridad y cero secretos** | Sanitización integral de tokens, claves, credenciales y firmas V4 en evidencias | §5 | ✅ |
 
