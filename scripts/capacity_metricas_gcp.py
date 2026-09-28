@@ -134,7 +134,7 @@ def recolectar(start, end):
     for lab, pts in series('metric.type="agent.googleapis.com/processes/cpu_time" AND resource.type="gce_instance"',
                            start, end, aligner="ALIGN_RATE"):
         nombre = vms.get(lab.get("instance_id"), lab.get("instance_id"))
-        proc = lab.get("process", "?")
+        proc = lab.get("command", "?")
         if pts:
             procs[nombre][proc].extend(v for _, v in pts)
     for nombre, d in procs.items():
@@ -175,11 +175,32 @@ def recolectar(start, end):
             vals.extend(v for _, v in pts)
         res["cola_y_api"][clave] = resumen(vals)
 
-    texto = json.dumps(res, indent=2, ensure_ascii=False)
+    return res
+
+
+def main():
+    if len(sys.argv) >= 3 and sys.argv[1] == "--todas":
+        # Modo H3: una vez por cada corrida de un directorio de resultados, con su ventana.
+        import os
+        raiz = sys.argv[2]
+        for nombre in sorted(os.listdir(raiz)):
+            ventana = os.path.join(raiz, nombre, "ventana.txt")
+            destino = os.path.join(raiz, nombre, "metricas_gcp.json")
+            if not os.path.exists(ventana) or os.path.exists(destino):
+                continue
+            inicio, fin = open(ventana, encoding="utf-8").read().split()[:2]
+            print("->", nombre, inicio, fin, file=sys.stderr)
+            with open(destino, "w", encoding="utf-8", newline=chr(10)) as f:
+                json.dump(recolectar(inicio, fin), f, indent=2, ensure_ascii=False)
+                f.write(chr(10))
+        return
+    if len(sys.argv) < 3:
+        sys.exit(__doc__)
+    texto = json.dumps(recolectar(sys.argv[1], sys.argv[2]), indent=2, ensure_ascii=False)
     print(texto)
-    if salida:
-        with open(salida, "w", encoding="utf-8", newline="\n") as f:
-            f.write(texto + "\n")
+    if len(sys.argv) > 3:
+        with open(sys.argv[3], "w", encoding="utf-8", newline=chr(10)) as f:
+            f.write(texto + chr(10))
 
 
 if __name__ == "__main__":

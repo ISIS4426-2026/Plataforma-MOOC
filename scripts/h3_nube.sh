@@ -79,6 +79,14 @@ preparar_tokens() { # $1 = cuantas cuentas hacen falta
   TOKENS_PID=$!
 }
 
+tokens_o_reusar() { # $1 = N ; si ya hay N tokens vigentes (24 h) no vuelve a iniciar sesion
+  if [ -f capacity-planning/datos/tokens.csv ] && [ $(( $(wc -l < capacity-planning/datos/tokens.csv) - 1 )) -ge "$1" ]; then
+    log "Se reusan los tokens de capacity-planning/datos/tokens.csv (duran 24 h)"
+  else
+    preparar_tokens "$1"
+  fi
+}
+
 esperar_tokens() { # $1 = N
   local tiene
   while :; do
@@ -118,7 +126,7 @@ PYEOF
 )"
   local sat par info; read -r sat par info <<< "${evaluacion}"
   log ">>> ${etiqueta}: ${info}"
-  [ "${sat}" = "1" ] && SATURADO=1
+  [ "${sat}" = "1" ] && [ "$n" -ge 10 ] && SATURADO=1
   [ "${par}" = "1" ] && PARADA=1
   [ "$rc" -ne 0 ] && { log "ATENCION: el estado en la base no cuadra en ${etiqueta}"; }
   log "pausa de ${PAUSA_ENTRE_CORRIDAS} s"; sleep "${PAUSA_ENTRE_CORRIDAS}"
@@ -173,7 +181,7 @@ case "${1:-}" in
     ;;
   repetir)
     n="${2:?usuarios}"; think="${3:?think_ms}"; rango="${4:?rango_ms}"; veces="${5:?veces}"; etiqueta="${6:-repeticion-nivel${n}}"
-    if [ "$MODO" = "nube" ]; then preparar_tokens "$n"; fi
+    if [ "$MODO" = "nube" ]; then tokens_o_reusar "$n"; fi
     for i in $(seq 1 "$veces"); do
       corrida "$n" "$think" "$rango" "$(rampa_para "$n")" "${etiqueta}-r${i}" || break
       [ "$PARADA" = "1" ] && { log "PARADA en la repeticion ${i}."; break; }
@@ -181,6 +189,21 @@ case "${1:-}" in
     [ -n "${TOKENS_PID:-}" ] && kill "${TOKENS_PID}" 2>/dev/null
     log "TERMINADO. Resumen:"; tabla_final | tee -a "${RESULTS_ROOT}/tabla_escalera.txt"
     ;;
+  presion)
+    # Sube el ritmo con la misma cantidad de usuarios acortando la pausa entre pasos (misma mezcla
+    # lectura/escritura). Cada usuario solo puede hacer 3 sesiones (3 intentos de quiz), asi que a
+    # menor pausa la corrida es mas corta: la rampa es de 10 s y se omiten 15 s. Se detiene en el primer nivel que satura: ahi esta el punto de degradacion.
+    n="${2:?usuarios}"; shift 2; pares="${*:?pares think:rango, p. ej. 1000:1000 400:400}"
+    if [ "$MODO" = "nube" ]; then tokens_o_reusar "$n"; fi
+    for par in $pares; do
+      think="${par%%:*}"; rango="${par##*:}"
+      MARGEN_CALENTAMIENTO=5 corrida "$n" "$think" "$rango" "${RAMPA_FIJA:-10}" "B-u${n}-pausa${think}" || break
+      [ "$PARADA" = "1" ] && { log "PARADA con pausa ${think}+${rango} ms."; break; }
+      [ "$SATURADO" = "1" ] && { log "SATURACION con pausa ${think}+${rango} ms: se detiene aqui."; break; }
+    done
+    [ -n "${TOKENS_PID:-}" ] && kill "${TOKENS_PID}" 2>/dev/null
+    log "TERMINADO. Resumen:"; tabla_final | tee -a "${RESULTS_ROOT}/tabla_escalera.txt"
+    ;;
   *)
-    echo "Uso: bash scripts/h3_nube.sh escalera | repetir <usuarios> <think_ms> <rango_ms> <veces> [etiqueta]"; exit 1 ;;
+    echo "Uso: bash scripts/h3_nube.sh escalera | presion <usuarios> <think:rango ...> | repetir <usuarios> <think_ms> <rango_ms> <veces> [etiqueta]"; exit 1 ;;
 esac
