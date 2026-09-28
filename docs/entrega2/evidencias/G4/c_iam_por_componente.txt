@@ -1,0 +1,57 @@
+# c) Cuentas de servicio por componente, sus permisos y sus llaves
+# Generado: 2026-09-28T01:04:21Z por scripts/verify_g4.sh (solo lectura)
+
+== Cuenta de servicio asignada a cada VM ==
+NAME                CUENTA_DE_SERVICIO
+mooc-web-server     sa-web-server@plataforma-mooc-entrega2.iam.gserviceaccount.com
+mooc-worker-server  sa-worker-server@plataforma-mooc-entrega2.iam.gserviceaccount.com
+
+== Roles a nivel de proyecto por cuenta de servicio de la aplicacion ==
+service-921648860819@gcp-sa-artifactregistry.iam.gserviceaccount.com        roles/artifactregistry.serviceAgent
+sa-web-server@plataforma-mooc-entrega2.iam.gserviceaccount.com              roles/cloudsql.client
+sa-worker-server@plataforma-mooc-entrega2.iam.gserviceaccount.com           roles/cloudsql.client
+921648860819@cloudservices.gserviceaccount.com                              roles/compute.instanceGroupManagerServiceAgent
+service-921648860819@compute-system.iam.gserviceaccount.com                 roles/compute.serviceAgent
+921648860819-compute@developer.gserviceaccount.com                          roles/editor
+sa-web-server@plataforma-mooc-entrega2.iam.gserviceaccount.com              roles/logging.logWriter
+sa-worker-server@plataforma-mooc-entrega2.iam.gserviceaccount.com           roles/logging.logWriter
+sa-web-server@plataforma-mooc-entrega2.iam.gserviceaccount.com              roles/monitoring.metricWriter
+sa-worker-server@plataforma-mooc-entrega2.iam.gserviceaccount.com           roles/monitoring.metricWriter
+service-921648860819@service-networking.iam.gserviceaccount.com             roles/servicenetworking.serviceAgent
+
+== Roles humanos a nivel de proyecto (solo conteo, sin correos) ==
+3 persona(s)  roles/artifactregistry.admin
+3 persona(s)  roles/compute.networkAdmin
+3 persona(s)  roles/editor
+3 persona(s)  roles/iam.serviceAccountAdmin
+1 persona(s)  roles/iam.serviceAccountTokenCreator
+3 persona(s)  roles/iam.serviceAccountUser
+2 persona(s)  roles/iap.tunnelResourceAccessor
+1 persona(s)  roles/owner
+3 persona(s)  roles/resourcemanager.projectIamAdmin
+3 persona(s)  roles/servicenetworking.networksAdmin
+3 persona(s)  roles/storage.admin
+
+== IAM del bucket gs://plataforma-mooc-entrega2-media ==
+   roles/storage.legacyBucketOwner -> projectEditor:plataforma-mooc-entrega2, projectOwner:plataforma-mooc-entrega2 
+   roles/storage.legacyBucketReader -> projectViewer:plataforma-mooc-entrega2 
+   roles/storage.legacyObjectOwner -> projectEditor:plataforma-mooc-entrega2, projectOwner:plataforma-mooc-entrega2 
+   roles/storage.legacyObjectReader -> projectViewer:plataforma-mooc-entrega2 
+   roles/storage.objectCreator -> serviceAccount:sa-web-server@plataforma-mooc-entrega2.iam.gserviceaccount.com  [condicion: api_deny_derivatives_write]
+   roles/storage.objectViewer -> serviceAccount:sa-web-server@plataforma-mooc-entrega2.iam.gserviceaccount.com, serviceAccount:sa-worker-server@plataforma-mooc-entrega2.iam.gserviceaccount.com 
+
+== IAM del bucket gs://plataforma-mooc-entrega2-hls ==
+   roles/storage.legacyBucketOwner -> projectEditor:plataforma-mooc-entrega2, projectOwner:plataforma-mooc-entrega2 
+   roles/storage.legacyBucketReader -> projectViewer:plataforma-mooc-entrega2 
+   roles/storage.legacyObjectOwner -> projectEditor:plataforma-mooc-entrega2, projectOwner:plataforma-mooc-entrega2 
+   roles/storage.legacyObjectReader -> projectViewer:plataforma-mooc-entrega2 
+   roles/storage.objectUser -> serviceAccount:sa-worker-server@plataforma-mooc-entrega2.iam.gserviceaccount.com 
+   roles/storage.objectViewer -> allUsers 
+
+== Llaves de cuenta de servicio creadas por personas (debe ser 0 en todas) ==
+sa-web-server@plataforma-mooc-entrega2.iam.gserviceaccount.com : 0 llave(s) de usuario
+921648860819-compute@developer.gserviceaccount.com : 0 llave(s) de usuario
+sa-worker-server@plataforma-mooc-entrega2.iam.gserviceaccount.com : 0 llave(s) de usuario
+
+== La cuenta de computo por defecto sigue con rol Editor a nivel proyecto? ==
+921648860819-compute@developer.gserviceaccount.com -> roles/editor
