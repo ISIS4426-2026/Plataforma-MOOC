@@ -1,0 +1,26 @@
+Muestras totales: 4200  | consideradas (tras omitir 75 s de calentamiento): 3234
+Duracion de la corrida: 271 s  | hilos maximos: 100
+
+Resultado de las peticiones medidas:
+     3234  100.00%  ok
+
+Fallos reales: 0 (0.00%)  | fallos de validacion funcional: 0 (0.00%)
+
+paso                                                            n    p50    p95    p99    max  fallos
+01 GET catalogo de cursos                                     191     88    207    570    708       0
+02 GET detalle del curso                                      199     82    157    480    649       0
+03 POST inscripcion                                           200     92    107    274    892       0
+04 GET estado de mi inscripcion (validacion)                  201     87    148    217    680       0
+05 GET modulos del curso                                      207     88    182    491    734       0
+06 GET unidades del modulo                                    213     89    119    222    259       0
+07 GET recursos de la unidad                                  222     90    110    183    532       0
+08 GET cuestionario (vista de estudiante)                     232     98    147    338   1398       0
+09 POST latido de progreso 1 (recurso completado)             238    103    529   1398   1501       0
+09 POST latido de progreso 2 (recurso completado)             250    101    393   1376   1384       0
+10 POST envio del quiz                                        257    115   1365   1625   1888       0
+11 POST envio DUPLICADO del quiz (misma clave)                266     85    371   1382   1880       0
+12 GET avance del curso tras el quiz (validacion)             272     92   1280   1388   1702       0
+13 GET mis envios (validacion de doble calificacion)          286     94    364   1378   1401       0
+
+Global ms: p50=93 p95=372 p99=1373  | rendimiento: 16.5 peticiones/s
+Timeouts: 0

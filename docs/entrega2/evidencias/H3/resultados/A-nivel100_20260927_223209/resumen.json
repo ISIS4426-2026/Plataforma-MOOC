@@ -1,0 +1,132 @@
+{
+  "muestras": 3234,
+  "omitidas_calentamiento_s": 75.0,
+  "duracion_s": 271.3,
+  "hilos_max": 100,
+  "fallos_reales": 0,
+  "fallos_reales_pct": 0.0,
+  "fallos_validacion": 0,
+  "rechazos_negocio": 0,
+  "timeouts": 0,
+  "ms": {
+    "p50": 93,
+    "p95": 372,
+    "p99": 1373,
+    "max": 1888
+  },
+  "rps": 16.48,
+  "pasos": {
+    "02 GET detalle del curso": {
+      "n": 199,
+      "p50": 82,
+      "p95": 157,
+      "p99": 480,
+      "max": 649,
+      "fallos": 0
+    },
+    "07 GET recursos de la unidad": {
+      "n": 222,
+      "p50": 90,
+      "p95": 110,
+      "p99": 183,
+      "max": 532,
+      "fallos": 0
+    },
+    "04 GET estado de mi inscripcion (validacion)": {
+      "n": 201,
+      "p50": 87,
+      "p95": 148,
+      "p99": 217,
+      "max": 680,
+      "fallos": 0
+    },
+    "10 POST envio del quiz": {
+      "n": 257,
+      "p50": 115,
+      "p95": 1365,
+      "p99": 1625,
+      "max": 1888,
+      "fallos": 0
+    },
+    "01 GET catalogo de cursos": {
+      "n": 191,
+      "p50": 88,
+      "p95": 207,
+      "p99": 570,
+      "max": 708,
+      "fallos": 0
+    },
+    "09 POST latido de progreso 2 (recurso completado)": {
+      "n": 250,
+      "p50": 101,
+      "p95": 393,
+      "p99": 1376,
+      "max": 1384,
+      "fallos": 0
+    },
+    "13 GET mis envios (validacion de doble calificacion)": {
+      "n": 286,
+      "p50": 94,
+      "p95": 364,
+      "p99": 1378,
+      "max": 1401,
+      "fallos": 0
+    },
+    "08 GET cuestionario (vista de estudiante)": {
+      "n": 232,
+      "p50": 98,
+      "p95": 147,
+      "p99": 338,
+      "max": 1398,
+      "fallos": 0
+    },
+    "11 POST envio DUPLICADO del quiz (misma clave)": {
+      "n": 266,
+      "p50": 85,
+      "p95": 371,
+      "p99": 1382,
+      "max": 1880,
+      "fallos": 0
+    },
+    "05 GET modulos del curso": {
+      "n": 207,
+      "p50": 88,
+      "p95": 182,
+      "p99": 491,
+      "max": 734,
+      "fallos": 0
+    },
+    "12 GET avance del curso tras el quiz (validacion)": {
+      "n": 272,
+      "p50": 92,
+      "p95": 1280,
+      "p99": 1388,
+      "max": 1702,
+      "fallos": 0
+    },
+    "06 GET unidades del modulo": {
+      "n": 213,
+      "p50": 89,
+      "p95": 119,
+      "p99": 222,
+      "max": 259,
+      "fallos": 0
+    },
+    "09 POST latido de progreso 1 (recurso completado)": {
+      "n": 238,
+      "p50": 103,
+      "p95": 529,
+      "p99": 1398,
+      "max": 1501,
+      "fallos": 0
+    },
+    "03 POST inscripcion": {
+      "n": 200,
+      "p50": 92,
+      "p95": 107,
+      "p99": 274,
+      "max": 892,
+      "fallos": 0
+    }
+  }
+}

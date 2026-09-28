@@ -1,0 +1,1 @@
+estado en la base: 200 estudiantes con envios (min 3, max 3, total 600), 200 inscripciones, 0 duplicados -> OK

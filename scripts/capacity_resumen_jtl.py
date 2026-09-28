@@ -48,6 +48,9 @@ def main():
         return 1
     t0 = min(int(r["timeStamp"]) for r in rows)
     medidas = [r for r in rows if (int(r["timeStamp"]) - t0) / 1000.0 >= skip_s]
+    if not medidas:
+        print("Ninguna muestra queda tras omitir el calentamiento: la corrida fue mas corta que ese margen.")
+        return 1
     t1 = max(int(r["timeStamp"]) + int(r["elapsed"]) for r in rows)
     span = (t1 - t0) / 1000.0
 
@@ -77,6 +80,31 @@ def main():
     todos = [int(r["elapsed"]) for r in medidas]
     ventana = max(1.0, (max(int(r["timeStamp"]) for r in medidas) - min(int(r["timeStamp"]) for r in medidas)) / 1000.0)
     print(f"\nGlobal ms: p50={pct(todos,50)} p95={pct(todos,95)} p99={pct(todos,99)}  | rendimiento: {len(medidas)/ventana:.1f} peticiones/s")
+
+    # Timeouts: las peticiones sin respuesta HTTP cuyo motivo es un tiempo agotado.
+    timeouts = sum(1 for r in medidas
+                   if not r["responseCode"].isdigit() and "timed out" in (r["responseMessage"] + r["failureMessage"]).lower())
+    print(f"Timeouts: {timeouts}")
+
+    # Salida para maquina: la lee el orquestador de H3 (scripts/h3_nube.sh) para decidir
+    # si sube de nivel, y el analisis de la evidencia.
+    import json
+    import os
+    resumen_json = {
+        "muestras": len(medidas), "omitidas_calentamiento_s": skip_s, "duracion_s": round(span, 1),
+        "hilos_max": max(int(r["allThreads"]) for r in rows),
+        "fallos_reales": reales, "fallos_reales_pct": round(100 * reales / total, 3),
+        "fallos_validacion": valid,
+        "rechazos_negocio": sum(v for k, v in clases.items() if k.startswith("negocio")),
+        "timeouts": timeouts,
+        "ms": {"p50": pct(todos, 50), "p95": pct(todos, 95), "p99": pct(todos, 99), "max": max(todos)},
+        "rps": round(len(medidas) / ventana, 2),
+        "pasos": {l: {"n": len(v), "p50": pct(v, 50), "p95": pct(v, 95), "p99": pct(v, 99), "max": max(v), "fallos": fallos[l]}
+                  for l, v in por_label.items()},
+    }
+    destino = os.path.join(os.path.dirname(os.path.abspath(path)), "resumen.json")
+    with open(destino, "w", encoding="utf-8", newline="\n") as f:
+        json.dump(resumen_json, f, indent=2, ensure_ascii=False)
 
     msgs = Counter(r["failureMessage"][:110] for r in medidas if r["success"] != "true" and r["failureMessage"])
     if msgs:
