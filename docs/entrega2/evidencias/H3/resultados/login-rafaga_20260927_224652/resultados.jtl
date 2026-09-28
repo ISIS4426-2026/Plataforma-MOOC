@@ -1,0 +1,81 @@
+timeStamp,elapsed,label,responseCode,responseMessage,threadName,dataType,success,failureMessage,bytes,sentBytes,grpThreads,allThreads,URL,Latency,IdleTime,Connect
+1790567228529,1375,L1 POST login (rafaga),429,Too Many Requests,Rafaga de inicios de sesion 1-16,text,false,"Test failed: code expected to equal /
+
+****** received  : [[[429]]]
+
+****** comparison: [[[200]]]
+
+/",400,340,20,20,https://34.24.52.111.sslip.io/api/v1/auth/login,1374,0,1160
+1790567228618,1278,L1 POST login (rafaga),429,Too Many Requests,Rafaga de inicios de sesion 1-18,text,false,"Test failed: code expected to equal /
+
+****** received  : [[[429]]]
+
+****** comparison: [[[200]]]
+
+/",400,340,20,20,https://34.24.52.111.sslip.io/api/v1/auth/login,1277,0,1072
+1790567228223,1678,L1 POST login (rafaga),429,Too Many Requests,Rafaga de inicios de sesion 1-7,text,false,"Test failed: code expected to equal /
+
+****** received  : [[[429]]]
+
+****** comparison: [[[200]]]
+
+/",400,340,20,20,https://34.24.52.111.sslip.io/api/v1/auth/login,1678,0,1465
+1790567228223,1673,L1 POST login (rafaga),429,Too Many Requests,Rafaga de inicios de sesion 1-8,text,false,"Test failed: code expected to equal /
+
+****** received  : [[[429]]]
+
+****** comparison: [[[200]]]
+
+/",400,340,20,20,https://34.24.52.111.sslip.io/api/v1/auth/login,1673,0,1467
+1790567228571,1334,L1 POST login (rafaga),429,Too Many Requests,Rafaga de inicios de sesion 1-17,text,false,"Test failed: code expected to equal /
+
+****** received  : [[[429]]]
+
+****** comparison: [[[200]]]
+
+/",400,340,20,20,https://34.24.52.111.sslip.io/api/v1/auth/login,1333,0,1118
+1790567228258,1638,L1 POST login (rafaga),429,Too Many Requests,Rafaga de inicios de sesion 1-10,text,false,"Test failed: code expected to equal /
+
+****** received  : [[[429]]]
+
+****** comparison: [[[200]]]
+
+/",400,340,20,20,https://34.24.52.111.sslip.io/api/v1/auth/login,1637,0,1430
+1790567228223,1729,L1 POST login (rafaga),429,Too Many Requests,Rafaga de inicios de sesion 1-4,text,false,"Test failed: code expected to equal /
+
+****** received  : [[[429]]]
+
+****** comparison: [[[200]]]
+
+/",400,340,20,20,https://34.24.52.111.sslip.io/api/v1/auth/login,1728,0,1465
+1790567228223,1673,L1 POST login (rafaga),429,Too Many Requests,Rafaga de inicios de sesion 1-1,text,false,"Test failed: code expected to equal /
+
+****** received  : [[[429]]]
+
+****** comparison: [[[200]]]
+
+/",400,340,20,20,https://34.24.52.111.sslip.io/api/v1/auth/login,1672,0,1459
+1790567228483,1512,L1 POST login (rafaga),429,Too Many Requests,Rafaga de inicios de sesion 1-15,text,false,"Test failed: code expected to equal /
+
+****** received  : [[[429]]]
+
+****** comparison: [[[200]]]
+
+/",400,340,20,20,https://34.24.52.111.sslip.io/api/v1/auth/login,1512,0,1378
+1790567228390,1506,L1 POST login (rafaga),429,Too Many Requests,Rafaga de inicios de sesion 1-13,text,false,"Test failed: code expected to equal /
+
+****** received  : [[[429]]]
+
+****** comparison: [[[200]]]
+
+/",400,340,20,20,https://34.24.52.111.sslip.io/api/v1/auth/login,1506,0,1298
+1790567228346,1706,L1 POST login (rafaga),200,OK,Rafaga de inicios de sesion 1-12,text,true,,713,340,10,10,https://34.24.52.111.sslip.io/api/v1/auth/login,1706,0,1329
+1790567228440,1612,L1 POST login (rafaga),200,OK,Rafaga de inicios de sesion 1-14,text,true,,713,340,10,10,https://34.24.52.111.sslip.io/api/v1/auth/login,1612,0,1222
+1790567228223,1872,L1 POST login (rafaga),200,OK,Rafaga de inicios de sesion 1-6,text,true,,713,340,8,8,https://34.24.52.111.sslip.io/api/v1/auth/login,1872,0,1460
+1790567228223,1873,L1 POST login (rafaga),200,OK,Rafaga de inicios de sesion 1-9,text,true,,713,340,8,8,https://34.24.52.111.sslip.io/api/v1/auth/login,1873,0,1461
+1790567228223,1900,L1 POST login (rafaga),200,OK,Rafaga de inicios de sesion 1-3,text,true,,712,340,6,6,https://34.24.52.111.sslip.io/api/v1/auth/login,1900,0,1456
+1790567228719,1467,L1 POST login (rafaga),200,OK,Rafaga de inicios de sesion 1-20,text,true,,713,340,5,5,https://34.24.52.111.sslip.io/api/v1/auth/login,1467,0,970
+1790567228673,1524,L1 POST login (rafaga),200,OK,Rafaga de inicios de sesion 1-19,text,true,,713,340,4,4,https://34.24.52.111.sslip.io/api/v1/auth/login,1523,0,1019
+1790567228306,1936,L1 POST login (rafaga),200,OK,Rafaga de inicios de sesion 1-11,text,true,,712,340,3,3,https://34.24.52.111.sslip.io/api/v1/auth/login,1936,0,1380
+1790567228223,2022,L1 POST login (rafaga),200,OK,Rafaga de inicios de sesion 1-2,text,true,,713,340,2,2,https://34.24.52.111.sslip.io/api/v1/auth/login,2022,0,1466
+1790567228223,2035,L1 POST login (rafaga),200,OK,Rafaga de inicios de sesion 1-5,text,true,,713,340,1,1,https://34.24.52.111.sslip.io/api/v1/auth/login,2035,0,1463

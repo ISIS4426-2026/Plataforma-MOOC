@@ -1,7 +1,7 @@
 ================================================================================
  EVIDENCIA H4 - CORRIDA PILOTO CORTO ESCENARIO 2 (ETAPAS INSTRUMENTADAS)
 ================================================================================
-Fecha de ejecución : 2026-09-28T00:54:56Z
+Fecha de ejecución : 2026-09-28T03:21:04Z
 Destino probado    : http://api:8080
 Tamaño video prueba: 179691 bytes (0.17 MB)
 Criterio de secrets: Sanitizado. Cero credenciales, llaves privadas ni firmas V4 registradas.
@@ -11,12 +11,12 @@ Criterio de secrets: Sanitizado. Cero credenciales, llaves privadas ni firmas V4
 --------------------------------------------------------------------------------
 Etapa  | Nombre de la Operación                     | Plano Arquitectural      | Duración     | Detalle
 ---------------------------------------------------------------------------------------------------------
-Etapa 1 | Autorización y emisión de URL prefirmada   | Control (API)            | 1ms          | HTTP 200, Latencia=1ms, Key=originals/9c51202e-e0fd-4176-911b-6952455649d4/ced92df7-211b-4bbf-a011-f458e6f8380b.mp4
-Etapa 2 | Transferencia directa al almacenamiento    | Datos (Object Storage)   | 5ms          | HTTP 200, 0.17 MB en 5ms (32.69 MB/s)
-Etapa 3 | Confirmación de carga y encolado           | Control (API)            | 9ms          | HTTP 202 Accepted, Latencia=9ms, Status=pending
-Etapa 4 | Espera en cola (Queue Latency)             | Mensajería (Redis/Asynq) | 513ms        | Tiempo en estado pending: 513ms
-Etapa 5 | Duración de procesamiento (FFmpeg)         | Cómputo (Worker Server)  | 2.525s       | Ejecución FFmpeg + subida derivados: 2.525s
-Etapa 6 | Tiempo total hasta Available (completed)   | Ciclo Completo Asíncrono | 3.038s       | Desde 202 Accepted hasta completed: 3.038s
+Etapa 1 | Autorización y emisión de URL prefirmada   | Control (API)            | 4ms          | HTTP 200, Latencia=4ms, Key=originals/c692ffb5-1aae-44d3-9f90-31f583fa1c1a/7e5fa9e0-b9ad-4392-b852-b0aefa97e1d4.mp4
+Etapa 2 | Transferencia directa al almacenamiento    | Datos (Object Storage)   | 6ms          | HTTP 200, 0.17 MB en 6ms (27.78 MB/s)
+Etapa 3 | Confirmación de carga y encolado           | Control (API)            | 12ms         | HTTP 202 Accepted, Latencia=12ms, Status=pending
+Etapa 4 | Espera en cola (Queue Latency)             | Mensajería (Redis/Asynq) | 517ms        | Tiempo en estado pending: 517ms
+Etapa 5 | Duración de procesamiento (FFmpeg)         | Cómputo (Worker Server)  | 2.017s       | Ejecución FFmpeg + subida derivados: 2.017s
+Etapa 6 | Tiempo total hasta Available (completed)   | Ciclo Completo Asíncrono | 2.534s       | Desde 202 Accepted hasta completed: 2.534s
 
 --------------------------------------------------------------------------------
  2. SEPARACIÓN DE TRÁFICO DE CONTROL Y TRANSFERENCIA DE ARCHIVOS
@@ -32,7 +32,7 @@ Etapa 6 | Tiempo total hasta Available (completed)   | Ciclo Completo Asíncrono
  3. CONSUMO MULTIMEDIA: CADENCIA REAL VS DESCARGA GREEDY
 --------------------------------------------------------------------------------
 • Cadencia Real (Streaming HLS):
-  - Latencia inicial master.m3u8    : 1ms
+  - Latencia inicial master.m3u8    : 2ms
   - Latencia lista de variante       : 1ms
   - Segmentos verificados            : 2
   - Latencia promedio por segmento   : 1ms
@@ -42,16 +42,16 @@ Etapa 6 | Tiempo total hasta Available (completed)   | Ciclo Completo Asíncrono
 
 • Variante 'Lo Más Rápido Posible' (Greedy / Bulk Download):
   - Segmentos descargados sin pausa  : 2
-  - Bytes totales descargados        : 861604 (0.82 MB)
+  - Bytes totales descargados        : 861228 (0.82 MB)
   - Duración total ráfaga continua   : 4ms
-  - Throughput sostenido alcanzado   : 199.77 MB/s
+  - Throughput sostenido alcanzado   : 210.82 MB/s
   - Clasificación                    : Patrón de saturación de red o scraping masivo, aislado de streaming.
 
 --------------------------------------------------------------------------------
  4. EVALUACIÓN CON REPRODUCTOR REAL (TTFF E INTERRUPCIONES)
 --------------------------------------------------------------------------------
 • Metodología                      : Medición con sonda de reproductor real (eventos HTML5/MSE), separada de métricas puras de red HTTP
-• Tiempo al Primer Cuadro (TTFF)    : 48ms
+• Tiempo al Primer Cuadro (TTFF)    : 49ms
 • Eventos de congelamiento (Stalls): 0
 • Conclusión de experiencia        : Experiencia fluida sin degradación en condiciones nominales.
 ================================================================================

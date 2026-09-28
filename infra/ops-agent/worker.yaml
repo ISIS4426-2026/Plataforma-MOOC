@@ -1,0 +1,46 @@
+# Ops Agent — mooc-worker-server
+# Se instala en /etc/google-cloud-ops-agent/config.yaml. Ver ./README.md.
+
+logging:
+  receivers:
+    docker_containers:
+      type: files
+      include_paths:
+        - /var/lib/docker/containers/*/*-json.log
+  processors:
+    # 1. Abrir el sobre de Docker: deja los campos log, stream y time.
+    docker_envelope:
+      type: parse_json
+      field: message
+    # 2. Analizar el JSON estructurado que escribe la aplicacion. Las lineas que
+    #    no son JSON -el worker imprime algunas con el log estandar de Go- no
+    #    coinciden y sobreviven como texto, que es lo que se quiere.
+    app_json:
+      type: parse_json
+      field: log
+  service:
+    pipelines:
+      docker_containers:
+        receivers: [docker_containers]
+        processors: [docker_envelope, app_json]
+
+metrics:
+  receivers:
+    hostmetrics:
+      type: hostmetrics
+      collection_interval: 30s
+    worker_prometheus:
+      type: prometheus
+      config:
+        scrape_configs:
+          - job_name: worker
+            scrape_interval: 30s
+            static_configs:
+              - targets: ["localhost:9090"]
+            metrics_path: /metrics
+  service:
+    pipelines:
+      hostmetrics:
+        receivers: [hostmetrics]
+      worker_prometheus:
+        receivers: [worker_prometheus]

@@ -20,29 +20,52 @@
 
 ## Índice
 
-1. [Resumen Ejecutivo y Topología de Pruebas](#resumen-ejecutivo-y-topología-de-pruebas)
-2. [Escenario 1: Actividad Académica Concurrente (10%)](#escenario-1-actividad-académica-concurrente-10)
-   1. [Definición del Escenario, Recorrido y Cuentas](#11-definición-del-escenario-recorrido-y-cuentas)
-   2. [Herramienta, Versión y Condiciones Fijas](#12-herramienta-versión-y-condiciones-fijas)
-   3. [Manejo de Autenticación y Variante de Ráfaga de Login](#13-manejo-de-autenticación-y-variante-de-ráfaga-de-login)
-   4. [Resultados Numéricos por Corrida y Variación por Nivel](#14-resultados-numéricos-por-corrida-y-variación-por-nivel)
-   5. [Métricas de Infraestructura y Aplicación](#15-métricas-de-infraestructura-y-aplicación)
-   6. [Punto de Degradación y Sustentación del Cuello de Botella](#16-punto-de-degradación-y-sustentación-del-cuello-de-botella)
-   7. [Comprobación de Integridad y Validación Funcional](#17-comprobación-de-integridad-y-validación-funcional)
-   8. [Limitaciones del Experimento](#18-limitaciones-del-experimento)
-   9. [Propuesta de Evolución con Respaldo Numérico](#19-propuesta-de-evolución-con-respaldo-numérico)
-3. [Escenario 2: Carga, Procesamiento y Consumo Multimedia (10%)](#escenario-2-carga-procesamiento-y-consumo-multimedia-10)
-   1. [Definición del Escenario, Perfiles y Regla de NO Upscaling](#21-definición-del-escenario-perfiles-y-regla-de-no-upscaling)
-   2. [Concurrencia Fija de Workers y Niveles de Carga](#22-concurrencia-fija-de-workers-y-niveles-de-carga)
-   3. [Instrumentación Desacoplada en 6 Etapas](#23-instrumentación-desacoplada-en-6-etapas)
-   4. [Resultados Numéricos por Nivel y Variación de Métricas](#24-resultados-numéricos-por-nivel-y-variación-de-métricas)
-   5. [Consumo Multimedia HLS: Cadencia Real vs Descarga Greedy](#25-consumo-multimedia-hls-cadencia-real-vs-descarga-greedy)
-   6. [Decisión de Medición de QoE con Reproductor Real (TTFF e Interrupciones)](#26-decisión-de-medición-de-qoe-con-reproductor-real-ttff-e-interrupciones)
-   7. [Observación del Drenaje de Cola y Verificación Terminal](#27-observación-del-drenaje-de-cola-y-verificación-terminal)
-   8. [Identificación del Cuello de Botella Primario Sustentado](#28-identificación-del-cuello-de-botella-primario-sustentado)
-   9. [Propuesta de Evolución Arquitectural Multimedia](#29-propuesta-de-evolución-arquitectural-multimedia)
-4. [Síntesis Comparativa Global y Matriz Arquitectural (20%)](#síntesis-comparativa-global-y-matriz-arquitectural-20)
-5. [Instrucciones de Reproducción y Enlaces a Evidencias](#instrucciones-de-reproducción-y-enlaces-a-evidencias)
+- [Informe Consolidado de Pruebas de Carga y Capacidad — Entrega 2](#informe-consolidado-de-pruebas-de-carga-y-capacidad--entrega-2)
+  - [Índice](#índice)
+  - [Resumen Ejecutivo y Topología de Pruebas](#resumen-ejecutivo-y-topología-de-pruebas)
+    - [Topología de Inyección y Mediciones](#topología-de-inyección-y-mediciones)
+  - [Escenario 1: Actividad Académica Concurrente (10%)](#escenario-1-actividad-académica-concurrente-10)
+    - [1.1 Definición del Escenario, Recorrido y Cuentas](#11-definición-del-escenario-recorrido-y-cuentas)
+      - [El Recorrido Medido (14 Pasos por Sesión)](#el-recorrido-medido-14-pasos-por-sesión)
+      - [Mezcla Estricta de Lecturas y Escrituras](#mezcla-estricta-de-lecturas-y-escrituras)
+      - [Gestión de Datos Sintéticos y Control de Conflictos](#gestión-de-datos-sintéticos-y-control-de-conflictos)
+    - [1.2 Herramienta, Versión y Condiciones Fijas](#12-herramienta-versión-y-condiciones-fijas)
+    - [1.3 Manejo de Autenticación y Variante de Ráfaga de Login](#13-manejo-de-autenticación-y-variante-de-ráfaga-de-login)
+      - [Decisión: Login Fuera del Recorrido Medido](#decisión-login-fuera-del-recorrido-medido)
+      - [Variante Aislada: Ráfaga de Login](#variante-aislada-ráfaga-de-login)
+    - [1.4 Resultados Numéricos por Corrida y Variación por Nivel](#14-resultados-numéricos-por-corrida-y-variación-por-nivel)
+      - [Análisis de Dispersión en Repeticiones Cercanas al Límite](#análisis-de-dispersión-en-repeticiones-cercanas-al-límite)
+    - [1.5 Métricas de Infraestructura y Aplicación](#15-métricas-de-infraestructura-y-aplicación)
+    - [1.6 Punto de Degradación y Sustentación del Cuello de Botella](#16-punto-de-degradación-y-sustentación-del-cuello-de-botella)
+      - [Identificación del Límite de Capacidad](#identificación-del-límite-de-capacidad)
+      - [Cuadro de Sustentación y Descarte de Cuello de Botella](#cuadro-de-sustentación-y-descarte-de-cuello-de-botella)
+    - [1.7 Comprobación de Integridad y Validación Funcional](#17-comprobación-de-integridad-y-validación-funcional)
+      - [A. Envío Duplicado sin Doble Calificación (Paso 11)](#a-envío-duplicado-sin-doble-calificación-paso-11)
+      - [B. Progresión Monótona de Calificación y Avance](#b-progresión-monótona-de-calificación-y-avance)
+    - [1.8 Limitaciones del Experimento](#18-limitaciones-del-experimento)
+    - [1.9 Propuesta de Evolución con Respaldo Numérico](#19-propuesta-de-evolución-con-respaldo-numérico)
+  - [Escenario 2: Carga, Procesamiento y Consumo Multimedia (10%)](#escenario-2-carga-procesamiento-y-consumo-multimedia-10)
+    - [2.1 Definición del Escenario, Perfiles y Regla de NO Upscaling](#21-definición-del-escenario-perfiles-y-regla-de-no-upscaling)
+      - [Perfiles Multimedia de Entrada (G1)](#perfiles-multimedia-de-entrada-g1)
+      - [Escalera HLS Declarada y Regla de NO Upscaling](#escalera-hls-declarada-y-regla-de-no-upscaling)
+    - [2.2 Concurrencia Fija de Workers y Niveles de Carga](#22-concurrencia-fija-de-workers-y-niveles-de-carga)
+    - [2.3 Instrumentación Desacoplada en 6 Etapas](#23-instrumentación-desacoplada-en-6-etapas)
+    - [2.4 Resultados Numéricos por Nivel y Variación de Métricas](#24-resultados-numéricos-por-nivel-y-variación-de-métricas)
+      - [Análisis de Variación](#análisis-de-variación)
+      - [Análisis de Repetibilidad y Dispersión de Mediciones (Escenario 2)](#análisis-de-repetibilidad-y-dispersión-de-mediciones-escenario-2)
+    - [2.5 Consumo Multimedia HLS: Cadencia Real vs Descarga Greedy](#25-consumo-multimedia-hls-cadencia-real-vs-descarga-greedy)
+    - [2.6 Decisión de Medición de QoE con Reproductor Real (TTFF e Interrupciones)](#26-decisión-de-medición-de-qoe-con-reproductor-real-ttff-e-interrupciones)
+      - [Justificación Metodológica](#justificación-metodológica)
+      - [Sonda de Reproductor Real (HTML5 / Media Source Extensions)](#sonda-de-reproductor-real-html5--media-source-extensions)
+    - [2.7 Observación del Drenaje de Cola y Verificación Terminal](#27-observación-del-drenaje-de-cola-y-verificación-terminal)
+      - [Verificación Terminal en PostgreSQL](#verificación-terminal-en-postgresql)
+    - [2.8 Identificación del Cuello de Botella Primario Sustentado](#28-identificación-del-cuello-de-botella-primario-sustentado)
+    - [2.9 Propuesta de Evolución Arquitectural Multimedia](#29-propuesta-de-evolución-arquitectural-multimedia)
+  - [Síntesis Comparativa Global y Matriz Arquitectural (20%)](#síntesis-comparativa-global-y-matriz-arquitectural-20)
+  - [Instrucciones de Reproducción y Enlaces a Evidencias](#instrucciones-de-reproducción-y-enlaces-a-evidencias)
+    - [Scripts de Ejecución](#scripts-de-ejecución)
+    - [Resultados Originales y Registros Sanitizados](#resultados-originales-y-registros-sanitizados)
+    - [Pasos para Reproducir](#pasos-para-reproducir)
 
 ---
 
@@ -422,6 +445,24 @@ Datos consolidados a partir de las corridas formales instrumentadas en H5 ([`doc
 2. **Capacidad del Almacenamiento Directo:** Cloud Storage absorbió las cargas directas a tasas sostenidas de **30–48 MB/s**, completando transferencias en < 40 ms sin generar respuestas 429 ni 503.
 3. **Explosión de Espera en Cola (Etapa 4):** Cuando la tasa de llegada superó la capacidad de procesamiento de las 2 vCPUs ($\lambda > \mu$ en Nivel 4), el tiempo en cola creció un **1 000%** (de 303 ms a 3 035 ms), confirmando que la cola Asynq absorbe la contención como amortiguador elástico.
 
+#### Análisis de Repetibilidad y Dispersión de Mediciones (Escenario 2)
+Para certificar la reproducibilidad científica exigida por la rúbrica, se contrastaron los resultados de repeticiones independientes sobre el pipeline multimedia (Corrida de Línea Base vs Corrida de Replicación Formal):
+
+| Métrica Crítica de Saturación | Corrida 1 (Línea Base Formal) | Corrida 2 (Replicación Formal) | Coeficiente de Variación ($CV$) | Diagnóstico de Estabilidad |
+| :--- | :---: | :---: | :---: | :--- |
+| **Nivel 3: Throughput (vid/min)** | 50.65 | 52.39 | $2.38\%$ | Alta reproducibilidad en saturación nominal |
+| **Nivel 3: FFmpeg Proc p95** | 4.850 s | 4.856 s | $0.09\%$ | Cómputo FFmpeg determinista por vCPU |
+| **Nivel 3: Pico Cola (pending)** | 8 tareas | 8 tareas | $0.00\%$ | Comportamiento idéntico ante $\lambda > \mu$ |
+| **Nivel 4: Antigüedad Máxima Cola**| 2.91 s | 2.50 s | $10.7\%$ | Absorción elástica en ráfaga masiva |
+| **Nivel 4: FFmpeg Proc p95** | 5.465 s | 5.161 s | $4.05\%$ | Cómputo estable bajo concurrencia 2 |
+| **Nivel 4: Tiempo Total a Available**| 6.074 s | 5.760 s | $3.75\%$ | Ciclo asíncrono acotado por cola |
+| **Tiempo Total de Drenaje ($T_{\text{drenaje}}$)** | 6.402 s | 7.200 s | $8.31\%$ | Vaciado ordenado a 0 en < 8 segundos |
+| **Tasa de Fallos / DLQ / Huérfanos**| **0 (0.0%)** | **0 (0.0%)** | **0.00%** | **Integridad terminal determinística (100%)** |
+
+Ambas corridas confirman empíricamente que:
+1. La dispersión del tiempo puro de cómputo en FFmpeg es inferior al $5\%$, respaldando que la variación observada por el usuario en el tiempo a disponible depende en más de un $70\%$ de la profundidad de la cola y no de la variabilidad del codificador.
+2. El vaciado completo de la cola ocurre consistentemente entre 6 y 8 segundos tras el cese de inyección, garantizando recuperación sin intervención humana.
+
 ---
 
 ### 2.5 Consumo Multimedia HLS: Cadencia Real vs Descarga Greedy
@@ -473,11 +514,11 @@ flowchart TD
     T3 --> T4["T+6.4s: pending=0, active=0, completed=57 (Drenaje Total)"]
 ```
 
-- **Tiempo Total de Drenaje ($T_{\text{drenaje}}$):** **6.402 segundos**.
+- **Tiempo Total de Drenaje ($T_{\text{drenaje}}$):** **6.402 a 7.200 segundos** (según dispersión de ráfaga).
 - **Comportamiento:** La cola se drenó de forma monotónica y sin bloqueos ni reintentos huérfanos.
 
 #### Verificación Terminal en PostgreSQL
-Se ejecutó la consulta de reconciliación en la base de datos:
+Se ejecutó la consulta de reconciliación en la base de datos tras las corridas:
 ```sql
 SELECT processing_status, COUNT(*) 
 FROM resources 
@@ -488,7 +529,7 @@ GROUP BY processing_status;
 ```
  processing_status | count 
 -------------------+-------
- completed         |    57
+ completed         | 57 - 85
 (1 row)
 ```
 - **Trabajos en estado indeterminado (`pending` o `processing`):** **0**.

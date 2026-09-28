@@ -1,0 +1,28 @@
+{
+  "muestras": 20,
+  "omitidas_calentamiento_s": 0.0,
+  "duracion_s": 2.0,
+  "hilos_max": 20,
+  "fallos_reales": 0,
+  "fallos_reales_pct": 0.0,
+  "fallos_validacion": 0,
+  "rechazos_negocio": 10,
+  "timeouts": 0,
+  "ms": {
+    "p50": 1673,
+    "p95": 2035,
+    "p99": 2035,
+    "max": 2035
+  },
+  "rps": 20.0,
+  "pasos": {
+    "L1 POST login (rafaga)": {
+      "n": 20,
+      "p50": 1673,
+      "p95": 2035,
+      "p99": 2035,
+      "max": 2035,
+      "fallos": 10
+    }
+  }
+}
