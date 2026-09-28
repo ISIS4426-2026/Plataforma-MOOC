@@ -15,6 +15,33 @@ Este repositorio contiene la implementación completa del backend, contratos Ope
 
 ** Video Sustentación :  **  https://www.youtube.com/watch?v=0qUeBiy9yfE
 
+---
+
+## Entrega 2 — Despliegue en la nube
+
+| | |
+| :--- | :--- |
+| **URL de la aplicación** | **<https://34.24.52.111.sslip.io>** — `GET /api/v1/health` responde `200` cuando el entorno está encendido |
+| Documentación de la API | <https://34.24.52.111.sslip.io/api/docs> |
+| Documento de arquitectura | [`docs/entrega2/ARQUITECTURA.md`](docs/entrega2/ARQUITECTURA.md) |
+| Informe de capacidad (20%) | [`capacity-planning/pruebas_de_carga_entrega2.md`](capacity-planning/pruebas_de_carga_entrega2.md) |
+| Evidencias de la entrega | [`docs/entrega2/evidencias/`](docs/entrega2/evidencias/) |
+| Configuración y costos | [`docs/entrega2/CONFIGURACION_Y_COSTOS.md`](docs/entrega2/CONFIGURACION_Y_COSTOS.md) |
+
+El dominio es `sslip.io` sobre la IPv4 estática reservada del Web Server, así que
+la URL **sobrevive a que se recree la máquina**. El equipo no compró dominio
+propio; la decisión y su efecto en el correo saliente están en el documento de
+configuración y costos.
+
+> [!IMPORTANT]
+> **El entorno se apaga cuando no se está usando**, por la política de control de
+> costos que el propio enunciado pide. Si la URL no responde, no está caída: está
+> apagada. El procedimiento para encenderla y, si hiciera falta, para reconstruir
+> el entorno completo desde cero, está en
+> [`infra/terraform/ADMINISTRACION.md`](infra/terraform/ADMINISTRACION.md).
+
+---
+
 > [!TIP]
 > **¿Es su primera vez con el proyecto?**  
 > Siga la [Guía Rápida de Despliegue Paso a Paso](#guía-rápida-de-despliegue-paso-a-paso-desde-cero) para tener todo el sistema operativo con datos sintéticos y pruebas funcionales en menos de 3 minutos sin ayuda externa.  
@@ -336,6 +363,8 @@ El archivo `Makefile` provee comandos estandarizados para asegurar la calidad de
 * [Especificación de Colecciones Postman (`docs/postman/README.md`)](docs/postman/README.md): Detalle técnico de las 194 peticiones y 415 aserciones.
 * [Infraestructura como Código (`infra/terraform/README.md`)](infra/terraform/README.md): Aprovisionamiento con Terraform, estado remoto compartido y **cómo trabaja el equipo sobre la misma infraestructura sin conflictos**. Instalación para Windows, macOS y Linux.
 * [Administración del Proyecto de GCP (`infra/terraform/ADMINISTRACION.md`)](infra/terraform/ADMINISTRACION.md): Tareas de una sola vez — bootstrap del estado remoto, altas y bajas de integrantes.
+* [**Arquitectura en la Nube — Entrega 2** (`docs/entrega2/ARQUITECTURA.md`)](docs/entrega2/ARQUITECTURA.md): **Documento de arquitectura de la entrega.** Correspondencia con los servicios de GCP, modelo de componentes, modelo de despliegue, decisiones y adaptaciones, y diferencias frente a la arquitectura objetivo. Los diagramas son Mermaid y su bloque de código es el archivo fuente.
+* [**Informe Consolidado de Pruebas de Carga y Capacidad — 20%** (`capacity-planning/pruebas_de_carga_entrega2.md`)](capacity-planning/pruebas_de_carga_entrega2.md): **Informe oficial de capacidad.** Análisis integral de los dos escenarios (actividad académica concurrente y procesamiento/streaming multimedia), caracterización de niveles, sustentación de cuellos de botella y evolución respaldada por mediciones.
 * [Configuración Efectiva y Marco de Costos (`docs/entrega2/CONFIGURACION_Y_COSTOS.md`)](docs/entrega2/CONFIGURACION_Y_COSTOS.md): Proveedor, región, perfiles de VM, estimación fechada, presupuesto y política de encendido y apagado.
 * [Notas Técnicas de la Entrega 2 (`docs/entrega2/NOTAS_TECNICAS.md`)](docs/entrega2/NOTAS_TECNICAS.md): Hallazgos que afectan a más de un issue, con el issue al que le toca resolver cada uno. **Conviene leerlo antes de empezar un issue y revisarlo al cerrarlo.**
 * [Ejecución de las Pruebas de Multimedia (`docs/entrega2/EJECUCION_PRUEBAS_MULTIMEDIA.md`)](docs/entrega2/EJECUCION_PRUEBAS_MULTIMEDIA.md): Paso a paso de la carga directa al bucket y la lectura de un manifiesto HLS.
