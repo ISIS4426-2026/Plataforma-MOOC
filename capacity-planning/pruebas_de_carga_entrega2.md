@@ -82,30 +82,30 @@ El ejercicio evaluó dos escenarios ortogonales con objetivos arquitecturales di
 ```mermaid
 flowchart TD
     subgraph EXT["Generador Externo (Fuera de la VPC / Máquina Local)"]
-        JM["Apache JMeter 5.6.3 (Escenario 1)\n• Recorrido académico (14 pasos)\n• 9 lecturas (64%) / 5 escrituras (36%)\n• Tokens preautenticados Bearer"]
-        GE["Go Capacity Engine (Escenario 2)\n• Subida directa PUT pre-signed\n• Pacing HLS real (6.0s) vs Greedy\n• Sonda de eventos HTML5/MSE"]
+        JM["Apache JMeter 5.6.3 (Escenario 1)<br/>• Recorrido académico (14 pasos)<br/>• 9 lecturas (64%) / 5 escrituras (36%)<br/>• Tokens preautenticados Bearer"]
+        GE["Go Capacity Engine (Escenario 2)<br/>• Subida directa PUT pre-signed<br/>• Pacing HLS real (6.0s) vs Greedy<br/>• Sonda de eventos HTML5/MSE"]
     end
 
     subgraph GCP["Google Cloud Platform (us-east1)"]
-        subgraph WEB["mooc-web-server (e2-small: 2 vCPU comp, 2 GiB)"]
-            NGX["Nginx 1.27 Alpine\n(Reverse Proxy + SSL)"]
-            API["API Go 1.24\n(53 rutas REST, pool 25 conns)"]
+        subgraph WEB["mooc-web-server<br/>e2-highcpu-2 · 2 vCPU · 2 GiB"]
+            NGX["Nginx 1.27 Alpine<br/>(Reverse Proxy + SSL)"]
+            API["API Go 1.24<br/>(53 rutas REST, pool 25 conns)"]
             NGX --> API
         end
 
         subgraph WORK["mooc-worker-server (e2-highcpu-2: 2 vCPU ded, 2 GiB)"]
-            REDIS["Redis 7.2 Alpine\n(Sesiones + Cola Asynq)"]
-            WRK["Worker Daemon (Asynq v0.26)\n• WORKER_CONCURRENCY=2 fija\n• FFmpeg 6.1 (360p + 720p sin upscaling)"]
+            REDIS["Redis 7.2 Alpine<br/>(Sesiones + Cola Asynq)"]
+            WRK["Worker Daemon (Asynq v0.26)<br/>• WORKER_CONCURRENCY=2 fija<br/>• FFmpeg 6.1 (360p + 720p sin upscaling)"]
             WRK <--> REDIS
         end
 
         subgraph CSQL["Cloud SQL (db-custom-1-3840)"]
-            PG["PostgreSQL 16.4\n(1 vCPU ded, 3.75 GiB, SSD 10 GiB)\nmax_connections=100 (58 comprometidas)"]
+            PG["PostgreSQL 16.4<br/>(1 vCPU ded, 3.75 GiB, SSD 10 GiB)<br/>max_connections=100 (58 comprometidas)"]
         end
 
         subgraph GCS["Google Cloud Storage"]
-            BKT_ORIG["mooc-media-... (Privado)\nPrefijo originals/ (PUT firmado)"]
-            BKT_HLS["mooc-media-derivatives (Público)\nPrefijo hls/ (master.m3u8, variantes, .ts)"]
+            BKT_ORIG["mooc-media-... (Privado)<br/>Prefijo originals/ (PUT firmado)"]
+            BKT_HLS["mooc-media-derivatives (Público)<br/>Prefijo hls/ (master.m3u8, variantes, .ts)"]
         end
     end
 
@@ -171,7 +171,7 @@ Por sesión se ejecutan **14 peticiones: 9 lecturas (64.3%) y 5 escrituras (35.7
 | :--- | :--- | :--- |
 | **Herramienta de Carga** | Apache JMeter 5.6.3 (`justb4/jmeter:latest`) | Ejecutado en contenedor Docker; soporta modelado de árboles de pasos, aserciones JSONPath y exportación estándar de trazas `.jtl`. |
 | **Ubicación del Generador** | Máquina física externa (Windows 11, Ryzen 5 5500U, fuera de VPC) | Exigencia explícita de la rúbrica: no generar carga dentro de las VMs del clúster; mide la latencia de red real cliente-nube (~74 ms RTT). |
-| **Web Server (API)** | Instancia `mooc-web-server` (`e2-small`: 2 vCPUs compartidas, 2 GiB RAM) | Aprovisionamiento fijado en D2; Nginx 1.27 + API Go 1.24. |
+| **Web Server (API)** | Instancia `mooc-web-server` (`e2-highcpu-2`: 2 vCPU dedicadas, 2 GiB RAM) | Aprovisionamiento fijado en D2; Nginx 1.27 + API Go 1.24. |
 | **Base de Datos** | Cloud SQL `db-custom-1-3840` (PostgreSQL 16.4, 1 vCPU dedicada, 3.75 GiB RAM) | Aprovisionamiento fijado en C1; `max_connections=100`, pool de la API fijado en `DB_MAX_OPEN_CONNS=25`. |
 | **Caché / Sesiones** | Redis 7.2 Alpine en `mooc-worker-server` (red privada VPC) | Aprovisionamiento fijado en E1; almacena sesiones de 24h (`SESSION_TTL`). |
 | **Patrón de Inyección** | Rampa lineal de 30 s (60 s en N4/N5), *think time* uniforme 4–6 s | Modela lectura humana (~5 s entre clicks); evita arranque en frío masivo de conexiones TCP/TLS. |
@@ -198,134 +198,70 @@ Conforme a la regla del clasificador ([`scripts/capacity_resumen_jtl.py`](../scr
 
 ---
 
-### 1.4 Resultados Numéricos por Corrida y Variación por Nivel
+> **Las cifras de esta mitad vienen de la campaña de H3** (8 corridas del
+> 2026-09-27 entre las 22:04 y las 23:07), no del piloto previo. El detalle por
+> corrida, las métricas de GCP y la verificación en la base están en
+> [`../docs/entrega2/evidencias/H3/`](../docs/entrega2/evidencias/H3/README.md).
 
-Se evaluaron 5 niveles crecientes de carga concurrente más la línea base sin competencia, siguiendo el plan de capacidad de la sección 6 de `escenario1.md`:
+### 1.4 Resultados numéricos por corrida y variación
 
-| Métrica Registrada | Línea Base (1 u) | Nivel 1 (10 u) | Nivel 2 (25 u) | Nivel 3 (50 u) | Nivel 4 (100 u) | Nivel 5 (200 u) |
-| :--- | :---: | :---: | :---: | :---: | :---: | :---: |
-| **Usuarios Concurrentes** | 1 | 10 | 25 | 50 | 100 | 200 |
-| **Total Peticiones Medidas** | 42 | 420 | 1 050 | 2 100 | 4 200 | 8 400 |
-| **Rendimiento Efectivo (req/s)** | 2.2 | 7.7 | 15.4 | 22.8 | 27.9 | 29.8 |
-| **Latencia Global p50** | 133 ms | 14 ms* / 138 ms | 152 ms | 185 ms | 480 ms | 1 120 ms |
-| **Latencia Global p95** | 199 ms | 328 ms | 415 ms | 640 ms | 1 420 ms | 2 850 ms |
-| **Latencia Global p99** | 2 307 ms** | 589 ms | 810 ms | 1 190 ms | 2 950 ms | 4 600 ms |
-| **Lecturas: Catálogo p95** | 162 ms | 212 ms | 240 ms | 380 ms | 890 ms | 1 950 ms |
-| **Lecturas: Cursos/Detalle p95**| 141 ms | 111 ms | 125 ms | 160 ms | 340 ms | 820 ms |
-| **Escrituras: Inscripción p95**| 121 ms | 341 ms | 410 ms | 620 ms | 1 350 ms | 2 410 ms |
-| **Escrituras: Latidos p95** | 113 ms | 219 ms | 280 ms | 430 ms | 980 ms | 1 890 ms |
-| **Escrituras: Envío Quiz p95** | 135 ms | 589 ms | 690 ms | 910 ms | 2 100 ms | 3 700 ms |
-| **Envío Duplicado (Paso 11) p95**| 114 ms | 76 ms | 85 ms | 110 ms | 240 ms | 510 ms |
-| **Tasa Fallos Reales (5xx/Timeout)**| **0.00%** | **0.00%** | **0.00%** | **0.00%** | **0.02%** | **0.85%** |
-| **Fallos de Validación Funcional** | **0** | **0** | **0** | **0** | **0** | **0** |
+| Métrica | Línea base (1) | 10 | 25 | 50 | 100 | 200 (corrida 1) | 200 (rep. 1) ‡ | 200 (rep. 2) |
+| :--- | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: |
+| Peticiones medidas | 33 | 352 | 882 | 1 770 | 3 234 | 6 473 | 6 529 | 6 482 |
+| Rendimiento (pet./s) | 0,2 | 1,8 | 4,5 | 8,9 | 16,5 | 32,8 | 32,0 | 32,3 |
+| p50 (ms) | 113 | 92 | 96 | 93 | 93 | 94 | 96 | 94 |
+| p95 (ms) | 1 576 * | 328 | 375 | 338 | 372 | 380 | 789 | 377 |
+| p99 (ms) | 1 711 * | 1 298 | 1 378 | 1 289 | 1 373 | 1 365 | 1 901 | 1 364 |
+| Errores reales (5xx / timeouts) | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| Fallos de validación funcional | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 
-*\*Nota de entorno: En corridas locales la latencia base es de ~11–14 ms al no existir RTT de internet; contra la nube pública en `us-east1` el piso de red agrega ~74 ms.*  
-*\*\*Nota de calentamiento: El p99 de la línea base refleja el establecimiento inicial de la sesión TLS y pools en frío (~2.3 s); una vez estabilizado el keep-alive opera en ~130–180 ms.*
+\* La línea base tiene solo ≈ 30 muestras y una conexión nueva lenta; no es un resultado representativo.  
+‡ Corrida con el generador perturbado (pico de CPU del contenedor de JMeter de 688 % frente a 193–233 % en las otras).
 
-```mermaid
-xychart-beta
-    title "Escenario 1: Rendimiento vs Latencia p95 por Nivel de Usuarios"
-    x-axis ["Línea Base (1)", "Nivel 1 (10)", "Nivel 2 (25)", "Nivel 3 (50)", "Nivel 4 (100)", "Nivel 5 (200)"]
-    y-axis "Throughput (req/s)" 0 --> 35
-    bar [2.2, 7.7, 15.4, 22.8, 27.9, 29.8]
-    line [0.2, 0.3, 0.4, 0.6, 1.4, 2.9]
-```
+**Variación en 200 usuarios (3 corridas):** rendimiento 32,4 ± 0,4 pet./s (CV 1,1 %); p50 94,7 ± 0,9 ms; p95 515 ± 194 ms
+(377–789); p99 1 543 ± 253 ms. El rendimiento y la carga de la base son estables; la variación está en la cola de la distribución.
 
-#### Análisis de Dispersión en Repeticiones Cercanas al Límite
-En cumplimiento del plan (§6), se ejecutaron 3 repeticiones consecutivas de los niveles críticos (Nivel 3 de 50 usuarios y Nivel 4 de 100 usuarios) con reinicio de datos entre corridas:
-- **Nivel 3 (50 usuarios):** Rendimiento medio de $22.6 \pm 0.4$ req/s (coeficiente de variación $CV = 1.7\%$). Latencia p95 media de $635 \pm 22$ ms. Estabilidad excelente.
-- **Nivel 4 (100 usuarios):** Rendimiento medio de $27.4 \pm 0.8$ req/s ($CV = 2.9\%$). Latencia p95 media de $1410 \pm 65$ ms. Comportamiento reproducible dentro de la zona de saturación.
+### 1.5 Métricas de infraestructura
 
----
+| Recurso | 10 usuarios | 50 | 100 | 200 (3 corridas) | Diagnóstico |
+| :--- | :-: | :-: | :-: | :-: | :--- |
+| CPU `mooc-web-server` (media / máx., %) | 5,8 / 8,1 | 7,2 / 10,4 | 8,8 / 13,3 | 11,5–19,4 / 15,0–33,9 | Holgada |
+| Memoria `mooc-web-server` (%) | 30,7 | 31,0 | 30,4 | 30,9–31,8 | Estable |
+| CPU Cloud SQL (media / máx., %) | 10,6 / 11,0 | 12,8 / 15,6 | 14,3 / 18,1 | 17,9–20,3 / 26,0–27,1 | Holgada |
+| Conexiones a la base (máx.) | 4 | 6 | 7 | 15 · 27 · 17 | Tope del pool de la API ≈ 29 (25 + 4): se rozó una vez |
+| Transacciones de PostgreSQL por segundo (máx.) | 19 | 93 | 174 | 342–356 | ≈ 10 por petición |
+| CPU `mooc-worker-server` (máx., %) | 8,5 | 3,0 | 6,4 | 6,9 | Solo aloja Redis de sesiones |
 
-### 1.5 Métricas de Infraestructura y Aplicación
+### 1.6 Punto de degradación y cuello de botella
 
-La instrumentación desplegada en H1 (Google Cloud Ops Agent y métricas nativas de Cloud SQL) permitió correlacionar el comportamiento de la aplicación con los recursos físicos:
+**No se alcanzó saturación.** Hasta 200 usuarios concurrentes (≈ 32 peticiones/s) ningún nivel activó los criterios del plan
+(errores reales > 1 %, p95 > 1 s sostenido, aplanamiento del rendimiento, fallos de validación). El rendimiento creció de forma lineal
+con la carga. **El máximo probado es 200 usuarios / 32,8 peticiones/s y no debe leerse como la capacidad máxima.** No se ejecutó la serie de
+presión que buscaría el punto real de degradación.
 
-| Componente de Infraestructura | Métrica Observada | Nivel 1 (10 u) | Nivel 3 (50 u) | Nivel 4 (100 u) | Nivel 5 (200 u) | Estado / Diagnóstico |
-| :--- | :--- | :---: | :---: | :---: | :---: | :--- |
-| **`mooc-web-server`** | **Utilización CPU (%)** | 12% | 45% | **82%** | **96%** | **Saturado en N4/N5 (CPU Throttling en vCPU compartida)** |
-| **`mooc-web-server`** | **Memoria RAM en uso** | 620 MiB | 710 MiB | 840 MiB | 980 MiB | Saludable (Margen holgado sobre 2.0 GiB) |
-| **Cloud SQL (`postgres`)** | **Utilización CPU (%)** | 4% | 12% | 22% | 31% | **Holgado (< 35% CPU dedicada)** |
-| **Cloud SQL (`postgres`)** | **Conexiones Activas** | 8 | 18 | **25 (Tope pool)** | **25 (Tope pool)** | **Pool de Go (`DB_MAX_OPEN_CONNS`) agotado** |
-| **Worker / Redis** | **Utilización CPU (%)** | 1% | 2% | 3% | 4% | Despreciable (Sesiones Redis y métricas) |
+Recurso con menos margen entre los medidos: la CPU de Cloud SQL (media 20 %, máx. 27 %); con una extrapolación **lineal** (estimación,
+no medición) llegaría a 80 % hacia las 240 peticiones/s. El pool de conexiones de la API (`DB_MAX_OPEN_CONNS = 25`) rozó su tope (27 conexiones
+abiertas de ≈ 29) en un pico. La CPU del Web Server no es el límite en el rango probado (12–34 %).
 
----
+**Origen de la cola de latencia:** sobre conexiones ya abiertas, el p95 del servidor es ≈ 117 ms; las peticiones que abren una conexión nueva
+(≈ 9,5 % del total) tienen un tiempo de conexión p95 de ≈ 1 285 ms, y el 100 % de las peticiones de 1,2–1,7 s son de ese tipo.
 
-### 1.6 Punto de Degradación y Sustentación del Cuello de Botella
+### 1.7 Integridad y validación funcional
 
-#### Identificación del Límite de Capacidad
-- **Régimen Nominal y Saludable:** Hasta **50 usuarios concurrentes (~23 req/s sostenidas)**. La latencia p95 se mantiene en ~640 ms (muy por debajo del límite de degradación de 1.0 s) con cero fallos reales y cero fallos funcionales.
-- **Punto de Degradación:** Comienza a manifestarse entre **50 y 100 usuarios concurrentes**. Al pasar a 100 usuarios, el rendimiento se desacelera (solo sube de 22.8 a 27.9 req/s, un incremento de apenas 22% frente a un aumento del 100% en carga) y la latencia p95 salta a 1.42 s.
+Tras cada corrida se consultó Cloud SQL directamente (`scripts/seeds/capacity_verificar_estado.sql`): con N usuarios, exactamente N estudiantes
+con exactamente 3 envíos, N inscripciones y **0 envíos duplicados del mismo intento**, incluso con los reenvíos con la misma `Idempotency-Key`
+(paso 11). Las 8 corridas dan `OK`. Control negativo: [`H2/resultados/local-sin-reinicio_*`](../docs/entrega2/evidencias/H2/resultados/local-sin-reinicio_20260927_202240/resumen.txt).
 
-#### Cuadro de Sustentación y Descarte de Cuello de Botella
+### 1.8 Limitaciones
 
-```mermaid
-flowchart LR
-    subgraph WebServer["mooc-web-server (e2-small)"]
-        CPU_WEB["vCPU Compartida\n(Saturación 82-96%)"]
-        POOL_GO["Pool database/sql\n(Tope DB_MAX_OPEN_CONNS=25)"]
-    end
+Un solo generador con una sola IP (login fuera del recorrido, ráfaga aparte: 10 respuestas 200 y 10 respuestas 429 con 20 cuentas); memoria limitada
+del portátil generador; una de las tres corridas de 200 usuarios con el generador perturbado; **serie de presión y métricas de la API no disponibles**.
 
-    subgraph CloudSQL["Cloud SQL (db-custom-1-3840)"]
-        CPU_DB["vCPU Dedicada\n(Utilización 22-31%)"]
-        CONNS_DB["max_connections=100\n(Conexiones reales: 25)"]
-    end
+### 1.9 Propuesta de evolución con respaldo
 
-    CPU_WEB -->|CUELLO DE BOTELLA PRIMARIO| BOTTLENECK["Degradación en Nivel 4 (100 u)\n• Latencia de encolado en pool de Go\n• Throttling de CPU compartida"]
-    POOL_GO -->|Contención en cliente| BOTTLENECK
-    CPU_DB -.->|Descartado: Capacidad sobrante| OK_DB["Base de datos sana"]
-    CONNS_DB -.->|Descartado: Margen de 42 conns| OK_DB
-```
-
-1. **Descarte de Cloud SQL (Base de Datos):** La base de datos administrada operó con menos del 31% de CPU en el máximo nivel probado. El límite físico de PostgreSQL (`max_connections=100`) nunca estuvo en riesgo; las 25 conexiones abiertas correspondieron al tope configurado en el pool cliente de Go (`database.tf`, Nota Técnica 11). Las consultas SQL individuales mantuvieron tiempos de ejecución inferiores a 15 ms.
-2. **Descarte de Redis y Red:** La latencia de validación de sesiones en Redis se mantuvo en < 1 ms. El tráfico total de red de la API no superó los 150 KB/s, muy por debajo de la capacidad de red de la VPC y del enlace local.
-3. **CUELLO DE BOTELLA PRIMARIO:** El límite está determinado por la **conjunción de la CPU compartida de la instancia `mooc-web-server` (`e2-small`) y el tamaño del pool de conexiones `DB_MAX_OPEN_CONNS=25` de la API en Go**. Con 100 usuarios emitiendo 5 escrituras y 9 lecturas por ciclo, las peticiones entrantes deben esperar un slot libre en el pool interno de conexiones de Go. Al saturarse los créditos de CPU de la máquina virtual `e2-small`, el tiempo de despacho HTTP se degrada geométricamente.
-
----
-
-### 1.7 Comprobación de Integridad y Validación Funcional
-
-El enunciado oficial exige verificar explícitamente:
-> *«¿Se conservan la integridad de intentos, la calificación y el progreso bajo concurrencia? Incluir una comprobación de envío duplicado sin doble calificación.»*
-
-#### A. Envío Duplicado sin Doble Calificación (Paso 11)
-En cada sesión, el paso 11 reenvía de forma inmediata exactamente el mismo cuerpo JSON del quiz utilizando la **misma `Idempotency-Key`** que el paso 10:
-- **Respuesta de la API:** La API intercepta la clave en la tabla de idempotencia y retorna HTTP 200 con **el mismo identificador de envío (`submission_id`) y el mismo número de intento**. La latencia del paso 11 (p95 de 76–110 ms) es 5 veces menor que la del paso 10 porque no reevalúa las preguntas ni adquiere bloqueos en la base de datos.
-- **Integridad Terminal en Base de Datos:** Se ejecutó [`scripts/seeds/capacity_verificar_estado.sql`](../scripts/seeds/capacity_verificar_estado.sql) directamente contra Cloud SQL tras concluir las corridas:
-  ```sql
-  SELECT submission_count, COUNT(*) 
-  FROM (
-      SELECT enrollment_id, quiz_id, attempt_number, count(*) as submission_count 
-      FROM quiz_submissions 
-      GROUP BY enrollment_id, quiz_id, attempt_number
-  ) sub 
-  GROUP BY submission_count;
-  ```
-  **Resultado:** 100% de los intentos registraron `submission_count = 1`. **Cero envíos duplicados en la base de datos**.
-
-#### B. Progresión Monótona de Calificación y Avance
-- La progresión de las 3 sesiones por usuario demostró que la calificación calculada por el backend respeta estrictamente las respuestas (50 $\to$ 100 $\to$ 0).
-- El paso 12 validó que el recurso del quiz solo pasa a completado cuando el intento es aprobado (Sesión 2), elevando `completed_count` de 2 a 3. En la Sesión 3 (calificación 0), el avance no sufre regresión y permanece en 3 de 3.
-- **Control Negativo Validado:** En la corrida [`local-sin-reinicio`](../docs/entrega2/evidencias/H2/resultados/local-sin-reinicio_20260927_202240/resumen.txt), al reejecutar la prueba sobre cuentas que ya habían agotado sus 3 intentos, las aserciones de JMeter atraparon **18 respuestas HTTP 409 Conflict ("sin intentos restantes")** y **9 fallos de validación funcional**, demostrando que las validaciones funcionales están activas y no aceptan falsos positivos.
-
----
-
-### 1.8 Limitaciones del Experimento
-
-1. **Generador con IP Única:** Toda la carga se generó desde una única dirección IP pública doméstica. Esto impidió medir el inicio de sesión concurrente dentro del ciclo continuo por el limitador de tasa de seguridad (10 logins/min).
-2. **Capacidad de Cómputo del Generador:** La máquina local de pruebas contaba con ~600 MiB de RAM libre en el momento de la ejecución. Aunque suficiente para 100–200 hilos JMeter livianos, una concurrencia mayor exigiría desplegar generadores distribuidos.
-3. **Catálogo Creciente:** El catálogo de cursos en la nube contiene cursos acumulados de corridas previas, lo que incrementa el payload del paso 1 frente al entorno local limpio.
-
----
-
-### 1.9 Propuesta de Evolución con Respaldo Numérico
-
-| Propuesta de Evolución | Diagnóstico que la Motiva | Medición Numérica de Respaldo | Impacto Esperado en Capacidad |
-| :--- | :--- | :--- | :--- |
-| **1. Read Replicas en Cloud SQL para el 64% de Lecturas** | El 64.3% del tráfico del Escenario 1 son lecturas (catálogo, módulos, unidades). Estas lecturas compiten por las 25 conexiones del pool maestro. | En Nivel 4, las lecturas ocupan ~16 de las 25 conexiones del pool, provocando encolamiento de las escrituras transaccionales. | Desviar lecturas a una réplica de lectura libera el 100% del pool del primario para inscripciones y calificaciones, duplicando la capacidad a **> 50 req/s**. |
-| **2. PgBouncer en Modo Transacción** | El pool de Go (`DB_MAX_OPEN_CONNS=25`) es fijo por proceso para no exceder las 58 conexiones comprometidas en PostgreSQL (Nota 11). | Con 100 usuarios, las peticiones esperan hasta 800 ms antes de obtener una conexión libre en Go, mientras PostgreSQL reporta solo 22% de CPU. | PgBouncer multiplexa cientos de conexiones HTTP sobre 10–15 conexiones físicas de PostgreSQL, eliminando la contención de conexión en el cliente Go. |
-| **3. Migración a Instancia Web con vCPU Dedicada (`e2-standard-2`)** | `mooc-web-server` usa `e2-small` con CPU compartida, sufriendo estrangulamiento cuando la utilización supera el 80%. | La CPU de la VM alcanzó 82% en Nivel 4 y 96% en Nivel 5, triplicando la latencia de despacho. | Contar con 2 vCPUs dedicadas garantiza cómputo continuo sin penalización por créditos, estabilizando la latencia p95 por debajo de 500 ms hasta 150 usuarios. |
+Primero confirmar el origen de la espera de ≈ 1 s al conectar (contadores de descartes de SYN en la VM web antes y después de una corrida) y
+habilitar `ssl_session_cache` y HTTP/2 en nginx; después medir el pool antes de subir `DB_MAX_OPEN_CONNS`. **No** hay evidencia que respalde
+cambiar el tipo de VM, agregar réplicas de lectura ni un balanceador con la CPU del web en 12–34 % y la de la base en 27 %.
 
 ---
 
@@ -574,10 +510,10 @@ El contraste entre ambos escenarios ilustra dos perfiles operativos fundamentale
 | **Naturaleza del Flujo** | Sincrónico, transaccional, interactivo | Asincrónico, intensivo en cómputo, orientado a batches |
 | **Plano Arquitectural Dominante** | **Plano de Control y Persistencia** | **Plano de Datos y Cómputo Asíncrono** |
 | **Componentes Críticos** | API Go + Cloud SQL + Redis Sesiones | Cloud Storage + Cola Asynq + FFmpeg Workers |
-| **Cuello de Botella Primario** | **vCPU compartida en Web Server + Pool de conexiones Go (`DB_MAX_OPEN_CONNS=25`)** | **vCPU física en Worker Server (Cómputo FFmpeg con concurrencia fija en 2)** |
+| **Cuello de Botella Primario** | **No se alcanzó saturación hasta 200 usuarios.** El recurso con menos margen fue la CPU de Cloud SQL (máx. 27 %); la cola de latencia la produce el establecimiento de conexiones nuevas, no el procesamiento | **vCPU física en Worker Server (Cómputo FFmpeg con concurrencia fija en 2)** |
 | **Comportamiento ante Saturación** | Incremento geométrico de latencia HTTP p95; encolamiento en el driver de base de datos | Crecimiento lineal de la profundidad de cola (`pending`); latencia HTTP de la API completamente inmune |
 | **Garantía de Integridad Probada** | Idempotencia en envío de quiz (0 duplicados en Cloud SQL); monotonicidad del progreso | Reconciliación terminal del 100% de tareas a `completed` en Cloud SQL; 0 tareas en DLQ |
-| **Evolución Prioritaria en Producción** | Read Replicas en Cloud SQL + PgBouncer | Cloud CDN en bucket HLS + Autoescalado MIG de workers |
+| **Evolución Prioritaria en Producción** | Confirmar el origen de la espera al conectar; `ssl_session_cache` y HTTP/2 en nginx. **Sin evidencia** para cambiar el tipo de VM ni para réplicas de lectura, con la CPU del web en 12–34 % | Cloud CDN en bucket HLS + Autoescalado MIG de workers |
 
 ---
 

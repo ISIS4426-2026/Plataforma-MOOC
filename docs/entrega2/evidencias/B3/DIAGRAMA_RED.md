@@ -27,56 +27,55 @@
 Este diagrama ilustra la topología de red aprovisionada por Terraform (`network.tf`), mostrando la separación entre el acceso público desde Internet y los componentes internos aislados en la VPC privada.
 
 ```mermaid
-flowchart TD
-    subgraph Internet ["🌐 Internet (0.0.0.0/0)"]
-        User["Cliente / Navegador"]
-        Admin["Administrador / DevOps"]
-    end
+flowchart TB
+    user(["Cliente / Navegador"])
+    admin(["Administrador"])
+    iap["Cloud IAP<br/>35.235.240.0/20"]
 
-    subgraph GoogleIAP ["🛡️ Google Cloud IAP (35.235.240.0/20)"]
-        IAPProxy["Túnel IAP SSH"]
-    end
+    subgraph gcp ["Google Cloud · plataforma-mooc-entrega2 · us-east1"]
+        direction TB
 
-    subgraph GCP ["☁️ Google Cloud Project: plataforma-mooc-entrega2"]
-        subgraph VPC ["🔒 mooc-vpc (10.0.0.0/16)"]
-            
-            subgraph Subnet ["🖥️ mooc-subnet (us-east1: 10.0.1.0/24)"]
-                WebServer["🌐 Web Server VM\nTag: web-server\nTag: allow-iap-ssh\nIP Privada: 10.0.1.4 (asignada por DHCP)\nIP Pública: Externa Estática"]
-                WorkerServer["⚙️ Worker Server VM\nTag: worker-server\nTag: allow-iap-ssh\nIP Privada: 10.0.1.5 (asignada por DHCP)\nIP Pública: Externa Estática\nSin regla de ingreso: inalcanzable"]
-                RedisQueue[("📦 Cola de Mensajería (Asynq/Redis)\nPuerto: 6379\nEjecutando en Worker Server")]
+        subgraph vpc ["mooc-vpc · 10.0.0.0/16"]
+            direction TB
+
+            subgraph sub ["mooc-subnet · 10.0.1.0/24"]
+                direction LR
+
+                subgraph web ["mooc-web-server · 10.0.1.4"]
+                    direction TB
+                    wnginx["nginx<br/>80 y 443"]
+                    wapi["API en Go"]
+                end
+
+                subgraph wrk ["mooc-worker-server · 10.0.1.5"]
+                    direction TB
+                    queue[("Redis · asynq<br/>6379")]
+                    wproc["Worker · FFmpeg"]
+                end
             end
 
-            CloudNAT["📡 Cloud Router & Cloud NAT\n(Egress Outbound para actualizaciones)"]
-
-            subgraph ServicePeering ["🔐 Service Networking Peering (10.0.2.0/20)"]
-                CloudSQL[("🗄️ Cloud SQL PostgreSQL (C1)\nSolo IP Privada: 10.171.240.3\nIPv4 Pública: Deshabilitada")]
-            end
+            sql[("Cloud SQL · mooc-db-1<br/>10.171.240.3 · sin IPv4 pública<br/>Private Services Access · 10.171.240.0/20")]
         end
     end
 
-    %% Conexiones Públicas
-    User -->|HTTP 80 / HTTPS 443| WebServer
-    Admin -->|gcloud compute ssh --tunnel-through-iap| IAPProxy
-    IAPProxy -->|SSH 22| WebServer
-    IAPProxy -->|SSH 22| WorkerServer
+    user ==>|"80 y 443<br/>mooc-allow-web-ingress<br/>solo etiqueta web-server"| wnginx
+    admin -.->|"gcloud compute ssh<br/>--tunnel-through-iap"| iap
+    iap -.->|"22 · mooc-allow-ssh-iap<br/>etiqueta allow-iap-ssh"| web
+    iap -.->|"22 · mooc-allow-ssh-iap"| wrk
+    wnginx --> wapi
+    wapi -->|"6379 · mooc-allow-internal"| queue
+    queue --> wproc
+    wapi -->|"5432 · TLS"| sql
+    wproc -->|"5432 · TLS"| sql
 
-    %% Conexiones Internas VPC
-    WebServer -->|TCP Interno: 6379| RedisQueue
-    WebServer -->|PostgreSQL 5432| CloudSQL
-    WorkerServer -->|PostgreSQL 5432| CloudSQL
-
-    %% Salida Egress
-    WorkerServer -->|Egress HTTP/HTTPS| CloudNAT
-    CloudNAT -->|Salida a repositorios/APIs| Internet
-
-    %% Estilos de Nodos
-    style User fill:#e1f5fe,stroke:#0288d1,stroke-width:2px
-    style Admin fill:#fff3e0,stroke:#f57c00,stroke-width:2px
-    style WebServer fill:#d1c4e9,stroke:#512da8,stroke-width:2px
-    style WorkerServer fill:#c8e6c9,stroke:#388e3c,stroke-width:2px
-    style RedisQueue fill:#ffcdd2,stroke:#d32f2f,stroke-width:2px
-    style CloudSQL fill:#bbdefb,stroke:#1976d2,stroke-width:2px
-    style CloudNAT fill:#fff9c4,stroke:#fbc02d,stroke-width:2px
+    classDef publico fill:#e6f4ea,stroke:#1e8e3e,color:#1a202c
+    classDef privado fill:#fde8e8,stroke:#c53030,color:#1a202c
+    classDef proc fill:#e8f0fe,stroke:#1a73e8,color:#1a202c
+    classDef ext fill:#f1f3f4,stroke:#5f6368,color:#1a202c
+    class wnginx publico
+    class sql,queue privado
+    class wapi,wproc proc
+    class user,admin,iap ext
 ```
 
 ---
@@ -88,10 +87,10 @@ flowchart TD
 
 2. **Worker Server y Cola de Mensajería (Totalmente Isolados):**
    * El Worker Server no expone ningún puerto hacia internet. Su puerto Redis/Asynq (`6379`) y servicios internos solo son accesibles desde dentro del rango CIDR privado `10.0.1.0/24`.
-   * **Salida a Internet (Egress):** Utiliza Cloud Router + Cloud NAT para descargar imágenes Docker y paquetes del sistema (`apt update`), manteniendo cero puertos expuestos a escaneos entrantes externos.
+   * **Salida a Internet (Egress):** Sale por su **propia dirección IPv4 externa**, no por el Cloud NAT. Fue la decisión de costos de B1 y no debilita nada: la salida no abre puertos entrantes, que los gobiernan las reglas de ingreso. `mooc-nat` existe en la infraestructura pero **no procesa tráfico de ninguna de las dos máquinas**, porque una VM con dirección externa no lo atraviesa — pendiente de resolver en I2.
 
 3. **Base de Datos Administrada Cloud SQL (C1):**
-   * Configurada mediante **Private Services Access** (`servicenetworking.googleapis.com`) sobre el rango peering `10.0.2.0/20`.
+   * Configurada mediante **Private Services Access** (`servicenetworking.googleapis.com`) sobre el rango de peering reservado `10.171.240.0/20`, que es el que asignó Google al crear la interconexión.
    * No posee dirección IP pública (`ipv4_enabled = false`). Únicamente acepta conexiones PostgreSQL (puerto `5432`) desde las direcciones IP privadas pertenecientes a la subred `10.0.1.0/24`.
 
 4. **Administración Segura vía IAP:**

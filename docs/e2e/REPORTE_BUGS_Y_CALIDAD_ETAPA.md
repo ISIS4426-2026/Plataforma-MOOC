@@ -505,8 +505,8 @@ make demo-segment4
 
 Los siguientes enlaces canónicos permiten inspeccionar en detalle el código, las guías de demostración y las evidencias recopiladas:
 
-* [Plan de Pruebas Maestro de la Etapa](file:///mnt/c/Users/User/Desktop/MBC_IV/Soluciones%20Cloud/Proyectos/P1_data/Plataforma-MOOC/docs/PLAN_DE_PRUEBAS_ETAPA.md)
-* [Reporte Detallado de Pruebas E2E: Identidad y Autoría](file:///mnt/c/Users/User/Desktop/MBC_IV/Soluciones%20Cloud/Proyectos/P1_data/Plataforma-MOOC/docs/e2e/REPORTE_E2E_IDENTIDAD_Y_AUTORIA.md)
-* [Guía de Demostración para Evaluadores: Segmentos 1 y 2](file:///mnt/c/Users/User/Desktop/MBC_IV/Soluciones%20Cloud/Proyectos/P1_data/Plataforma-MOOC/docs/e2e/DEMO_SEGMENTOS_1_Y_2.md)
-* [Directrices Técnicas y Guardrails de Arquitectura](file:///mnt/c/Users/User/Desktop/MBC_IV/Soluciones%20Cloud/Proyectos/P1_data/Plataforma-MOOC/docs/PROJECT_KEY_ASPECTS.md)
-* [Directorio de Evidencias Capturadas (Respuestas HTTP, Logs y Correos)](file:///mnt/c/Users/User/Desktop/MBC_IV/Soluciones%20Cloud/Proyectos/P1_data/Plataforma-MOOC/docs/e2e/evidencia/)
+* [Plan de Pruebas Maestro de la Etapa](../PLAN_DE_PRUEBAS_ETAPA.md)
+* [Reporte Detallado de Pruebas E2E: Identidad y Autoría](../e2e/REPORTE_E2E_IDENTIDAD_Y_AUTORIA.md)
+* [Guía de Demostración para Evaluadores: Segmentos 1 y 2](../e2e/DEMO_SEGMENTOS_1_Y_2.md)
+* [Directrices Técnicas y Guardrails de Arquitectura](../PROJECT_KEY_ASPECTS.md)
+* [Directorio de Evidencias Capturadas (Respuestas HTTP, Logs y Correos)](../e2e/evidencia/)
