@@ -57,6 +57,13 @@ resource "google_compute_instance" "web_server" {
     scopes = ["https://www.googleapis.com/auth/cloud-platform"]
   }
 
+  # El agente de OS Config, que las imagenes de Debian activan solas. Declararlo
+  # mantiene el plan limpio: sin esta linea Terraform propone quitarlo en cada
+  # `apply`, y la siguiente recreacion de la VM lo vuelve a poner.
+  metadata = {
+    enable-osconfig = "TRUE"
+  }
+
   metadata_startup_script = <<-EOT
     #!/usr/bin/env bash
     set -euo pipefail
@@ -148,6 +155,13 @@ resource "google_compute_instance" "worker_server" {
   service_account {
     email  = google_service_account.worker_server.email
     scopes = ["https://www.googleapis.com/auth/cloud-platform"]
+  }
+
+  # El agente de OS Config, que las imagenes de Debian activan solas. Declararlo
+  # mantiene el plan limpio: sin esta linea Terraform propone quitarlo en cada
+  # `apply`, y la siguiente recreacion de la VM lo vuelve a poner.
+  metadata = {
+    enable-osconfig = "TRUE"
   }
 
   metadata_startup_script = <<-EOT

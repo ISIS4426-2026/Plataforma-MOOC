@@ -81,11 +81,42 @@ func sslModeDe(dsn string) string {
 }
 
 // Validate comprueba que la configuracion no arrastra valores de desarrollo a
-// un entorno que no lo es.
+// un entorno que no lo es. Es la comprobacion de la API, que sirve HTTP y envia
+// correo, asi que exige tambien lo que hace falta para eso.
 //
 // Devuelve todos los problemas juntos y no el primero: quien despliega prefiere
 // una lista de cuatro cosas que corregir a cuatro intentos de arranque.
 func (c *Config) Validate() error {
+	return c.validar(true)
+}
+
+// ValidateWorker es la misma comprobacion para el proceso que no sirve HTTP ni
+// manda correo.
+//
+// Existe porque la version unica era imposible de satisfacer. El worker exigia
+// SMTP_PASSWORD, y mail.tf le niega ese secreto a proposito --«el worker no
+// aparece a proposito, y no es un olvido: procesa video y no manda mensajes»--,
+// asi que la unica forma de arrancarlo en produccion era darle una credencial
+// que la infraestructura decidio que no debia tener, o inventarse un valor
+// falso para enganar al validador.
+//
+// Lo encontro G3: el worker llevaba en bucle de reinicio desde que se recrearon
+// las VMs, quejandose de APP_BASE_URL, CSRF y SMTP --tres cosas que no usa--
+// mientras la cola se llenaba de tareas que nadie procesaba. Un arranque que
+// solo se puede lograr contradiciendo el modelo de permisos no es una
+// comprobacion, es un obstaculo. Ver la nota 20 de
+// docs/entrega2/NOTAS_TECNICAS.md.
+//
+// Lo que si comparte con la API se sigue comprobando entero: la base, su
+// cifrado, el almacenamiento y el tamano de los pools. Ahi un valor de
+// desarrollo tiene exactamente las mismas consecuencias en los dos procesos.
+func (c *Config) ValidateWorker() error {
+	return c.validar(false)
+}
+
+// validar reune las comprobaciones. sirveHTTP distingue a la API del worker: no
+// es un "modo estricto" y uno laxo, son dos procesos con superficies distintas.
+func (c *Config) validar(sirveHTTP bool) error {
 	var problemas []string
 
 	// Esta si se comprueba en todo entorno, porque en ninguno es intencionada:
@@ -136,6 +167,64 @@ func (c *Config) Validate() error {
 		problemas = append(problemas,
 			"S3_SECRET_KEY conserva el valor de desarrollo")
 	}
+
+	if sirveHTTP {
+		problemas = append(problemas, c.problemasDeSuperficieHTTP()...)
+	}
+
+	// La instancia de Cloud SQL del issue #118 no tiene IP publica y esta en
+	// ENCRYPTED_ONLY, asi que rechaza las conexiones en claro. Sin esta
+	// comprobacion, el sintoma de una cadena con `sslmode=disable` es un fallo
+	// de conexion en el arranque cuyo mensaje no menciona el cifrado.
+	if modo := sslModeDe(c.DatabaseURL); !slices.Contains(sslModesCifrados, modo) {
+		if modo == "" {
+			problemas = append(problemas,
+				"DATABASE_URL no lleva sslmode: Cloud SQL exige conexion cifrada; usar sslmode=require")
+		} else {
+			problemas = append(problemas, fmt.Sprintf(
+				"DATABASE_URL usa sslmode=%s, que deja el cifrado a criterio del servidor; usar require, verify-ca o verify-full",
+				modo))
+		}
+	}
+
+	// Cero significa «sin limite» en database/sql, y un pool sin limite contra
+	// una instancia con max_connections declarado es la forma de descubrir el
+	// limite bajo carga (nota 11 de NOTAS_TECNICAS.md). El reparto de las 100
+	// conexiones esta en infra/terraform/database.tf.
+	if c.DBMaxOpenConns <= 0 {
+		problemas = append(problemas,
+			"DB_MAX_OPEN_CONNS sin limite: la instancia administrada tiene un tope de conexiones y lo comparten la API y el worker")
+	}
+
+	if len(problemas) == 0 {
+		return nil
+	}
+	return unError(problemas)
+}
+
+func httpsOrigin(raw string) (string, bool) {
+	parsed, err := url.Parse(raw)
+	if err != nil || parsed.Scheme != "https" || parsed.Host == "" || parsed.User != nil ||
+		parsed.Path != "" || parsed.RawQuery != "" || parsed.Fragment != "" {
+		return "", false
+	}
+	return parsed.Scheme + "://" + parsed.Host, true
+}
+
+// unError junta los problemas en un solo mensaje. Quien despliega prefiere una
+// lista que corregir a un arranque fallido por cada cosa.
+func unError(problemas []string) error {
+	return fmt.Errorf(
+		"la configuracion de produccion conserva valores de desarrollo:\n  - %s",
+		strings.Join(problemas, "\n  - "))
+}
+
+// problemasDeSuperficieHTTP reune lo que solo le toca al proceso que atiende
+// peticiones y manda correo: los enlaces publicos, el proxy de confianza, el
+// CSRF y las credenciales del proveedor SMTP. Nada de esto lo usa el worker, y
+// la del correo ni siquiera puede leerla.
+func (c *Config) problemasDeSuperficieHTTP() []string {
+	var problemas []string
 
 	// APP_BASE_URL arma los enlaces de activacion, de recuperacion de contrasena
 	// y, desde el issue #113, el de verificacion de insignias. Si apunta a
@@ -218,49 +307,5 @@ func (c *Config) Validate() error {
 		problemas = append(problemas, "SMTP_FROM no parece una direccion de correo")
 	}
 
-	// La instancia de Cloud SQL del issue #118 no tiene IP publica y esta en
-	// ENCRYPTED_ONLY, asi que rechaza las conexiones en claro. Sin esta
-	// comprobacion, el sintoma de una cadena con `sslmode=disable` es un fallo
-	// de conexion en el arranque cuyo mensaje no menciona el cifrado.
-	if modo := sslModeDe(c.DatabaseURL); !slices.Contains(sslModesCifrados, modo) {
-		if modo == "" {
-			problemas = append(problemas,
-				"DATABASE_URL no lleva sslmode: Cloud SQL exige conexion cifrada; usar sslmode=require")
-		} else {
-			problemas = append(problemas, fmt.Sprintf(
-				"DATABASE_URL usa sslmode=%s, que deja el cifrado a criterio del servidor; usar require, verify-ca o verify-full",
-				modo))
-		}
-	}
-
-	// Cero significa «sin limite» en database/sql, y un pool sin limite contra
-	// una instancia con max_connections declarado es la forma de descubrir el
-	// limite bajo carga (nota 11 de NOTAS_TECNICAS.md). El reparto de las 100
-	// conexiones esta en infra/terraform/database.tf.
-	if c.DBMaxOpenConns <= 0 {
-		problemas = append(problemas,
-			"DB_MAX_OPEN_CONNS sin limite: la instancia administrada tiene un tope de conexiones y lo comparten la API y el worker")
-	}
-
-	if len(problemas) == 0 {
-		return nil
-	}
-	return unError(problemas)
-}
-
-func httpsOrigin(raw string) (string, bool) {
-	parsed, err := url.Parse(raw)
-	if err != nil || parsed.Scheme != "https" || parsed.Host == "" || parsed.User != nil ||
-		parsed.Path != "" || parsed.RawQuery != "" || parsed.Fragment != "" {
-		return "", false
-	}
-	return parsed.Scheme + "://" + parsed.Host, true
-}
-
-// unError junta los problemas en un solo mensaje. Quien despliega prefiere una
-// lista que corregir a un arranque fallido por cada cosa.
-func unError(problemas []string) error {
-	return fmt.Errorf(
-		"la configuracion de produccion conserva valores de desarrollo:\n  - %s",
-		strings.Join(problemas, "\n  - "))
+	return problemas
 }

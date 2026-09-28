@@ -397,6 +397,22 @@ login SMTP no es la clave: Brevo muestra un correo técnico que puede terminar e
 
 ### 4. Configurar la VM sin datos personales en Git
 
+Las dos direcciones privadas **se leen de Terraform, no se copian de aquí**. Una
+VM recreada recibe otra IP, y un literal en este documento envejece sin avisar:
+las VMs ya se recrearon una vez y pasaron de `10.0.1.2`/`10.0.1.3` a
+`10.0.1.4`/`10.0.1.5`. Desde tu máquina, antes de entrar a la VM:
+
+```bash
+cd infra/terraform
+terraform output -raw db_private_ip              # DB_PRIVATE_IP
+terraform output -raw worker_server_private_ip   # QUEUE_PRIVATE_IP
+```
+
+Desde tu máquina, **no desde la VM**: `sa-web-server` no tiene
+`compute.instances.get` sobre la instancia del worker, y no hay que concedérselo
+—esa separación es justo lo que E1 construyó—. Preguntar por la IP allí dentro
+falla con `Required 'compute.instances.get' permission`.
+
 En `mooc-web-server`, crear el archivo de configuración operativa:
 
 ```bash
@@ -404,7 +420,8 @@ sudo install -d -m 0755 /etc/mooc
 sudo tee /etc/mooc/web.conf >/dev/null <<'EOF'
 IMAGE_TAG=<SHA_COMPLETO_DE_LA_IMAGEN_PUBLICADA>
 APP_DOMAIN=34.24.52.111.sslip.io
-DB_PRIVATE_IP=10.171.240.3
+DB_PRIVATE_IP=<terraform output -raw db_private_ip>
+QUEUE_PRIVATE_IP=<terraform output -raw worker_server_private_ip>
 SMTP_HOST=smtp-relay.brevo.com
 SMTP_PORT=587
 SMTP_FROM=<CORREO_REMITENTE_VERIFICADO>
@@ -416,6 +433,14 @@ sudo chmod 640 /etc/mooc/web.conf
 
 Ese archivo no contiene contraseñas, pero queda fuera del repositorio porque el
 remitente y el login identifican la cuenta del equipo.
+
+**`QUEUE_PRIVATE_IP` es la IP privada del Worker Server, no la del propio Web
+Server.** Ahí viven la cola de asynq y el almacén de sesiones, límites e
+idempotencia (E1). Si falta, `prepare_web_env.sh` detiene el despliegue a
+propósito: la alternativa —apuntar al contenedor `redis` del propio Compose— deja
+a la API encolando tareas de media en un broker que ningún worker lee, y eso no
+falla, solo deja cada video en `pending` para siempre. Es el defecto #166, que
+encontró la verificación E2E de G3.
 
 El script versionado sustituye el `prepare_env.sh` manual de D2. Lee
 `db-password` y `smtp-password` con la cuenta de servicio de la VM, escribe
@@ -450,3 +475,105 @@ admitido.
 Crear una SMTP key nueva en Brevo, añadirla como versión de `smtp-password`,
 reiniciar solo la API y comprobar un correo. Revocar la clave anterior después
 de esa prueba. El worker no usa SMTP.
+
+---
+
+## Worker Server: despliegue y reconstrucción
+
+El stack asíncrono de E1 —la cola y el procesador de video— vive en
+`mooc-worker-server` y se despliega igual que el de la VM web: un archivo de
+configuración operativa fuera de Git, un script versionado que arma el `.env`
+leyendo los secretos con la cuenta de servicio, y una unidad de systemd.
+
+G3 lo encontró **vacío**: las VMs se recrearon en algún momento y este stack no
+se volvió a desplegar, porque su `.env` se había escrito a mano y se fue con la
+máquina. Este procedimiento existe para que eso no se repita.
+
+**1. Configuración operativa.** Las dos direcciones se leen de Terraform, desde
+tu máquina, no se copian de aquí:
+
+```bash
+cd infra/terraform
+terraform output -raw db_private_ip
+terraform output -raw storage_hls_bucket
+```
+
+En la VM:
+
+```bash
+sudo install -d -m 0755 /etc/mooc
+sudo tee /etc/mooc/worker.conf >/dev/null <<'CONF'
+IMAGE_TAG=<SHA_COMPLETO_DE_LA_IMAGEN_PUBLICADA>
+DB_PRIVATE_IP=<terraform output -raw db_private_ip>
+MEDIA_HLS_BUCKET=<terraform output -raw storage_hls_bucket>
+CONF
+sudo chown root:dfortizr1 /etc/mooc/worker.conf
+sudo chmod 640 /etc/mooc/worker.conf
+```
+
+`IMAGE_TAG` tiene que ser **el mismo que corre la VM web**. El worker y la API
+comparten esquema y convenciones de claves en el bucket; mezclar dos commits es
+pedir un fallo que no se parece a su causa.
+
+**2. Archivos del despliegue.** Se copian con `gcloud compute scp`, porque esta
+VM no tiene clon del repositorio:
+
+```bash
+sudo install -d -o dfortizr1 -g dfortizr1 -m 0755 /home/dfortizr1/mooc /home/dfortizr1/mooc/scripts
+sudo install -o dfortizr1 -g dfortizr1 -m 0755 /tmp/prepare_worker_env.sh /home/dfortizr1/mooc/scripts/prepare_worker_env.sh
+sudo install -o dfortizr1 -g dfortizr1 -m 0644 /tmp/docker-compose.worker.yml /home/dfortizr1/mooc/docker-compose.worker.yml
+sudo -u dfortizr1 ln -sfn scripts/prepare_worker_env.sh /home/dfortizr1/mooc/prepare_env.sh
+sudo -u dfortizr1 gcloud auth configure-docker us-east1-docker.pkg.dev --quiet
+```
+
+**3. Unidad de systemd**, para que sobreviva a un reinicio:
+
+```bash
+sudo tee /etc/systemd/system/mooc-worker.service >/dev/null <<'UNIT'
+[Unit]
+Description=Plataforma MOOC Worker Server Stack
+After=docker.service network-online.target
+Wants=docker.service network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+User=dfortizr1
+WorkingDirectory=/home/dfortizr1/mooc
+ExecStartPre=/bin/bash /home/dfortizr1/mooc/prepare_env.sh
+ExecStart=/usr/bin/docker compose -f /home/dfortizr1/mooc/docker-compose.worker.yml up -d
+ExecStop=/usr/bin/docker compose -f /home/dfortizr1/mooc/docker-compose.worker.yml down
+
+[Install]
+WantedBy=multi-user.target
+UNIT
+
+sudo systemctl daemon-reload
+sudo systemctl enable --now mooc-worker.service
+sudo docker ps --format 'table {{.Names}}\t{{.Status}}'
+```
+
+Deben quedar `mooc-queue` y `mooc-worker` en `Up`, el worker estable y no
+`Restarting`.
+
+**4. Comprobar de punta a punta**, que es lo único que demuestra que la cadena
+API → cola → worker → bucket funciona:
+
+```bash
+make test-e2e-cloud
+```
+
+El paso del worker debe llegar a `processing_status="completed"`; en el video de
+prueba tarda unos diez segundos.
+
+### Tres cosas que costaron una tarde
+
+**El espacio de trabajo es un volumen con nombre, no un bind mount.** La imagen
+corre sin privilegios y Docker crea el directorio de un bind mount como `root`,
+así que cada tarea moría con `permission denied`. Nota 21.
+
+**El worker no lee `smtp-password` y no debe.** Si alguna vez vuelve a pedirlo al
+arrancar, la corrección va en el validador, no en los permisos. Nota 20.
+
+**La cola la alcanza la VM web por la IP privada de esta**, que cambia si se
+recrean las máquinas. Es `QUEUE_PRIVATE_IP` en `/etc/mooc/web.conf`. Nota 19.

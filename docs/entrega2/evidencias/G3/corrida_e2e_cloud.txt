@@ -1,0 +1,91 @@
+G3 — E2E de flujos críticos en la nube
+Origen  : https://34.24.52.111.sslip.io
+Bucket  : plataforma-mooc-entrega2-media
+Inicio  : 2026-09-27T18:06:27-05:00
+
+=== 0. Entorno desplegado
+[OK  ] La API responde y alcanza la base administrada             GET /api/v1/health                           200 -> status="pass" database="up"
+
+=== 1. Registro, verificación de correo y login
+[OK  ] Registro de una cuenta nueva (el 201 implica que el relevo SMTP aceptó el correo) POST /api/v1/auth/register                   201 -> role="estudiante" status="pending_verification"
+[OK  ] La cuenta sin verificar no puede iniciar sesión            POST /api/v1/auth/login                      403 -> code="email_not_verified", sin token emitido
+[OK  ] Un enlace de verificación inválido se rechaza sin distinguir la causa GET /api/v1/auth/verify?token=token-inexistente-000000 400 -> code="invalid_token"
+[OK  ] Reenvío del enlace de verificación (segunda entrega real por SMTP) POST /api/v1/auth/verify/resend              202 -> el código de estado es la verificación
+[nota ] Activación con el token recibido por correo                GET /api/v1/auth/verify?token=…              — -> el token solo viaja por correo, así que esta pata no se conduce desde aquí; ciclo completo verificado a mano en la evidencia de F1
+[OK  ] Inicia sesión administrador (admin)                        POST /api/v1/auth/login                      200 -> role="administrador" status="active", sesión emitida
+[OK  ] Inicia sesión profesor (profesor1)                         POST /api/v1/auth/login                      200 -> role="profesor" status="active", sesión emitida
+[OK  ] Inicia sesión profesor (profesor2)                         POST /api/v1/auth/login                      200 -> role="profesor" status="active", sesión emitida
+[OK  ] Inicia sesión estudiante (estudiante1)                     POST /api/v1/auth/login                      200 -> role="estudiante" status="active", sesión emitida
+
+=== 2. Roles, propiedad y accesos denegados
+[OK  ] Un estudiante no puede crear cursos                        POST /api/v1/courses                         403 -> code="forbidden"
+[OK  ] El profesor crea el curso en borrador                      POST /api/v1/courses                         201 -> status="draft" version=1 stable_id emitido
+[OK  ] El borrador no aparece en el catálogo público              GET /api/v1/courses?limit=50&search=G3+%C2%B7+Recorrido+E2E+en+la+nube+1790550389 200 -> el catálogo responde sin sesión y no lista el borrador
+[OK  ] Sin sesión, el contenido del curso responde 401            GET /api/v1/courses/0b4d1a0e-83bb-4289-a389-aa46e60d3ab5/modules 401 -> code="unauthorized"
+[OK  ] Con sesión pero sin inscripción, responde 403              GET /api/v1/courses/0b4d1a0e-83bb-4289-a389-aa46e60d3ab5/modules 403 -> code="forbidden"
+[OK  ] El autor lee su propio borrador sin inscribirse            GET /api/v1/courses/0b4d1a0e-83bb-4289-a389-aa46e60d3ab5/modules 200 -> la lista responde al autor
+[OK  ] El administrador lee el borrador ajeno                     GET /api/v1/courses/0b4d1a0e-83bb-4289-a389-aa46e60d3ab5/modules 200 -> la lista responde al administrador
+[OK  ] Otro profesor no puede editar un curso que no es suyo      POST /api/v1/courses/0b4d1a0e-83bb-4289-a389-aa46e60d3ab5/modules 403 -> code="forbidden", la propiedad manda sobre el rol
+
+=== 3. Autoría y publicación
+[OK  ] Publicar un curso vacío acumula los errores de validación  POST /api/v1/courses/0b4d1a0e-83bb-4289-a389-aa46e60d3ab5/publish 422 -> code="validation_failed" campos=[structure approval_criteria]
+[OK  ] El intento fallido no publicó nada                         GET /api/v1/courses/0b4d1a0e-83bb-4289-a389-aa46e60d3ab5 200 -> status="draft"
+[OK  ] El profesor crea el módulo                                 POST /api/v1/courses/0b4d1a0e-83bb-4289-a389-aa46e60d3ab5/modules 201 -> position=0 (base 0), stable_id emitido
+[OK  ] El profesor crea la unidad                                 POST /api/v1/modules/12c4d6ca-4546-474d-8ee4-f3df68459fba/units 201 -> position=0 (base 0), stable_id emitido
+[OK  ] Recurso de video, obligatorio y visible                    POST /api/v1/units/a1baf0df-c901-41f4-aedc-32942185adb7/resources 201 -> position=0 (base 0), stable_id emitido
+[OK  ] Recurso de texto, obligatorio y visible                    POST /api/v1/units/a1baf0df-c901-41f4-aedc-32942185adb7/resources 201 -> position=1 (base 0), stable_id emitido
+[OK  ] Recurso de quiz, obligatorio y visible                     POST /api/v1/units/a1baf0df-c901-41f4-aedc-32942185adb7/resources 201 -> position=2 (base 0), stable_id emitido
+[OK  ] El profesor define el cuestionario                         POST /api/v1/resources/e7c26e52-d613-4729-9e15-726f871c213b/quiz 201 -> quiz creado sobre el recurso e7c26e52-d613-4729-9e15-7...
+[OK  ] Pregunta 1 con su clave de respuesta                       POST /api/v1/quizzes/d9ab4c4c-930e-40a5-aa86-b91ae86086d7/questions 201 -> position=0
+[OK  ] Pregunta 2 con su clave de respuesta                       POST /api/v1/quizzes/d9ab4c4c-930e-40a5-aa86-b91ae86086d7/questions 201 -> position=1
+[OK  ] El autor relee el cuestionario con su clave de respuestas  GET /api/v1/resources/e7c26e52-d613-4729-9e15-726f871c213b/quiz 200 -> 2 pregunta(s) con clave, passing_score=70
+
+=== 4. Carga multimedia, procesamiento asíncrono y consumo
+[OK  ] La API firma la URL de carga directa                       POST /api/v1/media/presigned-url             200 -> method="PUT" content_type="video/mp4" object_key bajo originals/382f8b51-feef-42e5-84bf-67dd11babf6e/
+[OK  ] Una extensión no permitida no obtiene firma                POST /api/v1/media/presigned-url             400 -> code="invalid_input"
+[OK  ] Un estudiante no obtiene URL de carga                      POST /api/v1/media/presigned-url             403 -> code="forbidden"
+[OK  ] El navegador sube el original directo al bucket con la URL firmada PUT https://storage.googleapis.com/plataforma-mooc-entrega2-media/originals/382... 200 -> 174692 bytes aceptados por Cloud Storage sin pasar por la API
+[OK  ] Confirmar la carga registra el objeto y encola el procesamiento POST /api/v1/media/uploads/fa55c61e-9707-469d-bb60-435d36b7a8f4/complete 202 -> processing_status="pending" object_key registrado
+[OK  ] Confirmar dos veces la misma carga no cambia el estado     POST /api/v1/media/uploads/fa55c61e-9707-469d-bb60-435d36b7a8f4/complete 202 -> object_key intacto, processing_status="pending"
+[OK  ] El autor obtiene una URL firmada de lectura del original   GET /api/v1/media/resources/fa55c61e-9707-469d-bb60-435d36b7a8f4/download-url 200 -> la URL lleva firma V4
+[OK  ] El original se lee con la firma y devuelve los bytes subidos GET https://storage.googleapis.com/plataforma-mooc-entrega2-media/originals/382... 200 -> Content-Length=174692 frente a 174692 subidos
+[OK  ] El mismo original sin firma es inaccesible                 GET https://storage.googleapis.com/plataforma-mooc-entrega2-media/originals/382... 403 -> el prefijo originals/ no es legible de forma anónima
+        processing_status="pending" (0s)
+        processing_status="completed" (10s)
+[OK  ] El worker de la otra VM transcodifica el original a HLS    GET /api/v1/units/{unitID}/resources (sondeo) — -> processing_status="completed" tras 10s de espera
+[FALLA] El prefijo hls/ admite lectura sin firma                   GET https://storage.googleapis.com/plataforma-mooc-entrega2-media/hls/no-existe... 403 -> un objeto inexistente responde 404 (prefijo público) y no 403 (prefijo privado)
+        se esperaba 404 y respondió 403; code=""
+[FALLA] Un reproductor consume el manifiesto HLS sin firma         GET https://storage.googleapis.com/plataforma-mooc-entrega2-media/hls/382f8b51-... 403 -> el maestro declara sus variantes por ruta relativa
+        se esperaba 200 y respondió 403; code=""
+
+=== 3. Autoría y publicación (cierre)
+[OK  ] Con estructura y criterio de aprobación, el curso se publica POST /api/v1/courses/0b4d1a0e-83bb-4289-a389-aa46e60d3ab5/publish 200 -> status="published" version=1
+[OK  ] Un curso publicado es inmutable                            PUT /api/v1/courses/0b4d1a0e-83bb-4289-a389-aa46e60d3ab5 409 -> code="course_immutable"
+[OK  ] El rechazo dejó el título intacto                          GET /api/v1/courses/0b4d1a0e-83bb-4289-a389-aa46e60d3ab5 200 -> title sigue siendo el publicado ("G3 · Recorrido E2E en la...")
+[OK  ] El curso publicado ya figura en el catálogo público        GET /api/v1/courses?limit=50&search=G3+%C2%B7+Recorrido+E2E+en+la+nube+1790550389 200 -> el catálogo anónimo lo lista
+
+=== 5. Inscripción, quiz idempotente y progreso
+[OK  ] El estudiante se inscribe en el curso publicado            POST /api/v1/courses/0b4d1a0e-83bb-4289-a389-aa46e60d3ab5/enrollments 200 -> status="active" sobre el stable_id del curso
+[OK  ] Con la inscripción activa ya lee el contenido              GET /api/v1/courses/0b4d1a0e-83bb-4289-a389-aa46e60d3ab5/modules 200 -> 1 módulo(s) visibles donde antes había 403
+[OK  ] El estudiante ve el cuestionario sin la clave de respuestas GET /api/v1/resources/e7c26e52-d613-4729-9e15-726f871c213b/quiz 200 -> la respuesta no trae questions_with_key ni is_correct
+[OK  ] El progreso arranca en cero sobre los tres recursos obligatorios GET /api/v1/progress/courses/0b4d1a0e-83bb-4289-a389-aa46e60d3ab5 200 -> 0/3 · 0.00% · aprobado=false
+[OK  ] El estudiante envía el quiz y queda calificado             POST /api/v1/quizzes/d9ab4c4c-930e-40a5-aa86-b91ae86086d7/submissions 200 -> score=100 passed=true attempt=1
+[OK  ] Reenviar con la misma Idempotency-Key no vuelve a calificar POST /api/v1/quizzes/d9ab4c4c-930e-40a5-aa86-b91ae86086d7/submissions 200 -> submission_id idéntico y attempt sigue en 1
+[OK  ] Solo quedó un envío registrado, no dos                     GET /api/v1/quizzes/d9ab4c4c-930e-40a5-aa86-b91ae86086d7/submissions/me 200 -> 1 envío(s) en el historial del estudiante
+[OK  ] Aprobar el quiz completó su recurso sin latido del cliente GET /api/v1/progress/courses/0b4d1a0e-83bb-4289-a389-aa46e60d3ab5 200 -> 1/3 · 33.33%
+[OK  ] Un latido sobre la lectura avanza el progreso              POST /api/v1/progress/heartbeat              200 -> 2/3 · 66.67%
+[OK  ] El último recurso obligatorio completa el curso y emite la insignia POST /api/v1/progress/heartbeat              200 -> 3/3 · 100.00% · aprobado=true · insignia=true
+[OK  ] Repetir el latido no infla el avance                       POST /api/v1/progress/heartbeat              200 -> sigue en 3/3
+[OK  ] El autor no acumula progreso en su propio curso            POST /api/v1/progress/heartbeat              403 -> code="forbidden": sin inscripción no hay avance
+
+=== 6. Insignia y verificación pública
+[OK  ] El estudiante lee su propia insignia                       GET /api/v1/badges/7c79aa79-95fe-4d0a-bc0f-66a9082fec46 200 -> course_stable_id correcto, revoked=false, ETag emitido
+[OK  ] Con el ETag vigente la lectura es condicional              GET /api/v1/badges/7c79aa79-95fe-4d0a-bc0f-66a9082fec46 304 -> 304 sin cuerpo
+[OK  ] La insignia de otra persona responde 404, no 403           GET /api/v1/badges/7c79aa79-95fe-4d0a-bc0f-66a9082fec46 404 -> code="not_found": el identificador no confirma que exista
+[OK  ] Cualquiera verifica la insignia con el código, sin sesión  GET /api/v1/badges/verify/a909beca-2222-4dd1-ac98-efb95a339099 200 -> valid=true revoked=false, nombra el curso y no identifica al estudiante
+[OK  ] Un código inexistente no confirma ni niega nada más que el 404 GET /api/v1/badges/verify/00000000-0000-0000-0000-000000000000 404 -> code="not_found"
+
+===============================================
+Pasos verificados: 61 · fallos: 2 · fuera de alcance: 1 · duración: 18s
+Tabla: docs/entrega2/evidencias/G3/resultados.md
+Log  : docs/entrega2/evidencias/G3/corrida_e2e_cloud.txt

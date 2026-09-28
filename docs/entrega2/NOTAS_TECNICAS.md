@@ -10,7 +10,7 @@ salieron de errores que costaron una tarde y se habrían evitado leyéndolas.
 | | Hallazgo | Afecta a |
 | :--- | :--- | :--- |
 | 1 | La URL firmada lleva el host dentro de la firma | C4, G2, H4, H5 |
-| 1b | HLS multi-archivo no funciona detrás de URLs firmadas | C3, C4, H4, H5, I1 |
+| 1b | HLS multi-archivo no funciona detrás de URLs firmadas — *en la nube, un bucket aparte para los derivados, **#167*** | C3, C4, G3, H4, H5, I1 |
 | 2 | MinIO retiró sus imágenes públicas | cualquier `docker compose up` |
 | 3 | Las posiciones del seed estaban desfasadas en uno | G1, G2, G3 |
 | 4 | El estado `available` del enunciado es `completed` en el código | A3, I1, I3 |
@@ -28,6 +28,9 @@ salieron de errores que costaron una tarde y se habrían evitado leyéndolas.
 | 16 | Un `apply` desde una rama borra el trabajo de otro, y no falla al hacerlo | **todos los de infra**: B3, C1, C3, D2, E1, F1, G4, I6 |
 | 17 | SMTP 587, 465 y 2525 no hablan exactamente igual | F1, G3, I1 |
 | 18 | Terraform y el arranque deben interpretar igual los secretos creados desde Windows | C1, D2, E1, F1 |
+| 19 | Lo versionado tiene que reproducir lo que hacía lo que reemplaza — *`REDIS_URL`, **#166*** | D2, E1, F1, G3 |
+| 20 | El worker no podía arrancar en producción: validaba la configuración de la API | E1, F1, G3, I1 |
+| 21 | Un bind mount del host y un contenedor sin privilegios no se llevan bien | E1, G3, H4, H5 |
 
 ---
 
@@ -122,9 +125,43 @@ ffprobe http://.../hls/<stable_id>/master.m3u8   → h264 640x360 + aac
 wget    http://.../originals/<stable_id>/...      → 403 Forbidden
 ```
 
-En local lo aplica el servicio `minio-policy` de `docker-compose.yml`. **En C3
-hay que replicarlo en el bucket administrado**: lectura pública acotada al
-prefijo `hls/`, nunca al bucket entero.
+En local lo aplica el servicio `minio-policy` de `docker-compose.yml`.
+
+### En la nube no es un prefijo, es un bucket
+
+Esta nota decía que C3 solo tenía que replicar la política en el bucket
+administrado. **No se puede**, y G3 lo descubrió midiéndolo: `hls/` respondía
+`403` de forma anónima, y la condición IAM que parecería resolverlo no existe
+como opción. **IAM no admite condiciones en enlaces concedidos a `allUsers` ni a
+`allAuthenticatedUsers`**, así que con acceso uniforme a nivel de bucket o es
+público el bucket entero —que es justo lo que esta decisión descarta— o no hay
+prefijo público. Y por encima de IAM, el bucket lleva
+`public_access_prevention = "enforced"`, que bloquea cualquier exposición pública
+aunque la política lo permitiera.
+
+Lo que separa «no está» de «no puedo leer» es pedir un objeto que no existe: un
+bucket público responde `404`, uno privado `403`.
+
+```
+GET /hls/no-existe-a-proposito/master.m3u8   → 403   (404 si fuera público)
+GET /originals/no-existe/x.mp4               → 403   (correcto, es privado)
+```
+
+**Resuelto en #167 separando los derivados a su propio bucket**,
+`plataforma-mooc-entrega2-hls`, que es de lectura pública sin condiciones porque
+el bucket entero es material derivado. El de media no cambia: los originales, los
+documentos y las miniaturas conservan `public_access_prevention = "enforced"` y
+no pueden exponerse ni por error.
+
+Se descartaron las otras dos salidas. Desactivar el acceso uniforme para usar ACL
+por objeto retrocede en la postura de seguridad y GCS lo desaconseja. Servir
+`hls/` detrás del proxy funciona —las rutas relativas resuelven contra el proxy,
+sin firmar ni reescribir nada— pero mete todo el tráfico de video por la VM web,
+que es lo que el reparto de carga evita, y falsearía las mediciones de H4 y H5.
+
+El worker recibe el destino en `MEDIA_HLS_BUCKET`. **Vacío significa un solo
+bucket**, que es como sigue funcionando el entorno local: ahí el prefijo lo abre
+el servicio `minio-policy` y no hace falta nada más.
 
 ---
 
@@ -789,3 +826,126 @@ raíz del despliegue. Derivar el repositorio directamente desde
 `BASH_SOURCE[0]` hacía que escribiera `.env` en el directorio padre. Primero se
 resuelve la ruta real con `readlink -f`; así una invocación directa y la de
 systemd preparan exactamente el mismo archivo.
+
+---
+
+## 19. Lo versionado tiene que reproducir lo que hacía lo que reemplaza
+
+**Afecta a:** D2, E1, F1 y G3.
+
+Corolario de la nota 18, con otra víctima y peores síntomas.
+
+E1 dejó la cola en el Worker Server, así que el `.env` de la VM web apuntaba
+`REDIS_URL` a `10.0.1.3:6379` —se ve en su propia evidencia—. Ese valor lo
+escribía el `prepare_env.sh` **no versionado** de D2. Cuando F1 lo sustituyó por
+`scripts/prepare_web_env.sh`, que sí está en Git, el script fijó
+`REDIS_URL='redis:6379'`: el contenedor Redis del propio Web Server.
+
+El resultado no se parece a un fallo. La API encola en un broker que nadie lee,
+así que una carga de video responde `202`, el original queda guardado en el
+bucket y el recurso se queda en `pending` para siempre. No hay error en ningún
+log, porque nada falló: el mensaje se entregó a un Redis que está perfectamente
+sano.
+
+```
+POST /api/v1/media/uploads/{id}/complete   → 202  processing_status="pending"
+… 4 minutos después                        →      processing_status="pending"
+```
+
+`prepare_web_env.sh` ahora **exige** `QUEUE_PRIVATE_IP` en `/etc/mooc/web.conf`,
+sin valor por omisión, y construye `REDIS_URL` con ella. Una dirección ausente
+tiene que detener el despliegue; elegir el Redis equivocado en silencio es el
+modo de fallo que costó esta nota. Registrado en **#166**.
+
+**Y esa IP se lee de Terraform, nunca se copia de un documento.** El `10.0.1.3`
+del párrafo anterior ya no existe: las dos VMs se recrearon en algún punto y
+pasaron a `10.0.1.4` (web) y `10.0.1.5` (worker). Un literal escrito en una guía
+sobrevive a la infraestructura que describía, así que
+`ADMINISTRACION.md` pide el valor con
+`terraform output -raw worker_server_private_ip` en lugar de imprimirlo.
+
+La lección general: al versionar un script que reemplaza a otro que vivía solo en
+una VM, la configuración que aquel producía es parte de lo que hay que portar. El
+contenido del `.env` viejo es la especificación del script nuevo.
+
+---
+
+## 20. El worker no podía arrancar en producción: validaba la configuración de la API
+
+**Afecta a:** E1, F1, G3 e I1.
+
+El binario del worker llamaba a `config.Validate()`, que es la comprobación de
+arranque de la API. En `APP_ENV=production` eso le exigía `APP_BASE_URL`,
+`TRUSTED_PROXY_IP`, `CSRF_ALLOWED_ORIGINS` y las cuatro variables de SMTP.
+
+El worker no usa ninguna —se comprueba con un `grep`: no aparecen en `cmd/worker`
+ni en `internal/worker`—, y con una de ellas la exigencia era **imposible de
+satisfacer**. `mail.tf` le niega `smtp-password` a propósito y lo dice con todas
+las letras: «el worker no aparece a propósito, y no es un olvido: procesa video y
+no manda mensajes». Así que la única forma de arrancarlo en producción era darle
+una credencial que la infraestructura decidió que no debía tener, o inventar un
+valor falso para engañar al validador.
+
+Lo encontró G3 al redesplegar el Worker Server. El contenedor entraba en bucle de
+reinicio quejándose de tres cosas que no usa, mientras la cola acumulaba tareas:
+
+```
+Invalid configuration: la configuracion de produccion conserva valores de desarrollo:
+  - APP_BASE_URL apunta a localhost
+  - CSRF_ALLOWED_ORIGINS vacio en produccion
+  - SMTP_PASSWORD vacio: la contrasena del proveedor vive en Secret Manager
+```
+
+Ahora hay dos comprobaciones. `Validate()` es la de la API y no cambió;
+`ValidateWorker()` omite la superficie HTTP y el correo, y **conserva entero lo
+compartido**: la contraseña de desarrollo en la base, el `sslmode`, el
+almacenamiento y el tamaño de los pools. Ahí un valor de desarrollo tiene las
+mismas consecuencias en los dos procesos, y relajarlo sería otro agujero.
+
+La lección: una comprobación de arranque que solo se puede satisfacer
+contradiciendo el modelo de permisos no protege nada, empuja a saltárselo. Si dos
+procesos comparten binario de configuración pero no superficie, la validación
+tiene que distinguirlos.
+
+---
+
+## 21. Un bind mount del host y un contenedor sin privilegios no se llevan bien
+
+**Afecta a:** E1, G3, H4 y H5.
+
+El tercero de la cadena que impedía procesar video en la nube, y el más fácil de
+pasar por alto porque el contenedor **no se cae**: arranca, toma la tarea, falla,
+la reintenta tres veces y la archiva.
+
+```
+ERROR media job failed ... error="create work directory:
+      mkdir /tmp/mooc-worker/mooc-media-898389567: permission denied"
+```
+
+`Dockerfile.worker` hace lo correcto: crea un usuario `app` sin privilegios,
+prepara `/tmp/mooc-media` a su nombre y declara `MEDIA_WORK_DIR` apuntando ahí.
+El Compose lo sobreescribía con `/tmp/mooc-worker` y montaba esa ruta del host.
+Docker crea el directorio de un bind mount que no existe **como `root`, con modo
+755**, así que `app` —uid 100— podía leerlo y no escribir en él.
+
+Las dos mitades estaban bien por separado: la imagen, endurecida; el montaje,
+pensado para que el espacio temporal viviera en el disco de 30 GiB de la VM y se
+pudiera medir. Juntas no funcionaban, y el síntoma aparecía en la tercera capa
+—una tarea que se reintenta— lejos de la causa.
+
+La salida **no** es `chmod 777` ni correr el contenedor como root: las dos anulan
+lo que la imagen construyó. Es un **volumen con nombre montado sobre la ruta que
+la imagen ya declara**. Docker lo inicializa copiando la propiedad del directorio
+del contenedor, así que nace perteneciendo a `app`:
+
+```
+$ docker exec mooc-worker id
+uid=100(app) gid=101(app)
+$ docker exec mooc-worker ls -ld /tmp/mooc-media
+drwxr-xr-x 2 app app 4096 /tmp/mooc-media
+```
+
+Sigue en el disco de la VM y se sigue midiendo, con `docker system df -v` en
+lugar de `du`. Un `chown` a mano en el host habría funcionado hasta la siguiente
+recreación de la VM —la lección de la nota 19 otra vez—; el volumen está
+declarado en `docker-compose.worker.yml` y sobrevive.

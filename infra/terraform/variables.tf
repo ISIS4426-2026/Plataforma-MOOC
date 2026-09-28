@@ -76,6 +76,22 @@ variable "storage_bucket_name" {
   default     = "plataforma-mooc-entrega2-media"
 }
 
+variable "storage_hls_bucket_name" {
+  description = <<-EOT
+    Nombre del bucket de los derivados HLS, que es **de lectura publica** (#167).
+
+    Va aparte del bucket de media a la fuerza, no por gusto: un reproductor
+    resuelve las variantes de un manifiesto por ruta relativa y no hereda la
+    firma, asi que el prefijo hls/ tiene que ser legible sin firmar. IAM no
+    admite condiciones en enlaces concedidos a allUsers, de modo que un prefijo
+    publico dentro de un bucket privado no se puede expresar. Separarlos es lo
+    que permite que los originales, los documentos y las miniaturas conserven
+    public_access_prevention = "enforced".
+  EOT
+  type        = string
+  default     = "plataforma-mooc-entrega2-hls"
+}
+
 variable "storage_cors_origins" {
   description = <<-EOT
     Lista de origenes autorizados en la configuracion CORS para permitir

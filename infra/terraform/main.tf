@@ -45,12 +45,18 @@ locals {
     # gobierna todo lo demas y dejando registro de quien la lee.
     "secretmanager.googleapis.com",
 
-    # Politicas de agentes de observabilidad (H1, issue #131). Instala el Ops
-    # Agent en las VMs existentes sin recrearlas: cambiar
-    # metadata_startup_script en un google_compute_instance ya desplegado
-    # fuerza su reemplazo (verificado con `terraform plan`, ver
-    # docs/entrega2/evidencias/H1), asi que el agente se instala por esta via
-    # -- una politica de OS Config -- en lugar de por el startup-script.
+    # Politicas de agentes de observabilidad (H1, issue #131): instalan el
+    # Ops Agent y su configuracion en las VMs existentes sin recrearlas --
+    # cambiar metadata_startup_script en un google_compute_instance ya
+    # desplegado fuerza su reemplazo (verificado con `terraform plan`, ver
+    # docs/entrega2/evidencias/H1), asi que se usa esta via -- una politica
+    # de OS Config -- en lugar del startup-script.
+    #
+    # Se declara aqui en vez de dejar que Terraform la apague porque las
+    # imagenes de Debian ya traen el agente de OS Config habilitado solo, y
+    # un recurso real que el codigo no conoce vuelve a proponerse para
+    # destruccion en cada `plan`, ensuciando el de todos. Es la nota 14 otra
+    # vez: cosas que GCP decidio por nosotros.
     "osconfig.googleapis.com",
   ]
 }
