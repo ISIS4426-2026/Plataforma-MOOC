@@ -8,7 +8,7 @@ Este directorio contiene el guion de producción, la matriz de minutaje y el ín
 
 > **Enlace del Video:** `[PENDIENTE: Insertar URL del video (YouTube / Google Drive / Vimeo) tras finalizar la grabación y edición]`  
 > **Acceso para el Equipo Docente:** El video se encuentra configurado con permisos de visualización directa para los correos del cuerpo docente del curso ISIS4426.  
-> **Coordinación con README Principal:** La inserción de este enlace en el archivo [`README.md`](../../../../README.md) raíz del repositorio es gestionada de manera coordinada a través del **Issue I4** ([#139](../../../../issues/139)).
+> **Coordinación con README Principal:** La inserción de este enlace en el archivo [`README.md`](../../../../README.md) raíz del repositorio es gestionada de manera coordinada a través del **Issue I4** ([#139](https://github.com/ISIS4426-2026/Plataforma-MOOC/issues/139)).
 
 ---
 
