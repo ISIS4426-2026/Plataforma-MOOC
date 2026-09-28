@@ -5,8 +5,8 @@
 > **Fecha:** 2026-09-28  
 > **Commit Base de Revisión:** `e8a1964` (`main` @ merge PR #183)  
 > **Duración Objetivo:** **18 minutos** (margen de seguridad de 2 min respecto al tope de 20 min del pliego)  
-> **Equipo de Desarrollo:** `CrispisCas9` (Cristian Castañeda), `fredyxander` (Fredy Alexander), `DiegoOrtizRuiz` (Diego Ortiz), `tmichelldiaz` (Tania Michel Díaz)  
-> **Presentador Único del Video:** `CrispisCas9` (Cristian Castañeda)  
+> **Equipo de Desarrollo:** `CrispisCas9` (Stevan Peralta), `fredyxander` (Fredy Alexander), `DiegoOrtizRuiz` (Diego Ortiz), `tmichelldiaz` (Tania Michel Díaz)  
+> **Presentador Único del Video:** `CrispisCas9` (Stevan Peralta)  
 
 ---
 
@@ -15,7 +15,7 @@
 | Versión | Fecha | Commit SHA | Descripción de Cambios | Autor |
 | :---: | :---: | :---: | :--- | :--- |
 | `v1.0-draft` | 2026-09-28 | `f18703e` | Borrador inicial consolidado con evidencias de `main` (bloques B, C, D, E, F, G, H1, H2, H4, H5). Clasificación formal de estados (✅/⚠️/⏳) y registro de salvedades metodológicas de capacidad. | Antigravity (Issue #140) |
-| `v1.1-single-presenter` | 2026-09-28 | `f18703e` | Consolidación de la presentación en un único orador (`CrispisCas9` / Cristian Castañeda). Adaptación de todas las locuciones, transiciones narrativas y tablas al rol de relator único en representación del equipo de desarrollo. | `CrispisCas9` |
+| `v1.1-single-presenter` | 2026-09-28 | `f18703e` | Consolidación de la presentación en un único orador (`CrispisCas9` / Stevan Peralta). Adaptación de todas las locuciones, transiciones narrativas y tablas al rol de relator único en representación del equipo de desarrollo. | `CrispisCas9` |
 | `v1.2-consolidated` | 2026-09-28 | `ab92b88` | Actualización tras merge de PRs #175 (I1), #176 (H2) y #177 (I3): arquitectura consolidada, piloto H2 en la nube y síntesis de capacidad inicial. | `CrispisCas9` |
 | `v1.3-consolidated` | 2026-09-28 | `e8a1964` | **Integración final de PRs #180, #181, #182 (H3) y #183 (I2):**<br>• **Escenario 1 en la Nube (H3):** Incorporación de la escalera formal de 1 a 200 usuarios concurrentes en GCP (`docs/entrega2/evidencias/H3/`), demostrando 32.8 pet./s, 0 errores, y que no se alcanzó saturación en el rango probado.<br>• **Operación y Costos (I2):** Cita de [`OPERACION_Y_CAPACIDAD.md`](../../OPERACION_Y_CAPACIDAD.md) y [`consumo_observado.md`](../I2/consumo_observado.md) con contraste de costos observados (≈22.9 h VM, 1.2 USD) vs B1 (133.73 USD) y 9 SPOF.<br>• **Replicabilidad Escenario 2 (H5):** Inclusión del análisis de dispersión y repetibilidad ($CV < 5\%$ en FFmpeg, 0 errores, drenaje en 6.4–7.2 s).<br>• **Matriz de Bloqueos:** Todos los ítems técnicos cerrados y mergeados; único pendiente la URL del video en README (I4). | `CrispisCas9` |
 
@@ -23,7 +23,7 @@
 
 ## 1. Presupuesto Global de Tiempos y Estructura de la Presentación
 
-El tiempo total planificado es de **18:00 minutos**, reservando un margen de holgura de 2:00 minutos frente al límite reglamentario de 20:00 minutos establecido en la p. 7 del enunciado (`docs/2026-20 Entrega 2 - Despliegue Básico en la Nube.pdf`). La presentación es conducida en su totalidad por **Cristian Castañeda (`CrispisCas9`)**, exponiendo de manera articulada los aportes y evidencias construidas por los cuatro integrantes del equipo:
+El tiempo total planificado es de **18:00 minutos**, reservando un margen de holgura de 2:00 minutos frente al límite reglamentario de 20:00 minutos establecido en la p. 7 del enunciado (`docs/2026-20 Entrega 2 - Despliegue Básico en la Nube.pdf`). La presentación es conducida en su totalidad por **Stevan Peralta (`CrispisCas9`)**, exponiendo de manera articulada los aportes y evidencias construidas por los cuatro integrantes del equipo:
 
 | Bloque | Segmento Temático | Duración Sugerida | Minutaje Acumulado | Presentador Responsable | Estado Base |
 | :---: | :--- | :---: | :---: | :--- | :---: |
@@ -97,7 +97,7 @@ Para garantizar legibilidad profesional y correlación en vivo durante los 18 mi
 
 ### Segmento 0: Introducción, Objetivos y Pre-flight Check
 * **Tiempo:** `00:00 - 00:45` (Duración: 0:45)
-* **Presentador:** `CrispisCas9` (Cristian Castañeda)
+* **Presentador:** `CrispisCas9` (Stevan Peralta)
 * **Estado:** ✅ **Nube**
 * **Disposición en Pantalla:** Diapositiva inicial con título de la sustentación, nombres de los cuatro integrantes del equipo y arquitectura general; luego transición a terminal mostrando verificación de salud de la plataforma en la nube.
 * **Comando / Acción Exacta:**
@@ -105,14 +105,14 @@ Para garantizar legibilidad profesional y correlación en vivo durante los 18 mi
   curl -s -i https://34.24.52.111.sslip.io/api/v1/health
   ```
 * **Texto Sugerido para la Locución:**  
-  *"Bienvenidos a la sustentación técnica de la Entrega 2 de Desarrollo de Soluciones Cloud. Mi nombre es Cristian Castañeda (`CrispisCas9`), y en representación de nuestro equipo de proyecto —conformado además por Tania Michel Díaz, Fredy Alexander y Diego Ortiz— presentaré la sustentación completa de la migración de nuestra plataforma MOOC a la nube pública en Google Cloud Platform. En este proyecto hemos operado bajo las restricciones formales del pliego: capacidad fija de cómputo en dos máquinas virtuales, cero mecanismos de autoescalado y persistencia delegada en servicios administrados relacionales y de almacenamiento de objetos. Como observan en pantalla, nuestro punto de acceso público bajo dominio HTTPS responde de manera saludable contra la base administrada. Durante los próximos dieciocho minutos expondré la correspondencia con los servicios del proveedor documentada en ARQUITECTURA.md, el recorrido funcional completo en la nube, las evidencias de resiliencia y los hallazgos de nuestros análisis de capacidad."*
+  *"Bienvenidos a la sustentación técnica de la Entrega 2 de Desarrollo de Soluciones Cloud. Mi nombre es Stevan Peralta (`CrispisCas9`), y en representación de nuestro equipo de proyecto —conformado además por Tania Michel Díaz, Fredy Alexander y Diego Ortiz— presentaré la sustentación completa de la migración de nuestra plataforma MOOC a la nube pública en Google Cloud Platform. En este proyecto hemos operado bajo las restricciones formales del pliego: capacidad fija de cómputo en dos máquinas virtuales, cero mecanismos de autoescalado y persistencia delegada en servicios administrados relacionales y de almacenamiento de objetos. Como observan en pantalla, nuestro punto de acceso público bajo dominio HTTPS responde de manera saludable contra la base administrada. Durante los próximos dieciocho minutos expondré la correspondencia con los servicios del proveedor documentada en ARQUITECTURA.md, el recorrido funcional completo en la nube, las evidencias de resiliencia y los hallazgos de nuestros análisis de capacidad."*
 * **Ruta de Registro en el Repositorio:** [`docs/entrega2/evidencias/D2/health_publico.txt`](file:///mnt/c/Users/User/Desktop/MBC_IV/Soluciones Cloud/Proyectos/P2_data/Plataforma-MOOC/docs/entrega2/evidencias/D2/health_publico.txt) y [`docs/entrega2/evidencias/G3/resultados.md#L13`](file:///mnt/c/Users/User/Desktop/MBC_IV/Soluciones Cloud/Proyectos/P2_data/Plataforma-MOOC/docs/entrega2/evidencias/G3/resultados.md#L13).
 
 ---
 
 ### Segmento 1: Arquitectura Desplegada y Correspondencia con Servicios GCP
 * **Tiempo:** `00:45 - 04:15` (Duración: 3:30)
-* **Presentador:** `CrispisCas9` (Cristian Castañeda)
+* **Presentador:** `CrispisCas9` (Stevan Peralta)
 * **Estado:** ✅ **Nube (Consolidado en Issue I1)**
 * **Disposición en Pantalla:** Diagrama arquitectural oficial embebido en [`docs/entrega2/ARQUITECTURA.md`](../../ARQUITECTURA.md) y [`docs/entrega2/evidencias/B3/DIAGRAMA_RED.md`](../B3/DIAGRAMA_RED.md) en panel izquierdo; en panel derecho, consola de Terraform mostrando recursos aprovisionados (`compute.tf`, `database.tf`, `storage.tf`, `network.tf`).
 
@@ -189,7 +189,7 @@ flowchart TD
 
 ### Segmento 2: Recorrido Funcional en el Entorno Cloud
 * **Tiempo:** `04:15 - 08:45` (Duración: 4:30)
-* **Presentador:** `CrispisCas9` (Cristian Castañeda)
+* **Presentador:** `CrispisCas9` (Stevan Peralta)
 * **Estado:** ✅ **Nube** (Basado en la corrida E2E de 61 pasos y suite Postman de 166 peticiones contra `https://34.24.52.111.sslip.io`)
 * **Disposición en Pantalla:** Postman Desktop ejecutando peticiones clave contra el entorno `mooc_cloud` en la mitad izquierda; en la mitad derecha, terminal con salida del runner E2E (`scripts/e2e_cloud`) o Newman.
 * **Flujos Funcionales Demostrados:**
@@ -237,7 +237,7 @@ flowchart TD
 
 ### Segmento 3: Evidencias Específicas de Infraestructura, Asincronía y Resiliencia
 * **Tiempo:** `08:45 - 13:15` (Duración: 4:30)
-* **Presentador:** `CrispisCas9` (Cristian Castañeda)
+* **Presentador:** `CrispisCas9` (Stevan Peralta)
 * **Estado:** ✅ **Nube** (Ejecutado sobre GCP Compute Engine, Cloud Storage, Cloud SQL y Worker Server en red privada)
 * **Disposición en Pantalla:** Terminal dividida en tres paneles: izquierda con cliente curl enviando peticiones de almacenamiento y fallos inyectados; derecha superior con logs del worker (`docker logs mooc-worker`); derecha inferior con cliente psql hacia Cloud SQL.
 
@@ -297,7 +297,7 @@ flowchart TD
 
 ### Segmento 4: Análisis Consolidado de Capacidad (20%), Cuellos de Botella y Evolución
 * **Tiempo:** `13:15 - 17:15` (Duración: 4:00)
-* **Presentador:** `CrispisCas9` (Cristian Castañeda)
+* **Presentador:** `CrispisCas9` (Stevan Peralta)
 * **Estado:** ✅ **Nube y Consolidado Oficial (Issues I3, H2 y H5)**
 * **Disposición en Pantalla:** Gráficas de rendimiento vs latencia y tablas comparativas de [`capacity-planning/pruebas_de_carga_entrega2.md`](../../../../capacity-planning/pruebas_de_carga_entrega2.md) y [`docs/entrega2/evidencias/I3/resumen_ejecutivo_capacidad.md`](../I3/resumen_ejecutivo_capacidad.md) en panel izquierdo; en panel derecho, Cloud Monitoring y traza de JMeter / Go Capacity Engine.
 
@@ -356,7 +356,7 @@ flowchart TD
 
 ### Segmento 5: Conclusiones, Checklist y Cierre
 * **Tiempo:** `17:15 - 18:00` (Duración: 0:45)
-* **Presentador:** `CrispisCas9` (Cristian Castañeda)
+* **Presentador:** `CrispisCas9` (Stevan Peralta)
 * **Estado:** ✅ **Nube**
 * **Disposición en Pantalla:** Tabla resumen de criterios cumplidos, enlace al repositorio GitHub y tag de entrega `entrega-2`.
 * **Texto Sugerido para la Locución:**  
@@ -397,5 +397,5 @@ Con la integración sucesiva de los PRs #175 (I1), #176 (H2), #177 (I3), #180 (H
 | **10** | **Resultados de ambos escenarios de capacidad** | ✅ Cumplido | Segmento 4 detalla los resultados consolidados de ambos escenarios (1 y 2) respaldados por [`pruebas_de_carga_entrega2.md`](../../../../capacity-planning/pruebas_de_carga_entrega2.md) e [`I3`](../I3/README.md). |
 | **11** | **Identificación de cuello de botella y evolución** | ✅ Cumplido | Segmento 4.3 sustenta saturación de vCPU en workers y Web Server, modelando Read Replicas, PgBouncer, Cloud CDN y MIG autoescalable. |
 | **12** | **Parámetros y archivos variados (perfiles, extensiones, roles)** | ✅ Cumplido | Sección 2 consolida tabla exhaustiva con perfiles corto/medio/largo, tipos video/audio/doc/img, y roles diversos. |
-| **13** | **Presentación unificada del equipo de desarrollo** | ✅ Cumplido | Conducción integral a cargo de `CrispisCas9` (Cristian Castañeda), articulando el trabajo de los 4 integrantes (`CrispisCas9`, `fredyxander`, `DiegoOrtizRuiz`, `tmichelldiaz`). |
+| **13** | **Presentación unificada del equipo de desarrollo** | ✅ Cumplido | Conducción integral a cargo de `CrispisCas9` (Stevan Peralta), articulando el trabajo de los 4 integrantes (`CrispisCas9`, `fredyxander`, `DiegoOrtizRuiz`, `tmichelldiaz`). |
 | **14** | **Enlace desde README con acceso docente** | ⏳ Pendiente | Coordinación formal establecida con responsable del issue I4. |

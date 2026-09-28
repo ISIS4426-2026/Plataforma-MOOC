@@ -19,8 +19,8 @@ Este directorio contiene el guion de producción, la matriz de minutaje y el ín
 | **Duración del Video** | **18 minutos** (Cumple con el tope reglamentario de máximo 20 minutos, reservando 2 min de margen). |
 | **Formato y Calidad** | Captura de pantalla a 1080p (1920×1080), 30 fps, audio balanceado con locución en voz en off en español. |
 | **Plataforma Demostrada** | Google Cloud Platform (GCP) en región `us-east1` (zona única `us-east1-b`). **Cero mocks**: cómputo en VMs Debian 12, Nginx 1.27, API modular en Go 1.24, Worker FFmpeg, Redis 7 Asynq, Cloud SQL PostgreSQL 16 y Cloud Storage. |
-| **Equipo de Desarrollo** | `CrispisCas9` (Cristian Castañeda), `fredyxander` (Fredy Alexander), `DiegoOrtizRuiz` (Diego Ortiz), `tmichelldiaz` (Tania Michel Díaz). |
-| **Presentador del Video** | **`CrispisCas9` (Cristian Castañeda)** — Relator único en representación del equipo de desarrollo. |
+| **Equipo de Desarrollo** | `CrispisCas9` (Stevan Peralta), `fredyxander` (Fredy Alexander), `DiegoOrtizRuiz` (Diego Ortiz), `tmichelldiaz` (Tania Michel Díaz). |
+| **Presentador del Video** | **`CrispisCas9` (Stevan Peralta)** — Relator único en representación del equipo de desarrollo. |
 | **Guion Técnico Oficial** | [`GUION_VIDEO.md`](./GUION_VIDEO.md) — Libreto paso a paso con comandos exactos, locución oral y validaciones. |
 
 ---
