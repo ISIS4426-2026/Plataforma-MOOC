@@ -1,0 +1,235 @@
+timeStamp,elapsed,label,responseCode,responseMessage,threadName,dataType,success,failureMessage,bytes,sentBytes,grpThreads,allThreads,URL,Latency,IdleTime,Connect
+1790558567613,64,01 GET catalogo de cursos,200,OK,Estudiantes concurrentes 1-1,text,true,,922,288,2,2,http://host.docker.internal:8080/api/v1/courses?limit=20,63,0,48
+1790558567613,64,01 GET catalogo de cursos,200,OK,Estudiantes concurrentes 1-2,text,true,,922,288,2,2,http://host.docker.internal:8080/api/v1/courses?limit=20,64,0,48
+1790558567898,5,02 GET detalle del curso,200,OK,Estudiantes concurrentes 1-2,text,true,,537,316,3,3,http://host.docker.internal:8080/api/v1/courses/d0000000-0000-0000-0000-000000000001,5,0,0
+1790558567923,5,02 GET detalle del curso,200,OK,Estudiantes concurrentes 1-1,text,true,,537,316,3,3,http://host.docker.internal:8080/api/v1/courses/d0000000-0000-0000-0000-000000000001,5,0,0
+1790558568021,10,01 GET catalogo de cursos,200,OK,Estudiantes concurrentes 1-3,text,true,,922,288,3,3,http://host.docker.internal:8080/api/v1/courses?limit=20,9,0,4
+1790558568032,16,03 POST inscripcion,200,OK,Estudiantes concurrentes 1-2,text,true,,372,448,3,3,http://host.docker.internal:8080/api/v1/courses/d0000000-0000-0000-0000-000000000001/enrollments,16,0,0
+1790558568047,9,03 POST inscripcion,200,OK,Estudiantes concurrentes 1-1,text,true,,372,448,3,3,http://host.docker.internal:8080/api/v1/courses/d0000000-0000-0000-0000-000000000001/enrollments,9,0,0
+1790558568193,4,02 GET detalle del curso,200,OK,Estudiantes concurrentes 1-3,text,true,,537,316,3,3,http://host.docker.internal:8080/api/v1/courses/d0000000-0000-0000-0000-000000000001,4,0,0
+1790558568225,6,04 GET estado de mi inscripcion (validacion),200,OK,Estudiantes concurrentes 1-2,text,true,,403,331,3,3,http://host.docker.internal:8080/api/v1/courses/d0000000-0000-0000-0000-000000000001/enrollments/me,5,0,0
+1790558568244,7,04 GET estado de mi inscripcion (validacion),200,OK,Estudiantes concurrentes 1-1,text,true,,403,331,3,3,http://host.docker.internal:8080/api/v1/courses/d0000000-0000-0000-0000-000000000001/enrollments/me,7,0,0
+1790558568348,11,03 POST inscripcion,200,OK,Estudiantes concurrentes 1-3,text,true,,372,448,3,3,http://host.docker.internal:8080/api/v1/courses/d0000000-0000-0000-0000-000000000001/enrollments,11,0,0
+1790558568383,9,05 GET modulos del curso,200,OK,Estudiantes concurrentes 1-2,text,true,,608,324,3,3,http://host.docker.internal:8080/api/v1/courses/d0000000-0000-0000-0000-000000000001/modules,9,0,0
+1790558568423,8,05 GET modulos del curso,200,OK,Estudiantes concurrentes 1-1,text,true,,608,324,3,3,http://host.docker.internal:8080/api/v1/courses/d0000000-0000-0000-0000-000000000001/modules,8,0,0
+1790558568511,8,04 GET estado de mi inscripcion (validacion),200,OK,Estudiantes concurrentes 1-3,text,true,,403,331,3,3,http://host.docker.internal:8080/api/v1/courses/d0000000-0000-0000-0000-000000000001/enrollments/me,8,0,0
+1790558568573,10,06 GET unidades del modulo,200,OK,Estudiantes concurrentes 1-1,text,true,,400,322,3,3,http://host.docker.internal:8080/api/v1/modules/d1000000-0000-0000-0000-000000000001/units,10,0,0
+1790558568594,9,06 GET unidades del modulo,200,OK,Estudiantes concurrentes 1-2,text,true,,400,322,3,3,http://host.docker.internal:8080/api/v1/modules/d1000000-0000-0000-0000-000000000001/units,9,0,0
+1790558568701,10,05 GET modulos del curso,200,OK,Estudiantes concurrentes 1-3,text,true,,608,324,3,3,http://host.docker.internal:8080/api/v1/courses/d0000000-0000-0000-0000-000000000001/modules,10,0,0
+1790558568743,10,07 GET recursos de la unidad,200,OK,Estudiantes concurrentes 1-1,text,true,,988,324,3,3,http://host.docker.internal:8080/api/v1/units/d2000000-0000-0000-0000-000000000001/resources,10,0,0
+1790558568779,19,07 GET recursos de la unidad,200,OK,Estudiantes concurrentes 1-2,text,true,,988,324,3,3,http://host.docker.internal:8080/api/v1/units/d2000000-0000-0000-0000-000000000001/resources,19,0,0
+1790558568820,10,06 GET unidades del modulo,200,OK,Estudiantes concurrentes 1-3,text,true,,400,322,3,3,http://host.docker.internal:8080/api/v1/modules/d1000000-0000-0000-0000-000000000001/units,10,0,0
+1790558568873,15,08 GET cuestionario (vista de estudiante),200,OK,Estudiantes concurrentes 1-1,text,true,,1367,323,3,3,http://host.docker.internal:8080/api/v1/resources/d3000000-0000-0000-0000-000000000003/quiz,15,0,0
+1790558568940,12,07 GET recursos de la unidad,200,OK,Estudiantes concurrentes 1-3,text,true,,988,324,3,3,http://host.docker.internal:8080/api/v1/units/d2000000-0000-0000-0000-000000000001/resources,12,0,0
+1790558568936,15,08 GET cuestionario (vista de estudiante),200,OK,Estudiantes concurrentes 1-2,text,true,,1367,323,3,3,http://host.docker.internal:8080/api/v1/resources/d3000000-0000-0000-0000-000000000003/quiz,15,0,0
+1790558569064,18,09 POST latido de progreso 1 (recurso completado),200,OK,Estudiantes concurrentes 1-1,text,true,,745,438,3,3,http://host.docker.internal:8080/api/v1/progress/heartbeat,18,0,0
+1790558569082,11,08 GET cuestionario (vista de estudiante),200,OK,Estudiantes concurrentes 1-3,text,true,,1367,323,3,3,http://host.docker.internal:8080/api/v1/resources/d3000000-0000-0000-0000-000000000003/quiz,11,0,0
+1790558569120,20,09 POST latido de progreso 1 (recurso completado),200,OK,Estudiantes concurrentes 1-2,text,true,,745,438,3,3,http://host.docker.internal:8080/api/v1/progress/heartbeat,20,0,0
+1790558569233,17,09 POST latido de progreso 1 (recurso completado),200,OK,Estudiantes concurrentes 1-3,text,true,,745,438,3,3,http://host.docker.internal:8080/api/v1/progress/heartbeat,17,0,0
+1790558569235,16,09 POST latido de progreso 2 (recurso completado),200,OK,Estudiantes concurrentes 1-1,text,true,,745,438,3,3,http://host.docker.internal:8080/api/v1/progress/heartbeat,16,0,0
+1790558569297,19,09 POST latido de progreso 2 (recurso completado),200,OK,Estudiantes concurrentes 1-2,text,true,,745,438,3,3,http://host.docker.internal:8080/api/v1/progress/heartbeat,19,0,0
+1790558569446,34,09 POST latido de progreso 2 (recurso completado),200,OK,Estudiantes concurrentes 1-3,text,true,,745,438,3,3,http://host.docker.internal:8080/api/v1/progress/heartbeat,34,0,0
+1790558569494,40,10 POST envio del quiz,409,Conflict,Estudiantes concurrentes 1-1,text,false,"Test failed: code expected to equal /
+
+****** received  : [[[409]]]
+
+****** comparison: [[[200]]]
+
+/",275,691,3,3,http://host.docker.internal:8080/api/v1/quizzes/fa000000-0000-0000-0000-000000000001/submissions,40,0,0
+1790558569484,50,10 POST envio del quiz,409,Conflict,Estudiantes concurrentes 1-2,text,false,"Test failed: code expected to equal /
+
+****** received  : [[[409]]]
+
+****** comparison: [[[200]]]
+
+/",275,691,3,3,http://host.docker.internal:8080/api/v1/quizzes/fa000000-0000-0000-0000-000000000001/submissions,50,0,0
+1790558569669,9,11 POST envio DUPLICADO del quiz (misma clave),409,Conflict,Estudiantes concurrentes 1-1,text,false,"Test failed: code expected to equal /
+
+****** received  : [[[409]]]
+
+****** comparison: [[[200]]]
+
+/",300,691,3,3,http://host.docker.internal:8080/api/v1/quizzes/fa000000-0000-0000-0000-000000000001/submissions,9,0,0
+1790558569675,9,11 POST envio DUPLICADO del quiz (misma clave),409,Conflict,Estudiantes concurrentes 1-2,text,false,"Test failed: code expected to equal /
+
+****** received  : [[[409]]]
+
+****** comparison: [[[200]]]
+
+/",300,691,3,3,http://host.docker.internal:8080/api/v1/quizzes/fa000000-0000-0000-0000-000000000001/submissions,9,0,0
+1790558569670,22,10 POST envio del quiz,409,Conflict,Estudiantes concurrentes 1-3,text,false,"Test failed: code expected to equal /
+
+****** received  : [[[409]]]
+
+****** comparison: [[[200]]]
+
+/",275,691,3,3,http://host.docker.internal:8080/api/v1/quizzes/fa000000-0000-0000-0000-000000000001/submissions,22,0,0
+1790558569825,10,12 GET avance del curso tras el quiz (validacion),200,OK,Estudiantes concurrentes 1-1,text,false,,745,325,3,3,http://host.docker.internal:8080/api/v1/progress/courses/d0000000-0000-0000-0000-000000000001,10,0,0
+1790558569853,9,12 GET avance del curso tras el quiz (validacion),200,OK,Estudiantes concurrentes 1-2,text,false,,745,325,3,3,http://host.docker.internal:8080/api/v1/progress/courses/d0000000-0000-0000-0000-000000000001,9,0,0
+1790558569879,7,11 POST envio DUPLICADO del quiz (misma clave),409,Conflict,Estudiantes concurrentes 1-3,text,false,"Test failed: code expected to equal /
+
+****** received  : [[[409]]]
+
+****** comparison: [[[200]]]
+
+/",300,691,3,3,http://host.docker.internal:8080/api/v1/quizzes/fa000000-0000-0000-0000-000000000001/submissions,7,0,0
+1790558570014,10,13 GET mis envios (validacion de doble calificacion),200,OK,Estudiantes concurrentes 1-2,text,false,"Value expected to be '1', but found '3'",640,331,3,3,http://host.docker.internal:8080/api/v1/quizzes/fa000000-0000-0000-0000-000000000001/submissions/me,10,0,0
+1790558570023,11,13 GET mis envios (validacion de doble calificacion),200,OK,Estudiantes concurrentes 1-1,text,false,"Value expected to be '1', but found '3'",640,331,3,3,http://host.docker.internal:8080/api/v1/quizzes/fa000000-0000-0000-0000-000000000001/submissions/me,11,0,0
+1790558570046,9,12 GET avance del curso tras el quiz (validacion),200,OK,Estudiantes concurrentes 1-3,text,false,,745,325,3,3,http://host.docker.internal:8080/api/v1/progress/courses/d0000000-0000-0000-0000-000000000001,9,0,0
+1790558570144,6,01 GET catalogo de cursos,200,OK,Estudiantes concurrentes 1-2,text,true,,922,288,3,3,http://host.docker.internal:8080/api/v1/courses?limit=20,6,0,0
+1790558570164,12,13 GET mis envios (validacion de doble calificacion),200,OK,Estudiantes concurrentes 1-3,text,false,"Value expected to be '1', but found '3'",640,331,3,3,http://host.docker.internal:8080/api/v1/quizzes/fa000000-0000-0000-0000-000000000001/submissions/me,12,0,0
+1790558570201,5,01 GET catalogo de cursos,200,OK,Estudiantes concurrentes 1-1,text,true,,922,288,3,3,http://host.docker.internal:8080/api/v1/courses?limit=20,5,0,0
+1790558570318,5,02 GET detalle del curso,200,OK,Estudiantes concurrentes 1-2,text,true,,537,316,3,3,http://host.docker.internal:8080/api/v1/courses/d0000000-0000-0000-0000-000000000001,5,0,0
+1790558570376,5,01 GET catalogo de cursos,200,OK,Estudiantes concurrentes 1-3,text,true,,922,288,3,3,http://host.docker.internal:8080/api/v1/courses?limit=20,5,0,0
+1790558570378,5,02 GET detalle del curso,200,OK,Estudiantes concurrentes 1-1,text,true,,537,316,3,3,http://host.docker.internal:8080/api/v1/courses/d0000000-0000-0000-0000-000000000001,5,0,0
+1790558570511,5,02 GET detalle del curso,200,OK,Estudiantes concurrentes 1-3,text,true,,537,316,3,3,http://host.docker.internal:8080/api/v1/courses/d0000000-0000-0000-0000-000000000001,5,0,0
+1790558570506,13,03 POST inscripcion,200,OK,Estudiantes concurrentes 1-2,text,true,,372,448,3,3,http://host.docker.internal:8080/api/v1/courses/d0000000-0000-0000-0000-000000000001/enrollments,13,0,0
+1790558570559,11,03 POST inscripcion,200,OK,Estudiantes concurrentes 1-1,text,true,,372,448,3,3,http://host.docker.internal:8080/api/v1/courses/d0000000-0000-0000-0000-000000000001/enrollments,11,0,0
+1790558570668,8,04 GET estado de mi inscripcion (validacion),200,OK,Estudiantes concurrentes 1-2,text,true,,403,331,3,3,http://host.docker.internal:8080/api/v1/courses/d0000000-0000-0000-0000-000000000001/enrollments/me,7,0,0
+1790558570694,10,03 POST inscripcion,200,OK,Estudiantes concurrentes 1-3,text,true,,372,448,3,3,http://host.docker.internal:8080/api/v1/courses/d0000000-0000-0000-0000-000000000001/enrollments,10,0,0
+1790558570766,7,04 GET estado de mi inscripcion (validacion),200,OK,Estudiantes concurrentes 1-1,text,true,,403,331,3,3,http://host.docker.internal:8080/api/v1/courses/d0000000-0000-0000-0000-000000000001/enrollments/me,7,0,0
+1790558570818,7,05 GET modulos del curso,200,OK,Estudiantes concurrentes 1-2,text,true,,608,324,3,3,http://host.docker.internal:8080/api/v1/courses/d0000000-0000-0000-0000-000000000001/modules,7,0,0
+1790558570896,7,04 GET estado de mi inscripcion (validacion),200,OK,Estudiantes concurrentes 1-3,text,true,,403,331,3,3,http://host.docker.internal:8080/api/v1/courses/d0000000-0000-0000-0000-000000000001/enrollments/me,7,0,0
+1790558570908,6,05 GET modulos del curso,200,OK,Estudiantes concurrentes 1-1,text,true,,608,324,3,3,http://host.docker.internal:8080/api/v1/courses/d0000000-0000-0000-0000-000000000001/modules,6,0,0
+1790558571007,10,06 GET unidades del modulo,200,OK,Estudiantes concurrentes 1-2,text,true,,400,322,3,3,http://host.docker.internal:8080/api/v1/modules/d1000000-0000-0000-0000-000000000001/units,10,0,0
+1790558571028,9,05 GET modulos del curso,200,OK,Estudiantes concurrentes 1-3,text,true,,608,324,3,3,http://host.docker.internal:8080/api/v1/courses/d0000000-0000-0000-0000-000000000001/modules,9,0,0
+1790558571084,10,06 GET unidades del modulo,200,OK,Estudiantes concurrentes 1-1,text,true,,400,322,3,3,http://host.docker.internal:8080/api/v1/modules/d1000000-0000-0000-0000-000000000001/units,10,0,0
+1790558571196,9,07 GET recursos de la unidad,200,OK,Estudiantes concurrentes 1-2,text,true,,988,324,3,3,http://host.docker.internal:8080/api/v1/units/d2000000-0000-0000-0000-000000000001/resources,9,0,0
+1790558571230,9,06 GET unidades del modulo,200,OK,Estudiantes concurrentes 1-3,text,true,,400,322,3,3,http://host.docker.internal:8080/api/v1/modules/d1000000-0000-0000-0000-000000000001/units,9,0,0
+1790558571293,9,07 GET recursos de la unidad,200,OK,Estudiantes concurrentes 1-1,text,true,,988,324,3,3,http://host.docker.internal:8080/api/v1/units/d2000000-0000-0000-0000-000000000001/resources,9,0,0
+1790558571327,11,08 GET cuestionario (vista de estudiante),200,OK,Estudiantes concurrentes 1-2,text,true,,1367,323,3,3,http://host.docker.internal:8080/api/v1/resources/d3000000-0000-0000-0000-000000000003/quiz,11,0,0
+1790558571403,11,07 GET recursos de la unidad,200,OK,Estudiantes concurrentes 1-3,text,true,,988,324,3,3,http://host.docker.internal:8080/api/v1/units/d2000000-0000-0000-0000-000000000001/resources,11,0,0
+1790558571429,14,08 GET cuestionario (vista de estudiante),200,OK,Estudiantes concurrentes 1-1,text,true,,1367,323,3,3,http://host.docker.internal:8080/api/v1/resources/d3000000-0000-0000-0000-000000000003/quiz,14,0,0
+1790558571528,16,09 POST latido de progreso 1 (recurso completado),200,OK,Estudiantes concurrentes 1-2,text,true,,745,438,3,3,http://host.docker.internal:8080/api/v1/progress/heartbeat,15,0,0
+1790558571536,11,08 GET cuestionario (vista de estudiante),200,OK,Estudiantes concurrentes 1-3,text,true,,1367,323,3,3,http://host.docker.internal:8080/api/v1/resources/d3000000-0000-0000-0000-000000000003/quiz,11,0,0
+1790558571590,15,09 POST latido de progreso 1 (recurso completado),200,OK,Estudiantes concurrentes 1-1,text,true,,745,438,3,3,http://host.docker.internal:8080/api/v1/progress/heartbeat,15,0,0
+1790558571647,16,09 POST latido de progreso 2 (recurso completado),200,OK,Estudiantes concurrentes 1-2,text,true,,745,438,3,3,http://host.docker.internal:8080/api/v1/progress/heartbeat,16,0,0
+1790558571726,18,09 POST latido de progreso 1 (recurso completado),200,OK,Estudiantes concurrentes 1-3,text,true,,745,438,3,3,http://host.docker.internal:8080/api/v1/progress/heartbeat,18,0,0
+1790558571756,14,09 POST latido de progreso 2 (recurso completado),200,OK,Estudiantes concurrentes 1-1,text,true,,745,438,3,3,http://host.docker.internal:8080/api/v1/progress/heartbeat,14,0,0
+1790558571771,14,10 POST envio del quiz,409,Conflict,Estudiantes concurrentes 1-2,text,false,"Test failed: code expected to equal /
+
+****** received  : [[[409]]]
+
+****** comparison: [[[200]]]
+
+/",275,691,3,3,http://host.docker.internal:8080/api/v1/quizzes/fa000000-0000-0000-0000-000000000001/submissions,14,0,0
+1790558571918,15,09 POST latido de progreso 2 (recurso completado),200,OK,Estudiantes concurrentes 1-3,text,true,,745,438,3,3,http://host.docker.internal:8080/api/v1/progress/heartbeat,15,0,0
+1790558571940,6,11 POST envio DUPLICADO del quiz (misma clave),409,Conflict,Estudiantes concurrentes 1-2,text,false,"Test failed: code expected to equal /
+
+****** received  : [[[409]]]
+
+****** comparison: [[[200]]]
+
+/",300,691,3,3,http://host.docker.internal:8080/api/v1/quizzes/fa000000-0000-0000-0000-000000000001/submissions,6,0,0
+1790558571963,12,10 POST envio del quiz,409,Conflict,Estudiantes concurrentes 1-1,text,false,"Test failed: code expected to equal /
+
+****** received  : [[[409]]]
+
+****** comparison: [[[200]]]
+
+/",275,691,3,3,http://host.docker.internal:8080/api/v1/quizzes/fa000000-0000-0000-0000-000000000001/submissions,12,0,0
+1790558572037,15,10 POST envio del quiz,409,Conflict,Estudiantes concurrentes 1-3,text,false,"Test failed: code expected to equal /
+
+****** received  : [[[409]]]
+
+****** comparison: [[[200]]]
+
+/",275,691,3,3,http://host.docker.internal:8080/api/v1/quizzes/fa000000-0000-0000-0000-000000000001/submissions,15,0,0
+1790558572059,9,12 GET avance del curso tras el quiz (validacion),200,OK,Estudiantes concurrentes 1-2,text,true,,745,325,3,3,http://host.docker.internal:8080/api/v1/progress/courses/d0000000-0000-0000-0000-000000000001,9,0,0
+1790558572158,7,11 POST envio DUPLICADO del quiz (misma clave),409,Conflict,Estudiantes concurrentes 1-1,text,false,"Test failed: code expected to equal /
+
+****** received  : [[[409]]]
+
+****** comparison: [[[200]]]
+
+/",300,691,3,3,http://host.docker.internal:8080/api/v1/quizzes/fa000000-0000-0000-0000-000000000001/submissions,7,0,0
+1790558572192,11,13 GET mis envios (validacion de doble calificacion),200,OK,Estudiantes concurrentes 1-2,text,false,"Value expected to be '2', but found '3'",640,331,3,3,http://host.docker.internal:8080/api/v1/quizzes/fa000000-0000-0000-0000-000000000001/submissions/me,11,0,0
+1790558572237,7,11 POST envio DUPLICADO del quiz (misma clave),409,Conflict,Estudiantes concurrentes 1-3,text,false,"Test failed: code expected to equal /
+
+****** received  : [[[409]]]
+
+****** comparison: [[[200]]]
+
+/",300,691,3,3,http://host.docker.internal:8080/api/v1/quizzes/fa000000-0000-0000-0000-000000000001/submissions,6,0,0
+1790558572303,9,12 GET avance del curso tras el quiz (validacion),200,OK,Estudiantes concurrentes 1-1,text,true,,745,325,3,3,http://host.docker.internal:8080/api/v1/progress/courses/d0000000-0000-0000-0000-000000000001,9,0,0
+1790558572333,5,01 GET catalogo de cursos,200,OK,Estudiantes concurrentes 1-2,text,true,,922,288,3,3,http://host.docker.internal:8080/api/v1/courses?limit=20,5,0,0
+1790558572373,25,12 GET avance del curso tras el quiz (validacion),200,OK,Estudiantes concurrentes 1-3,text,true,,745,325,3,3,http://host.docker.internal:8080/api/v1/progress/courses/d0000000-0000-0000-0000-000000000001,25,0,0
+1790558572483,28,13 GET mis envios (validacion de doble calificacion),200,OK,Estudiantes concurrentes 1-1,text,false,"Value expected to be '2', but found '3'",640,331,3,3,http://host.docker.internal:8080/api/v1/quizzes/fa000000-0000-0000-0000-000000000001/submissions/me,28,0,0
+1790558572551,25,13 GET mis envios (validacion de doble calificacion),200,OK,Estudiantes concurrentes 1-3,text,false,"Value expected to be '2', but found '3'",640,331,3,3,http://host.docker.internal:8080/api/v1/quizzes/fa000000-0000-0000-0000-000000000001/submissions/me,25,0,0
+1790558572530,47,02 GET detalle del curso,200,OK,Estudiantes concurrentes 1-2,text,true,,537,316,3,3,http://host.docker.internal:8080/api/v1/courses/d0000000-0000-0000-0000-000000000001,46,0,0
+1790558572634,138,01 GET catalogo de cursos,200,OK,Estudiantes concurrentes 1-1,text,true,,922,288,3,3,http://host.docker.internal:8080/api/v1/courses?limit=20,138,0,0
+1790558572696,77,03 POST inscripcion,200,OK,Estudiantes concurrentes 1-2,text,true,,372,448,3,3,http://host.docker.internal:8080/api/v1/courses/d0000000-0000-0000-0000-000000000001/enrollments,77,0,0
+1790558572740,83,01 GET catalogo de cursos,200,OK,Estudiantes concurrentes 1-3,text,true,,922,288,3,3,http://host.docker.internal:8080/api/v1/courses?limit=20,83,0,0
+1790558572951,49,04 GET estado de mi inscripcion (validacion),200,OK,Estudiantes concurrentes 1-2,text,true,,403,331,3,3,http://host.docker.internal:8080/api/v1/courses/d0000000-0000-0000-0000-000000000001/enrollments/me,48,0,0
+1790558572952,51,02 GET detalle del curso,200,OK,Estudiantes concurrentes 1-1,text,true,,537,316,3,3,http://host.docker.internal:8080/api/v1/courses/d0000000-0000-0000-0000-000000000001,51,0,0
+1790558572977,41,02 GET detalle del curso,200,OK,Estudiantes concurrentes 1-3,text,true,,537,316,3,3,http://host.docker.internal:8080/api/v1/courses/d0000000-0000-0000-0000-000000000001,41,0,0
+1790558573157,20,05 GET modulos del curso,200,OK,Estudiantes concurrentes 1-2,text,true,,608,324,3,3,http://host.docker.internal:8080/api/v1/courses/d0000000-0000-0000-0000-000000000001/modules,19,0,0
+1790558573149,30,03 POST inscripcion,200,OK,Estudiantes concurrentes 1-3,text,true,,372,448,3,3,http://host.docker.internal:8080/api/v1/courses/d0000000-0000-0000-0000-000000000001/enrollments,30,0,0
+1790558573182,10,03 POST inscripcion,200,OK,Estudiantes concurrentes 1-1,text,true,,372,448,3,3,http://host.docker.internal:8080/api/v1/courses/d0000000-0000-0000-0000-000000000001/enrollments,10,0,0
+1790558573326,7,04 GET estado de mi inscripcion (validacion),200,OK,Estudiantes concurrentes 1-1,text,true,,403,331,3,3,http://host.docker.internal:8080/api/v1/courses/d0000000-0000-0000-0000-000000000001/enrollments/me,7,0,0
+1790558573326,9,06 GET unidades del modulo,200,OK,Estudiantes concurrentes 1-2,text,true,,400,322,3,3,http://host.docker.internal:8080/api/v1/modules/d1000000-0000-0000-0000-000000000001/units,9,0,0
+1790558573328,37,04 GET estado de mi inscripcion (validacion),200,OK,Estudiantes concurrentes 1-3,text,true,,403,331,3,3,http://host.docker.internal:8080/api/v1/courses/d0000000-0000-0000-0000-000000000001/enrollments/me,37,0,0
+1790558573444,10,05 GET modulos del curso,200,OK,Estudiantes concurrentes 1-1,text,true,,608,324,3,3,http://host.docker.internal:8080/api/v1/courses/d0000000-0000-0000-0000-000000000001/modules,10,0,0
+1790558573463,11,07 GET recursos de la unidad,200,OK,Estudiantes concurrentes 1-2,text,true,,988,324,3,3,http://host.docker.internal:8080/api/v1/units/d2000000-0000-0000-0000-000000000001/resources,11,0,0
+1790558573530,11,05 GET modulos del curso,200,OK,Estudiantes concurrentes 1-3,text,true,,608,324,3,3,http://host.docker.internal:8080/api/v1/courses/d0000000-0000-0000-0000-000000000001/modules,11,0,0
+1790558573641,8,06 GET unidades del modulo,200,OK,Estudiantes concurrentes 1-1,text,true,,400,322,3,3,http://host.docker.internal:8080/api/v1/modules/d1000000-0000-0000-0000-000000000001/units,8,0,0
+1790558573636,15,08 GET cuestionario (vista de estudiante),200,OK,Estudiantes concurrentes 1-2,text,true,,1367,323,3,3,http://host.docker.internal:8080/api/v1/resources/d3000000-0000-0000-0000-000000000003/quiz,15,0,0
+1790558573644,9,06 GET unidades del modulo,200,OK,Estudiantes concurrentes 1-3,text,true,,400,322,3,3,http://host.docker.internal:8080/api/v1/modules/d1000000-0000-0000-0000-000000000001/units,9,0,0
+1790558573770,10,07 GET recursos de la unidad,200,OK,Estudiantes concurrentes 1-3,text,true,,988,324,3,3,http://host.docker.internal:8080/api/v1/units/d2000000-0000-0000-0000-000000000001/resources,10,0,0
+1790558573789,17,09 POST latido de progreso 1 (recurso completado),200,OK,Estudiantes concurrentes 1-2,text,true,,745,438,3,3,http://host.docker.internal:8080/api/v1/progress/heartbeat,17,0,0
+1790558573838,10,07 GET recursos de la unidad,200,OK,Estudiantes concurrentes 1-1,text,true,,988,324,3,3,http://host.docker.internal:8080/api/v1/units/d2000000-0000-0000-0000-000000000001/resources,10,0,0
+1790558573934,11,08 GET cuestionario (vista de estudiante),200,OK,Estudiantes concurrentes 1-3,text,true,,1367,323,3,3,http://host.docker.internal:8080/api/v1/resources/d3000000-0000-0000-0000-000000000003/quiz,11,0,0
+1790558574006,14,09 POST latido de progreso 2 (recurso completado),200,OK,Estudiantes concurrentes 1-2,text,true,,745,438,3,3,http://host.docker.internal:8080/api/v1/progress/heartbeat,14,0,0
+1790558574014,11,08 GET cuestionario (vista de estudiante),200,OK,Estudiantes concurrentes 1-1,text,true,,1367,323,3,3,http://host.docker.internal:8080/api/v1/resources/d3000000-0000-0000-0000-000000000003/quiz,11,0,0
+1790558574133,13,10 POST envio del quiz,409,Conflict,Estudiantes concurrentes 1-2,text,false,"Test failed: code expected to equal /
+
+****** received  : [[[409]]]
+
+****** comparison: [[[200]]]
+
+/",275,691,3,3,http://host.docker.internal:8080/api/v1/quizzes/fa000000-0000-0000-0000-000000000001/submissions,13,0,0
+1790558574141,14,09 POST latido de progreso 1 (recurso completado),200,OK,Estudiantes concurrentes 1-1,text,true,,745,438,3,3,http://host.docker.internal:8080/api/v1/progress/heartbeat,14,0,0
+1790558574107,48,09 POST latido de progreso 1 (recurso completado),200,OK,Estudiantes concurrentes 1-3,text,true,,745,438,3,3,http://host.docker.internal:8080/api/v1/progress/heartbeat,48,0,0
+1790558574259,16,09 POST latido de progreso 2 (recurso completado),200,OK,Estudiantes concurrentes 1-1,text,true,,745,438,3,3,http://host.docker.internal:8080/api/v1/progress/heartbeat,15,0,0
+1790558574297,6,11 POST envio DUPLICADO del quiz (misma clave),409,Conflict,Estudiantes concurrentes 1-2,text,false,"Test failed: code expected to equal /
+
+****** received  : [[[409]]]
+
+****** comparison: [[[200]]]
+
+/",300,691,3,3,http://host.docker.internal:8080/api/v1/quizzes/fa000000-0000-0000-0000-000000000001/submissions,6,0,0
+1790558574328,16,09 POST latido de progreso 2 (recurso completado),200,OK,Estudiantes concurrentes 1-3,text,true,,745,438,3,3,http://host.docker.internal:8080/api/v1/progress/heartbeat,16,0,0
+1790558574474,13,10 POST envio del quiz,409,Conflict,Estudiantes concurrentes 1-1,text,false,"Test failed: code expected to equal /
+
+****** received  : [[[409]]]
+
+****** comparison: [[[200]]]
+
+/",275,691,3,3,http://host.docker.internal:8080/api/v1/quizzes/fa000000-0000-0000-0000-000000000001/submissions,13,0,0
+1790558574487,13,10 POST envio del quiz,409,Conflict,Estudiantes concurrentes 1-3,text,false,"Test failed: code expected to equal /
+
+****** received  : [[[409]]]
+
+****** comparison: [[[200]]]
+
+/",275,691,3,3,http://host.docker.internal:8080/api/v1/quizzes/fa000000-0000-0000-0000-000000000001/submissions,13,0,0
+1790558574502,8,12 GET avance del curso tras el quiz (validacion),200,OK,Estudiantes concurrentes 1-2,text,true,,745,325,3,3,http://host.docker.internal:8080/api/v1/progress/courses/d0000000-0000-0000-0000-000000000001,8,0,0
+1790558574637,7,11 POST envio DUPLICADO del quiz (misma clave),409,Conflict,Estudiantes concurrentes 1-1,text,false,"Test failed: code expected to equal /
+
+****** received  : [[[409]]]
+
+****** comparison: [[[200]]]
+
+/",300,691,3,3,http://host.docker.internal:8080/api/v1/quizzes/fa000000-0000-0000-0000-000000000001/submissions,7,0,0
+1790558574648,6,11 POST envio DUPLICADO del quiz (misma clave),409,Conflict,Estudiantes concurrentes 1-3,text,false,"Test failed: code expected to equal /
+
+****** received  : [[[409]]]
+
+****** comparison: [[[200]]]
+
+/",300,691,3,3,http://host.docker.internal:8080/api/v1/quizzes/fa000000-0000-0000-0000-000000000001/submissions,6,0,0
+1790558574675,11,13 GET mis envios (validacion de doble calificacion),200,OK,Estudiantes concurrentes 1-2,text,true,,640,331,3,3,http://host.docker.internal:8080/api/v1/quizzes/fa000000-0000-0000-0000-000000000001/submissions/me,11,0,0
+1790558574774,11,12 GET avance del curso tras el quiz (validacion),200,OK,Estudiantes concurrentes 1-1,text,true,,745,325,2,2,http://host.docker.internal:8080/api/v1/progress/courses/d0000000-0000-0000-0000-000000000001,11,0,0
+1790558574786,10,12 GET avance del curso tras el quiz (validacion),200,OK,Estudiantes concurrentes 1-3,text,true,,745,325,2,2,http://host.docker.internal:8080/api/v1/progress/courses/d0000000-0000-0000-0000-000000000001,9,0,0
+1790558574927,12,13 GET mis envios (validacion de doble calificacion),200,OK,Estudiantes concurrentes 1-1,text,true,,640,331,2,2,http://host.docker.internal:8080/api/v1/quizzes/fa000000-0000-0000-0000-000000000001/submissions/me,12,0,0
+1790558574933,14,13 GET mis envios (validacion de doble calificacion),200,OK,Estudiantes concurrentes 1-3,text,true,,640,331,1,1,http://host.docker.internal:8080/api/v1/quizzes/fa000000-0000-0000-0000-000000000001/submissions/me,14,0,0
