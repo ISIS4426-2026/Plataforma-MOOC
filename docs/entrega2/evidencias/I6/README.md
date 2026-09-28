@@ -13,11 +13,11 @@ permite reconstruir el entorno y dejando registrado qué sigue costando.
 | Tarea | |
 | :--- | :---: |
 | Evidencias cargadas antes de tocar nada | ✅ §1 |
-| Respaldo final conservado | ✅ §2 |
+| Datos y scripts para reconstruir, conservados | ✅ §2 |
 | Recreación ensayada, con tiempo registrado | ✅ §3 — **verificada de nuevo sobre el entorno vacío: 61/61** |
-| Instancia de base de datos eliminada | ⏳ §5 |
-| Revisión de lo que sigue costando | ✅ §4 |
-| Qué se conserva, su costo y cómo recrear | ✅ §4 y §6 |
+| Instancia de base de datos eliminada | ✅ §8 — 2026-09-28 23:04 UTC |
+| Revisión de lo que sigue costando | ✅ §4 y §8 |
+| Qué se conserva, su costo y cómo recrear | ✅ §4, §6 y §8 |
 
 ---
 
@@ -516,17 +516,48 @@ postura segura** para quien recree el entorno más adelante desde este código.
 
 ## 8. Registro de la ejecución
 
+Todas las marcas de tiempo salen del **registro de auditoría de GCP**, no de
+apuntes a mano.
+
 | | |
 | :--- | :--- |
-| Fecha de eliminación | *(pendiente)* |
+| Instancia eliminada | `mooc-db-1` · **2026-09-28 23:04:20 UTC** |
+| VMs apagadas | `mooc-worker-server` 23:05:30 · `mooc-web-server` 23:05:42 UTC |
+| Copias existentes al eliminar | 3 — una automática y dos bajo demanda, **borradas con la instancia** |
+| `deletion_protection` restaurado a `true` | ✅ `database.tf` línea 100 |
 | Recreación verificada, 1.ª vez | 2026-09-28 · `mooc-db-1` en `10.171.240.10` · E2E **61/61** |
-| Ciclo completo reproducido con el runbook | 2026-09-28 · eliminación y recreación siguiendo §5 y §6 · `mooc-db-1` en `10.171.240.12` · E2E **61/61** |
-| `deletion_protection` restaurado a `true` | *(pendiente)* |
-| Generación de la instancia eliminada | `mooc-db-1` |
-| Copias existentes al eliminar | 3 — una automática y dos bajo demanda, borradas con la instancia |
-| VMs apagadas | *(pendiente)* |
-| Costo residual verificado | *(pendiente)* |
+| Ciclo completo reproducido con el runbook | 2026-09-28 · siguiendo §5 y §6 · `mooc-db-1` en `10.171.240.12` · E2E **61/61** |
 
----
+### Lo que queda vivo en el proyecto
 
-Este archivo no contiene credenciales, llaves ni secretos.
+| Recurso | Estado | USD/mes |
+| :--- | :--- | ---: |
+| `mooc-web-server`, `mooc-worker-server` | `TERMINATED` — solo se pagan sus discos | 6,00 |
+| `mooc-web-server-ip` · `34.24.52.111` | Reservada | 7,30 |
+| `mooc-worker-server-ip` · `35.237.6.244` | Reservada | 7,30 |
+| `plataforma-mooc-entrega2-media` | Originales, documentos y miniaturas | 0,08 |
+| `plataforma-mooc-entrega2-hls` | Derivados HLS, lectura pública | — |
+| `plataforma-mooc-entrega2-tfstate` | Estado de Terraform, con versionado | — |
+| `mooc-private-ip-alloc` | Rango reservado del peering | — |
+| Artifact Registry · Secret Manager | Imágenes del tag y secretos | marginal |
+| **Total residual** | | **≈ 20,67** |
+
+Frente a los **133,73 USD/mes** del entorno completo: **se cortó el 85 % del
+gasto**. En horas, de 0,169 a 0,028 USD/h.
+
+**Las direcciones IP se conservan a propósito.** Cuestan más reservadas sin usar
+que adjuntas a una VM encendida (7,30 frente a 1,83 cada una), y aun así se
+mantienen: liberarlas cambiaría la URL, y el README del commit tagueado
+`entrega-2` la publica. Un ahorro de 14,59 USD/mes no compensa romper un
+entregable.
+
+La aplicación tiene que estar operativa, y el procedimiento es **§6. Tres cosas que conviene tener presentes antes de empezar:
+
+1. **`deletion_protection` vuelve a estar en `true`.** El `terraform apply` que
+   recrea la instancia la crea protegida, que es lo correcto. Solo hay que
+   volver a ponerlo en `false` si algún día toca destruirla otra vez.
+2. **La IP privada de la base será distinta.** Cambió cuatro veces durante estas
+   pruebas. Se lee con `terraform output -raw db_private_ip` y se escribe en los
+   dos `/etc/mooc/*.conf` (§6, pasos 2 y 4).
+3. **La base nace vacía.** Terraform crea la instancia y el usuario, no el
+   esquema: hacen falta los pasos 5 y 6.
