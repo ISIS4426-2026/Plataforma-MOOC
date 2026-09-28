@@ -42,24 +42,24 @@ Para dar estricto cumplimiento a la directriz del pliego de emplear **parámetro
 
 | Dimensión | Variante / Valor Empleado | Propósito / Comportamiento Demostrado | Fuente en el Repositorio |
 | :--- | :--- | :--- | :--- |
-| **Roles de Usuario** | `administrador` (`admin`) | Gestión administrativa, auditoría y protección de último admin | [`scripts/seeds/synthetic_data.sql`](file:///mnt/c/Users/User/Desktop/MBC_IV/Soluciones Cloud/Proyectos/P2_data/Plataforma-MOOC/scripts/seeds/synthetic_data.sql) |
-| | `profesor` (`profesor1`, `profesor2`) | Autoría de jerarquía, control de propiedad y emisión de URLs | [`scripts/seeds/synthetic_data.sql`](file:///mnt/c/Users/User/Desktop/MBC_IV/Soluciones Cloud/Proyectos/P2_data/Plataforma-MOOC/scripts/seeds/synthetic_data.sql) |
-| | `estudiante` (`estudiante1`) | Consumo, inscripción, quizzes, avance e insignias | [`scripts/seeds/synthetic_data.sql`](file:///mnt/c/Users/User/Desktop/MBC_IV/Soluciones Cloud/Proyectos/P2_data/Plataforma-MOOC/scripts/seeds/synthetic_data.sql) |
-| | `anonimo` (sin sesión) | Verificación pública de insignias (200) y rechazo en módulos (401) | [`docs/entrega2/evidencias/G3/resultados.md`](file:///mnt/c/Users/User/Desktop/MBC_IV/Soluciones Cloud/Proyectos/P2_data/Plataforma-MOOC/docs/entrega2/evidencias/G3/resultados.md) |
-| **Perfiles Multimedia** | **Corto:** 2 min, 1280×720, 2.6 MB | Línea base y transcodificación rápida (38 objetos reales, 43.7 s) | [`docs/entrega2/evidencias/G1/manifest.json`](file:///mnt/c/Users/User/Desktop/MBC_IV/Soluciones Cloud/Proyectos/P2_data/Plataforma-MOOC/docs/entrega2/evidencias/G1/manifest.json) |
-| | **Medio:** 10 min, 1280×720, 13.0 MB | Carga media y streaming paced (172 objetos reales, 3m 52s) | [`docs/entrega2/evidencias/G1/manifest.json`](file:///mnt/c/Users/User/Desktop/MBC_IV/Soluciones Cloud/Proyectos/P2_data/Plataforma-MOOC/docs/entrega2/evidencias/G1/manifest.json) |
-| | **Largo:** 30 min, 1280×720, 39.0 MB | Estrés de worker y transcodificación pesada (504 objetos, 11m 13s) | [`docs/entrega2/evidencias/G1/manifest.json`](file:///mnt/c/Users/User/Desktop/MBC_IV/Soluciones Cloud/Proyectos/P2_data/Plataforma-MOOC/docs/entrega2/evidencias/G1/manifest.json) |
-| **Tipos de Archivo** | Video: `.mp4` (`video/mp4`) | Transcodificación HLS (escalera 360p + 720p sin upscaling) | [`internal/storage/keys.go#L44`](file:///mnt/c/Users/User/Desktop/MBC_IV/Soluciones Cloud/Proyectos/P2_data/Plataforma-MOOC/internal/storage/keys.go#L44) |
-| | Audio: `.mp3`, `.wav` | Formatos de solo audio admitidos en prefijo `originals/` | [`internal/storage/keys.go#L48-L50`](file:///mnt/c/Users/User/Desktop/MBC_IV/Soluciones Cloud/Proyectos/P2_data/Plataforma-MOOC/internal/storage/keys.go#L48-L50) |
-| | Documentos: `.pdf`, `.docx` | Archivos complementarios admitidos en prefijo `documents/` | [`internal/storage/keys.go#L53-L57`](file:///mnt/c/Users/User/Desktop/MBC_IV/Soluciones Cloud/Proyectos/P2_data/Plataforma-MOOC/internal/storage/keys.go#L53-L57) |
-| | Miniaturas: `.jpg`, `.png` | Portadas de curso admitidas en prefijo `thumbnails/` | [`internal/storage/keys.go#L59-L62`](file:///mnt/c/Users/User/Desktop/MBC_IV/Soluciones Cloud/Proyectos/P2_data/Plataforma-MOOC/internal/storage/keys.go#L59-L62) |
-| **Casos Inválidos** | Registro con rol `profesor` | Rechazo 400 `invalid_registration_role` (docentes solo por admin) | [`docs/entrega2/evidencias/G3/resultados.md#L20`](file:///mnt/c/Users/User/Desktop/MBC_IV/Soluciones Cloud/Proyectos/P2_data/Plataforma-MOOC/docs/entrega2/evidencias/G3/resultados.md#L20) |
-| | Extensión no admitida `.exe` | Rechazo 400 `invalid_input` en solicitud de URL firmada | [`docs/entrega2/evidencias/G3/resultados.md#L63`](file:///mnt/c/Users/User/Desktop/MBC_IV/Soluciones Cloud/Proyectos/P2_data/Plataforma-MOOC/docs/entrega2/evidencias/G3/resultados.md#L63) |
-| | Publicar curso sin módulos | Rechazo 422 `publication_validation_failed` multi-error acumulado | [`docs/entrega2/evidencias/G3/resultados.md#L46`](file:///mnt/c/Users/User/Desktop/MBC_IV/Soluciones Cloud/Proyectos/P2_data/Plataforma-MOOC/docs/entrega2/evidencias/G3/resultados.md#L46) |
-| | Modificar curso publicado | Rechazo 409 `course_immutable` (inmutabilidad estricta) | [`docs/entrega2/evidencias/G3/resultados.md#L80`](file:///mnt/c/Users/User/Desktop/MBC_IV/Soluciones Cloud/Proyectos/P2_data/Plataforma-MOOC/docs/entrega2/evidencias/G3/resultados.md#L80) |
-| | Firma V4 alterada o vencida | Rechazo 403 `SignatureDoesNotMatch` / 400 `ExpiredToken` en bucket | [`docs/entrega2/evidencias/C4/rechazo_firma_alterada_o_vencida.txt`](file:///mnt/c/Users/User/Desktop/MBC_IV/Soluciones Cloud/Proyectos/P2_data/Plataforma-MOOC/docs/entrega2/evidencias/C4/rechazo_firma_alterada_o_vencida.txt) |
-| | Objeto original sin firma | Rechazo 403 Forbidden directo en Cloud Storage | [`docs/entrega2/evidencias/C3/objeto_no_publico_sin_firma.txt`](file:///mnt/c/Users/User/Desktop/MBC_IV/Soluciones Cloud/Proyectos/P2_data/Plataforma-MOOC/docs/entrega2/evidencias/C3/objeto_no_publico_sin_firma.txt) |
-| | Ráfaga de login (> 10 req/min) | Rechazo 429 `rate_limit_exceeded` respaldado por Redis | [`docs/entrega2/evidencias/H2/resultados/local-login-rafaga_20260927_202603/resumen.txt`](file:///mnt/c/Users/User/Desktop/MBC_IV/Soluciones Cloud/Proyectos/P2_data/Plataforma-MOOC/docs/entrega2/evidencias/H2/resultados/local-login-rafaga_20260927_202603/resumen.txt) |
+| **Roles de Usuario** | `administrador` (`admin`) | Gestión administrativa, auditoría y protección de último admin | [`scripts/seeds/synthetic_data.sql`](../../../../scripts/seeds/synthetic_data.sql) |
+| | `profesor` (`profesor1`, `profesor2`) | Autoría de jerarquía, control de propiedad y emisión de URLs | [`scripts/seeds/synthetic_data.sql`](../../../../scripts/seeds/synthetic_data.sql) |
+| | `estudiante` (`estudiante1`) | Consumo, inscripción, quizzes, avance e insignias | [`scripts/seeds/synthetic_data.sql`](../../../../scripts/seeds/synthetic_data.sql) |
+| | `anonimo` (sin sesión) | Verificación pública de insignias (200) y rechazo en módulos (401) | [`docs/entrega2/evidencias/G3/resultados.md`](../../../../docs/entrega2/evidencias/G3/resultados.md) |
+| **Perfiles Multimedia** | **Corto:** 2 min, 1280×720, 2.6 MB | Línea base y transcodificación rápida (38 objetos reales, 43.7 s) | [`docs/entrega2/evidencias/G1/manifest.json`](../../../../docs/entrega2/evidencias/G1/manifest.json) |
+| | **Medio:** 10 min, 1280×720, 13.0 MB | Carga media y streaming paced (172 objetos reales, 3m 52s) | [`docs/entrega2/evidencias/G1/manifest.json`](../../../../docs/entrega2/evidencias/G1/manifest.json) |
+| | **Largo:** 30 min, 1280×720, 39.0 MB | Estrés de worker y transcodificación pesada (504 objetos, 11m 13s) | [`docs/entrega2/evidencias/G1/manifest.json`](../../../../docs/entrega2/evidencias/G1/manifest.json) |
+| **Tipos de Archivo** | Video: `.mp4` (`video/mp4`) | Transcodificación HLS (escalera 360p + 720p sin upscaling) | [`internal/storage/keys.go#L44`](../../../../internal/storage/keys.go#L44) |
+| | Audio: `.mp3`, `.wav` | Formatos de solo audio admitidos en prefijo `originals/` | [`internal/storage/keys.go#L48-L50`](../../../../internal/storage/keys.go#L48-L50) |
+| | Documentos: `.pdf`, `.docx` | Archivos complementarios admitidos en prefijo `documents/` | [`internal/storage/keys.go#L53-L57`](../../../../internal/storage/keys.go#L53-L57) |
+| | Miniaturas: `.jpg`, `.png` | Portadas de curso admitidas en prefijo `thumbnails/` | [`internal/storage/keys.go#L59-L62`](../../../../internal/storage/keys.go#L59-L62) |
+| **Casos Inválidos** | Registro con rol `profesor` | Rechazo 400 `invalid_registration_role` (docentes solo por admin) | [`docs/entrega2/evidencias/G3/resultados.md#L20`](../../../../docs/entrega2/evidencias/G3/resultados.md#L20) |
+| | Extensión no admitida `.exe` | Rechazo 400 `invalid_input` en solicitud de URL firmada | [`docs/entrega2/evidencias/G3/resultados.md#L63`](../../../../docs/entrega2/evidencias/G3/resultados.md#L63) |
+| | Publicar curso sin módulos | Rechazo 422 `publication_validation_failed` multi-error acumulado | [`docs/entrega2/evidencias/G3/resultados.md#L46`](../../../../docs/entrega2/evidencias/G3/resultados.md#L46) |
+| | Modificar curso publicado | Rechazo 409 `course_immutable` (inmutabilidad estricta) | [`docs/entrega2/evidencias/G3/resultados.md#L80`](../../../../docs/entrega2/evidencias/G3/resultados.md#L80) |
+| | Firma V4 alterada o vencida | Rechazo 403 `SignatureDoesNotMatch` / 400 `ExpiredToken` en bucket | [`docs/entrega2/evidencias/C4/rechazo_firma_alterada_o_vencida.txt`](../../../../docs/entrega2/evidencias/C4/rechazo_firma_alterada_o_vencida.txt) |
+| | Objeto original sin firma | Rechazo 403 Forbidden directo en Cloud Storage | [`docs/entrega2/evidencias/C3/objeto_no_publico_sin_firma.txt`](../../../../docs/entrega2/evidencias/C3/objeto_no_publico_sin_firma.txt) |
+| | Ráfaga de login (> 10 req/min) | Rechazo 429 `rate_limit_exceeded` respaldado por Redis | [`docs/entrega2/evidencias/H2/resultados/local-login-rafaga_20260927_202603/resumen.txt`](../../../../docs/entrega2/evidencias/H2/resultados/local-login-rafaga_20260927_202603/resumen.txt) |
 
 ---
 
@@ -85,7 +85,7 @@ Para garantizar legibilidad profesional y correlación en vivo durante los 18 mi
 > [!IMPORTANT]
 > **Checklist Pre-Grabación (T-Minus 5 Minutos):**
 > 1. Verificar en GCP Console que las VMs `mooc-web-server` y `mooc-worker-server` y la base `mooc-db-1` estén encendidas (`CONFIGURACION_Y_COSTOS.md` §5).
-> 2. Confirmar que el presupuesto de 50 USD esté activo y no agotado ([`docs/entrega2/evidencias/B1/presupuesto_y_alertas1.PNG`](file:///mnt/c/Users/User/Desktop/MBC_IV/Soluciones Cloud/Proyectos/P2_data/Plataforma-MOOC/docs/entrega2/evidencias/B1/presupuesto_y_alertas1.PNG)).
+> 2. Confirmar que el presupuesto de 50 USD esté activo y no agotado ([`docs/entrega2/evidencias/B1/presupuesto_y_alertas1.PNG`](../../../../docs/entrega2/evidencias/B1/presupuesto_y_alertas1.PNG)).
 > 3. Verificar certificado TLS vigente (`curl -Iv https://34.24.52.111.sslip.io/api/v1/health`).
 > 4. Recordatorio estricto: **Cero contraseñas, tokens JWT, firmas V4 ni credenciales deben mostrarse en pantalla ni verbalizarse.**
 
@@ -106,7 +106,7 @@ Para garantizar legibilidad profesional y correlación en vivo durante los 18 mi
   ```
 * **Texto Sugerido para la Locución:**  
   *"Bienvenidos a la sustentación técnica de la Entrega 2 de Desarrollo de Soluciones Cloud. Mi nombre es Stevan Peralta (`CrispisCas9`), y en representación de nuestro equipo de proyecto —conformado además por Tania Michel Díaz, Fredy Alexander y Diego Ortiz— presentaré la sustentación completa de la migración de nuestra plataforma MOOC a la nube pública en Google Cloud Platform. En este proyecto hemos operado bajo las restricciones formales del pliego: capacidad fija de cómputo en dos máquinas virtuales, cero mecanismos de autoescalado y persistencia delegada en servicios administrados relacionales y de almacenamiento de objetos. Como observan en pantalla, nuestro punto de acceso público bajo dominio HTTPS responde de manera saludable contra la base administrada. Durante los próximos dieciocho minutos expondré la correspondencia con los servicios del proveedor documentada en ARQUITECTURA.md, el recorrido funcional completo en la nube, las evidencias de resiliencia y los hallazgos de nuestros análisis de capacidad."*
-* **Ruta de Registro en el Repositorio:** [`docs/entrega2/evidencias/D2/health_publico.txt`](file:///mnt/c/Users/User/Desktop/MBC_IV/Soluciones Cloud/Proyectos/P2_data/Plataforma-MOOC/docs/entrega2/evidencias/D2/health_publico.txt) y [`docs/entrega2/evidencias/G3/resultados.md#L13`](file:///mnt/c/Users/User/Desktop/MBC_IV/Soluciones Cloud/Proyectos/P2_data/Plataforma-MOOC/docs/entrega2/evidencias/G3/resultados.md#L13).
+* **Ruta de Registro en el Repositorio:** [`docs/entrega2/evidencias/D2/health_publico.txt`](../../../../docs/entrega2/evidencias/D2/health_publico.txt) y [`docs/entrega2/evidencias/G3/resultados.md#L13`](../../../../docs/entrega2/evidencias/G3/resultados.md#L13).
 
 ---
 
@@ -153,16 +153,16 @@ flowchart TD
 * **Puntos Clave y Cifras a Exponer (Respaldados por [`ARQUITECTURA.md`](../../ARQUITECTURA.md)):**
   1. **Cómputo (Compute Engine):**
      - Dos máquinas virtuales dedicadas en zona única `us-east1-b`: `mooc-web-server` y `mooc-worker-server`.
-     - Perfil exacto del pliego: `e2-highcpu-2` (2 vCPU dedicadas, 2 GiB RAM, 30 GiB disco `pd-balanced`). Se descartó `e2-small` porque solo garantiza 0.5 vCPU compartida ([`CONFIGURACION_Y_COSTOS.md` §2](file:///mnt/c/Users/User/Desktop/MBC_IV/Soluciones Cloud/Proyectos/P2_data/Plataforma-MOOC/docs/entrega2/CONFIGURACION_Y_COSTOS.md#2-configuracion-efectiva)).
+     - Perfil exacto del pliego: `e2-highcpu-2` (2 vCPU dedicadas, 2 GiB RAM, 30 GiB disco `pd-balanced`). Se descartó `e2-small` porque solo garantiza 0.5 vCPU compartida ([`CONFIGURACION_Y_COSTOS.md` §2](../../../../docs/entrega2/CONFIGURACION_Y_COSTOS.md#2-configuracion-efectiva)).
      - La API expone 53 rutas REST modulares detrás del proxy Nginx 1.27.
   2. **Topología de Red y Aislamiento Perimetral (VPC):**
      - Red `mooc-vpc` (`10.0.0.0/16`) con subred `mooc-subnet` (`10.0.1.0/24`).
      - Web Server es el **único punto de entrada público** (puertos 80 y 443 expuestos por la regla de firewall `mooc-allow-web-ingress`).
-     - **Worker Server y la decisión de costos:** El Worker Server cuenta con una dirección IPv4 externa estática (`35.237.6.244`) porque, conforme al análisis de costos de B1, dos IPv4 estáticas cuestan 3.65 USD/mes frente a los 6.73 USD de Cloud NAT. Sin embargo, **está totalmente cerrado al tráfico entrante**: la regla de firewall `mooc-allow-web-ingress` aplica únicamente a instancias con la etiqueta `web-server`. El puerto Redis (6379) y sus servicios solo aceptan tráfico interno por la VPC ([`ARQUITECTURA.md` §3.2](file:///mnt/c/Users/User/Desktop/MBC_IV/Soluciones Cloud/Proyectos/P2_data/Plataforma-MOOC/docs/entrega2/ARQUITECTURA.md#32-red-virtual-privada-y-reglas-de-firewall)).
+     - **Worker Server y la decisión de costos:** El Worker Server cuenta con una dirección IPv4 externa estática (`35.237.6.244`) porque, conforme al análisis de costos de B1, dos IPv4 estáticas cuestan 3.65 USD/mes frente a los 6.73 USD de Cloud NAT. Sin embargo, **está totalmente cerrado al tráfico entrante**: la regla de firewall `mooc-allow-web-ingress` aplica únicamente a instancias con la etiqueta `web-server`. El puerto Redis (6379) y sus servicios solo aceptan tráfico interno por la VPC ([`ARQUITECTURA.md` §3.2](../../../../docs/entrega2/ARQUITECTURA.md#32-red-virtual-privada-y-reglas-de-firewall)).
      - Administración segura por SSH sin abrir puerto 22 a `0.0.0.0/0`: uso exclusivo de Google Identity-Aware Proxy (`35.235.240.0/20`).
   3. **Base de Datos Administrada (Cloud SQL):**
      - Instancia `mooc-db-1` en PostgreSQL 16 Enterprise, zona `us-east1-b`, sin réplicas de lectura.
-     - 1 vCPU dedicada, 3.75 GiB RAM, 10 GiB SSD. Se descartaron núcleos compartidos (`db-f1-micro`) por estar fuera de SLA y distorsionar pruebas de carga ([`CONFIGURACION_Y_COSTOS.md` §2](file:///mnt/c/Users/User/Desktop/MBC_IV/Soluciones Cloud/Proyectos/P2_data/Plataforma-MOOC/docs/entrega2/CONFIGURACION_Y_COSTOS.md#la-base-de-datos-por-que-1-vcpu-dedicada-y-no-un-perfil-compartido)).
+     - 1 vCPU dedicada, 3.75 GiB RAM, 10 GiB SSD. Se descartaron núcleos compartidos (`db-f1-micro`) por estar fuera de SLA y distorsionar pruebas de carga ([`CONFIGURACION_Y_COSTOS.md` §2](../../../../docs/entrega2/CONFIGURACION_Y_COSTOS.md#la-base-de-datos-por-que-1-vcpu-dedicada-y-no-un-perfil-compartido)).
      - Acceso privado vía Private Services Access (`10.171.240.0/20`, IP interna `10.171.240.3`), `ipv4_enabled = false`, SSL obligatorio (`ENCRYPTED_ONLY`).
      - Presupuesto de conexiones explícito: `max_connections = 100` (API 25 + Worker 25 + reservas = ~58 comprometidas, ~42 de margen). Siete migraciones versionadas aplicadas limpias (`schema_migrations`).
   4. **Almacenamiento de Objetos (Cloud Storage):**
@@ -171,7 +171,7 @@ flowchart TD
        * `plataforma-mooc-entrega2-hls`: bucket público con `public_access_prevention = inherited` para derivados HLS (`master.m3u8` y `.ts`), resolviendo que los reproductores web no heredan firmas V4 en rutas relativas.
      - Mínimo privilegio IAM con condiciones CEL: la API solo crea objetos en originales y no puede escribir en derivados; el worker solo escribe en el bucket HLS.
   5. **Costos, Presupuesto y Consumo Observado (I2):**
-     - Estimación 24×7 de lista: **133.73 USD/mes** ([`CONFIGURACION_Y_COSTOS.md` §4](file:///mnt/c/Users/User/Desktop/MBC_IV/Soluciones Cloud/Proyectos/P2_data/Plataforma-MOOC/docs/entrega2/CONFIGURACION_Y_COSTOS.md#4-estimacion-de-costos)).
+     - Estimación 24×7 de lista: **133.73 USD/mes** ([`CONFIGURACION_Y_COSTOS.md` §4](../../../../docs/entrega2/CONFIGURACION_Y_COSTOS.md#4-estimacion-de-costos)).
      - Techo operativo real gobernado por cupones educativos de 50 USD redimidos secuencialmente y política de encendido/apagado ([`OPERACION_Y_CAPACIDAD.md` §3.2](../../OPERACION_Y_CAPACIDAD.md#32-estimación-frente-a-consumo-observado)). Presupuesto activo de 50 USD con alertas al 25%, 50%, 80% y 100%.
      - **Consumo real observado (I2):** Medición de solo lectura con Cloud Monitoring y `gcloud` al 2026-09-28 ([`consumo_observado.md`](../I2/consumo_observado.md)): **≈ 22.9 h de VM** (~1.6% del mes continuo, ≈ 1.2 USD de cómputo), **≈ 8.5 MB en buckets** (40 objetos en `media`, 14 en `hls`), **415.5 MB en Artifact Registry** (83% del cupo gratuito de 0.5 GB) y **79 MB de disco en Cloud SQL** de 10 GiB.
 * **Texto Sugerido para la Locución:**  
@@ -179,11 +179,11 @@ flowchart TD
 * **Rutas de Registro en el Repositorio:**
   - Arquitectura y Decisiones: [`docs/entrega2/ARQUITECTURA.md`](../../ARQUITECTURA.md) y [`docs/entrega2/evidencias/I1/README.md`](../I1/README.md).
   - Operación, SPOF y Costos Observados: [`docs/entrega2/OPERACION_Y_CAPACIDAD.md`](../../OPERACION_Y_CAPACIDAD.md) y [`docs/entrega2/evidencias/I2/consumo_observado.md`](../I2/consumo_observado.md).
-  - Cómputo: [`infra/terraform/compute.tf`](file:///mnt/c/Users/User/Desktop/MBC_IV/Soluciones Cloud/Proyectos/P2_data/Plataforma-MOOC/infra/terraform/compute.tf) y [`docs/entrega2/evidencias/D2/terraform_plan.txt`](file:///mnt/c/Users/User/Desktop/MBC_IV/Soluciones Cloud/Proyectos/P2_data/Plataforma-MOOC/docs/entrega2/evidencias/D2/terraform_plan.txt).
-  - Red y Firewall: [`docs/entrega2/evidencias/B3/DIAGRAMA_RED.md`](file:///mnt/c/Users/User/Desktop/MBC_IV/Soluciones Cloud/Proyectos/P2_data/Plataforma-MOOC/docs/entrega2/evidencias/B3/DIAGRAMA_RED.md) y [`docs/entrega2/evidencias/G4/a_escaneo_puertos_externo.txt`](file:///mnt/c/Users/User/Desktop/MBC_IV/Soluciones Cloud/Proyectos/P2_data/Plataforma-MOOC/docs/entrega2/evidencias/G4/a_escaneo_puertos_externo.txt).
-  - Cloud SQL: [`infra/terraform/database.tf`](file:///mnt/c/Users/User/Desktop/MBC_IV/Soluciones Cloud/Proyectos/P2_data/Plataforma-MOOC/infra/terraform/database.tf) y [`docs/entrega2/evidencias/C1/instancia_configuracion.txt`](file:///mnt/c/Users/User/Desktop/MBC_IV/Soluciones Cloud/Proyectos/P2_data/Plataforma-MOOC/docs/entrega2/evidencias/C1/instancia_configuracion.txt).
-  - Storage: [`infra/terraform/storage.tf`](file:///mnt/c/Users/User/Desktop/MBC_IV/Soluciones Cloud/Proyectos/P2_data/Plataforma-MOOC/infra/terraform/storage.tf) y [`docs/entrega2/evidencias/C3/README.md`](file:///mnt/c/Users/User/Desktop/MBC_IV/Soluciones Cloud/Proyectos/P2_data/Plataforma-MOOC/docs/entrega2/evidencias/C3/README.md).
-  - Costos y Presupuesto: [`docs/entrega2/CONFIGURACION_Y_COSTOS.md`](file:///mnt/c/Users/User/Desktop/MBC_IV/Soluciones Cloud/Proyectos/P2_data/Plataforma-MOOC/docs/entrega2/CONFIGURACION_Y_COSTOS.md) y [`docs/entrega2/evidencias/B1/README.md`](file:///mnt/c/Users/User/Desktop/MBC_IV/Soluciones Cloud/Proyectos/P2_data/Plataforma-MOOC/docs/entrega2/evidencias/B1/README.md).
+  - Cómputo: [`infra/terraform/compute.tf`](../../../../infra/terraform/compute.tf) y [`docs/entrega2/evidencias/D2/terraform_plan.txt`](../../../../docs/entrega2/evidencias/D2/terraform_plan.txt).
+  - Red y Firewall: [`docs/entrega2/evidencias/B3/DIAGRAMA_RED.md`](../../../../docs/entrega2/evidencias/B3/DIAGRAMA_RED.md) y [`docs/entrega2/evidencias/G4/a_escaneo_puertos_externo.txt`](../../../../docs/entrega2/evidencias/G4/a_escaneo_puertos_externo.txt).
+  - Cloud SQL: [`infra/terraform/database.tf`](../../../../infra/terraform/database.tf) y [`docs/entrega2/evidencias/C1/instancia_configuracion.txt`](../../../../docs/entrega2/evidencias/C1/instancia_configuracion.txt).
+  - Storage: [`infra/terraform/storage.tf`](../../../../infra/terraform/storage.tf) y [`docs/entrega2/evidencias/C3/README.md`](../../../../docs/entrega2/evidencias/C3/README.md).
+  - Costos y Presupuesto: [`docs/entrega2/CONFIGURACION_Y_COSTOS.md`](../../../../docs/entrega2/CONFIGURACION_Y_COSTOS.md) y [`docs/entrega2/evidencias/B1/README.md`](../../../../docs/entrega2/evidencias/B1/README.md).
 
 ---
 
@@ -201,7 +201,7 @@ flowchart TD
   - Login con cuenta activa (admin, profesor, estudiante) $\to$ `HTTP 200 OK`, token Bearer y cabecera `Set-Cookie: __Host-mooc_session=...; Secure; HttpOnly; SameSite=Lax`.
 * **Texto Sugerido para la Locución:**  
   *"A continuación realizo el recorrido funcional sobre nuestro entorno en la nube pública. Iniciamos con el módulo de identidad. En pantalla ejecuto el registro de un nuevo estudiante contra el Web Server en GCP. El sistema responde HTTP 201 Created con estado pendiente de verificación. Esta respuesta acredita la integración con nuestro servidor SMTP en la nube usando Brevo en el puerto 587 con STARTTLS; Mailpit ha sido retirado en producción. Si intento registrar directamente un usuario con rol profesor, la API rechaza la solicitud con HTTP 400, preservando la regla de negocio que exige la creación docente por vía administrativa. Al iniciar sesión con una cuenta activa, el servidor entrega el token Bearer y fija la cookie segura __Host- con atributos Secure y HttpOnly."*
-* **Ruta de Registro en el Repositorio:** [`docs/entrega2/evidencias/G3/resultados.md#L15-L28`](file:///mnt/c/Users/User/Desktop/MBC_IV/Soluciones Cloud/Proyectos/P2_data/Plataforma-MOOC/docs/entrega2/evidencias/G3/resultados.md#L15-L28) y [`docs/entrega2/evidencias/F1/README.md`](file:///mnt/c/Users/User/Desktop/MBC_IV/Soluciones Cloud/Proyectos/P2_data/Plataforma-MOOC/docs/entrega2/evidencias/F1/README.md).
+* **Ruta de Registro en el Repositorio:** [`docs/entrega2/evidencias/G3/resultados.md#L15-L28`](../../../../docs/entrega2/evidencias/G3/resultados.md#L15-L28) y [`docs/entrega2/evidencias/F1/README.md`](../../../../docs/entrega2/evidencias/F1/README.md).
 
 #### 2. Control de Acceso, Autoría de 4 Niveles y Validación Multi-error (`05:15 - 06:45`)
 * **Acción:**
@@ -218,7 +218,7 @@ flowchart TD
   - Intento de mutar el curso publicado $\to$ `HTTP 409 Conflict` (`course_immutable`).
 * **Texto Sugerido para la Locución:**  
   *"Demostramos el control de acceso basado en roles y la autoría de cursos. Cuando simulo un estudiante intentando crear un curso, recibe HTTP 403 Forbidden. Autenticado como docente, creo el curso en estado borrador con su stable_id. El catálogo público no lista este borrador. Al intentar publicarlo vacío, el validador no se detiene en el primer error: retorna un HTTP 422 con todos los requisitos pendientes de manera simultánea. Procedo a estructurar la jerarquía completa de cuatro niveles: creo el módulo, la unidad y tres recursos obligatorios: un video, una lectura en Markdown canónico y un cuestionario. Como docente configuro las preguntas del quiz con sus opciones y respuestas correctas. Con la estructura completa, la publicación responde HTTP 200 OK. De inmediato, cualquier intento de mutar metadatos o estructura del curso publicado es rechazado con HTTP 409 Conflict, garantizando inmutabilidad estricta."*
-* **Ruta de Registro en el Repositorio:** [`docs/entrega2/evidencias/G3/resultados.md#L30-L57`](file:///mnt/c/Users/User/Desktop/MBC_IV/Soluciones Cloud/Proyectos/P2_data/Plataforma-MOOC/docs/entrega2/evidencias/G3/resultados.md#L30-L57) y [`docs/entrega2/evidencias/G3/resultados.md#L78-L83`](file:///mnt/c/Users/User/Desktop/MBC_IV/Soluciones Cloud/Proyectos/P2_data/Plataforma-MOOC/docs/entrega2/evidencias/G3/resultados.md#L78-L83).
+* **Ruta de Registro en el Repositorio:** [`docs/entrega2/evidencias/G3/resultados.md#L30-L57`](../../../../docs/entrega2/evidencias/G3/resultados.md#L30-L57) y [`docs/entrega2/evidencias/G3/resultados.md#L78-L83`](../../../../docs/entrega2/evidencias/G3/resultados.md#L78-L83).
 
 #### 3. Inscripción, Quiz Key Secrecy, Progreso Verificado e Insignia (`06:45 - 08:45`)
 * **Acción:**
@@ -231,7 +231,7 @@ flowchart TD
   - Emisión y Verificación Pública de Insignia: El estudiante obtiene su insignia (`GET /badges/{id}` con ETag). Un tercero anónimo sin sesión ejecuta `GET /api/v1/badges/verify/{code}` $\to$ `HTTP 200 OK` confirmando validez sin exponer el email ni identidad del estudiante.
 * **Texto Sugerido para la Locución:**  
   *"Completo el recorrido funcional como estudiante. Al inscribirme, desbloqueo el acceso a los módulos que antes me devolvían 403. Al consultar el cuestionario académico, observen cómo el servidor oculta rigurosamente la clave de respuestas correctas: el campo is_correct no existe en el payload JSON, respetando nuestro principio de Quiz Key Secrecy. El estudiante envía sus respuestas con su Idempotency-Key y recibe calificación de 100 puntos aprobando en el primer intento. El servidor registra el avance de forma autónoma sin confiar en latidos manipulables del cliente: el progreso pasa a 33.33%. Al reportar la lectura y el video mediante latidos, el curso alcanza el 100% de avance y el sistema emite una insignia digital con código criptográfico único. Demuestro la verificación pública: cualquier evaluador externo, sin iniciar sesión ni enviar tokens, consulta el endpoint de verificación y comprueba que la insignia es legítima sin que se filtre el correo electrónico ni datos personales del alumno."*
-* **Ruta de Registro en el Repositorio:** [`docs/entrega2/evidencias/G3/resultados.md#L85-L110`](file:///mnt/c/Users/User/Desktop/MBC_IV/Soluciones Cloud/Proyectos/P2_data/Plataforma-MOOC/docs/entrega2/evidencias/G3/resultados.md#L85-L110), [`docs/entrega2/evidencias/A5/README.md`](file:///mnt/c/Users/User/Desktop/MBC_IV/Soluciones Cloud/Proyectos/P2_data/Plataforma-MOOC/docs/entrega2/evidencias/A5/README.md) y [`docs/entrega2/evidencias/A6/README.md`](file:///mnt/c/Users/User/Desktop/MBC_IV/Soluciones Cloud/Proyectos/P2_data/Plataforma-MOOC/docs/entrega2/evidencias/A6/README.md).
+* **Ruta de Registro en el Repositorio:** [`docs/entrega2/evidencias/G3/resultados.md#L85-L110`](../../../../docs/entrega2/evidencias/G3/resultados.md#L85-L110), [`docs/entrega2/evidencias/A5/README.md`](../../../../docs/entrega2/evidencias/A5/README.md) y [`docs/entrega2/evidencias/A6/README.md`](../../../../docs/entrega2/evidencias/A6/README.md).
 
 ---
 
@@ -251,7 +251,7 @@ flowchart TD
     * Intento con URL vencida $\to$ `HTTP 400 Bad Request` (`ExpiredToken`).
 * **Texto Sugerido para la Locución:**  
   *"En este segmento evidencio los requisitos no funcionales críticos de infraestructura. Primero, la descarga de tráfico o carga directa. La API emite una URL prefirmada V4 con expiración de 24 horas firmada criptográficamente por la cuenta de servicio sa-web-server mediante ADC. El cliente sube el archivo binario directamente a Google Cloud Storage mediante un PUT HTTP/2; la API modular queda totalmente liberada del tráfico pesado de subida. Compruebo la seguridad del almacenamiento: si un usuario intenta leer el objeto original sin firma, Cloud Storage devuelve HTTP 403 Forbidden. Si altero un solo carácter de la firma, el bucket responde SignatureDoesNotMatch; y ante una URL expirada, responde con HTTP 400."*
-* **Ruta de Registro en el Repositorio:** [`docs/entrega2/evidencias/C4/carga_directa_completa_sin_api.txt`](file:///mnt/c/Users/User/Desktop/MBC_IV/Soluciones Cloud/Proyectos/P2_data/Plataforma-MOOC/docs/entrega2/evidencias/C4/carga_directa_completa_sin_api.txt), [`docs/entrega2/evidencias/C3/objeto_no_publico_sin_firma.txt`](file:///mnt/c/Users/User/Desktop/MBC_IV/Soluciones Cloud/Proyectos/P2_data/Plataforma-MOOC/docs/entrega2/evidencias/C3/objeto_no_publico_sin_firma.txt) y [`docs/entrega2/evidencias/C4/rechazo_firma_alterada_o_vencida.txt`](file:///mnt/c/Users/User/Desktop/MBC_IV/Soluciones Cloud/Proyectos/P2_data/Plataforma-MOOC/docs/entrega2/evidencias/C4/rechazo_firma_alterada_o_vencida.txt).
+* **Ruta de Registro en el Repositorio:** [`docs/entrega2/evidencias/C4/carga_directa_completa_sin_api.txt`](../../../../docs/entrega2/evidencias/C4/carga_directa_completa_sin_api.txt), [`docs/entrega2/evidencias/C3/objeto_no_publico_sin_firma.txt`](../../../../docs/entrega2/evidencias/C3/objeto_no_publico_sin_firma.txt) y [`docs/entrega2/evidencias/C4/rechazo_firma_alterada_o_vencida.txt`](../../../../docs/entrega2/evidencias/C4/rechazo_firma_alterada_o_vencida.txt).
 
 #### 2. IAM Diferenciado por Componente (Mínimo Privilegio con CEL) (`09:45 - 10:30`)
 * **Acción:**
@@ -259,7 +259,7 @@ flowchart TD
   - Probar que la cuenta del Worker (`sa-worker-server`) intenta escribir en `originals/` $\to$ `HTTP 403 Forbidden`. El worker solo puede escribir en el bucket público de derivados HLS.
 * **Texto Sugerido para la Locución:**  
   *"Compruebo el principio de menor privilegio con IAM diferenciado. Nuestra política en Terraform no concede roles de almacenamiento globales. Mediante expresiones CEL, la cuenta sa-web-server tiene permiso de creación restringido a originales, documentos y miniaturas; si intenta escribir en derivados hls/, Google Cloud Storage lo rechaza con HTTP 403. Inversamente, el Worker Server solo tiene permiso de escritura sobre el bucket público de HLS y tiene prohibido escribir en originales."*
-* **Ruta de Registro en el Repositorio:** [`docs/entrega2/evidencias/C3/api_rechaza_escritura_derivados.txt`](file:///mnt/c/Users/User/Desktop/MBC_IV/Soluciones Cloud/Proyectos/P2_data/Plataforma-MOOC/docs/entrega2/evidencias/C3/api_rechaza_escritura_derivados.txt) y [`docs/entrega2/evidencias/C4/worker_escribe_derivados_api_rechazada.txt`](file:///mnt/c/Users/User/Desktop/MBC_IV/Soluciones Cloud/Proyectos/P2_data/Plataforma-MOOC/docs/entrega2/evidencias/C4/worker_escribe_derivados_api_rechazada.txt).
+* **Ruta de Registro en el Repositorio:** [`docs/entrega2/evidencias/C3/api_rechaza_escritura_derivados.txt`](../../../../docs/entrega2/evidencias/C3/api_rechaza_escritura_derivados.txt) y [`docs/entrega2/evidencias/C4/worker_escribe_derivados_api_rechazada.txt`](../../../../docs/entrega2/evidencias/C4/worker_escribe_derivados_api_rechazada.txt).
 
 #### 3. Procesamiento Asíncrono y Persistencia en Cloud SQL (`10:30 - 11:30`)
 * **Acción:**
@@ -268,7 +268,7 @@ flowchart TD
   - Reproductor o cliente consulta el manifiesto HLS sin firma: `GET https://storage.googleapis.com/plataforma-mooc-entrega2-hls/hls/{id}/master.m3u8` $\to$ `HTTP 200 OK`.
 * **Texto Sugerido para la Locución:**  
   *"Al confirmar la subida, la API responde HTTP 202 Accepted y coloca la tarea en la cola Redis del Worker Server a través de la VPC privada. El worker independiente toma la tarea respetando su concurrencia configurada en 2, ejecuta FFmpeg para transcodificar a 360p y 720p sin upscaling, deposita los segmentos HLS en el bucket público y actualiza el estado en Cloud SQL a completed, equivalente al estado available del pliego. Compruebo que el manifiesto master.m3u8 y sus segmentos son consumibles inmediatamente por un reproductor sin firma."*
-* **Ruta de Registro en el Repositorio:** [`docs/entrega2/evidencias/E1/procesamiento_video_e2e.txt`](file:///mnt/c/Users/User/Desktop/MBC_IV/Soluciones Cloud/Proyectos/P2_data/Plataforma-MOOC/docs/entrega2/evidencias/E1/procesamiento_video_e2e.txt) y [`docs/entrega2/evidencias/G3/resultados.md#L60-L74`](file:///mnt/c/Users/User/Desktop/MBC_IV/Soluciones Cloud/Proyectos/P2_data/Plataforma-MOOC/docs/entrega2/evidencias/G3/resultados.md#L60-L74).
+* **Ruta de Registro en el Repositorio:** [`docs/entrega2/evidencias/E1/procesamiento_video_e2e.txt`](../../../../docs/entrega2/evidencias/E1/procesamiento_video_e2e.txt) y [`docs/entrega2/evidencias/G3/resultados.md#L60-L74`](../../../../docs/entrega2/evidencias/G3/resultados.md#L60-L74).
 
 #### 4. Idempotencia ante Entrega Duplicada (`11:30 - 12:15`)
 * **Acción:**
@@ -277,7 +277,7 @@ flowchart TD
   - Resultado: la tarea finaliza en 4.1 ms (`job skipped; this object is already processed`), sin invocar FFmpeg, sin reescribir objetos en Cloud Storage y sin registrar filas redundantes en la tabla de auditoría de Cloud SQL.
 * **Texto Sugerido para la Locución:**  
   *"Demuestro la idempotencia ante fallos de red o entregas duplicadas. Reencolo intencionalmente la misma tarea multimedia en Redis. Como observan en los logs del worker, el middleware de idempotencia intercepta el identificador en cuatro milisegundos y omite la transcodificación. Verifico en Cloud Storage que las marcas de tiempo de los archivos HLS permanecen intactas, y en Cloud SQL confirmo mediante consulta SQL que no se generó ninguna transición redundante en la tabla de auditoría."*
-* **Ruta de Registro en el Repositorio:** [`docs/entrega2/evidencias/E1/idempotencia_entrega_duplicada.txt`](file:///mnt/c/Users/User/Desktop/MBC_IV/Soluciones Cloud/Proyectos/P2_data/Plataforma-MOOC/docs/entrega2/evidencias/E1/idempotencia_entrega_duplicada.txt).
+* **Ruta de Registro en el Repositorio:** [`docs/entrega2/evidencias/E1/idempotencia_entrega_duplicada.txt`](../../../../docs/entrega2/evidencias/E1/idempotencia_entrega_duplicada.txt).
 
 #### 5. Fallo con Reintento, Backoff Exponencial y Cola de Fallidos (DLQ) (`12:15 - 13:15`)
 * **Acción:**
@@ -291,7 +291,7 @@ flowchart TD
   - Inspeccionar Redis en `mooc-worker-server`: consulta a `asynq:archived` muestra la tarea archivada con su stack trace para diagnóstico.
 * **Texto Sugerido para la Locución:**  
   *"Para evidenciar la tolerancia a fallos, despacho una tarea de prueba inyectada test:ping en el Worker Server de la nube configurada con un máximo de tres reintentos. Ante el fallo transitorio, Asynq aplica la función de backoff exponencial: el primer reintento ocurre a los dos segundos, el segundo a los cuatro segundos y el tercero a los ocho segundos. Al agotar los reintentos, el manejador emite una alerta estructurada en JSON con código DLQ_JOB_FAILED y mueve la tarea al conjunto asynq:archived en Redis, preservando el payload y el rastro del error para soporte operativo sin perder el trabajo."*
-* **Ruta de Registro en el Repositorio:** [`docs/entrega2/evidencias/E1/fallo_reintento_backoff_dlq.txt`](file:///mnt/c/Users/User/Desktop/MBC_IV/Soluciones Cloud/Proyectos/P2_data/Plataforma-MOOC/docs/entrega2/evidencias/E1/fallo_reintento_backoff_dlq.txt).
+* **Ruta de Registro en el Repositorio:** [`docs/entrega2/evidencias/E1/fallo_reintento_backoff_dlq.txt`](../../../../docs/entrega2/evidencias/E1/fallo_reintento_backoff_dlq.txt).
 
 ---
 
@@ -302,7 +302,7 @@ flowchart TD
 * **Disposición en Pantalla:** Gráficas de rendimiento vs latencia y tablas comparativas de [`capacity-planning/pruebas_de_carga_entrega2.md`](../../../../capacity-planning/pruebas_de_carga_entrega2.md) y [`docs/entrega2/evidencias/I3/resumen_ejecutivo_capacidad.md`](../I3/resumen_ejecutivo_capacidad.md) en panel izquierdo; en panel derecho, Cloud Monitoring y traza de JMeter / Go Capacity Engine.
 
 #### 1. Escenario 1: Actividad Académica Concurrente (`13:15 - 14:30`)
-* **Puntos Clave y Cifras a Exponer (Respaldados por [`H3/seccion_escenario1_para_informe.md`](../H3/seccion_escenario1_para_informe.md) y [`pruebas_de_carga_entrega2.md` §1](file:///mnt/c/Users/User/Desktop/MBC_IV/Soluciones Cloud/Proyectos/P2_data/Plataforma-MOOC/capacity-planning/pruebas_de_carga_entrega2.md#escenario-1-actividad-académica-concurrente-10)):**
+* **Puntos Clave y Cifras a Exponer (Respaldados por [`H3/seccion_escenario1_para_informe.md`](../H3/seccion_escenario1_para_informe.md) y [`pruebas_de_carga_entrega2.md` §1](../../../../capacity-planning/pruebas_de_carga_entrega2.md#escenario-1-actividad-académica-concurrente-10)):**
   - **Plan Acordado:** Recorrido académico de 14 pasos (catálogo $\to$ curso $\to$ inscripción $\to$ módulos $\to$ unidades $\to$ recursos $\to$ 2 latidos $\to$ envío de quiz con idempotencia $\to$ reenvío duplicado $\to$ verificación de calificación única).
   - **Mezcla Constante:** 9 lecturas (64.3%) y 5 escrituras (35.7%) por sesión; 3 sesiones consecutivas por usuario cubriendo los 3 intentos del quiz con notas 50 $\to$ 100 $\to$ 0.
   - **Decisión de Autenticación:** El login se ejecuta fuera del recorrido medido mediante tokens pre-generados (`capacity_login_tokens.sh`) debido a que el limitador de tasa de 10 logins/minuto por IP estrangularía artificialmente la prueba desde la máquina generadora. La variante aislada de ráfaga de login arrojó 10 respuestas 200 y 10 respuestas 429 con 20 cuentas, validando el control de seguridad.
@@ -324,7 +324,7 @@ flowchart TD
 * **Rutas de Registro en el Repositorio:** [`docs/entrega2/evidencias/H3/seccion_escenario1_para_informe.md`](../H3/seccion_escenario1_para_informe.md), [`docs/entrega2/evidencias/H3/resultados/tabla_escalera.txt`](../H3/resultados/tabla_escalera.txt), [`capacity-planning/pruebas_de_carga_entrega2.md#escenario-1-actividad-académica-concurrente-10`](../../../../capacity-planning/pruebas_de_carga_entrega2.md#escenario-1-actividad-académica-concurrente-10) y [`docs/entrega2/evidencias/I3/resumen_ejecutivo_capacidad.md`](../I3/resumen_ejecutivo_capacidad.md).
 
 #### 2. Escenario 2: Carga, Procesamiento y Consumo Multimedia (`14:30 - 15:45`)
-* **Puntos Clave y Cifras a Exponer (Respaldados por [`pruebas_de_carga_entrega2.md` §2](file:///mnt/c/Users/User/Desktop/MBC_IV/Soluciones Cloud/Proyectos/P2_data/Plataforma-MOOC/capacity-planning/pruebas_de_carga_entrega2.md#escenario-2-carga-procesamiento-y-consumo-multimedia-10)):**
+* **Puntos Clave y Cifras a Exponer (Respaldados por [`pruebas_de_carga_entrega2.md` §2](../../../../capacity-planning/pruebas_de_carga_entrega2.md#escenario-2-carga-procesamiento-y-consumo-multimedia-10)):**
   - **Instrumentación Desacoplada en 6 Etapas:** Medición segregada del plano de control frente al plano de datos:
     * Etapa 1: Emisión URL firmada en API (p95: **3–5 ms**).
     * Etapa 2: PUT directo a Storage (p95: **5–38 ms**, rendimiento 30–48 MB/s).
@@ -361,7 +361,7 @@ flowchart TD
 * **Disposición en Pantalla:** Tabla resumen de criterios cumplidos, enlace al repositorio GitHub y tag de entrega `entrega-2`.
 * **Texto Sugerido para la Locución:**  
   *"En conclusión, en representación de nuestro equipo de trabajo, hemos demostrado el cumplimiento integral de los cinco componentes evaluados para esta segunda entrega: cómputo distribuido en máquinas virtuales con contenedores Docker, base de datos administrada privada Cloud SQL, almacenamiento de objetos Cloud Storage con permisos diferenciados e IAM de menor privilegio, y la caracterización rigurosa de capacidad consolidada en el informe oficial de I3. El código, los manifiestos de Terraform y la totalidad de los registros de evidencia se encuentran versionados en nuestro repositorio bajo el tag entrega-2, y el enlace al presente video queda consignado en el README principal con acceso para el equipo docente. Muchas gracias."*
-* **Ruta de Registro en el Repositorio:** [`docs/entrega2/evidencias/I5/README.md`](file:///mnt/c/Users/User/Desktop/MBC_IV/Soluciones Cloud/Proyectos/P2_data/Plataforma-MOOC/docs/entrega2/evidencias/I5/README.md) y [`README.md`](file:///mnt/c/Users/User/Desktop/MBC_IV/Soluciones Cloud/Proyectos/P2_data/Plataforma-MOOC/README.md) (coordinado con issue I4).
+* **Ruta de Registro en el Repositorio:** [`docs/entrega2/evidencias/I5/README.md`](../../../../docs/entrega2/evidencias/I5/README.md) y [`README.md`](../../../../README.md) (coordinado con issue I4).
 
 ---
 

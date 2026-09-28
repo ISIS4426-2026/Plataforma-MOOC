@@ -50,6 +50,14 @@ El despliegue por defecto utiliza los siguientes puertos en su máquina local. A
 Siga esta secuencia ordenada de comandos para iniciar la plataforma desde cero:
 
 ### Paso 2.1: Clonar el Repositorio y Posicionarse en el Directorio
+
+> [!TIP]
+> **En Windows, clona en una ruta corta.** El límite de 260 caracteres por ruta
+> cuenta el directorio destino más la ruta dentro del repositorio, y la más larga
+> aquí son 100 caracteres. Clonar dentro de un directorio ya profundo falla con
+> `Filename too long` a mitad del checkout. Si no puedes evitarlo:
+> `git config --global core.longpaths true`.
+
 ```bash
 git clone https://github.com/ISIS4426-2026/Plataforma-MOOC.git
 cd Plataforma-MOOC
