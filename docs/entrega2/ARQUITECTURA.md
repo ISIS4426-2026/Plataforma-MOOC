@@ -44,33 +44,50 @@ que no se usen servicios administrados de caché o mensajería en esta etapa.
 
 ```mermaid
 flowchart LR
-    subgraph web ["Web Server"]
-        proxy["nginx<br/>TLS, proxy inverso"]
+    cliente(["Cliente HTTP"])
+
+    subgraph web ["Web Server · VM"]
+        direction TB
+        proxy["nginx<br/>TLS · proxy inverso"]
         api["API en Go<br/>monolito modular"]
     end
 
-    subgraph worker ["Worker Server"]
-        queue[("Redis 7<br/>cola asynq")]
-        wk["Worker en Go<br/>+ FFmpeg"]
+    subgraph wsrv ["Worker Server · VM"]
+        direction TB
+        queue[("Redis<br/>cola asynq")]
+        wk["Worker en Go<br/>FFmpeg"]
     end
 
-    db[("Cloud SQL<br/>PostgreSQL")]
-    media[("Cloud Storage<br/>media · privado")]
-    hls[("Cloud Storage<br/>hls · público")]
-    smtp["Brevo SMTP"]
+    subgraph adm ["Servicios administrados"]
+        direction TB
+        db[("Cloud SQL<br/>PostgreSQL")]
+        media[("Bucket media<br/>PRIVADO")]
+        hls[("Bucket hls<br/>PÚBLICO")]
+    end
 
-    cliente["Cliente HTTP"] -- "HTTPS 443" --> proxy
-    proxy -- "HTTP interno" --> api
-    api -- "SQL 5432, privado, TLS" --> db
-    api -- "encola media:process" --> queue
-    api -- "firma URLs V4" --> media
-    api -- "correo transaccional" --> smtp
-    queue -- "consume" --> wk
-    wk -- "lee original" --> media
-    wk -- "escribe derivados" --> hls
-    wk -- "marca completed" --> db
-    cliente -- "PUT firmado, directo" --> media
-    cliente -- "GET manifiesto, sin firma" --> hls
+    smtp{{"Brevo<br/>SMTP 587"}}
+
+    cliente ==>|"HTTPS 443"| proxy
+    proxy --> api
+    api -->|"5432 privado"| db
+    api -->|"encola"| queue
+    api -->|"firma V4"| media
+    api -->|"correo"| smtp
+    queue -->|"consume"| wk
+    wk -->|"lee original"| media
+    wk -->|"escribe HLS"| hls
+    wk -->|"estado"| db
+    cliente -.->|"PUT firmado"| media
+    cliente -.->|"GET manifiesto"| hls
+
+    classDef privado fill:#fde8e8,stroke:#c53030,color:#1a202c
+    classDef publico fill:#e6f4ea,stroke:#1e8e3e,color:#1a202c
+    classDef proc fill:#e8f0fe,stroke:#1a73e8,color:#1a202c
+    classDef ext fill:#f1f3f4,stroke:#5f6368,color:#1a202c
+    class media,db privado
+    class hls publico
+    class proxy,api,wk,queue proc
+    class smtp,cliente ext
 ```
 
 Las dos flechas que salen del cliente sin pasar por la API son el punto del
@@ -128,25 +145,28 @@ segundos, cruzando las dos VMs.
 
 ```mermaid
 sequenceDiagram
-    participant P as Profesor
-    participant A as API (Web Server)
-    participant B as Cloud Storage
-    participant Q as Redis (Worker Server)
+    autonumber
+    actor P as Profesor
+    participant A as API · Web Server
+    participant B as Bucket media
+    participant Q as Cola · Worker Server
     participant W as Worker
-    participant H as Bucket HLS
+    participant H as Bucket hls
 
     P->>A: POST /media/presigned-url
-    A-->>P: URL firmada V4, 24 h
-    P->>B: PUT del original (directo)
+    A-->>P: URL firmada V4 · 24 h
+    P->>B: PUT del original
+    Note over P,B: Los bytes no pasan por la API
     P->>A: POST /media/uploads/{id}/complete
-    A->>B: StatObject (¿existe?)
+    A->>B: StatObject · ¿existe?
     A->>Q: encola media:process
-    A-->>P: 202, processing_status=pending
+    A-->>P: 202 · processing_status=pending
+    Note over A,P: Aceptado, no procesado
     Q->>W: entrega la tarea
     W->>B: descarga el original
-    W->>W: ffprobe + ffmpeg (360p, 720p)
+    W->>W: ffprobe + ffmpeg · 360p y 720p
     W->>H: sube master.m3u8, variantes y segmentos
-    W->>A: (vía base) processing_status=completed
+    W->>A: processing_status=completed
 ```
 
 La confirmación responde `202` y no `200` a propósito: el trabajo quedó aceptado,
@@ -165,36 +185,43 @@ flowchart TB
     internet(["Internet"])
     iap["Cloud IAP<br/>35.235.240.0/20"]
 
-    subgraph gcp ["GCP · proyecto plataforma-mooc-entrega2 · us-east1"]
+    subgraph gcp ["Google Cloud · plataforma-mooc-entrega2 · us-east1"]
+        direction TB
+
         subgraph vpc ["mooc-vpc · 10.0.0.0/16"]
-            subgraph sub ["mooc-subnet · 10.0.1.0/24 · us-east1"]
-                vm1["mooc-web-server · e2-highcpu-2<br/>etiquetas: web-server, allow-iap-ssh<br/>contenedores: nginx, api, redis"]
-                vm2["mooc-worker-server · e2-highcpu-2<br/>etiqueta: allow-iap-ssh<br/>contenedores: redis (cola), worker"]
+            direction TB
+            subgraph sub ["mooc-subnet · 10.0.1.0/24"]
+                direction LR
+                vm1["mooc-web-server<br/>e2-highcpu-2<br/>nginx · api"]
+                vm2["mooc-worker-server<br/>e2-highcpu-2<br/>redis cola · worker"]
             end
-            peer["Private Services Access<br/>10.171.240.0/20"]
-            sql[("mooc-db-1 · Cloud SQL<br/>solo IP privada")]
+            sql[("Cloud SQL · mooc-db-1<br/>sin IP pública<br/>Private Services Access")]
         end
-        gcs1[("bucket media · privado<br/>public_access_prevention: enforced")]
-        gcs2[("bucket hls · público<br/>solo derivados")]
-        ar["Artifact Registry · mooc"]
-        sm["Secret Manager"]
+
+        gcs1[("Bucket media · PRIVADO<br/>originals · documents · thumbnails")]
+        gcs2[("Bucket hls · PÚBLICO<br/>solo derivados")]
+        ctl["Artifact Registry<br/>Secret Manager"]
     end
 
-    internet -- "443 · solo a web-server" --> vm1
-    internet -- "SSH por túnel" --> iap
-    iap --> vm1
-    iap --> vm2
-    vm1 -- "6379 · interno" --> vm2
-    vm1 -- "5432" --> peer
-    vm2 -- "5432" --> peer
-    peer --- sql
-    vm1 -- "HTTPS" --> gcs1
-    vm2 -- "HTTPS" --> gcs1
-    vm2 -- "HTTPS" --> gcs2
-    internet -- "GET manifiestos y segmentos" --> gcs2
-    vm1 -- "pull de imágenes" --> ar
-    vm1 -- "lee secretos" --> sm
-    vm2 -- "lee db-password" --> sm
+    internet ==>|"443 · solo etiqueta web-server"| vm1
+    internet ==>|"manifiestos y segmentos"| gcs2
+    internet -.->|"administración"| iap
+    iap -.-> vm1
+    iap -.-> vm2
+    vm1 -->|"6379"| vm2
+    vm1 & vm2 -->|"5432"| sql
+    vm1 & vm2 --> ctl
+    vm1 & vm2 --> gcs1
+    vm2 --> gcs2
+
+    classDef privado fill:#fde8e8,stroke:#c53030,color:#1a202c
+    classDef publico fill:#e6f4ea,stroke:#1e8e3e,color:#1a202c
+    classDef proc fill:#e8f0fe,stroke:#1a73e8,color:#1a202c
+    classDef ext fill:#f1f3f4,stroke:#5f6368,color:#1a202c
+    class gcs1,sql privado
+    class gcs2 publico
+    class vm1,vm2 proc
+    class internet,iap,ctl ext
 ```
 
 El detalle de reglas de firewall, rangos y administración está en
