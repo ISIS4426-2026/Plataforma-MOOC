@@ -2,6 +2,28 @@
 
 ## Diagrama de Red de la Plataforma MOOC
 
+> **Las direcciones privadas de las VMs no son fijas.** La subred las asigna por
+> DHCP, así que una VM recreada recibe otra: estas dos ya pasaron de
+> `10.0.1.2`/`10.0.1.3` a `10.0.1.4`/`10.0.1.5`. Lo que el diseño fija es la
+> **subred** (`10.0.1.0/24`) y las reglas de firewall, que se expresan por
+> etiquetas de red y por rango, nunca por IP. Los valores concretos se leen con
+> `terraform output`, no se copian de aquí — la de Cloud SQL sí es estable,
+> porque la reserva el peering de Private Services Access.
+
+> **El Worker Server sí tiene dirección IPv4 pública** (estática, declarada en
+> `compute.tf`), y aun así no es alcanzable desde internet. La protección la da la
+> regla de firewall, no la ausencia de dirección: `mooc-allow-web-ingress` aplica
+> solo a instancias con la etiqueta `web-server`, y el worker no la lleva. Es la
+> decisión de costos de B1 —dos IPv4 externas cuestan 3,65 USD/mes frente a 6,73
+> de una IPv4 más Cloud NAT—, y conviene leerla explícita porque «tiene IP
+> pública» y «está expuesto» no son lo mismo.
+>
+> Consecuencia que conviene revisar en I2: **el Cloud NAT quedó aprovisionado y no
+> se usa.** Una VM con dirección externa sale por ella, no por el NAT, así que
+> `mooc-nat` no procesa tráfico de ninguna de las dos. O se retira, o se retiran
+> las IPs externas; tener ambos paga dos veces por la misma salida.
+
+
 Este diagrama ilustra la topología de red aprovisionada por Terraform (`network.tf`), mostrando la separación entre el acceso público desde Internet y los componentes internos aislados en la VPC privada.
 
 ```mermaid
@@ -19,15 +41,15 @@ flowchart TD
         subgraph VPC ["🔒 mooc-vpc (10.0.0.0/16)"]
             
             subgraph Subnet ["🖥️ mooc-subnet (us-east1: 10.0.1.0/24)"]
-                WebServer["🌐 Web Server VM\nTag: web-server\nTag: allow-iap-ssh\nIP Privada: 10.0.1.2\nIP Pública: Externa Estática"]
-                WorkerServer["⚙️ Worker Server VM\nTag: worker-server\nTag: allow-iap-ssh\nIP Privada: 10.0.1.3\nSin IP Pública / NAT Egress"]
+                WebServer["🌐 Web Server VM\nTag: web-server\nTag: allow-iap-ssh\nIP Privada: 10.0.1.4 (asignada por DHCP)\nIP Pública: Externa Estática"]
+                WorkerServer["⚙️ Worker Server VM\nTag: worker-server\nTag: allow-iap-ssh\nIP Privada: 10.0.1.5 (asignada por DHCP)\nIP Pública: Externa Estática\nSin regla de ingreso: inalcanzable"]
                 RedisQueue[("📦 Cola de Mensajería (Asynq/Redis)\nPuerto: 6379\nEjecutando en Worker Server")]
             end
 
             CloudNAT["📡 Cloud Router & Cloud NAT\n(Egress Outbound para actualizaciones)"]
 
             subgraph ServicePeering ["🔐 Service Networking Peering (10.0.2.0/20)"]
-                CloudSQL[("🗄️ Cloud SQL PostgreSQL (C1)\nSolo IP Privada: 10.0.2.X\nIPv4 Pública: Deshabilitada")]
+                CloudSQL[("🗄️ Cloud SQL PostgreSQL (C1)\nSolo IP Privada: 10.171.240.3\nIPv4 Pública: Deshabilitada")]
             end
         end
     end
