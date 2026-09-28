@@ -1,0 +1,31 @@
+# Verificacion independiente del estado en la base de la NUBE (Cloud SQL mooc-db-1)
+# tras el piloto nube-piloto_20260927_211339 (3 usuarios x 3 sesiones).
+# Ejecutada con: bash scripts/h2_nube.sh verificar  (scripts/seeds/capacity_verificar_estado.sql,
+# desde mooc-web-server por IAP; la base solo tiene IP privada).
+# Esperado con N = 3: 3 estudiantes con exactamente 3 envios (9 en total), 3 inscripciones
+# activas, 0 envios duplicados del mismo intento.
+
+ estudiantes_con_envios | min_envios | max_envios | envios_totales
+------------------------+------------+------------+----------------
+                      3 |          3 |          3 |              9
+(1 row)
+
+ inscripciones_activas
+-----------------------
+                     3
+(1 row)
+
+ insignias_emitidas
+--------------------
+                  3
+(1 row)
+
+ envios_duplicados_mismo_intento
+---------------------------------
+                               0
+(1 row)
+
+ cuentas_de_carga
+------------------
+              200
+(1 row)
