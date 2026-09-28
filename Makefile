@@ -1,4 +1,4 @@
-.PHONY: all build fmt vet lint test test-migrations demo-segment4 demo-segments-1-2 test-stage test-e2e test-postman test-postman-identity test-postman-admin test-postman-authoring test-postman-enrollments test-postman-progress test-postman-quizzes test-postman-media test-postman-cloud test-e2e-cloud seed seed-clean seed-reset seed-status seed-capacity seed-media check clean run-api run-worker docker-up docker-down
+.PHONY: all build fmt vet lint test test-migrations demo-segment4 demo-segments-1-2 test-stage test-e2e test-postman test-postman-identity test-postman-admin test-postman-authoring test-postman-enrollments test-postman-progress test-postman-quizzes test-postman-media test-postman-cloud test-e2e-cloud test-pilot-escenario2 test-capacity-escenario2 seed seed-clean seed-reset seed-status seed-capacity seed-media check clean run-api run-worker docker-up docker-down
 
 all: check
 
@@ -118,6 +118,14 @@ test-postman-cloud:
 # ejercita cada familia de endpoints por separado. Tarda lo que tarde el worker.
 test-e2e-cloud:
 	@go run ./scripts/e2e_cloud
+
+# Piloto corto con instrumentacion por etapa para el escenario 2 (issue H4)
+test-pilot-escenario2:
+	@bash ./scripts/run_pilot_escenario2.sh
+
+# Suite formal de pruebas de capacidad del escenario 2: 5 niveles y drenaje (issue H5)
+test-capacity-escenario2:
+	@bash ./scripts/run_capacity_escenario2.sh
 
 seed:
 	@./scripts/seed.sh --load
