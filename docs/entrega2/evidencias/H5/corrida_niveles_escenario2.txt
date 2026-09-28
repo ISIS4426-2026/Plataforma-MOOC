@@ -1,7 +1,7 @@
 ================================================================================
  EVIDENCIA H5 - LOG DE CORRIDA FORMAL DE NIVELES (ESCENARIO 2 DE CAPACIDAD)
 ================================================================================
-Fecha de corrida      : 2026-09-28T01:17:41Z
+Fecha de corrida      : 2026-09-28T03:29:16Z
 Concurrencia workers  : WORKER_CONCURRENCY=2 (Fija en 1 worker por vCPU)
 Seguridad / Secretos  : SANITIZADO. Cero credenciales, llaves ni firmas V4 registradas.
 
@@ -10,133 +10,133 @@ Seguridad / Secretos  : SANITIZADO. Cero credenciales, llaves ni firmas V4 regis
 --------------------------------------------------------------------------------
 • Parámetros de Carga   : 1 profesores concurrentes (1 subidas totales), 2 estudiantes HLS
 • Perfiles utilizados   : corto
-• Duración corrida      : 4.291s | Tasa: 13.98 videos/min
+• Duración corrida      : 4.883s | Tasa: 12.29 videos/min
 • Trabajos completados  : 1 exitosos, 0 fallidos / DLQ
-• Métricas de Cola      : Pico pending=1 | Pico active=1 | Antigüedad máxima=0.17s
+• Métricas de Cola      : Pico pending=1 | Pico active=1 | Antigüedad máxima=0.38s
 
   [Desglose Desacoplado por Etapa]
   Etapa    | Operación                              | Avg          | p50          | p95         
   ------------------------------------------------------------------------------------------
-  Etapa 1  | Emisión URL Prefirmada (API Control)   | 4ms          | 4ms          | 4ms         
-  Etapa 2  | Transferencia Directa (PUT Storage)    | 5ms          | 5ms          | 5ms         
-  Etapa 3  | Confirmación Carga (API Control)       | 13ms         | 13ms         | 13ms        
-  Etapa 4  | Espera en Cola (Redis Asynq)           | 303ms        | 303ms        | 303ms       
-  Etapa 5  | Procesamiento FFmpeg (Worker Server)   | 3.955s       | 3.955s       | 3.955s      
-  Etapa 6  | Tiempo Total a Available               | 4.259s       | 4.259s       | 4.259s      
+  Etapa 1  | Emisión URL Prefirmada (API Control)   | 6ms          | 6ms          | 6ms         
+  Etapa 2  | Transferencia Directa (PUT Storage)    | 3ms          | 3ms          | 3ms         
+  Etapa 3  | Confirmación Carga (API Control)       | 5ms          | 5ms          | 5ms         
+  Etapa 4  | Espera en Cola (Redis Asynq)           | 605ms        | 605ms        | 605ms       
+  Etapa 5  | Procesamiento FFmpeg (Worker Server)   | 4.256s       | 4.256s       | 4.256s      
+  Etapa 6  | Tiempo Total a Available               | 4.86s        | 4.86s        | 4.86s       
 
   [Consumo Multimedia HLS]
   • Latencia Manifiesto Maestro : 3ms
   • Latencia Lista Variante     : 1ms
-  • Latencia Promedio Segmento  : 2ms
+  • Latencia Promedio Segmento  : 1ms
   • Margen de Buffer Saludable  : 6.00 s (Stalls: 0)
-  • Descarga Greedy (Bulk)      : 212.84 MB/s (Aislada como prueba de estrés de red)
-  • Sonda QoE Reproductor (TTFF): 51ms
+  • Descarga Greedy (Bulk)      : 201.89 MB/s (Aislada como prueba de estrés de red)
+  • Sonda QoE Reproductor (TTFF): 50ms
 
 --------------------------------------------------------------------------------
  NIVEL 1: NIVEL 1: SUB-SATURACIÓN (Λ < Μ)
 --------------------------------------------------------------------------------
 • Parámetros de Carga   : 2 profesores concurrentes (2 subidas totales), 10 estudiantes HLS
 • Perfiles utilizados   : corto, corto
-• Duración corrida      : 5.802s | Tasa: 20.68 videos/min
+• Duración corrida      : 3.673s | Tasa: 32.67 videos/min
 • Trabajos completados  : 2 exitosos, 0 fallidos / DLQ
-• Métricas de Cola      : Pico pending=2 | Pico active=2 | Antigüedad máxima=0.18s
+• Métricas de Cola      : Pico pending=0 | Pico active=2 | Antigüedad máxima=0.00s
 
   [Desglose Desacoplado por Etapa]
   Etapa    | Operación                              | Avg          | p50          | p95         
   ------------------------------------------------------------------------------------------
-  Etapa 1  | Emisión URL Prefirmada (API Control)   | 4ms          | 5ms          | 3ms         
-  Etapa 2  | Transferencia Directa (PUT Storage)    | 5ms          | 5ms          | 5ms         
-  Etapa 3  | Confirmación Carga (API Control)       | 10ms         | 10ms         | 9ms         
-  Etapa 4  | Espera en Cola (Redis Asynq)           | 305ms        | 305ms        | 304ms       
-  Etapa 5  | Procesamiento FFmpeg (Worker Server)   | 5.017s       | 5.475s       | 4.56s       
-  Etapa 6  | Tiempo Total a Available               | 5.322s       | 5.78s        | 4.864s      
+  Etapa 1  | Emisión URL Prefirmada (API Control)   | 3ms          | 3ms          | 2ms         
+  Etapa 2  | Transferencia Directa (PUT Storage)    | 4ms          | 5ms          | 3ms         
+  Etapa 3  | Confirmación Carga (API Control)       | 6ms          | 7ms          | 5ms         
+  Etapa 4  | Espera en Cola (Redis Asynq)           | 303ms        | 303ms        | 303ms       
+  Etapa 5  | Procesamiento FFmpeg (Worker Server)   | 2.887s       | 3.342s       | 2.433s      
+  Etapa 6  | Tiempo Total a Available               | 3.19s        | 3.645s       | 2.736s      
 
   [Consumo Multimedia HLS]
   • Latencia Manifiesto Maestro : 3ms
   • Latencia Lista Variante     : 1ms
   • Latencia Promedio Segmento  : 2ms
   • Margen de Buffer Saludable  : 6.00 s (Stalls: 0)
-  • Descarga Greedy (Bulk)      : 202.94 MB/s (Aislada como prueba de estrés de red)
-  • Sonda QoE Reproductor (TTFF): 51ms
+  • Descarga Greedy (Bulk)      : 303.79 MB/s (Aislada como prueba de estrés de red)
+  • Sonda QoE Reproductor (TTFF): 50ms
 
 --------------------------------------------------------------------------------
  NIVEL 2: NIVEL 2: PUNTO DE EQUILIBRIO NOMINAL (Λ ≈ Μ)
 --------------------------------------------------------------------------------
 • Parámetros de Carga   : 4 profesores concurrentes (4 subidas totales), 25 estudiantes HLS
 • Perfiles utilizados   : corto, medio, corto, medio
-• Duración corrida      : 6.42s | Tasa: 37.38 videos/min
+• Duración corrida      : 7.011s | Tasa: 34.23 videos/min
 • Trabajos completados  : 4 exitosos, 0 fallidos / DLQ
 • Métricas de Cola      : Pico pending=0 | Pico active=4 | Antigüedad máxima=0.00s
 
   [Desglose Desacoplado por Etapa]
   Etapa    | Operación                              | Avg          | p50          | p95         
   ------------------------------------------------------------------------------------------
-  Etapa 1  | Emisión URL Prefirmada (API Control)   | 3ms          | 3ms          | 3ms         
-  Etapa 2  | Transferencia Directa (PUT Storage)    | 6ms          | 7ms          | 7ms         
-  Etapa 3  | Confirmación Carga (API Control)       | 10ms         | 11ms         | 11ms        
+  Etapa 1  | Emisión URL Prefirmada (API Control)   | 2ms          | 2ms          | 2ms         
+  Etapa 2  | Transferencia Directa (PUT Storage)    | 3ms          | 3ms          | 3ms         
+  Etapa 3  | Confirmación Carga (API Control)       | 7ms          | 8ms          | 8ms         
   Etapa 4  | Espera en Cola (Redis Asynq)           | 303ms        | 303ms        | 303ms       
-  Etapa 5  | Procesamiento FFmpeg (Worker Server)   | 4.409s       | 6.082s       | 6.082s      
-  Etapa 6  | Tiempo Total a Available               | 4.712s       | 6.385s       | 6.385s      
+  Etapa 5  | Procesamiento FFmpeg (Worker Server)   | 4.707s       | 5.165s       | 5.165s      
+  Etapa 6  | Tiempo Total a Available               | 5.01s        | 5.467s       | 5.467s      
 
   [Consumo Multimedia HLS]
-  • Latencia Manifiesto Maestro : 3ms
-  • Latencia Lista Variante     : 1ms
-  • Latencia Promedio Segmento  : 3ms
+  • Latencia Manifiesto Maestro : 1ms
+  • Latencia Lista Variante     : 2ms
+  • Latencia Promedio Segmento  : 2ms
   • Margen de Buffer Saludable  : 6.00 s (Stalls: 0)
-  • Descarga Greedy (Bulk)      : 151.70 MB/s (Aislada como prueba de estrés de red)
-  • Sonda QoE Reproductor (TTFF): 52ms
+  • Descarga Greedy (Bulk)      : 199.40 MB/s (Aislada como prueba de estrés de red)
+  • Sonda QoE Reproductor (TTFF): 50ms
 
 --------------------------------------------------------------------------------
  NIVEL 3: NIVEL 3: SATURACIÓN DE COLA (Λ > Μ)
 --------------------------------------------------------------------------------
 • Parámetros de Carga   : 8 profesores concurrentes (8 subidas totales), 50 estudiantes HLS
 • Perfiles utilizados   : corto, medio, largo, corto, medio, corto, medio, corto
-• Duración corrida      : 9.476s | Tasa: 50.65 videos/min
+• Duración corrida      : 9.462s | Tasa: 50.73 videos/min
 • Trabajos completados  : 8 exitosos, 0 fallidos / DLQ
-• Métricas de Cola      : Pico pending=8 | Pico active=8 | Antigüedad máxima=0.57s
+• Métricas de Cola      : Pico pending=8 | Pico active=8 | Antigüedad máxima=0.17s
 
   [Desglose Desacoplado por Etapa]
   Etapa    | Operación                              | Avg          | p50          | p95         
   ------------------------------------------------------------------------------------------
-  Etapa 1  | Emisión URL Prefirmada (API Control)   | 4ms          | 4ms          | 5ms         
-  Etapa 2  | Transferencia Directa (PUT Storage)    | 7ms          | 7ms          | 8ms         
-  Etapa 3  | Confirmación Carga (API Control)       | 14ms         | 14ms         | 18ms        
-  Etapa 4  | Espera en Cola (Redis Asynq)           | 912ms        | 912ms        | 913ms       
-  Etapa 5  | Procesamiento FFmpeg (Worker Server)   | 4.058s       | 4.549s       | 4.85s       
-  Etapa 6  | Tiempo Total a Available               | 4.97s        | 5.46s        | 5.761s      
+  Etapa 1  | Emisión URL Prefirmada (API Control)   | 3ms          | 3ms          | 4ms         
+  Etapa 2  | Transferencia Directa (PUT Storage)    | 5ms          | 6ms          | 7ms         
+  Etapa 3  | Confirmación Carga (API Control)       | 9ms          | 9ms          | 11ms        
+  Etapa 4  | Espera en Cola (Redis Asynq)           | 605ms        | 604ms        | 605ms       
+  Etapa 5  | Procesamiento FFmpeg (Worker Server)   | 4.63s        | 4.551s       | 6.376s      
+  Etapa 6  | Tiempo Total a Available               | 5.235s       | 5.155s       | 6.98s       
 
   [Consumo Multimedia HLS]
-  • Latencia Manifiesto Maestro : 1ms
-  • Latencia Lista Variante     : 1ms
+  • Latencia Manifiesto Maestro : 3ms
+  • Latencia Lista Variante     : 2ms
   • Latencia Promedio Segmento  : 3ms
   • Margen de Buffer Saludable  : 6.00 s (Stalls: 0)
-  • Descarga Greedy (Bulk)      : 336.57 MB/s (Aislada como prueba de estrés de red)
-  • Sonda QoE Reproductor (TTFF): 51ms
+  • Descarga Greedy (Bulk)      : 148.96 MB/s (Aislada como prueba de estrés de red)
+  • Sonda QoE Reproductor (TTFF): 52ms
 
 --------------------------------------------------------------------------------
  NIVEL 4: NIVEL 4: ESTRÉS MÁXIMO Y DRENAJE
 --------------------------------------------------------------------------------
 • Parámetros de Carga   : 12 profesores concurrentes (12 subidas totales), 100 estudiantes HLS
 • Perfiles utilizados   : corto, medio, corto, medio, corto, corto, medio, corto, corto, medio, corto, medio
-• Duración corrida      : 6.507s | Tasa: 110.65 videos/min
+• Duración corrida      : 5.813s | Tasa: 123.87 videos/min
 • Trabajos completados  : 12 exitosos, 0 fallidos / DLQ
-• Métricas de Cola      : Pico pending=12 | Pico active=10 | Antigüedad máxima=2.91s
+• Métricas de Cola      : Pico pending=2 | Pico active=10 | Antigüedad máxima=2.31s
 
   [Desglose Desacoplado por Etapa]
   Etapa    | Operación                              | Avg          | p50          | p95         
   ------------------------------------------------------------------------------------------
   Etapa 1  | Emisión URL Prefirmada (API Control)   | 2ms          | 2ms          | 4ms         
-  Etapa 2  | Transferencia Directa (PUT Storage)    | 9ms          | 3ms          | 38ms        
-  Etapa 3  | Confirmación Carga (API Control)       | 7ms          | 7ms          | 9ms         
-  Etapa 4  | Espera en Cola (Redis Asynq)           | 1.013s       | 609ms        | 3.035s      
-  Etapa 5  | Procesamiento FFmpeg (Worker Server)   | 3.769s       | 2.734s       | 5.465s      
-  Etapa 6  | Tiempo Total a Available               | 4.782s       | 5.467s       | 6.074s      
+  Etapa 2  | Transferencia Directa (PUT Storage)    | 8ms          | 4ms          | 28ms        
+  Etapa 3  | Confirmación Carga (API Control)       | 9ms          | 8ms          | 14ms        
+  Etapa 4  | Espera en Cola (Redis Asynq)           | 708ms        | 304ms        | 2.731s      
+  Etapa 5  | Procesamiento FFmpeg (Worker Server)   | 3.641s       | 2.729s       | 5.466s      
+  Etapa 6  | Tiempo Total a Available               | 4.349s       | 5.158s       | 5.771s      
 
   [Consumo Multimedia HLS]
-  • Latencia Manifiesto Maestro : 3ms
-  • Latencia Lista Variante     : 2ms
+  • Latencia Manifiesto Maestro : 2ms
+  • Latencia Lista Variante     : 1ms
   • Latencia Promedio Segmento  : 2ms
   • Margen de Buffer Saludable  : 6.00 s (Stalls: 0)
-  • Descarga Greedy (Bulk)      : 207.88 MB/s (Aislada como prueba de estrés de red)
-  • Sonda QoE Reproductor (TTFF): 52ms
+  • Descarga Greedy (Bulk)      : 219.19 MB/s (Aislada como prueba de estrés de red)
+  • Sonda QoE Reproductor (TTFF): 50ms
 

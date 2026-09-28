@@ -597,12 +597,12 @@ func main() {
 	writeExecutiveSummary(filepath.Join(cfg.OutDir, "resumen_ejecutivo_escenario2.md"), levelResults, drainResult)
 	writeBottleneckAnalysis(filepath.Join(cfg.OutDir, "analisis_cuello_de_botella.md"), levelResults, drainResult)
 	writeH5README(filepath.Join(cfg.OutDir, "README.md"), levelResults, drainResult)
-	writeCapacityReportFile("capacity-planning/pruebas_de_carga_entrega2.md", levelResults, drainResult)
+	writeCapacityReportFile(filepath.Join(cfg.OutDir, "reporte_carga_escenario2.md"), levelResults, drainResult)
 
 	log.Printf("\n================================================================================")
 	log.Printf(" Escenario 2 Finalizado Exitosamente.")
 	log.Printf(" Evidencias generadas en : %s", cfg.OutDir)
-	log.Printf(" Reporte formal en       : capacity-planning/pruebas_de_carga_entrega2.md")
+	log.Printf(" Reporte consolidado en  : capacity-planning/pruebas_de_carga_entrega2.md")
 	log.Printf("================================================================================")
 }
 
