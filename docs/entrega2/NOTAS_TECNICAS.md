@@ -31,6 +31,7 @@ salieron de errores que costaron una tarde y se habrían evitado leyéndolas.
 | 19 | Lo versionado tiene que reproducir lo que hacía lo que reemplaza — *`REDIS_URL`, **#166*** | D2, E1, F1, G3 |
 | 20 | El worker no podía arrancar en producción: validaba la configuración de la API | E1, F1, G3, I1 |
 | 21 | Un bind mount del host y un contenedor sin privilegios no se llevan bien | E1, G3, H4, H5 |
+| 22 | Los registros de los contenedores no salían de las VMs — **resuelto** | E1, H1, H3, H5, I2 |
 
 ---
 
@@ -949,3 +950,56 @@ Sigue en el disco de la VM y se sigue midiendo, con `docker system df -v` en
 lugar de `du`. Un `chown` a mano en el host habría funcionado hasta la siguiente
 recreación de la VM —la lección de la nota 19 otra vez—; el volumen está
 declarado en `docker-compose.worker.yml` y sobrevive.
+
+---
+
+## 22. Los registros de los contenedores no salían de las VMs
+
+**Afecta a:** E1, H1, H3, H5 e I2. **Estado: resuelto.**
+
+El Ops Agent estaba instalado en las dos máquinas y recogía métricas —del sistema
+y de la aplicación, por Prometheus—, pero **ningún registro de la aplicación
+llegaba a Cloud Logging**. Solo estaban `syslog`, los agentes del propio sistema y
+el log de Cloud SQL.
+
+Con la API y el worker en máquinas distintas, eso significa que diagnosticar
+obliga a entrar por SSH y adivinar en cuál mirar. Para las pruebas de capacidad es
+peor: no hay forma de correlacionar lo que mide el generador de carga con lo que
+la aplicación estaba diciendo en ese mismo instante, que es justo lo que el
+enunciado pide relacionar.
+
+Docker usa el controlador `json-file`, así que las líneas ya estaban en disco
+envueltas en su propio JSON:
+
+```json
+{"log":"{\"level\":\"INFO\",\"msg\":\"media rendered to HLS\"}
+","stream":"stdout","time":"..."}
+```
+
+Faltaba decirle al agente que las recogiera. La configuración añade un receptor
+de ficheros sobre `/var/lib/docker/containers/*/*-json.log` y **dos pasos de
+análisis**: el primero abre el sobre de Docker y el segundo el JSON de la
+aplicación, de modo que `level`, `msg` y `request_id` lleguen como campos
+consultables y no como una cadena. Las líneas que no son JSON sobreviven como
+texto.
+
+Se conservó el controlador `json-file` a propósito. Poner `gcplogs` como
+controlador de Docker envía directo y ahorra el análisis en dos pasos, pero
+entonces **`docker logs` deja de funcionar en la máquina**, que es la primera
+herramienta que se usa cuando algo falla.
+
+Las dos configuraciones están versionadas en
+[`infra/ops-agent/`](../../infra/ops-agent/README.md) y no solo en las máquinas,
+por la razón de la nota 19: lo que vive únicamente en una VM lo borra la
+siguiente recreación.
+
+Comprobado con una corrida completa de G3: `job media:process started`,
+`media rendered to HLS` y `job media:process completed` del worker, y
+`http request` y `student enrolled` de la API, los dos lados en el mismo
+`logName`.
+
+**Para H1 y H3/H5:** el volumen normal queda muy por debajo del medio centenar de
+GiB que Cloud Logging no cobra al mes, pero una corrida de carga sostenida sí
+puede moverlo. Conviene revisar el volumen ingerido después de las corridas y, si
+hiciera falta, excluir el log de acceso del proxy, que es el más numeroso y el
+menos informativo.
