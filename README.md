@@ -18,22 +18,50 @@ Este repositorio contiene la implementación completa del backend, contratos Ope
 
 Desde la **Entrega 2** incluye además el despliegue en **Google Cloud Platform**: infraestructura como código con Terraform, dos máquinas virtuales, base de datos administrada, almacenamiento de objetos gestionado y el análisis de capacidad de la plataforma desplegada.
 
-** Video Sustentación :  **  https://www.youtube.com/watch?v=0qUeBiy9yfE
+**Video de sustentación de la Entrega 1:** <https://www.youtube.com/watch?v=0qUeBiy9yfE>
 
 ---
 
 ## Entrega 2 — Despliegue en la nube
 
-| | |
+### Los entregables del enunciado, y qué documento satisface cada uno
+
+| | Entregable | Dónde está |
+| :---: | :--- | :--- |
+| 1 | **Plataforma desplegada en la nube pública** | <https://34.24.52.111.sslip.io> · [documentación de la API](https://34.24.52.111.sslip.io/api/docs) · verificada de punta a punta en [`evidencias/G3/`](docs/entrega2/evidencias/G3/README.md) |
+| 2 | **Release del código y la configuración** | Tag `entrega-2` sobre el commit evaluado · infraestructura declarada en [`infra/terraform/`](infra/terraform/README.md) |
+| 3 | **Documento de arquitectura** | [`docs/entrega2/ARQUITECTURA.md`](docs/entrega2/ARQUITECTURA.md) — componentes, despliegue y decisiones<br/>[`docs/entrega2/OPERACION_Y_CAPACIDAD.md`](docs/entrega2/OPERACION_Y_CAPACIDAD.md) — operación, recuperación, capacidad, costos y limitaciones |
+| 4 | **Informe de capacidad** | [`capacity-planning/pruebas_de_carga_entrega2.md`](capacity-planning/pruebas_de_carga_entrega2.md) |
+
+El enunciado pide **cinco secciones** en el documento de arquitectura. Las tres
+primeras —modelo de componentes, modelo de despliegue, decisiones y
+adaptaciones— están en `ARQUITECTURA.md`; las dos últimas —operación y
+recuperación, capacidad, costo y limitaciones— en `OPERACION_Y_CAPACIDAD.md`.
+Por eso el documento de arquitectura se reparte entre dos archivos y no uno.
+
+### Los demás documentos de la entrega
+
+| Documento | Para qué sirve |
 | :--- | :--- |
-| **URL de la aplicación** | **<https://34.24.52.111.sslip.io>** — `GET /api/v1/health` responde `200` cuando el entorno está encendido |
-| Documentación de la API | <https://34.24.52.111.sslip.io/api/docs> |
-| **Cómo desplegar y operar** | [`docs/GUIA_DE_DESPLIEGUE.md`](docs/GUIA_DE_DESPLIEGUE.md) §9 — el ciclo completo, de un commit a la nube |
-| Procedimientos de las VMs y recreación | [`infra/terraform/ADMINISTRACION.md`](infra/terraform/ADMINISTRACION.md) |
-| Documento de arquitectura | [`docs/entrega2/ARQUITECTURA.md`](docs/entrega2/ARQUITECTURA.md) |
-| Informe de capacidad (20%) | [`capacity-planning/pruebas_de_carga_entrega2.md`](capacity-planning/pruebas_de_carga_entrega2.md) |
-| Evidencias de la entrega | [`docs/entrega2/evidencias/`](docs/entrega2/evidencias/) |
-| Configuración y costos | [`docs/entrega2/CONFIGURACION_Y_COSTOS.md`](docs/entrega2/CONFIGURACION_Y_COSTOS.md) |
+| [`docs/entrega2/CONFIGURACION_Y_COSTOS.md`](docs/entrega2/CONFIGURACION_Y_COSTOS.md) | Proveedor, región, perfiles de VM y por qué se eligieron; estimación fechada, presupuesto, alertas y política de encendido y apagado |
+| [`docs/entrega2/EJECUCION_PRUEBAS_MULTIMEDIA.md`](docs/entrega2/EJECUCION_PRUEBAS_MULTIMEDIA.md) | Paso a paso para correr la colección de multimedia: carga directa al bucket, confirmación, idempotencia e inmutabilidad |
+| [`docs/GUIA_DE_DESPLIEGUE.md`](docs/GUIA_DE_DESPLIEGUE.md) | Levantar el entorno local paso a paso y, en §9, el ciclo de despliegue en la nube |
+| [`infra/terraform/README.md`](infra/terraform/README.md) | Aprovisionar la infraestructura y cómo trabaja el equipo sobre el mismo estado sin pisarse |
+| [`infra/terraform/ADMINISTRACION.md`](infra/terraform/ADMINISTRACION.md) | Configurar las VMs, rotar secretos y recrear el entorno completo |
+| [`docs/DATOS_SINTETICOS.md`](docs/DATOS_SINTETICOS.md) | Catálogo de los datos sembrados: cuentas, cursos, inscripciones y avance |
+| [`docs/postman/README.md`](docs/postman/README.md) | Las siete colecciones, petición por petición, y cómo correrlas contra local o contra la nube |
+| [`docs/entrega2/evidencias/`](docs/entrega2/evidencias/) | Toda la evidencia, una carpeta por issue |
+
+### Dónde se sustenta cada criterio de evaluación
+
+| Criterio | Sustento |
+| :--- | :--- |
+| Despliegue e integración de componentes | [`ARQUITECTURA.md`](docs/entrega2/ARQUITECTURA.md) §2 y §3 · evidencias [`D2`](docs/entrega2/evidencias/D2/README.md), [`D3`](docs/entrega2/evidencias/D3/README.md), [`E1`](docs/entrega2/evidencias/E1/README.md), [`C4`](docs/entrega2/evidencias/C4/README.md) |
+| Servicio administrado de base de datos | [`C1`](docs/entrega2/evidencias/C1/README.md) y [`C2`](docs/entrega2/evidencias/C2/README.md) — instancia privada, respaldo y restauración |
+| Funcionamiento y configuración de red | [`G3`](docs/entrega2/evidencias/G3/README.md) — 61 de 61 pasos · [`G4`](docs/entrega2/evidencias/G4/) y [`B3`](docs/entrega2/evidencias/B3/DIAGRAMA_RED.md) — red y firewall |
+| Análisis de capacidad · escenario 1 | [Informe](capacity-planning/pruebas_de_carga_entrega2.md) §1 · evidencias [`H2`](docs/entrega2/evidencias/H2/) y [`H3`](docs/entrega2/evidencias/H3/README.md) |
+| Análisis de capacidad · escenario 2 | [Informe](capacity-planning/pruebas_de_carga_entrega2.md) §2 · evidencias [`H4`](docs/entrega2/evidencias/H4/README.md) y [`H5`](docs/entrega2/evidencias/H5/) |
+| Documentación de arquitectura | Los dos documentos de la fila 3 de arriba |
 
 El dominio es `sslip.io` sobre la IPv4 estática reservada del Web Server, así que
 la URL **sobrevive a que se recree la máquina**. El equipo no compró dominio
@@ -134,7 +162,7 @@ solo sitúa la diferencia para que nadie tome el diagrama local por el desplegad
 ```
 .
 ├── api/                       # Contrato OpenAPI 3.1 de /api/v1
-├── capacity-planning/         # Análisis de capacidad (20% de la Entrega 2)
+├── capacity-planning/         # Análisis de capacidad de la Entrega 2
 │   ├── pruebas_de_carga_entrega2.md  # Informe oficial consolidado
 │   ├── escenario1.md          # Plan del escenario académico
 │   └── escenario2.md          # Plan del escenario multimedia
@@ -145,6 +173,7 @@ solo sitúa la diferencia para que nadie tome el diagrama local por el desplegad
 ├── docs/
 │   ├── entrega2/              # Documentación de la Entrega 2
 │   │   ├── ARQUITECTURA.md    # Documento de arquitectura desplegada (I1)
+│   │   ├── OPERACION_Y_CAPACIDAD.md   # Operación, recuperación, costos y límites (I2)
 │   │   ├── CONFIGURACION_Y_COSTOS.md  # Proveedor, perfiles, estimación y presupuesto
 │   │   ├── NOTAS_TECNICAS.md  # Hallazgos transversales, con el issue que resuelve cada uno
 │   │   └── evidencias/        # Evidencia por issue (A5 … I3)
@@ -391,7 +420,8 @@ El archivo `Makefile` provee comandos estandarizados para asegurar la calidad de
 * [Infraestructura como Código (`infra/terraform/README.md`)](infra/terraform/README.md): Aprovisionamiento con Terraform, estado remoto compartido y **cómo trabaja el equipo sobre la misma infraestructura sin conflictos**. Instalación para Windows, macOS y Linux.
 * [Administración del Proyecto de GCP (`infra/terraform/ADMINISTRACION.md`)](infra/terraform/ADMINISTRACION.md): Tareas de una sola vez — bootstrap del estado remoto, altas y bajas de integrantes.
 * [**Arquitectura en la Nube — Entrega 2** (`docs/entrega2/ARQUITECTURA.md`)](docs/entrega2/ARQUITECTURA.md): **Documento de arquitectura de la entrega.** Correspondencia con los servicios de GCP, modelo de componentes, modelo de despliegue, decisiones y adaptaciones, y diferencias frente a la arquitectura objetivo. Los diagramas son Mermaid y su bloque de código es el archivo fuente.
-* [**Informe Consolidado de Pruebas de Carga y Capacidad — 20%** (`capacity-planning/pruebas_de_carga_entrega2.md`)](capacity-planning/pruebas_de_carga_entrega2.md): **Informe oficial de capacidad.** Análisis integral de los dos escenarios (actividad académica concurrente y procesamiento/streaming multimedia), caracterización de niveles, sustentación de cuellos de botella y evolución respaldada por mediciones.
+* [**Operación, Recuperación, Capacidad, Costos y Limitaciones** (`docs/entrega2/OPERACION_Y_CAPACIDAD.md`)](docs/entrega2/OPERACION_Y_CAPACIDAD.md): El documento que se abre cuando hay que **levantar, mantener, recuperar o evaluar** el entorno. Escrito para quien no participó en el despliegue: qué existe, cómo se reconstruye, qué cuesta y qué no se pudo medir.
+* [**Informe Consolidado de Pruebas de Carga y Capacidad** (`capacity-planning/pruebas_de_carga_entrega2.md`)](capacity-planning/pruebas_de_carga_entrega2.md): **Informe oficial de capacidad.** Análisis integral de los dos escenarios (actividad académica concurrente y procesamiento/streaming multimedia), caracterización de niveles, sustentación de cuellos de botella y evolución respaldada por mediciones.
 * [Configuración Efectiva y Marco de Costos (`docs/entrega2/CONFIGURACION_Y_COSTOS.md`)](docs/entrega2/CONFIGURACION_Y_COSTOS.md): Proveedor, región, perfiles de VM, estimación fechada, presupuesto y política de encendido y apagado.
 * [Notas Técnicas de la Entrega 2 (`docs/entrega2/NOTAS_TECNICAS.md`)](docs/entrega2/NOTAS_TECNICAS.md): Hallazgos que afectan a más de un issue, con el issue al que le toca resolver cada uno. **Conviene leerlo antes de empezar un issue y revisarlo al cerrarlo.**
 * [Ejecución de las Pruebas de Multimedia (`docs/entrega2/EJECUCION_PRUEBAS_MULTIMEDIA.md`)](docs/entrega2/EJECUCION_PRUEBAS_MULTIMEDIA.md): Paso a paso de la carga directa al bucket y la lectura de un manifiesto HLS.
