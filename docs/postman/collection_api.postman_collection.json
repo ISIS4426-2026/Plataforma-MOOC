@@ -4,24 +4,9 @@
     "description": "Flujo completo de registro con verificación de correo (#9) y login con sesiones revocables (#10).\n\nLa colección es autocontenida: genera un correo único en cada corrida, lee el enlace de activación desde la API de Mailpit y encadena todo hasta comprobar la revocación inmediata de sesión.\n\nRequisitos: `docker compose up -d` con la API en :8080 y Mailpit en :8025.\n\nEjecutar con el Collection Runner de arriba a abajo.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
-  "event": [
-    {
-      "listen": "prerequest",
-      "script": {
-        "type": "text/javascript",
-        "exec": [
-          "// G2 (#128): D3 agrego una cookie de sesion Secure (__Host-mooc_session) al",
-          "// hacer login. El cookie jar de Postman la reenvia automaticamente en las",
-          "// peticiones siguientes de la misma corrida, y el middleware de CSRF del",
-          "// servidor rechaza cualquier peticion mutante que la lleve sin una cabecera",
-          "// Origin -- aunque la peticion tambien lleve un Bearer valido. Esta coleccion",
-          "// es un cliente API puro por diseno, nunca deberia depender de esa cookie,",
-          "// asi que se limpia antes de cada peticion.",
-          "pm.cookies.jar().clear(pm.environment.get('baseUrl'), function () {});"
-        ]
-      }
-    }
-  ],
+  "protocolProfileBehavior": {
+    "disableCookies": true
+  },
   "variable": [
     {
       "key": "baseUrl",
