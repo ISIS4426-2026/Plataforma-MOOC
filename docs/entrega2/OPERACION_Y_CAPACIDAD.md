@@ -224,11 +224,18 @@ Idéntica en todas las corridas de capacidad y **sin cambios durante ellas**:
 
 **Contraste con la factura real: pendiente.** Requiere el rol de lectura de facturación sobre la cuenta (Facturación → Informes, agrupado por SKU y filtrado por el proyecto). Quien lo tenga debe pegar en `evidencias/I2/consumo_observado.md` el costo acumulado por servicio; con eso se cierra la columna que aquí falta. También queda por **confirmar que el presupuesto de 50 USD con umbrales 25/50/80/100 % está activo** (diseñado en B1; la API de presupuestos no está habilitada en la cuenta con la que se midió).
 
-**Utilización durante las pruebas de capacidad del Escenario 1 (H3, serie A, hasta 200 usuarios, 33 peticiones/s):** CPU del Web Server ≈ 12 % (máx. 15 %), memoria ≈ 31 %, CPU de Cloud SQL ≈ 20 % (máx. 27 %), 15 conexiones abiertas de las 25 del pool. Datos y análisis en [`evidencias/H3`](./evidencias/H3/README.md); Escenario 2 en [`evidencias/H5`](./evidencias/H5/README.md); informe consolidado en `capacity-planning/pruebas_de_carga_entrega2.md` (I3).
+**Utilización durante las pruebas de capacidad del Escenario 1** (H3, 2026-09-27; hasta 200 usuarios concurrentes ≈ 32 peticiones/s, tres corridas en el nivel máximo): CPU del Web Server 11–19 % de media y 15–34 % de máxima, memoria ≈ 31 %; CPU de Cloud SQL 18–20 % de media y 26–27 % de máxima, ≈ 350 transacciones/s; 15, 27 y 17 conexiones abiertas máximas en la base (tope práctico del pool de la API ≈ 29). Datos y análisis en [`evidencias/H3`](./evidencias/H3/README.md); Escenario 2 en [`evidencias/H5`](./evidencias/H5/README.md); informe consolidado en `capacity-planning/pruebas_de_carga_entrega2.md` (I3).
 
 ### 3.3 Qué límite se observó
 
-Las conclusiones de capacidad están en H3 (Escenario 1) y H5 (Escenario 2). Para operar hay que recordar dos cosas de ellas: **en el Escenario 1 no se alcanzó saturación** hasta 200 usuarios concurrentes con la pausa nominal (se reporta el máximo probado, no la capacidad máxima), y **según H5, en el Escenario 2 el límite lo pone la CPU del worker** (2 transcodificaciones simultáneas, una por vCPU). El inicio de sesión es la operación más cara por diseño (cifrado de la contraseña): 20 inicios simultáneos tardaron ~1,7 s cada uno.
+Las conclusiones de capacidad están en H3 (Escenario 1) y H5 (Escenario 2). Para operar hay que recordar cuatro cosas:
+
+- **En el Escenario 1 no se alcanzó saturación** hasta 200 usuarios concurrentes con la pausa nominal: 0 errores reales, 0 timeouts y la integridad de intentos, calificación y progreso confirmada en Cloud SQL tras cada corrida. **200 usuarios / 32,8 peticiones/s es el máximo probado, no la capacidad máxima.** La serie de presión que buscaría el punto real de degradación no se ejecutó (H3, §6).
+- **La cola de latencia del Escenario 1 viene de abrir conexiones nuevas**, no del procesamiento: sobre conexiones reutilizadas el p95 es ≈ 117 ms; las peticiones que conectan tienen un tiempo de conexión p95 de ≈ 1,3 s (H3, §3). El origen (red del generador o cola de conexiones del servidor) está sin confirmar y requiere leer contadores de descartes de SYN en la VM web.
+- **Recurso con menos margen medido:** la CPU de Cloud SQL (máx. 27 %) y el pool de conexiones de la API (rozó 27 de ≈ 29). Ninguno se agotó; cualquier proyección a mayor carga es una extrapolación, no una medición.
+- **Según H5, en el Escenario 2 el límite lo pone la CPU del worker** (2 transcodificaciones simultáneas, una por vCPU).
+
+El inicio de sesión es la operación más cara por diseño (cifrado de la contraseña): 20 inicios simultáneos tardaron ≈ 1,7 s cada uno.
 
 ### 3.4 Puntos únicos de falla
 
@@ -254,11 +261,11 @@ Cada cambio va con la medición que lo justifica o, si aún no existe, la que ha
 
 | Cambio | Qué problema resuelve | Medición que lo respalda |
 | :--- | :--- | :--- |
-| **API sin estado detrás de un balanceador con autoescalado** | Punto único #3 y techo de CPU del Web | En el Escenario 1 el Web usó ≈ 12 % de CPU a 33 peticiones/s (H3): hay margen hoy; la medición que faltaría es la que sature. Ya cumple el requisito: la sesión no vive en la VM (Redis) y los archivos van directo al bucket |
+| **API sin estado detrás de un balanceador con autoescalado** | Punto único #3 y techo de CPU del Web | En el Escenario 1 el Web usó 12–34 % de CPU a 33 peticiones/s (H3): hay margen hoy; la medición que faltaría es la que sature (serie de presión). Ya cumple el requisito: la sesión no vive en la VM sino en el Redis del worker, y los archivos van directo al bucket |
 | **Sesiones y cola en Redis administrado o réplica** | Punto único #2 | El worker es hoy quien aloja a la vez cola y sesiones (E1) |
 | **Workers como grupo autoescalado por profundidad de cola** | Techo del Escenario 2: 1 transcodificación por vCPU | Según el análisis de H5, la CPU del worker es el límite (esa conclusión es de H5, no se re-midió aquí); la métrica de escalado ya existe (`worker.queue.pending`, `oldest_pending_age_seconds`, H1) |
-| **Cloud SQL con alta disponibilidad y réplica de lectura** | Punto único #4; el 64 % del tráfico del Escenario 1 son lecturas | La base usó ≈ 20–27 % de CPU a 33 peticiones/s (H3); la réplica se justifica cuando la CPU de la base o el pool (25) se acerquen al límite |
-| **Pooler de conexiones** (p. ej. PgBouncer) | El pool de la API es fijo por proceso (25) y las conexiones comprometidas suman 58 (nota 11): escalar horizontalmente las multiplica | Conexiones abiertas observadas: 15 a 200 usuarios |
+| **Cloud SQL con alta disponibilidad y réplica de lectura** | Punto único #4; el 64 % del tráfico del Escenario 1 son lecturas | La base usó 20 % de CPU de media (27 % de máxima) a 33 peticiones/s (H3); la réplica se justifica cuando la CPU de la base o el pool (25) se acerquen al límite |
+| **Pooler de conexiones** (p. ej. PgBouncer) | El pool de la API es fijo por proceso (25) y las conexiones comprometidas suman 58 (nota 11): escalar horizontalmente las multiplica | Conexiones abiertas observadas a 200 usuarios: 15, 27 y 17 (H3); el pool de 25 rozó su tope una vez |
 | **CDN para los derivados HLS** | Egreso facturado (nota 13) y latencia | Excluido por el enunciado en esta etapa |
 | **Dominio propio y certificado administrado** | Puntos únicos #5 y #6 | — |
 | **Observabilidad de aplicación completa** | Hoy la API no exporta sus métricas a Cloud Monitoring hasta redesplegar el compose de H1 | `up=0` para la API en Cloud Monitoring |

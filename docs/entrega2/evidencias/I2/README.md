@@ -20,7 +20,7 @@ El documento es [`docs/entrega2/OPERACION_Y_CAPACIDAD.md`](../../OPERACION_Y_CAP
 2. **Costo real de la factura:** quien tenga acceso a Facturación pega el costo por servicio en `consumo_observado.md`.
 3. **Confirmar el presupuesto y las alertas** en la consola de Facturación.
 4. **Enlazar el documento desde `README.md`** (lo hace I4).
-5. **Reflejar en la §3.2 los números finales de H3** (repeticiones cerca del límite) cuando estén integrados en `main`.
+5. ~~Reflejar en la §3.2 los números finales de H3~~ — hecho (§3.2 y §3.3, con las tres corridas del nivel de 200).
 
 ## Nunca
 
