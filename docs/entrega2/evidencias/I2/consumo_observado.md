@@ -69,13 +69,30 @@ fecha del informe es de ≈ 1,54 USD, cubierto íntegramente por el cupón: 0,00
   y anotar aquí la cifra definitiva.
 - El informe se leyó con el filtro *Ahorros (todos)* activo; se usó la columna «Costo por uso», que ya es bruta.
 
+## Presupuesto y alertas (verificado)
+
+Leído por Tania Díaz el **2026-09-27** en Facturación → *Budgets & caps*:
+
+| | |
+| :--- | :--- |
+| Nombre | «Entrega 2 - cupón activo» |
+| Tipo / importe | Importe especificado, **50 USD** |
+| Período | Desde el 26-sep-2026, sin fecha de finalización (rango personalizado, como pedía B1) |
+| Alertas | **25 %, 50 %, 90 % y 100 %** |
+| Créditos | «No se usaron créditos»: el presupuesto mide el consumo **bruto**, que es lo diseñado |
+| Gasto al momento de verlo | **1,53 de 50 USD** |
+
+**Diferencia con B1:** los umbrales diseñados eran 25/50/80/100 %; el configurado usa 90 % en lugar de 80 %. Deja menos margen entre el
+aviso y el agotamiento del cupón, pero cumple el criterio de tener alertas activas. Un presupuesto **notifica, no corta** (no
+existe un límite automático para Compute Engine, Cloud SQL ni Cloud Storage).
+
 ## Lo que no se pudo medir
 
 - **Factura definitiva.** La leída arriba llega solo hasta el 27 de septiembre por el retraso de facturación; hay que
   releerla pasados 2–3 días.
 - **Horas de Cloud SQL medidas.** La métrica de disponibilidad no permite reconstruir el total de horas encendida; solo
   se derivó del costo (≈ 16 h).
-- **Presupuesto de 50 USD con alertas.** Diseñado en B1; no se pudo confirmar que esté activo.
+
 
 ## Advertencias sobre los datos
 

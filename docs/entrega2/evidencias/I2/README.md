@@ -18,7 +18,7 @@ El documento es [`docs/entrega2/OPERACION_Y_CAPACIDAD.md`](../../OPERACION_Y_CAP
 
 1. **Prueba de reconstrucción con una persona ajena** (§4): alguien que no haya desplegado sigue la §2.2 y anota dónde falla.
 2. ~~Costo real de la factura~~ — leído (1,54 USD bruto hasta el 27 de sept.). **Releerlo pasados 2–3 días** y anotar la cifra definitiva en `consumo_observado.md`.
-3. **Confirmar el presupuesto y las alertas** en la consola de Facturación.
+3. ~~Confirmar el presupuesto y las alertas~~ — verificado: 50 USD, alertas al 25/50/90/100 % (B1 diseñó 80 % en vez de 90 %).
 4. **Enlazar el documento desde `README.md`** (lo hace I4).
 5. ~~Reflejar en la §3.2 los números finales de H3~~ — hecho (§3.2 y §3.3, con las tres corridas del nivel de 200).
 
