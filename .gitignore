@@ -63,3 +63,6 @@ terraform.rc
 *-sa-key.json
 *service-account*.json
 application_default_credentials.json
+
+# H2 (#132): tokens de sesion de las cuentas de carga. Son credenciales: nunca al repositorio.
+capacity-planning/datos/

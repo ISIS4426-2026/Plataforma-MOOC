@@ -1,0 +1,38 @@
+Muestras totales: 126  | consideradas (tras omitir 0 s de calentamiento): 126
+Duracion de la corrida: 7 s  | hilos maximos: 3
+
+Resultado de las peticiones medidas:
+       99   78.57%  ok
+       18   14.29%  negocio/config: HTTP 409
+        9    7.14%  validacion
+
+Fallos reales: 0 (0.00%)  | fallos de validacion funcional: 9 (7.14%)
+
+paso                                                            n    p50    p95    p99    max  fallos
+01 GET catalogo de cursos                                       9     10    138    138    138       0
+02 GET detalle del curso                                        9      5     51     51     51       0
+03 POST inscripcion                                             9     11     77     77     77       0
+04 GET estado de mi inscripcion (validacion)                    9      7     49     49     49       0
+05 GET modulos del curso                                        9      9     20     20     20       0
+06 GET unidades del modulo                                      9      9     10     10     10       0
+07 GET recursos de la unidad                                    9     10     19     19     19       0
+08 GET cuestionario (vista de estudiante)                       9     11     15     15     15       0
+09 POST latido de progreso 1 (recurso completado)               9     17     48     48     48       0
+09 POST latido de progreso 2 (recurso completado)               9     16     34     34     34       0
+10 POST envio del quiz                                          9     14     50     50     50       9
+11 POST envio DUPLICADO del quiz (misma clave)                  9      7      9      9      9       9
+12 GET avance del curso tras el quiz (validacion)               9      9     25     25     25       3
+13 GET mis envios (validacion de doble calificacion)            9     12     28     28     28       6
+
+Global ms: p50=11 p95=50 p99=83  | rendimiento: 17.2 peticiones/s
+
+Mensajes de fallo mas frecuentes:
+     18  Test failed: code expected to equal /
+
+****** received  : [[[409]]]
+
+****** comparison: [[[200]]]
+
+/
+      3  Value expected to be '1', but found '3'
+      3  Value expected to be '2', but found '3'

@@ -1,0 +1,46 @@
+timeStamp,elapsed,label,responseCode,responseMessage,threadName,dataType,success,failureMessage,bytes,sentBytes,grpThreads,allThreads,URL,Latency,IdleTime,Connect
+1790558769283,11,L1 POST login (rafaga),429,Too Many Requests,Rafaga de inicios de sesion 1-15,text,false,"Test failed: code expected to equal /
+
+****** received  : [[[429]]]
+
+****** comparison: [[[200]]]
+
+/",354,347,15,15,http://host.docker.internal:8080/api/v1/auth/login,11,0,5
+1790558768582,560,L1 POST login (rafaga),200,OK,Rafaga de inicios de sesion 1-3,text,true,,667,347,12,12,http://host.docker.internal:8080/api/v1/auth/login,560,0,96
+1790558768583,579,L1 POST login (rafaga),200,OK,Rafaga de inicios de sesion 1-4,text,true,,667,347,13,13,http://host.docker.internal:8080/api/v1/auth/login,578,0,96
+1790558768621,556,L1 POST login (rafaga),200,OK,Rafaga de inicios de sesion 1-5,text,true,,667,347,13,13,http://host.docker.internal:8080/api/v1/auth/login,555,0,58
+1790558768756,386,L1 POST login (rafaga),200,OK,Rafaga de inicios de sesion 1-7,text,true,,667,347,12,12,http://host.docker.internal:8080/api/v1/auth/login,386,0,16
+1790558768582,559,L1 POST login (rafaga),200,OK,Rafaga de inicios de sesion 1-2,text,true,,667,347,12,12,http://host.docker.internal:8080/api/v1/auth/login,559,0,96
+1790558768885,291,L1 POST login (rafaga),200,OK,Rafaga de inicios de sesion 1-9,text,true,,667,347,13,13,http://host.docker.internal:8080/api/v1/auth/login,291,0,6
+1790558769032,74,L1 POST login (rafaga),429,Too Many Requests,Rafaga de inicios de sesion 1-11,text,false,"Test failed: code expected to equal /
+
+****** received  : [[[429]]]
+
+****** comparison: [[[200]]]
+
+/",354,347,12,12,http://host.docker.internal:8080/api/v1/auth/login,73,0,11
+1790558768583,560,L1 POST login (rafaga),200,OK,Rafaga de inicios de sesion 1-1,text,true,,667,347,12,12,http://host.docker.internal:8080/api/v1/auth/login,560,0,95
+1790558768830,315,L1 POST login (rafaga),200,OK,Rafaga de inicios de sesion 1-8,text,true,,666,347,12,12,http://host.docker.internal:8080/api/v1/auth/login,314,0,10
+1790558769158,20,L1 POST login (rafaga),429,Too Many Requests,Rafaga de inicios de sesion 1-13,text,false,"Test failed: code expected to equal /
+
+****** received  : [[[429]]]
+
+****** comparison: [[[200]]]
+
+/",354,347,13,13,http://host.docker.internal:8080/api/v1/auth/login,20,0,11
+1790558769094,24,L1 POST login (rafaga),429,Too Many Requests,Rafaga de inicios de sesion 1-12,text,false,"Test failed: code expected to equal /
+
+****** received  : [[[429]]]
+
+****** comparison: [[[200]]]
+
+/",354,347,12,12,http://host.docker.internal:8080/api/v1/auth/login,23,0,15
+1790558769221,12,L1 POST login (rafaga),429,Too Many Requests,Rafaga de inicios de sesion 1-14,text,false,"Test failed: code expected to equal /
+
+****** received  : [[[429]]]
+
+****** comparison: [[[200]]]
+
+/",354,347,14,14,http://host.docker.internal:8080/api/v1/auth/login,12,0,6
+1790558768966,188,L1 POST login (rafaga),200,OK,Rafaga de inicios de sesion 1-10,text,true,,667,347,13,13,http://host.docker.internal:8080/api/v1/auth/login,188,0,4
+1790558768696,445,L1 POST login (rafaga),200,OK,Rafaga de inicios de sesion 1-6,text,true,,667,347,12,12,http://host.docker.internal:8080/api/v1/auth/login,445,0,9
