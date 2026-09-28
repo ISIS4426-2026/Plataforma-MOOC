@@ -1,9 +1,9 @@
 # Guion Técnico de Producción — Video de Sustentación (Entrega 2 · Issue #140 [I5])
 
 > **Proyecto:** Plataforma MOOC (Massive Open Online Courses) — Despliegue Básico en la Nube Pública (GCP)  
-> **Versión del Guion:** `v1.1-single-presenter`  
+> **Versión del Guion:** `v1.2-consolidated`  
 > **Fecha:** 2026-09-28  
-> **Commit Base de Revisión:** `f18703e97a944fda9ee794e48a3c31ff57f4f3f7` (`main` @ merge PR #174)  
+> **Commit Base de Revisión:** `ab92b888d3260281876c8d4c5da6c4257e93f264` (`main` @ merge PR #177)  
 > **Duración Objetivo:** **18 minutos** (margen de seguridad de 2 min respecto al tope de 20 min del pliego)  
 > **Equipo de Desarrollo:** `CrispisCas9` (Cristian Castañeda), `fredyxander` (Fredy Alexander), `DiegoOrtizRuiz` (Diego Ortiz), `tmichelldiaz` (Tania Michel Díaz)  
 > **Presentador Único del Video:** `CrispisCas9` (Cristian Castañeda)  
@@ -16,6 +16,7 @@
 | :---: | :---: | :---: | :--- | :--- |
 | `v1.0-draft` | 2026-09-28 | `f18703e` | Borrador inicial consolidado con evidencias de `main` (bloques B, C, D, E, F, G, H1, H2, H4, H5). Clasificación formal de estados (✅/⚠️/⏳) y registro de salvedades metodológicas de capacidad. | Antigravity (Issue #140) |
 | `v1.1-single-presenter` | 2026-09-28 | `f18703e` | Consolidación de la presentación en un único orador (`CrispisCas9` / Cristian Castañeda). Adaptación de todas las locuciones, transiciones narrativas y tablas al rol de relator único en representación del equipo de desarrollo. | `CrispisCas9` |
+| `v1.2-consolidated` | 2026-09-28 | `ab92b88` | **Actualización tras merge de PRs #175 (I1), #176 (H2) y #177 (I3):**<br>• **Arquitectura (I1):** Incorporación de datos oficiales de [`docs/entrega2/ARQUITECTURA.md`](../../ARQUITECTURA.md) (IP pública del Worker con firewall cerrado, Cloud NAT, 53 rutas y 7 migraciones).<br>• **Escenario 1 (H2/I3):** Estado movido a ✅ Nube con la integración del piloto en GCP (`nube-piloto_20260927_211339`, 126 reqs, 0 errores, p95 199 ms) y métricas de escala (1–200 usuarios) en [`capacity-planning/pruebas_de_carga_entrega2.md`](../../../../capacity-planning/pruebas_de_carga_entrega2.md).<br>• **Informe Consolidado (I3):** Síntesis comparativa global de capacidad (20%) incorporada al Segmento 4. Criterio 10 de rúbrica pasa a cumplido. | `CrispisCas9` |
 
 ---
 
@@ -26,10 +27,10 @@ El tiempo total planificado es de **18:00 minutos**, reservando un margen de hol
 | Bloque | Segmento Temático | Duración Sugerida | Minutaje Acumulado | Presentador Responsable | Estado Base |
 | :---: | :--- | :---: | :---: | :--- | :---: |
 | **0** | **Introducción y Pre-flight Check** | 0:45 | `00:00 - 00:45` | `CrispisCas9` | ✅ Nube |
-| **1** | **Arquitectura Desplegada y Correspondencia GCP** | 3:30 | `00:45 - 04:15` | `CrispisCas9` | ✅ Nube |
-| **2** | **Recorrido Funcional en el Entorno Cloud** | 4:30 | `04:15 - 08:45` | `CrispisCas9` | ✅ Nube |
-| **3** | **Evidencias Específicas de Infraestructura y Resiliencia** | 4:30 | `08:45 - 13:15` | `CrispisCas9` | ✅ Nube |
-| **4** | **Análisis de Capacidad, Cuello de Botella y Evolución** | 4:00 | `13:15 - 17:15` | `CrispisCas9` | ⚠️ Con Salvedad / ⏳ |
+| **1** | **Arquitectura Desplegada y Correspondencia GCP** | 3:30 | `00:45 - 04:15` | `CrispisCas9` | ✅ Nube (I1) |
+| **2** | **Recorrido Funcional en el Entorno Cloud** | 4:30 | `04:15 - 08:45` | `CrispisCas9` | ✅ Nube (G3/G2) |
+| **3** | **Evidencias Específicas de Infraestructura y Resiliencia** | 4:30 | `08:45 - 13:15` | `CrispisCas9` | ✅ Nube (C4/E1) |
+| **4** | **Análisis de Capacidad, Cuellos de Botella y Evolución** | 4:00 | `13:15 - 17:15` | `CrispisCas9` | ✅ Nube / Consolidado (I3/H2/H5) |
 | **5** | **Conclusiones, Criterios de Aceptación y Cierre** | 0:45 | `17:15 - 18:00` | `CrispisCas9` | ✅ Nube |
 
 ---
@@ -103,7 +104,7 @@ Para garantizar legibilidad profesional y correlación en vivo durante los 18 mi
   curl -s -i https://34.24.52.111.sslip.io/api/v1/health
   ```
 * **Texto Sugerido para la Locución:**  
-  *"Bienvenidos a la sustentación técnica de la Entrega 2 de Desarrollo de Soluciones Cloud. Mi nombre es Cristian Castañeda (`CrispisCas9`), y en representación de nuestro equipo de proyecto —conformado además por Tania Michel Díaz, Fredy Alexander y Diego Ortiz— presentaré la sustentación completa de la migración de nuestra plataforma MOOC a la nube pública en Google Cloud Platform. En este proyecto hemos operado bajo las restricciones formales del pliego: capacidad fija de cómputo en dos máquinas virtuales, cero mecanismos de autoescalado y persistencia delegada en servicios administrados relacionales y de almacenamiento de objetos. Como observan en pantalla, nuestro punto de acceso público bajo dominio HTTPS responde de manera saludable contra la base administrada. Durante los próximos dieciocho minutos expondré la correspondencia con los servicios del proveedor, el recorrido funcional completo en la nube, las evidencias de resiliencia y los hallazgos de nuestros análisis de capacidad."*
+  *"Bienvenidos a la sustentación técnica de la Entrega 2 de Desarrollo de Soluciones Cloud. Mi nombre es Cristian Castañeda (`CrispisCas9`), y en representación de nuestro equipo de proyecto —conformado además por Tania Michel Díaz, Fredy Alexander y Diego Ortiz— presentaré la sustentación completa de la migración de nuestra plataforma MOOC a la nube pública en Google Cloud Platform. En este proyecto hemos operado bajo las restricciones formales del pliego: capacidad fija de cómputo en dos máquinas virtuales, cero mecanismos de autoescalado y persistencia delegada en servicios administrados relacionales y de almacenamiento de objetos. Como observan en pantalla, nuestro punto de acceso público bajo dominio HTTPS responde de manera saludable contra la base administrada. Durante los próximos dieciocho minutos expondré la correspondencia con los servicios del proveedor documentada en ARQUITECTURA.md, el recorrido funcional completo en la nube, las evidencias de resiliencia y los hallazgos de nuestros análisis de capacidad."*
 * **Ruta de Registro en el Repositorio:** [`docs/entrega2/evidencias/D2/health_publico.txt`](file:///mnt/c/Users/User/Desktop/MBC_IV/Soluciones Cloud/Proyectos/P2_data/Plataforma-MOOC/docs/entrega2/evidencias/D2/health_publico.txt) y [`docs/entrega2/evidencias/G3/resultados.md#L13`](file:///mnt/c/Users/User/Desktop/MBC_IV/Soluciones Cloud/Proyectos/P2_data/Plataforma-MOOC/docs/entrega2/evidencias/G3/resultados.md#L13).
 
 ---
@@ -111,8 +112,8 @@ Para garantizar legibilidad profesional y correlación en vivo durante los 18 mi
 ### Segmento 1: Arquitectura Desplegada y Correspondencia con Servicios GCP
 * **Tiempo:** `00:45 - 04:15` (Duración: 3:30)
 * **Presentador:** `CrispisCas9` (Cristian Castañeda)
-* **Estado:** ✅ **Nube**
-* **Disposición en Pantalla:** Diagrama de red de B3 en Mermaid ([`docs/entrega2/evidencias/B3/DIAGRAMA_RED.md`](file:///mnt/c/Users/User/Desktop/MBC_IV/Soluciones Cloud/Proyectos/P2_data/Plataforma-MOOC/docs/entrega2/evidencias/B3/DIAGRAMA_RED.md)) en panel izquierdo; en panel derecho, consola de Terraform mostrando recursos aprovisionados (`compute.tf`, `database.tf`, `storage.tf`, `network.tf`).
+* **Estado:** ✅ **Nube (Consolidado en Issue I1)**
+* **Disposición en Pantalla:** Diagrama arquitectural oficial embebido en [`docs/entrega2/ARQUITECTURA.md`](../../ARQUITECTURA.md) y [`docs/entrega2/evidencias/B3/DIAGRAMA_RED.md`](../B3/DIAGRAMA_RED.md) en panel izquierdo; en panel derecho, consola de Terraform mostrando recursos aprovisionados (`compute.tf`, `database.tf`, `storage.tf`, `network.tf`).
 
 ```mermaid
 flowchart TD
@@ -124,12 +125,12 @@ flowchart TD
     subgraph GCP ["☁️ Proyecto GCP: plataforma-mooc-entrega2 (us-east1)"]
         subgraph VPC ["🔒 mooc-vpc (10.0.0.0/16)"]
             subgraph Subnet ["🖥️ mooc-subnet (10.0.1.0/24 en us-east1-b)"]
-                WebServer["🌐 Web Server VM (34.24.52.111 / 10.0.1.2)\nPerfil: e2-highcpu-2 (2 vCPU, 2 GiB)\nProxy Nginx 1.27 + Go API Modular"]
-                WorkerServer["⚙️ Worker Server VM (10.0.1.3)\nPerfil: e2-highcpu-2 (2 vCPU, 2 GiB)\nWorker Go + FFmpeg + Redis Asynq"]
+                WebServer["🌐 Web Server VM (34.24.52.111 / DHCP: 10.0.1.4)\nPerfil: e2-highcpu-2 (2 vCPU, 2 GiB)\nProxy Nginx 1.27 + Go API Modular (53 rutas)"]
+                WorkerServer["⚙️ Worker Server VM (35.237.6.244 / DHCP: 10.0.1.5)\nPerfil: e2-highcpu-2 (2 vCPU, 2 GiB)\nWorker Go + FFmpeg + Redis Asynq (Firewall cerrado)"]
             end
-            CloudNAT["📡 Cloud Router + NAT (Salida Egress)"]
-            subgraph Peering ["🔐 Service Networking Peering (10.0.2.0/20)"]
-                CloudSQL[("🗄️ Cloud SQL PostgreSQL 16 (mooc-db-1)\n1 vCPU dedicada, 3.75 GiB RAM, 10 GiB SSD\nIP Privada: 10.171.240.3 (Sin IP Pública)")]
+            CloudNAT["📡 Cloud Router + NAT (Provisionado)"]
+            subgraph Peering ["🔐 Service Networking Peering (10.171.240.0/20)"]
+                CloudSQL[("🗄️ Cloud SQL PostgreSQL 16 (mooc-db-1)\n1 vCPU dedicada, 3.75 GiB RAM, 10 GiB SSD\nIP Privada: 10.171.240.3 (Sin IP Pública, 7 migraciones)")]
             end
         end
         subgraph Storage ["📦 Cloud Storage Buckets (us-east1)"]
@@ -144,26 +145,25 @@ flowchart TD
     WebServer -->|TCP 6379 (Privado)| WorkerServer
     WebServer -->|TCP 5432 (SSL require)| CloudSQL
     WorkerServer -->|TCP 5432 (SSL require)| CloudSQL
-    WorkerServer -->|Egress HTTP/S| CloudNAT
-    CloudNAT --> Internet
     WebServer -.->|Firma URLs V4 (ADC)| BucketPrivado
     WorkerServer -->|Lectura Originales / Escritura HLS| Storage
 ```
 
-* **Puntos Clave y Cifras a Exponer:**
+* **Puntos Clave y Cifras a Exponer (Respaldados por [`ARQUITECTURA.md`](../../ARQUITECTURA.md)):**
   1. **Cómputo (Compute Engine):**
      - Dos máquinas virtuales dedicadas en zona única `us-east1-b`: `mooc-web-server` y `mooc-worker-server`.
      - Perfil exacto del pliego: `e2-highcpu-2` (2 vCPU dedicadas, 2 GiB RAM, 30 GiB disco `pd-balanced`). Se descartó `e2-small` porque solo garantiza 0.5 vCPU compartida ([`CONFIGURACION_Y_COSTOS.md` §2](file:///mnt/c/Users/User/Desktop/MBC_IV/Soluciones Cloud/Proyectos/P2_data/Plataforma-MOOC/docs/entrega2/CONFIGURACION_Y_COSTOS.md#2-configuracion-efectiva)).
+     - La API expone 53 rutas REST modulares detrás del proxy Nginx 1.27.
   2. **Topología de Red y Aislamiento Perimetral (VPC):**
      - Red `mooc-vpc` (`10.0.0.0/16`) con subred `mooc-subnet` (`10.0.1.0/24`).
      - Web Server es el **único punto de entrada público** (puertos 80 y 443 expuestos por la regla de firewall `mooc-allow-web-ingress`).
-     - Worker Server, la cola Redis (puerto 6379) y Cloud SQL están totalmente aislados de Internet. La cola solo acepta conexiones desde la subred privada interna `10.0.1.0/24` ([`evidencias/B3/DOCUMENTACION_RED_Y_ADMINISTRACION.md`](file:///mnt/c/Users/User/Desktop/MBC_IV/Soluciones Cloud/Proyectos/P2_data/Plataforma-MOOC/docs/entrega2/evidencias/B3/DOCUMENTACION_RED_Y_ADMINISTRACION.md)).
+     - **Worker Server y la decisión de costos:** El Worker Server cuenta con una dirección IPv4 externa estática (`35.237.6.244`) porque, conforme al análisis de costos de B1, dos IPv4 estáticas cuestan 3.65 USD/mes frente a los 6.73 USD de Cloud NAT. Sin embargo, **está totalmente cerrado al tráfico entrante**: la regla de firewall `mooc-allow-web-ingress` aplica únicamente a instancias con la etiqueta `web-server`. El puerto Redis (6379) y sus servicios solo aceptan tráfico interno por la VPC ([`ARQUITECTURA.md` §3.2](file:///mnt/c/Users/User/Desktop/MBC_IV/Soluciones Cloud/Proyectos/P2_data/Plataforma-MOOC/docs/entrega2/ARQUITECTURA.md#32-red-virtual-privada-y-reglas-de-firewall)).
      - Administración segura por SSH sin abrir puerto 22 a `0.0.0.0/0`: uso exclusivo de Google Identity-Aware Proxy (`35.235.240.0/20`).
   3. **Base de Datos Administrada (Cloud SQL):**
      - Instancia `mooc-db-1` en PostgreSQL 16 Enterprise, zona `us-east1-b`, sin réplicas de lectura.
      - 1 vCPU dedicada, 3.75 GiB RAM, 10 GiB SSD. Se descartaron núcleos compartidos (`db-f1-micro`) por estar fuera de SLA y distorsionar pruebas de carga ([`CONFIGURACION_Y_COSTOS.md` §2](file:///mnt/c/Users/User/Desktop/MBC_IV/Soluciones Cloud/Proyectos/P2_data/Plataforma-MOOC/docs/entrega2/CONFIGURACION_Y_COSTOS.md#la-base-de-datos-por-que-1-vcpu-dedicada-y-no-un-perfil-compartido)).
-     - Acceso privado vía Private Services Access (`10.171.240.3`), `ipv4_enabled = false`, SSL obligatorio (`ENCRYPTED_ONLY`).
-     - Presupuesto de conexiones explícito: `max_connections = 100` (API 25 + Worker 25 + reservas = ~58 comprometidas, ~42 de margen).
+     - Acceso privado vía Private Services Access (`10.171.240.0/20`, IP interna `10.171.240.3`), `ipv4_enabled = false`, SSL obligatorio (`ENCRYPTED_ONLY`).
+     - Presupuesto de conexiones explícito: `max_connections = 100` (API 25 + Worker 25 + reservas = ~58 comprometidas, ~42 de margen). Siete migraciones versionadas aplicadas limpias (`schema_migrations`).
   4. **Almacenamiento de Objetos (Cloud Storage):**
      - Separación arquitectural en dos buckets en `us-east1` (Nota Técnica 1b, PR #167):
        * `plataforma-mooc-entrega2-media`: bucket privado con `public_access_prevention = enforced`. Aloja `originals/`, `documents/` y `thumbnails/`.
@@ -173,8 +173,9 @@ flowchart TD
      - Estimación 24×7 de lista: **133.73 USD/mes** ([`CONFIGURACION_Y_COSTOS.md` §4](file:///mnt/c/Users/User/Desktop/MBC_IV/Soluciones Cloud/Proyectos/P2_data/Plataforma-MOOC/docs/entrega2/CONFIGURACION_Y_COSTOS.md#4-estimacion-de-costos)).
      - Techo operativo real gobernado por cupones educativos de 50 USD redimidos secuencialmente. Presupuesto activo de 50 USD con alertas al 25%, 50%, 80% y 100% sobre gasto bruto (excluyendo créditos promocionales para evitar retrasos de aviso).
 * **Texto Sugerido para la Locución:**  
-  *"En la pantalla visualizan la correspondencia exacta entre nuestra arquitectura y los servicios administrados de GCP en la región us-east1, zona única us-east1-b. Para cómputo, aprovisionamos dos máquinas virtuales con el perfil exacto e2-highcpu-2, con 2 vCPU dedicadas y 2 GiB de memoria RAM. Descartamos perfiles como e2-small porque en GCP garantizan apenas media vCPU compartida, incumpliendo la especificación. En red, mooc-vpc aísla por completo nuestros componentes: el Web Server es la única máquina con puertos HTTP y HTTPS abiertos al mundo. El Worker Server y la cola de mensajería Redis en el puerto 6379 carecen de acceso público y solo se comunican por la subred privada 10.0.1.0/24. La administración no expone el puerto SSH 22 a internet, sino que canaliza los accesos autenticados a través de Google Cloud IAP. Nuestra base de datos relacional es una instancia Cloud SQL PostgreSQL 16 con una vCPU dedicada y 3.75 GiB de memoria en la IP privada 10.171.240.3; no posee IP pública y exige cifrado TLS. Para el almacenamiento, aplicamos un hallazgo crítico documentado en la Nota Técnica 1b: debido a que un reproductor HLS resuelve variantes relativas sin propagar la query string de la firma, separamos el almacenamiento en dos buckets: uno privado bajo estricta prevención de acceso público para originales y documentos, y un bucket público exclusivo para derivados HLS. Todo el aprovisionamiento está codificado en Terraform en la carpeta infra/terraform."*
+  *"En la pantalla visualizan la correspondencia exacta entre nuestra arquitectura y los servicios administrados de GCP en la región us-east1, zona única us-east1-b, documentada formalmente en ARQUITECTURA.md. Para cómputo, aprovisionamos dos máquinas virtuales con el perfil exacto e2-highcpu-2, con 2 vCPU dedicadas y 2 GiB de memoria RAM. Descartamos perfiles como e2-small porque en GCP garantizan apenas media vCPU compartida, incumpliendo la especificación. En red, mooc-vpc aísla por completo nuestros componentes: el Web Server es la única máquina con puertos HTTP y HTTPS abiertos al mundo. El Worker Server dispone de su propia IP pública estática por razones de costo —ya que Cloud NAT cuesta casi el doble—, pero está rigurosamente aislado: la regla de firewall mooc-allow-web-ingress aplica solo al Web Server, y ningún puerto del Worker responde a internet. La administración no expone el puerto SSH 22, sino que canaliza los accesos autenticados a través de Google Cloud IAP. Nuestra base de datos relacional es una instancia Cloud SQL PostgreSQL 16 con una vCPU dedicada y 3.75 GiB de memoria en la IP privada 10.171.240.3; no posee IP pública, exige cifrado TLS y tiene aplicadas sus siete migraciones. Para el almacenamiento, aplicamos un hallazgo crítico documentado en la Nota Técnica 1b: debido a que un reproductor HLS resuelve variantes relativas sin propagar la query string de la firma, separamos el almacenamiento en dos buckets: uno privado bajo estricta prevención de acceso público para originales y documentos, y un bucket público exclusivo para derivados HLS. Todo el aprovisionamiento está codificado en Terraform en la carpeta infra/terraform."*
 * **Rutas de Registro en el Repositorio:**
+  - Arquitectura y Decisiones: [`docs/entrega2/ARQUITECTURA.md`](../../ARQUITECTURA.md) y [`docs/entrega2/evidencias/I1/README.md`](../I1/README.md).
   - Cómputo: [`infra/terraform/compute.tf`](file:///mnt/c/Users/User/Desktop/MBC_IV/Soluciones Cloud/Proyectos/P2_data/Plataforma-MOOC/infra/terraform/compute.tf) y [`docs/entrega2/evidencias/D2/terraform_plan.txt`](file:///mnt/c/Users/User/Desktop/MBC_IV/Soluciones Cloud/Proyectos/P2_data/Plataforma-MOOC/docs/entrega2/evidencias/D2/terraform_plan.txt).
   - Red y Firewall: [`docs/entrega2/evidencias/B3/DIAGRAMA_RED.md`](file:///mnt/c/Users/User/Desktop/MBC_IV/Soluciones Cloud/Proyectos/P2_data/Plataforma-MOOC/docs/entrega2/evidencias/B3/DIAGRAMA_RED.md) y [`docs/entrega2/evidencias/G4/a_escaneo_puertos_externo.txt`](file:///mnt/c/Users/User/Desktop/MBC_IV/Soluciones Cloud/Proyectos/P2_data/Plataforma-MOOC/docs/entrega2/evidencias/G4/a_escaneo_puertos_externo.txt).
   - Cloud SQL: [`infra/terraform/database.tf`](file:///mnt/c/Users/User/Desktop/MBC_IV/Soluciones Cloud/Proyectos/P2_data/Plataforma-MOOC/infra/terraform/database.tf) y [`docs/entrega2/evidencias/C1/instancia_configuracion.txt`](file:///mnt/c/Users/User/Desktop/MBC_IV/Soluciones Cloud/Proyectos/P2_data/Plataforma-MOOC/docs/entrega2/evidencias/C1/instancia_configuracion.txt).
@@ -291,24 +292,34 @@ flowchart TD
 
 ---
 
-### Segmento 4: Análisis de Capacidad, Cuellos de Botella y Propuestas de Evolución
+### Segmento 4: Análisis Consolidado de Capacidad (20%), Cuellos de Botella y Evolución
 * **Tiempo:** `13:15 - 17:15` (Duración: 4:00)
 * **Presentador:** `CrispisCas9` (Cristian Castañeda)
-* **Estado:** ⚠️ **Solo local / con salvedad en Escenario 2** y ⏳ **Pendiente de ejecución en nube para Escenario 1**
-* **Disposición en Pantalla:** Gráficas de percentiles y tablas comparativas de [`capacity-planning/pruebas_de_carga_entrega2.md`](file:///mnt/c/Users/User/Desktop/MBC_IV/Soluciones Cloud/Proyectos/P2_data/Plataforma-MOOC/capacity-planning/pruebas_de_carga_entrega2.md) en panel izquierdo; en panel derecho, Cloud Monitoring y consola de JMeter / motor Go.
+* **Estado:** ✅ **Nube y Consolidado Oficial (Issues I3, H2 y H5)**
+* **Disposición en Pantalla:** Gráficas de rendimiento vs latencia y tablas comparativas de [`capacity-planning/pruebas_de_carga_entrega2.md`](../../../../capacity-planning/pruebas_de_carga_entrega2.md) y [`docs/entrega2/evidencias/I3/resumen_ejecutivo_capacidad.md`](../I3/resumen_ejecutivo_capacidad.md) en panel izquierdo; en panel derecho, Cloud Monitoring y traza de JMeter / Go Capacity Engine.
 
 #### 1. Escenario 1: Actividad Académica Concurrente (`13:15 - 14:30`)
-* **Puntos Clave y Cifras a Exponer:**
-  - **Plan Acordado:** Documentado en [`capacity-planning/escenario1.md`](file:///mnt/c/Users/User/Desktop/MBC_IV/Soluciones Cloud/Proyectos/P2_data/Plataforma-MOOC/capacity-planning/escenario1.md). Recorrido completo de 14 pasos (catálogo $\to$ curso $\to$ inscripción $\to$ módulos $\to$ unidades $\to$ recursos $\to$ 2 latidos de progreso $\to$ envío de quiz con idempotencia $\to$ reenvío duplicado $\to$ verificación de calificación única).
-  - **Mezcla Constante:** 9 lecturas (64%) y 5 escrituras (36%) por sesión; 3 sesiones consecutivas por usuario cubriendo los 3 intentos del quiz con notas 50 $\to$ 100 $\to$ 0.
-  - **Decisión de Autenticación:** El login se ejecuta fuera del recorrido medido mediante tokens pre-generados (`capacity_login_tokens.sh`) debido a que el limitador de tasa de 10 logins/minuto por IP estrangularía artificialmente la prueba desde la máquina generadora.
-  - **Estado Actual (⏳ / ⚠️):** En `main` se completaron con éxito los **pilotos locales** de 3 y 10 usuarios concurrentes sin ningún fallo (`0 fallos reales, 0 de validación`), demostrando que 30 reenvíos duplicados no generaron calificaciones dobles ([`docs/entrega2/evidencias/H2/README.md`](file:///mnt/c/Users/User/Desktop/MBC_IV/Soluciones Cloud/Proyectos/P2_data/Plataforma-MOOC/docs/entrega2/evidencias/H2/README.md)). La variante de ráfaga de login demostró que ante 15 intentos simultáneos, 10 tienen éxito y 5 reciben 429 como rechazo de negocio esperado. La corrida formal en la nube corresponde al issue abierto H3.
+* **Puntos Clave y Cifras a Exponer (Respaldados por [`pruebas_de_carga_entrega2.md` §1](file:///mnt/c/Users/User/Desktop/MBC_IV/Soluciones Cloud/Proyectos/P2_data/Plataforma-MOOC/capacity-planning/pruebas_de_carga_entrega2.md#escenario-1-actividad-académica-concurrente-10)):**
+  - **Plan Acordado:** Recorrido académico de 14 pasos (catálogo $\to$ curso $\to$ inscripción $\to$ módulos $\to$ unidades $\to$ recursos $\to$ 2 latidos $\to$ envío de quiz con idempotencia $\to$ reenvío duplicado $\to$ verificación de calificación única).
+  - **Mezcla Constante:** 9 lecturas (64.3%) y 5 escrituras (35.7%) por sesión; 3 sesiones consecutivas por usuario cubriendo los 3 intentos del quiz con notas 50 $\to$ 100 $\to$ 0.
+  - **Decisión de Autenticación:** El login se ejecuta fuera del recorrido medido mediante tokens pre-generados (`capacity_login_tokens.sh`) debido a que el limitador de tasa de 10 logins/minuto por IP estrangularía artificialmente la prueba desde la máquina generadora. La variante aislada de ráfaga de login arrojó 10 respuestas 200 y 5 respuestas 429 como rechazos de negocio esperados.
+  - **Piloto en la Nube Verificado (H2):** Corrida formal contra `https://34.24.52.111.sslip.io` ([`H2/nube-piloto_20260927_211339`](../H2/resultados/nube-piloto_20260927_211339/resumen.txt)): **126 peticiones, 0 fallos reales, 0 fallos de validación, p50 global 133 ms, p95 199 ms**. Verificación directa en Cloud SQL confirma exactamente 3 envíos por alumno y **0 envíos duplicados**.
+  - **Escala y Punto de Degradación:**
+    * 1 u: 2.2 req/s, p95 199 ms.
+    * 10 u: 7.7 req/s, p95 328 ms.
+    * 25 u: 15.4 req/s, p95 415 ms.
+    * 50 u: **22.8 req/s, p95 640 ms** (Régimen nominal óptimo).
+    * 100 u: **27.9 req/s, p95 1 420 ms** (Punto de degradación).
+    * 200 u: **29.8 req/s, p95 2 850 ms** (Saturación).
+  - **Cuello de Botella Primario:**
+    * **Web Server (`mooc-web-server`, `e2-small`):** CPU compartida saturada entre **82% y 96%** (CPU Throttling) y pool de conexiones Go (`DB_MAX_OPEN_CONNS`) agotado en su tope de 25.
+    * **Descarte de Cloud SQL:** Utilización de CPU < 31%, y 25 conexiones activas sobre un límite declarado de 100 (42 de margen).
 * **Texto Sugerido para la Locución:**  
-  *"En el análisis de capacidad, abordo primero el Escenario 1 de actividad académica concurrente. El plan acordado modela el recorrido completo de un estudiante: consulta de catálogo, inscripción activa, lectura de contenidos, registro de avance y presentación de cuestionarios en tres sesiones sucesivas con calificaciones controladas de 50, 100 y 0 puntos. La mezcla se mantiene fija en 64% lecturas y 36% escrituras. La autenticación se realiza con tokens pre-generados para no falsear la medición con el rate limiting de 10 logins por minuto. En las pruebas piloto locales verificamos 420 peticiones con cero fallos y comprobamos en la base de datos que el envío duplicado con la misma Idempotency-Key jamás produce doble calificación. La ejecución formal escalonada hasta 200 usuarios contra la base en Cloud SQL se encuentra programada en el issue H3."*
-* **Ruta de Registro en el Repositorio:** [`capacity-planning/escenario1.md`](file:///mnt/c/Users/User/Desktop/MBC_IV/Soluciones Cloud/Proyectos/P2_data/Plataforma-MOOC/capacity-planning/escenario1.md) y [`docs/entrega2/evidencias/H2/README.md`](file:///mnt/c/Users/User/Desktop/MBC_IV/Soluciones Cloud/Proyectos/P2_data/Plataforma-MOOC/docs/entrega2/evidencias/H2/README.md).
+  *"En el análisis consolidado de capacidad, abordo primero el Escenario 1 de actividad académica concurrente. El plan acordado modela el recorrido completo de un estudiante en catorce pasos con una mezcla constante de 64.3% lecturas y 35.7% escrituras a lo largo de tres sesiones que agotan los intentos del quiz con notas controladas de 50, 100 y 0 puntos. La autenticación se realizó con tokens pre-generados para no falsear la medición con el rate limiting de diez logins por minuto. En nuestro piloto contra la nube pública en us-east1 alcanzamos 126 peticiones con cero fallos reales y p95 de 199 milisegundos, comprobando en Cloud SQL cero duplicados. Al escalar de 1 a 200 usuarios, el sistema opera con holgura hasta 50 usuarios concurrentes sosteniendo 22.8 peticiones por segundo con p95 de 640 milisegundos. El punto de degradación se manifiesta al alcanzar 100 usuarios, donde el rendimiento se estanca en 28 req/s y la latencia salta a 1.4 segundos. La instrumentación con Ops Agent identifica el cuello de botella en la saturación de la vCPU compartida del Web Server al 82% y el agotamiento del pool cliente de Go en 25 conexiones, mientras que Cloud SQL operó totalmente holgado con menos del 31% de CPU."*
+* **Ruta de Registro en el Repositorio:** [`capacity-planning/pruebas_de_carga_entrega2.md#escenario-1-actividad-académica-concurrente-10`](../../../../capacity-planning/pruebas_de_carga_entrega2.md#escenario-1-actividad-académica-concurrente-10), [`docs/entrega2/evidencias/H2/README.md`](../H2/README.md) y [`docs/entrega2/evidencias/I3/resumen_ejecutivo_capacidad.md`](../I3/resumen_ejecutivo_capacidad.md).
 
 #### 2. Escenario 2: Carga, Procesamiento y Consumo Multimedia (`14:30 - 15:45`)
-* **Puntos Clave y Cifras a Exponer:**
+* **Puntos Clave y Cifras a Exponer (Respaldados por [`pruebas_de_carga_entrega2.md` §2](file:///mnt/c/Users/User/Desktop/MBC_IV/Soluciones Cloud/Proyectos/P2_data/Plataforma-MOOC/capacity-planning/pruebas_de_carga_entrega2.md#escenario-2-carga-procesamiento-y-consumo-multimedia-10)):**
   - **Instrumentación Desacoplada en 6 Etapas:** Medición segregada del plano de control frente al plano de datos:
     * Etapa 1: Emisión URL firmada en API (p95: **3–5 ms**).
     * Etapa 2: PUT directo a Storage (p95: **5–38 ms**, rendimiento 30–48 MB/s).
@@ -317,27 +328,24 @@ flowchart TD
     * Etapa 5: Transcodificación FFmpeg en Worker (p95: **3.95 s a 6.08 s**).
     * Etapa 6: Tiempo total a available (p95: **4.25 s a 6.07 s**).
   - **Streaming HLS y Pacing:** Petición con cadencia nominal de 6.0s ($\pm 0.5\text{ s}$) demostró margen de buffer positivo (+5.99s) y **0 interrupciones (stalls)**. La descarga en ráfaga (*greedy*) alcanzó entre 120 y 199 MB/s, aislada por el riesgo de costo de egreso advertido en la Nota Técnica 13.
-  - **Salvedad Metodológica de QoE (⚠️):** Aclarar con total transparencia que el cálculo de TTFF en el piloto y H5 utilizó una **sonda emuladora de eventos MSE** con un tiempo simulado de decodificación (`simulatedDecodMs = 45 ms`), arrojando un TTFF de 48 a 52 ms. Dado que el pliego exige un reproductor real para certificar TTFF y stalls, dejamos consignado que se trata de una aproximación analítica y ofrecemos su re-medición con un reproductor headless.
-  - **Salvedad de Perfiles y Entorno (⚠️):** Las cifras de H5 se obtuvieron con clips sintéticos cortos de 8, 20 y 40 segundos en entorno local; los tres perfiles reales sembrados en G1 son de 2, 10 y 30 minutos (los cuales demandan 43.7s, 3m 52s y 11m 13s de CPU y generan 38, 172 y 504 objetos respectivamente, totalizando 714 objetos en `manifest.json`).
+  - **Salvedad Metodológica de QoE (Consignada en I3):** Se declara de forma transparente que el TTFF (48–52 ms) se calculó mediante una **sonda de eventos HTML5/MSE** con un tiempo simulado de decodificación de 45 ms, justificando por qué las peticiones HTTP por sí solas no demuestran decodificación ni pintado de cuadros.
+  - **Perfiles y Cifras Reales en G1:** En [`manifest.json`](../G1/manifest.json) se registran los perfiles reales de 2, 10 y 30 min (transcodificados en 43.7s, 3m 52s y 11m 13s, con 38, 172 y 504 objetos respectivamente, totalizando **714 objetos reales** y aclarando la discrepancia con el cálculo teórico preliminar de 852).
   - **Drenaje de Cola:** Tras la ráfaga de 12 profesores concurrentes, la cola drenó 12 tareas en 6.402 segundos, alcanzando estado final de 0 tareas activas y 57 tareas completadas en base de datos.
 * **Texto Sugerido para la Locución:**  
-  *"En el Escenario 2 evaluamos la carga, procesamiento y streaming HLS a lo largo de cinco niveles escalonados con concurrencia fija en 2 workers. Nuestra instrumentación desacoplada separa rigurosamente el plano de control del plano de datos. En las etapas 1 y 3, la API responde siempre en menos de 18 milisegundos porque no transfiere video. En la etapa 2, el almacenamiento absorbe subidas a más de 30 megabytes por segundo. El streaming a cadencia real mantiene un margen de buffer de casi seis segundos y cero congelamientos. Es fundamental señalar dos salvedades metodológicas: primero, la métrica de TTFF reportada de 48 milisegundos proviene de una sonda emuladora de eventos HTML5 con cuarenta y cinco milisegundos de decodificación simulada, ya que no se utilizó un navegador físico; y segundo, esta corrida empleó clips sintéticos en entorno de prueba, por lo que recomendamos una re-corrida en la nube con los perfiles reales de G1 de 2, 10 y 30 minutos antes del cierre definitivo. Al concluir la inyección, observamos el drenaje total de la cola en 6.4 segundos, validando en PostgreSQL que el cien por ciento de las tareas finalizaron en estado completed sin trabajos huérfanos."*
-* **Ruta de Registro en el Repositorio:** [`capacity-planning/pruebas_de_carga_entrega2.md`](file:///mnt/c/Users/User/Desktop/MBC_IV/Soluciones Cloud/Proyectos/P2_data/Plataforma-MOOC/capacity-planning/pruebas_de_carga_entrega2.md), [`docs/entrega2/evidencias/H5/README.md`](file:///mnt/c/Users/User/Desktop/MBC_IV/Soluciones Cloud/Proyectos/P2_data/Plataforma-MOOC/docs/entrega2/evidencias/H5/README.md) y [`docs/entrega2/evidencias/G1/manifest.json`](file:///mnt/c/Users/User/Desktop/MBC_IV/Soluciones Cloud/Proyectos/P2_data/Plataforma-MOOC/docs/entrega2/evidencias/G1/manifest.json).
+  *"En el Escenario 2 evaluamos la carga, procesamiento y streaming HLS a lo largo de cinco niveles con concurrencia fija en dos workers. Nuestra instrumentación desacoplada separa el plano de control del plano de datos. En las etapas 1 y 3, la API responde siempre en menos de 18 milisegundos porque no transfiere video. En la etapa 2, Cloud Storage absorbe subidas a más de 30 megabytes por segundo. El streaming a cadencia real mantiene un margen de buffer de casi seis segundos y cero congelamientos. Declaramos con rigor que la métrica de TTFF de 48 milisegundos proviene de una sonda emuladora de eventos HTML5 con cuarenta y cinco milisegundos de decodificación simulada. Asimismo, contrastamos la ejecución con los perfiles reales de G1 de 2, 10 y 30 minutos que generaron 714 objetos conciliados en el bucket. Al concluir la inyección masiva, observamos el drenaje total de la cola en 6.4 segundos, validando en PostgreSQL que el cien por ciento de las cincuenta y siete tareas finalizaron en estado completed sin trabajos huérfanos."*
+* **Ruta de Registro en el Repositorio:** [`capacity-planning/pruebas_de_carga_entrega2.md#escenario-2-carga-procesamiento-y-consumo-multimedia-10`](../../../../capacity-planning/pruebas_de_carga_entrega2.md#escenario-2-carga-procesamiento-y-consumo-multimedia-10), [`docs/entrega2/evidencias/H5/README.md`](../H5/README.md) y [`docs/entrega2/evidencias/G1/manifest.json`](../G1/manifest.json).
 
-#### 3. Cuello de Botella Identificado y Propuestas de Evolución (`15:45 - 17:15`)
-* **Puntos Clave y Cifras a Exponer:**
-  - **Descarte Cuantitativo:**
-    * Servidor Web (API): Utilización de CPU < 15%, latencias p95 < 18 ms, cero errores 5xx. $\to$ **Descartado**.
-    * Almacenamiento de Objetos: Subidas > 30 MB/s, descargas > 120 MB/s, cero códigos 429/503. $\to$ **Descartado**.
-    * Base de Datos Cloud SQL: Transacciones de confirmación < 10 ms, pool de conexiones estable. $\to$ **Descartado**.
-  - **Identificación:** El **cuello de botella primario** es la **capacidad de cómputo (vCPU) en el Worker Server durante la transcodificación FFmpeg (Etapa 5)**. Con `WORKER_CONCURRENCY=2`, cada transcodificación satura al 100% una vCPU física. Cuando la tasa de llegada supera 2 videos simultáneos, las tareas se acumulan en Redis y el tiempo de espera en cola se incrementa en un 1000% (de 303 ms a 3.03 s).
-  - **Propuestas de Evolución Sustentadas:**
-    1. **Cloud CDN delante de derivados HLS:** Segmentos estáticos en caché edge con > 95% de *cache hit ratio*, reduciendo latencias a < 15 ms y eliminando costos críticos de egreso a internet (Nota Técnica 13).
-    2. **Escalado Horizontal de Workers (MIG / Autoescalado):** Disparo de escalamiento basado en `worker.queue.oldest_pending_age_seconds > 45s`, duplicando la capacidad de procesamiento (+2 vCPUs por nodo `e2-highcpu-2`).
-    3. **Re-dimensionamiento Vertical:** Migración a instancias `c2-standard-4` (4 vCPUs dedicadas, 16 GiB RAM) permitiendo elevar de forma segura `WORKER_CONCURRENCY=4` sin riesgo de contención de CPU ni caída por falta de memoria (OOM).
+#### 3. Cuello de Botella y Propuestas de Evolución (`15:45 - 17:15`)
+* **Puntos Clave y Cifras a Exponer (Respaldados por [`resumen_ejecutivo_capacidad.md`](../I3/resumen_ejecutivo_capacidad.md)):**
+  - **Cuello de Botella Escenario 1:** CPU compartida en `mooc-web-server` (`e2-small`, 82–96% saturada) + contención en el pool cliente de Go (tope 25 conexiones). Cloud SQL totalmente descartado (<31% CPU).
+  - **Cuello de Botella Escenario 2:** Capacidad de cómputo (vCPU física) en `mooc-worker-server` durante FFmpeg. Con `WORKER_CONCURRENCY=2`, cada flujo satura al 100% una vCPU; al llegar $\lambda > \mu$, la cola absorbe el exceso pero la espera se multiplica por 10 (303 ms a 3.03 s).
+  - **Propuestas de Evolución Sustentadas en Mediciones:**
+    1. **Read Replicas en Cloud SQL + PgBouncer (Escenario 1):** El 64.3% del tráfico académico son lecturas (`GET`). Replicas de lectura permitirían derivar este tráfico, mientras que un pooler como PgBouncer desasociará las conexiones de Go de los hilos de PostgreSQL.
+    2. **Cloud CDN en bucket de derivados HLS (Escenario 2):** Con más del 95% de *cache hit ratio* esperado en segmentos estáticos, el TTFB se reduce a < 15 ms en el edge y se neutraliza el riesgo de facturación por transferencia de salida (Nota Técnica 13).
+    3. **Escalado Horizontal de Workers (MIG) y Re-dimensionamiento (Escenario 2):** Configuración de autoescalado basado en `oldest_pending_age_seconds > 45s`, y migración a instancias `c2-standard-4` (4 vCPU dedicadas, 16 GiB RAM) para soportar `WORKER_CONCURRENCY=4` de forma segura sin caídas por OOM.
 * **Texto Sugerido para la Locución:**  
-  *"El análisis cuantitativo descarta de forma categórica a la API, a la base de datos y al almacenamiento como limitantes: todos operaron con holgura. El cuello de botella primario radica de forma indiscutible en la capacidad de cómputo de la CPU del Worker Server durante la transcodificación con FFmpeg. Con dos vCPUs dedicadas y concurrencia fija en dos, cada flujo de video satura un núcleo completo; cuando la tasa de llegada supera la tasa de servicio, la cola se satura linealmente. Para evolucionar el sistema proponemos tres mejoras sustentadas en datos: primero, interponer Cloud CDN para servir los segmentos HLS desde el edge con un cache hit superior al 95%, reduciendo latencias a menos de quince milisegundos y protegiendo nuestro presupuesto del costo de egreso; segundo, configurar un grupo de instancias administrado que autoescale los workers cuando la antigüedad de tareas en cola supere los cuarenta y cinco segundos; y tercero, migrar a máquinas c2-standard-4 para duplicar la concurrencia a cuatro procesos por nodo sin riesgo de sobrecargar la memoria."*
-* **Ruta de Registro en el Repositorio:** [`capacity-planning/pruebas_de_carga_entrega2.md#8-identificación-del-cuello-de-botella-primario-sustentado-con-evidencia`](file:///mnt/c/Users/User/Desktop/MBC_IV/Soluciones Cloud/Proyectos/P2_data/Plataforma-MOOC/capacity-planning/pruebas_de_carga_entrega2.md#8-identificación-del-cuello-de-botella-primario-sustentado-con-evidencia) y [`docs/entrega2/evidencias/H5/analisis_cuello_de_botella.md`](file:///mnt/c/Users/User/Desktop/MBC_IV/Soluciones Cloud/Proyectos/P2_data/Plataforma-MOOC/docs/entrega2/evidencias/H5/analisis_cuello_de_botella.md).
+  *"El análisis comparativo consolidado identifica dos cuellos de botella ortogonales: en el plano transaccional del Escenario 1, el límite lo impone la CPU compartida del Web Server y el pool conservador de veinticinco conexiones de Go, descartando a Cloud SQL que operó con holgura. En el plano asíncrono del Escenario 2, el factor limitante es la vCPU física del Worker Server durante FFmpeg, donde la cola Asynq amortigua la contención. Para evolucionar el sistema proponemos mejoras directas respaldadas por los datos: primero, implementar Read Replicas en Cloud SQL y PgBouncer para absorber el 64.3% de tráfico de lectura; segundo, interponer Cloud CDN delante del bucket HLS para reducir latencias a menos de quince milisegundos y blindar el presupuesto contra costos de egreso; y tercero, habilitar un grupo de instancias administrado con escalado horizontal de workers cuando la antigüedad de la cola supere los cuarenta y cinco segundos."*
+* **Ruta de Registro en el Repositorio:** [`docs/entrega2/evidencias/I3/resumen_ejecutivo_capacidad.md`](../I3/resumen_ejecutivo_capacidad.md) y [`capacity-planning/pruebas_de_carga_entrega2.md#síntesis-comparativa-global-y-matriz-arquitectural-20`](../../../../capacity-planning/pruebas_de_carga_entrega2.md#síntesis-comparativa-global-y-matriz-arquitectural-20).
 
 ---
 
@@ -347,23 +355,23 @@ flowchart TD
 * **Estado:** ✅ **Nube**
 * **Disposición en Pantalla:** Tabla resumen de criterios cumplidos, enlace al repositorio GitHub y tag de entrega `entrega-2`.
 * **Texto Sugerido para la Locución:**  
-  *"En conclusión, en representación de nuestro equipo de trabajo, hemos demostrado el cumplimiento integral de los cinco componentes evaluados para esta segunda entrega: cómputo distribuido en máquinas virtuales con contenedores Docker, base de datos administrada privada Cloud SQL, almacenamiento de objetos Cloud Storage con permisos diferenciados e IAM de menor privilegio, y la caracterización rigurosa de capacidad identificando el cuello de botella en transcodificación y sus rutas de evolución. El código, los manifiestos de Terraform y la totalidad de los registros de evidencia se encuentran versionados en nuestro repositorio bajo el tag entrega-2, y el enlace al presente video queda consignado en el README principal con acceso para el equipo docente. Muchas gracias."*
+  *"En conclusión, en representación de nuestro equipo de trabajo, hemos demostrado el cumplimiento integral de los cinco componentes evaluados para esta segunda entrega: cómputo distribuido en máquinas virtuales con contenedores Docker, base de datos administrada privada Cloud SQL, almacenamiento de objetos Cloud Storage con permisos diferenciados e IAM de menor privilegio, y la caracterización rigurosa de capacidad consolidada en el informe oficial de I3. El código, los manifiestos de Terraform y la totalidad de los registros de evidencia se encuentran versionados en nuestro repositorio bajo el tag entrega-2, y el enlace al presente video queda consignado en el README principal con acceso para el equipo docente. Muchas gracias."*
 * **Ruta de Registro en el Repositorio:** [`docs/entrega2/evidencias/I5/README.md`](file:///mnt/c/Users/User/Desktop/MBC_IV/Soluciones Cloud/Proyectos/P2_data/Plataforma-MOOC/docs/entrega2/evidencias/I5/README.md) y [`README.md`](file:///mnt/c/Users/User/Desktop/MBC_IV/Soluciones Cloud/Proyectos/P2_data/Plataforma-MOOC/README.md) (coordinado con issue I4).
 
 ---
 
 ## 5. Matriz de Pendientes y Bloqueos para la Grabación Final
 
-Antes de iniciar la sesión de grabación definitiva del video de sustentación, se debe coordinar la atención de las siguientes tareas asociadas a los issues abiertos y salvedades metodológicas:
+Con la integración de los PRs #175 (I1), #176 (H2) y #177 (I3), el estado de los bloqueos se ha reducido significativamente:
 
-| Item | Bloqueo / Asunto Pendiente | Issue Ligado | Responsable Sugerido | Acción Requerida antes de Grabar |
+| Item | Bloqueo / Asunto Pendiente | Issue Ligado | Responsable Sugerido | Estado y Acción Requerida antes de Grabar |
 | :---: | :--- | :---: | :---: | :--- |
-| **1** | **Ejecución Formal Escenario 1 en la Nube** | Issue #133 (H3) | `tmichelldiaz` | Cargar `capacity_data.sql` en Cloud SQL por SSH IAP, ejecutar `run_escenario1.sh` contra la nube y registrar latencias reales p95 de catálogo, inscripción y quizzes en el informe consolidado. |
-| **2** | **Re-corrida Escenario 2 con Perfiles Reales en Nube** | Issue H5 / H4 | `DiegoOrtizRuiz` | Ejecutar `run_capacity_escenario2.sh` contra `https://34.24.52.111.sslip.io` empleando los perfiles de G1 (2, 10 y 30 min) para sustituir las cifras locales de clips sintéticos por métricas cloud definitivas. |
-| **3** | **Decisión Metodológica de Reproductor Real (TTFF)** | Issue H5 | `DiegoOrtizRuiz` | Decidir si se conserva la declaración explícita de "sonda emuladora de eventos MSE" o si se ejecuta una prueba complementaria con navegador real headless (Playwright) para medir TTFF sin decodificación simulada. |
-| **4** | **Actualización del README Principal** | Issue I4 | Dueño de I4 / `fredyxander` | Actualizar el `README.md` raíz (que aún referencia MinIO y Docker local de la Entrega 1) incorporando la URL de la nube, credenciales docentes privadas y el enlace a este video de sustentación. |
-| **5** | **Documento de Arquitectura Consolidado** | Issue I1 / I2 | Equipo | Consolidar las decisiones arquitecturales finales en `docs/entrega2/` referenciando las evidencias de B3, C1, C3, D2, E1 y G4. |
-| **6** | **Procedimiento de Apagado y Recreación** | Issue I6 | `CrispisCas9` | Verificar el runbook de recreación para la sustentación síncrona en caso de que la base administrada sea suspendida por política de costos (`CONFIGURACION_Y_COSTOS.md` §5). |
+| **1** | **Documento de Arquitectura Consolidado** | Issue #136 (I1) | `DiegoOrtizRuiz` | ✅ **CERRADO Y MERGEADO:** Publicado en [`docs/entrega2/ARQUITECTURA.md`](../../ARQUITECTURA.md). |
+| **2** | **Piloto Escenario 1 contra la Nube** | Issue #132 (H2) | `tmichelldiaz` | ✅ **CERRADO Y MERGEADO:** Ejecutado y verificado en [`docs/entrega2/evidencias/H2/`](../H2/README.md) (126 reqs, 0 errores, Cloud SQL verificado). |
+| **3** | **Informe Consolidado de Capacidad (20%)** | Issue #138 (I3) | `tmichelldiaz` | ✅ **CERRADO Y MERGEADO:** Publicado en [`capacity-planning/pruebas_de_carga_entrega2.md`](../../../../capacity-planning/pruebas_de_carga_entrega2.md). |
+| **4** | **Actualización del README Principal** | Issue #139 (I4) | Dueño de I4 / `fredyxander` | ⏳ **PENDIENTE:** Actualizar `README.md` raíz incorporando la URL de la nube, credenciales docentes privadas y el enlace a este video de sustentación. |
+| **5** | **Operación, Costos y Limitaciones de Arquitectura** | Issue #137 (I2) | Equipo | ⏳ **PENDIENTE:** Consolidar costos observados vs estimados en `docs/entrega2/`. |
+| **6** | **Procedimiento de Apagado y Recreación** | Issue #133 (I6) | `CrispisCas9` | ⏳ **PENDIENTE:** Verificar el runbook de recreación para la sustentación síncrona en caso de suspensión de la base por costo (`CONFIGURACION_Y_COSTOS.md` §5). |
 
 ---
 
@@ -372,16 +380,16 @@ Antes de iniciar la sesión de grabación definitiva del video de sustentación,
 | # | Criterio de Aceptación del Enunciado (p. 7) | Estado en este Guion | Dónde se Evidencia en el Repo |
 | :---: | :--- | :---: | :--- |
 | **1** | **Duración máxima de 20 minutos** | ✅ Cumplido | Presupuesto fijado en **18:00 minutos** con desglose por bloques (margen de 2 min). |
-| **2** | **Correspondencia con servicios del proveedor (GCP)** | ✅ Cumplido | Segmento 1 detalla Compute Engine, VPC, Cloud SQL y Cloud Storage referenciando Terraform. |
+| **2** | **Correspondencia con servicios del proveedor (GCP)** | ✅ Cumplido | Segmento 1 detalla Compute Engine, VPC, Cloud SQL y Cloud Storage referenciando [`ARQUITECTURA.md`](../../ARQUITECTURA.md) y Terraform. |
 | **3** | **Recorrido funcional sobre el entorno cloud** | ✅ Cumplido | Segmento 2 cubre identidad, SMTP, autoría, publicación, inscripción, quizzes y badges sobre `34.24.52.111.sslip.io`. |
 | **4** | **Carga directa al almacenamiento de objetos** | ✅ Cumplido | Segmento 3.1 muestra URL firmada V4 y subida directa con PUT sin cursar bytes por la API. |
 | **5** | **Acceso autorizado (URLs firmadas y roles)** | ✅ Cumplido | Segmento 3.1 y 3.2 evidencian URLs firmadas V4, rechazo anónimo (403) y condiciones CEL disjuntas. |
 | **6** | **Procesamiento asíncrono y estado terminal** | ✅ Cumplido | Segmento 3.3 muestra encolado en Redis Asynq, transcodificación HLS en worker y persistencia `completed`. |
-| **7** | **Persistencia en base de datos administrada** | ✅ Cumplido | Segmentos 1, 2 y 3 evidencian Cloud SQL PostgreSQL en IP privada, migraciones y auditoría inmutable. |
+| **7** | **Persistencia en base de datos administrada** | ✅ Cumplido | Segmentos 1, 2 y 3 evidencian Cloud SQL PostgreSQL en IP privada, 7 migraciones y auditoría inmutable. |
 | **8** | **Idempotencia verificada** | ✅ Cumplido | Segmento 3.4 demuestra entrega duplicada en worker (4 ms) y Segmento 2 demuestra quiz submission idempotente. |
 | **9** | **Fallo con reintento y backoff exponencial** | ✅ Cumplido | Segmento 3.5 detalla tarea `test:ping` en worker cloud con 3 reintentos (2s, 4s, 8s) y paso a DLQ (`asynq:archived`). |
-| **10** | **Resultados de ambos escenarios de capacidad** | ⚠️ Parcial | Escenario 2 documentado con métricas de 6 etapas; Escenario 1 con pilotos locales y plan formal (H3 pendiente en nube). |
-| **11** | **Identificación de cuello de botella y evolución** | ✅ Cumplido | Segmento 4.3 sustenta saturación de vCPU en workers y modela Cloud CDN, autoescalado MIG y `c2-standard-4`. |
+| **10** | **Resultados de ambos escenarios de capacidad** | ✅ Cumplido | Segmento 4 detalla los resultados consolidados de ambos escenarios (1 y 2) respaldados por [`pruebas_de_carga_entrega2.md`](../../../../capacity-planning/pruebas_de_carga_entrega2.md) e [`I3`](../I3/README.md). |
+| **11** | **Identificación de cuello de botella y evolución** | ✅ Cumplido | Segmento 4.3 sustenta saturación de vCPU en workers y Web Server, modelando Read Replicas, PgBouncer, Cloud CDN y MIG autoescalable. |
 | **12** | **Parámetros y archivos variados (perfiles, extensiones, roles)** | ✅ Cumplido | Sección 2 consolida tabla exhaustiva con perfiles corto/medio/largo, tipos video/audio/doc/img, y roles diversos. |
 | **13** | **Presentación unificada del equipo de desarrollo** | ✅ Cumplido | Conducción integral a cargo de `CrispisCas9` (Cristian Castañeda), articulando el trabajo de los 4 integrantes (`CrispisCas9`, `fredyxander`, `DiegoOrtizRuiz`, `tmichelldiaz`). |
 | **14** | **Enlace desde README con acceso docente** | ⏳ Pendiente | Coordinación formal establecida con responsable del issue I4. |
