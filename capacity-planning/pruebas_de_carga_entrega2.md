@@ -20,9 +20,10 @@
 
 ## Índice
 
-- [Informe Consolidado de Pruebas de Carga y Capacidad — Entrega 2](#informe-consolidado-de-pruebas-de-carga-y-capacidad--entrega-2)
+- [Informe Consolidado de Pruebas de Carga y Capacidad — Entrega 2](#informe-consolidado-de-pruebas-de-carga-y-capacidad-entrega-2)
   - [Índice](#índice)
   - [Resumen Ejecutivo y Topología de Pruebas](#resumen-ejecutivo-y-topología-de-pruebas)
+    - [Respuesta directa: dónde se degrada, por qué y a partir de qué capacidad](#respuesta-directa-dónde-se-degrada-por-qué-y-a-partir-de-qué-capacidad)
     - [Topología de Inyección y Mediciones](#topología-de-inyección-y-mediciones)
   - [Escenario 1: Actividad Académica Concurrente (10%)](#escenario-1-actividad-académica-concurrente-10)
     - [1.1 Definición del Escenario, Recorrido y Cuentas](#11-definición-del-escenario-recorrido-y-cuentas)
@@ -33,17 +34,12 @@
     - [1.3 Manejo de Autenticación y Variante de Ráfaga de Login](#13-manejo-de-autenticación-y-variante-de-ráfaga-de-login)
       - [Decisión: Login Fuera del Recorrido Medido](#decisión-login-fuera-del-recorrido-medido)
       - [Variante Aislada: Ráfaga de Login](#variante-aislada-ráfaga-de-login)
-    - [1.4 Resultados Numéricos por Corrida y Variación por Nivel](#14-resultados-numéricos-por-corrida-y-variación-por-nivel)
-      - [Análisis de Dispersión en Repeticiones Cercanas al Límite](#análisis-de-dispersión-en-repeticiones-cercanas-al-límite)
-    - [1.5 Métricas de Infraestructura y Aplicación](#15-métricas-de-infraestructura-y-aplicación)
-    - [1.6 Punto de Degradación y Sustentación del Cuello de Botella](#16-punto-de-degradación-y-sustentación-del-cuello-de-botella)
-      - [Identificación del Límite de Capacidad](#identificación-del-límite-de-capacidad)
-      - [Cuadro de Sustentación y Descarte de Cuello de Botella](#cuadro-de-sustentación-y-descarte-de-cuello-de-botella)
-    - [1.7 Comprobación de Integridad y Validación Funcional](#17-comprobación-de-integridad-y-validación-funcional)
-      - [A. Envío Duplicado sin Doble Calificación (Paso 11)](#a-envío-duplicado-sin-doble-calificación-paso-11)
-      - [B. Progresión Monótona de Calificación y Avance](#b-progresión-monótona-de-calificación-y-avance)
-    - [1.8 Limitaciones del Experimento](#18-limitaciones-del-experimento)
-    - [1.9 Propuesta de Evolución con Respaldo Numérico](#19-propuesta-de-evolución-con-respaldo-numérico)
+    - [1.4 Resultados numéricos por corrida y variación](#14-resultados-numéricos-por-corrida-y-variación)
+    - [1.5 Métricas de infraestructura](#15-métricas-de-infraestructura)
+    - [1.6 Punto de degradación (no se alcanzó) y cuello de botella](#16-punto-de-degradación-no-se-alcanzó-y-cuello-de-botella)
+    - [1.7 Integridad y validación funcional](#17-integridad-y-validación-funcional)
+    - [1.8 Limitaciones](#18-limitaciones)
+    - [1.9 Propuesta de evolución con respaldo](#19-propuesta-de-evolución-con-respaldo)
   - [Escenario 2: Carga, Procesamiento y Consumo Multimedia (10%)](#escenario-2-carga-procesamiento-y-consumo-multimedia-10)
     - [2.1 Definición del Escenario, Perfiles y Regla de NO Upscaling](#21-definición-del-escenario-perfiles-y-regla-de-no-upscaling)
       - [Perfiles Multimedia de Entrada (G1)](#perfiles-multimedia-de-entrada-g1)
@@ -56,19 +52,29 @@
     - [2.5 Consumo Multimedia HLS: Cadencia Real vs Descarga Greedy](#25-consumo-multimedia-hls-cadencia-real-vs-descarga-greedy)
     - [2.6 Decisión de Medición de QoE con Reproductor Real (TTFF e Interrupciones)](#26-decisión-de-medición-de-qoe-con-reproductor-real-ttff-e-interrupciones)
       - [Justificación Metodológica](#justificación-metodológica)
-      - [Sonda de Reproductor Real (HTML5 / Media Source Extensions)](#sonda-de-reproductor-real-html5--media-source-extensions)
+      - [Sonda de Reproductor Real (HTML5 / Media Source Extensions)](#sonda-de-reproductor-real-html5-media-source-extensions)
     - [2.7 Observación del Drenaje de Cola y Verificación Terminal](#27-observación-del-drenaje-de-cola-y-verificación-terminal)
       - [Verificación Terminal en PostgreSQL](#verificación-terminal-en-postgresql)
-    - [2.8 Identificación del Cuello de Botella Primario Sustentado](#28-identificación-del-cuello-de-botella-primario-sustentado)
+    - [2.8 Cuello de botella: la vCPU del worker, a partir de 8 cargas simultáneas](#28-cuello-de-botella-la-vcpu-del-worker-a-partir-de-8-cargas-simultáneas)
     - [2.9 Propuesta de Evolución Arquitectural Multimedia](#29-propuesta-de-evolución-arquitectural-multimedia)
   - [Síntesis Comparativa Global y Matriz Arquitectural (20%)](#síntesis-comparativa-global-y-matriz-arquitectural-20)
   - [Instrucciones de Reproducción y Enlaces a Evidencias](#instrucciones-de-reproducción-y-enlaces-a-evidencias)
     - [Scripts de Ejecución](#scripts-de-ejecución)
     - [Resultados Originales y Registros Sanitizados](#resultados-originales-y-registros-sanitizados)
     - [Pasos para Reproducir](#pasos-para-reproducir)
+- [-------------------------------------------------------------](#-------------------------------------------------------------)
+- [Escenario 1: Actividad Académica (JMeter)](#escenario-1-actividad-académica-jmeter)
+- [-------------------------------------------------------------](#-------------------------------------------------------------)
+- [1. Generar tokens de sesión localmente (preautenticación)](#1-generar-tokens-de-sesión-localmente-preautenticación)
+- [2. Limpiar estado de las cuentas en la base de datos](#2-limpiar-estado-de-las-cuentas-en-la-base-de-datos)
+- [3. Ejecutar corrida de JMeter en contenedor (ej. 25 usuarios)](#3-ejecutar-corrida-de-jmeter-en-contenedor-ej-25-usuarios)
+- [4. Verificar integridad terminal en Cloud SQL](#4-verificar-integridad-terminal-en-cloud-sql)
+- [-------------------------------------------------------------](#-------------------------------------------------------------)
+- [Escenario 2: Procesamiento y Streaming Multimedia (Go)](#escenario-2-procesamiento-y-streaming-multimedia-go)
+- [-------------------------------------------------------------](#-------------------------------------------------------------)
+- [1. Ejecutar suite de capacidad multimedia (5 niveles + drenaje)](#1-ejecutar-suite-de-capacidad-multimedia-5-niveles-drenaje)
 
 ---
-
 ## Resumen Ejecutivo y Topología de Pruebas
 
 El presente informe consolida el **análisis formal de capacidad (20%)** de la plataforma MOOC sobre la infraestructura básica desplegada en Google Cloud Platform (GCP) para la Entrega 2.
@@ -77,50 +83,102 @@ El ejercicio evaluó dos escenarios ortogonales con objetivos arquitecturales di
 - **Escenario 1 (10%): Actividad académica concurrente.** Carga sincrónica sobre el **Plano de Control y Persistencia Transaccional** (API HTTP Go, Nginx, PostgreSQL administrado en Cloud SQL y Redis para sesiones).
 - **Escenario 2 (10%): Carga, procesamiento y consumo multimedia.** Carga asincrónica sobre el **Plano de Datos y Cómputo Pesado** (Cloud Storage para subida directa PUT y lectura pública HLS, cola Redis/Asynq y Workers con transcodificación FFmpeg en CPU dedicada).
 
+### Respuesta directa: dónde se degrada, por qué y a partir de qué capacidad
+
+Las dos campañas dan respuestas distintas, y conviene no promediarlas: **el
+escenario 1 no llegó a degradarse en el rango probado; el escenario 2 sí, y su
+punto se puede señalar con precisión.**
+
+| | Escenario 1 · actividad académica | Escenario 2 · multimedia |
+| :--- | :--- | :--- |
+| **¿Se degradó?** | **No**, en el rango probado | **Sí** |
+| **¿Dónde?** | En ningún componente del servidor. Lo que se alarga es la **cola de latencia del cliente** | En el **Worker Server**, durante la transcodificación |
+| **¿Por qué?** | Por el **establecimiento de conexiones TCP/TLS nuevas**, no por procesar la petición | Porque la **tasa de servicio está topada por vCPU**: `WORKER_CONCURRENCY=2` sobre 2 vCPU. Cuando λ > μ la cola acumula |
+| **¿A partir de qué capacidad?** | No se encontró. **Máximo probado: 200 usuarios concurrentes / 32,8 pet./s** | **Nivel 3: 8 profesores subiendo a la vez.** La espera en cola p95 pasa de 303 ms a 913 ms, y a 3 035 ms con 12 |
+| **¿En qué unidad se expresa esa capacidad?** | Usuarios concurrentes y peticiones por segundo | Videos en vuelo frente a la tasa de servicio de los workers (λ frente a μ) |
+| **¿Cómo se manifiesta?** | p95 global ≈ 380 ms, plano de 10 a 200 usuarios; ≈ 117 ms sobre conexiones ya abiertas | **Como espera, no como error.** La cola absorbe el exceso: 0 fallos, 0 en DLQ, y el tiempo hasta `completed` sube de 4,3 s a 6,1 s |
+| **¿Qué se descartó como límite?** | CPU del web (12–34 %), CPU de Cloud SQL (máx. 27 %), memoria (≈ 31 %) | La API (3–18 ms en todos los niveles), Cloud Storage (30–48 MB/s), la base (< 10 ms) |
+
+**Lo que degrada en el escenario 1 no es el servidor.** Sobre conexiones ya
+abiertas el p95 es ≈ 117 ms y no se mueve con la carga. El p95 global sube a
+≈ 380 ms por el ≈ 9,5 % de peticiones que abren conexión nueva, cuyo p95 de
+conexión es ≈ 1 285 ms: **el 100 % de las peticiones que tardan entre 1,2 y 1,7 s
+son de ese tipo.** Es un costo de establecimiento, pagado entre un generador
+fuera de la VPC y el proxy, y no crece con el número de usuarios.
+
+**Por eso 200 usuarios es el máximo probado y no la capacidad máxima.** Ningún
+nivel activó los criterios de parada del plan —errores reales por encima del 1 %,
+p95 sostenido por encima de 1 s, aplanamiento del rendimiento o fallos de
+validación—; el rendimiento creció de forma lineal hasta el último nivel. La
+serie de presión que buscaría el punto real de degradación **no se ejecutó**, y el
+enunciado pide decirlo así explícitamente.
+
+**En el escenario 2 la degradación es de latencia y no de disponibilidad**, que es
+la propiedad interesante del diseño: el trabajo no se pierde ni se rechaza,
+espera. El límite es aritmético —dos vCPU transcodifican dos videos a la vez, y
+cada uno tarda entre 4 y 6 segundos— así que a partir de ocho llegadas
+simultáneas la cola crece y con ella el tiempo hasta que el video queda
+disponible. Al cesar la ráfaga, la cola se drenó por completo en 6,4 s.
+
+**Si hubiera que señalar el primer recurso que se agotaría**, con los dos
+escenarios a la vez: la CPU de Cloud SQL, que en el escenario 1 llegó al 27 % con
+32,8 pet./s. Una extrapolación **lineal** —estimación, no medición— la pondría en
+80 % hacia las 240 pet./s. El pool de conexiones de la API rozó su tope una vez
+(27 de ≈ 29 abiertas), lo que lo señala como el segundo candidato.
+
+---
+
 ### Topología de Inyección y Mediciones
 
 ```mermaid
-flowchart TD
-    subgraph EXT["Generador Externo (Fuera de la VPC / Máquina Local)"]
-        JM["Apache JMeter 5.6.3 (Escenario 1)<br/>• Recorrido académico (14 pasos)<br/>• 9 lecturas (64%) / 5 escrituras (36%)<br/>• Tokens preautenticados Bearer"]
-        GE["Go Capacity Engine (Escenario 2)<br/>• Subida directa PUT pre-signed<br/>• Pacing HLS real (6.0s) vs Greedy<br/>• Sonda de eventos HTML5/MSE"]
+flowchart TB
+    subgraph ext ["Generador externo · fuera de la VPC"]
+        direction LR
+        jm["JMeter 5.6.3<br/>Escenario 1<br/>14 pasos · 64% lectura"]
+        ge["Go Capacity Engine<br/>Escenario 2<br/>PUT directo · cadencia HLS"]
     end
 
-    subgraph GCP["Google Cloud Platform (us-east1)"]
-        subgraph WEB["mooc-web-server<br/>e2-highcpu-2 · 2 vCPU · 2 GiB"]
-            NGX["Nginx 1.27 Alpine<br/>(Reverse Proxy + SSL)"]
-            API["API Go 1.24<br/>(53 rutas REST, pool 25 conns)"]
-            NGX --> API
+    subgraph gcp ["Google Cloud · us-east1"]
+        direction TB
+
+        subgraph web ["mooc-web-server · e2-highcpu-2"]
+            direction TB
+            ngx["nginx 1.27<br/>TLS · proxy"]
+            api["API Go 1.24<br/>53 rutas · pool de 25"]
+            ngx --> api
         end
 
-        subgraph WORK["mooc-worker-server (e2-highcpu-2: 2 vCPU ded, 2 GiB)"]
-            REDIS["Redis 7.2 Alpine<br/>(Sesiones + Cola Asynq)"]
-            WRK["Worker Daemon (Asynq v0.26)<br/>• WORKER_CONCURRENCY=2 fija<br/>• FFmpeg 6.1 (360p + 720p sin upscaling)"]
-            WRK <--> REDIS
+        subgraph wrk ["mooc-worker-server · e2-highcpu-2"]
+            direction TB
+            redis[("Redis 7<br/>sesiones · cola asynq")]
+            wk["Worker · asynq<br/>concurrencia 2 · FFmpeg 6.1"]
         end
 
-        subgraph CSQL["Cloud SQL (db-custom-1-3840)"]
-            PG["PostgreSQL 16.4<br/>(1 vCPU ded, 3.75 GiB, SSD 10 GiB)<br/>max_connections=100 (58 comprometidas)"]
-        end
-
-        subgraph GCS["Google Cloud Storage"]
-            BKT_ORIG["mooc-media-... (Privado)<br/>Prefijo originals/ (PUT firmado)"]
-            BKT_HLS["mooc-media-derivatives (Público)<br/>Prefijo hls/ (master.m3u8, variantes, .ts)"]
-        end
+        pg[("Cloud SQL · db-custom-1-3840<br/>PostgreSQL 16 · 1 vCPU · 3,75 GiB")]
+        media[("plataforma-mooc-entrega2-media<br/>PRIVADO · originals/")]
+        hls[("plataforma-mooc-entrega2-hls<br/>PÚBLICO · hls/")]
     end
 
-    JM -- "HTTPS (Control / Transacciones)" --> NGX
-    API <--> REDIS
-    API <--> PG
-    API -- "Firma URL V4 (Etapa 1)" --> BKT_ORIG
-    
-    GE -- "1. Solicita URL firma" --> NGX
-    GE -- "2. PUT directo binario" --> BKT_ORIG
-    GE -- "3. Confirmación carga" --> NGX
-    WRK -- "Descarga original" --> BKT_ORIG
-    WRK -- "Sube HLS derivatives" --> BKT_HLS
-    WRK -- "Actualiza status='completed'" --> PG
-    GE -- "4. Streaming HLS (GET)" --> BKT_HLS
+    jm ==>|"recorrido académico"| ngx
+    ge -->|"1 · pide firma · 3 · confirma"| ngx
+    ge -.->|"2 · PUT directo"| media
+    ge -.->|"4 · streaming"| hls
+    api --> redis
+    api --> pg
+    api -->|"firma V4"| media
+    redis --> wk
+    wk -->|"descarga original"| media
+    wk -->|"sube derivados"| hls
+    wk -->|"marca completed"| pg
+
+    classDef privado fill:#fde8e8,stroke:#c53030,color:#1a202c
+    classDef publico fill:#e6f4ea,stroke:#1e8e3e,color:#1a202c
+    classDef proc fill:#e8f0fe,stroke:#1a73e8,color:#1a202c
+    classDef extn fill:#f1f3f4,stroke:#5f6368,color:#1a202c
+    class media,pg,redis privado
+    class hls publico
+    class ngx,api,wk proc
+    class jm,ge extn
 ```
 
 ---
@@ -232,7 +290,7 @@ Conforme a la regla del clasificador ([`scripts/capacity_resumen_jtl.py`](../scr
 | Transacciones de PostgreSQL por segundo (máx.) | 19 | 93 | 174 | 342–356 | ≈ 10 por petición |
 | CPU `mooc-worker-server` (máx., %) | 8,5 | 3,0 | 6,4 | 6,9 | Solo aloja Redis de sesiones |
 
-### 1.6 Punto de degradación y cuello de botella
+### 1.6 Punto de degradación (no se alcanzó) y cuello de botella
 
 **No se alcanzó saturación.** Hasta 200 usuarios concurrentes (≈ 32 peticiones/s) ningún nivel activó los criterios del plan
 (errores reales > 1 %, p95 > 1 s sostenido, aplanamiento del rendimiento, fallos de validación). El rendimiento creció de forma lineal
@@ -310,12 +368,13 @@ El pipeline separa con precisión el **Plano de Control** (API y base de datos) 
 ```mermaid
 sequenceDiagram
     autonumber
-    actor Prof as Profesor (Carga)
-    participant API as Web Server (API Go/Nginx)
-    participant Storage as Cloud Storage (GCS)
-    participant Queue as Redis (Cola Asynq)
-    participant Worker as Worker Server (FFmpeg)
-    actor Est as Estudiante (HLS)
+    actor Prof as Profesor
+    participant API as Web Server · API y nginx
+    participant Storage as Cloud Storage
+    participant Queue as Redis · cola asynq
+    participant DB as Cloud SQL
+    participant Worker as Worker Server · FFmpeg
+    actor Est as Estudiante
 
     Note over Prof,API: Etapa 1: Control - Autorización y Emisión URL V4
     Prof->>API: POST /api/v1/media/presigned-url
@@ -328,7 +387,7 @@ sequenceDiagram
     Note over Prof,Queue: Etapa 3: Control - Confirmación y Encolado
     Prof->>API: POST /api/v1/media/uploads/{id}/complete
     API->>Storage: StatObject(ObjectKey)
-    API->>Queue: Encolar MediaProcessTask
+    API->>Queue: encola media:process
     API-->>Prof: 202 Accepted (status="pending")
 
     Note over Queue,Worker: Etapa 4: Mensajería - Espera en Cola
@@ -338,7 +397,7 @@ sequenceDiagram
     Worker->>Storage: Descarga original (originals/)
     Worker->>Worker: FFmpeg dual (360p + 720p sin upscaling)
     Worker->>Storage: Sube master.m3u8, variantes y .ts a hls/
-    Worker->>API: Actualiza status -> "completed"
+    Worker->>DB: UPDATE resources SET processing_status = completed
 
     Note over Prof,Est: Etapa 6: Ciclo Completo hasta Available
     Est->>Storage: GET /hls/{id}/master.m3u8 + segmentos (Cadencia 6.0s)
@@ -443,11 +502,21 @@ $$\text{TTFF} = T_{\text{master}} + T_{\text{variante}} + T_{\text{segmento\_0}}
 Tras culminar la ráfaga de 12 profesores en el Nivel 4, se detuvo la inyección de cargas y se cronometró segundo a segundo el vaciado de la cola Asynq ([`docs/entrega2/evidencias/H5/drenaje_cola_verificacion.txt`](../docs/entrega2/evidencias/H5/drenaje_cola_verificacion.txt)):
 
 ```mermaid
-flowchart TD
-    T0["T+0.0s: pending=12, active=0 (Ráfaga recibida)"] --> T1["T+0.8s: pending=2, active=10 (Workers toman tareas)"]
-    T1 --> T2["T+3.2s: pending=0, active=7 (Cola vacía de espera)"]
-    T2 --> T3["T+5.6s: pending=0, active=5 (Finalizando transcode)"]
-    T3 --> T4["T+6.4s: pending=0, active=0, completed=57 (Drenaje Total)"]
+flowchart LR
+    t0["T+0,0 s<br/>pendientes 12<br/>activas 0"]
+    t1["T+0,8 s<br/>pendientes 2<br/>activas 10"]
+    t2["T+3,2 s<br/>pendientes 0<br/>activas 7"]
+    t3["T+5,6 s<br/>pendientes 0<br/>activas 5"]
+    t4["T+6,4 s<br/>cola vacía<br/>57 completadas"]
+
+    t0 --> t1 --> t2 --> t3 --> t4
+
+    classDef pico fill:#fde8e8,stroke:#c53030,color:#1a202c
+    classDef medio fill:#e8f0fe,stroke:#1a73e8,color:#1a202c
+    classDef fin fill:#e6f4ea,stroke:#1e8e3e,color:#1a202c
+    class t0 pico
+    class t1,t2,t3 medio
+    class t4 fin
 ```
 
 - **Tiempo Total de Drenaje ($T_{\text{drenaje}}$):** **6.402 a 7.200 segundos** (según dispersión de ráfaga).
@@ -474,7 +543,7 @@ GROUP BY processing_status;
 
 ---
 
-### 2.8 Identificación del Cuello de Botella Primario Sustentado
+### 2.8 Cuello de botella: la vCPU del worker, a partir de 8 cargas simultáneas
 
 El análisis desacoplado confirma de manera concluyente que el **cuello de botella primario** del flujo multimedia radica en la **capacidad de cómputo (vCPU) de los workers durante la transcodificación FFmpeg (Etapa 5)**.
 
