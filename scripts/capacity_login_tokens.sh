@@ -61,6 +61,7 @@ for ((n = 0; n < COUNT; n++)); do
       token="$(printf '%s' "$json" | "$PY" -c 'import json,sys; print(json.load(sys.stdin)["token"])' | tr -d '\r')"
       echo "${i},${email},${token}" >> "${OUT}"
       ok=$((ok + 1))
+      echo "   [${ok}/${COUNT}] ${email}: sesion guardada"
       break
     elif [ "$status" = "429" ] && [ "$attempts" -lt 5 ]; then
       echo "   429 en ${email}: esperando 30 s y reintentando"
@@ -71,7 +72,7 @@ for ((n = 0; n < COUNT; n++)); do
       break
     fi
   done
-  sleep "${PAUSE}"
+  [ "$n" -lt $((COUNT - 1)) ] && sleep "${PAUSE}"
 done
 
 echo "==> Listo: ${ok} sesiones guardadas, ${fail} fallos. Archivo: ${OUT}"

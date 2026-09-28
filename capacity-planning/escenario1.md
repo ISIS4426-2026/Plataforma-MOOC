@@ -23,7 +23,7 @@ Cada usuario virtual es un estudiante con su propia cuenta y ejecuta este recorr
 
 | # | Paso | Petición | Tipo | Qué se valida además del 200 |
 | :-: | :--- | :--- | :---: | :--- |
-| 1 | Catálogo | `GET /api/v1/courses?limit=20` | lectura | El curso del escenario aparece publicado en la lista |
+| 1 | Catálogo | `GET /api/v1/courses?limit=20` | lectura | Trae cursos y paginación. No se exige que el curso de la prueba salga en la primera página: en la nube hay más de 20 publicados y no saldría; su existencia la valida el paso 2 |
 | 2 | Detalle del curso | `GET /api/v1/courses/{id}` | lectura | `status = published` |
 | 3 | Inscripción | `POST /api/v1/courses/{id}/enrollments` (con `Idempotency-Key`) | **escritura** | `status = active` |
 | 4 | Verificar inscripción | `GET /api/v1/courses/{id}/enrollments/me` | lectura | `enrolled = true`, inscripción activa: lo que se escribió en 3 quedó guardado |

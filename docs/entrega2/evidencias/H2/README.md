@@ -17,7 +17,7 @@ El plan está en [`capacity-planning/escenario1.md`](../../../../capacity-planni
 | Script que valide el estado resultante, no solo el código HTTP | Cada paso trae aserciones sobre el cuerpo; más una verificación independiente en la base | ✅ |
 | Comprobación de envío duplicado de quiz sin doble calificación | Paso 11 (misma `Idempotency-Key`) y paso 13 (cuenta de envíos); 0 duplicados en la base | ✅ |
 | Exportar resultados originales por corrida | `resultados/<corrida>/resultados.jtl` (una fila por petición) | ✅ |
-| **Piloto corto sin errores inesperados y con las validaciones activas** | ✅ en local, ver abajo. ⏳ **Falta correrlo contra la nube** (requiere las cuentas de carga en Cloud SQL) | ⚠️ |
+| **Piloto corto sin errores inesperados y con las validaciones activas** | ✅ contra la **nube**: 126 peticiones, 0 fallos reales, 0 de validación, y la base confirma el estado (ver abajo). Antes, también en local | ✅ |
 
 ## Qué se probó y con qué resultado
 
@@ -37,21 +37,30 @@ Nota sobre las latencias de estas corridas: son de un ambiente local con 3 GiB d
 
 Al recorrer los endpoints se confirmó que **aprobar el quiz completa su recurso** en el avance del curso: con dos latidos el avance queda en 2 de 3 y solo pasa a 3 de 3 (con insignia) cuando se aprueba el quiz. El guion usa eso para que el «progreso válido» dependa de algo que la plataforma verificó, no de un latido que dice «terminé» sobre el propio quiz. Las calificaciones esperadas por sesión (50 → 100 → 0) están en el plan §5.
 
-## Piloto contra la nube (pendiente)
+## Piloto contra la nube
 
-El criterio pide un piloto corto. La base de la nube necesita las cuentas de carga (`scripts/seeds/capacity_data.sql`, cargado hoy solo en local), que exige acceso desde dentro de la red privada (SSH por IAP a una de las VMs, o el cliente de Cloud SQL). Con eso cargado:
+Contra `https://34.24.52.111.sslip.io` (Cloud SQL, dos VMs, Cloud Storage), corrido desde la máquina de Tania, fuera de la VPC. Las 200 cuentas de carga se cargaron en la base de la nube con [`scripts/cargar_cuentas_carga_nube.sh`](../../../../scripts/cargar_cuentas_carga_nube.sh) (`INSERT 0 200`).
+
+| Corrida | Resultado |
+| :--- | :--- |
+| [`nube-piloto_20260927_211006`](./resultados/nube-piloto_20260927_211006/resumen.txt) — **primera** | 126 peticiones, 0 fallos reales, pero **9 fallos de validación, todos en el paso 1** (catálogo) |
+| [`nube-piloto_20260927_211339`](./resultados/nube-piloto_20260927_211339/resumen.txt) — **tras corregir el guion** | **126 peticiones, 0 fallos reales, 0 de validación**, 14 pasos con 0 fallos. p50 global 133 ms, p95 199 ms |
+| [`verificacion_estado_bd_piloto_nube.txt`](./verificacion_estado_bd_piloto_nube.txt) | Consulta directa a Cloud SQL: 3 estudiantes con **exactamente 3 envíos cada uno** (9), 3 inscripciones activas, **0 envíos duplicados del mismo intento** |
+
+### Qué falló en la primera corrida, y por qué no fue la plataforma
+
+El paso 1 exigía que el curso de la prueba apareciera en la **primera página** del catálogo (`limit=20`). En la nube ya hay más de 20 cursos publicados, sobre todo de las corridas del recorrido E2E de G3, y el catálogo ordena los más nuevos primero: el curso sembrado quedó fuera de esa página. El curso sí existe y está publicado (los pasos 2 a 13 lo usaron sin fallos): el error era una suposición del guion, que las validaciones detectaron. El paso 1 ahora valida que el catálogo responde con su lista y su paginación, y la existencia del curso la valida el paso 2. Se conserva la primera corrida como registro.
+
+Nota para H3: el catálogo de la nube seguirá creciendo con cada corrida que cree cursos. Ningún paso del recorrido depende de su tamaño, pero conviene saberlo al leer la latencia del paso 1. Las latencias de un piloto de 3 usuarios (la primera petición de la corrida, en frío, tarda ~2,9 s) **no son un resultado de capacidad**: solo demuestran que el guion y las validaciones funcionan contra el entorno real.
+
+### Reproducir (desde Git Bash, en la carpeta del proyecto)
 
 ```bash
-# 1. ¿Existen las cuentas? Si da 401, faltan (se ve rápido y sirve de prueba).
-BASE_URL=https://34.24.52.111.sslip.io CAPACITY_PASSWORD=<contraseña de prueba de la semilla> \
-  bash scripts/capacity_login_tokens.sh 3 1
-
-# 2. Piloto de 3 usuarios contra la nube
-BASE_URL=https://34.24.52.111.sslip.io RAMP_SECONDS=3 THINK_MS=800 THINK_RANGE_MS=800 \
-  WARMUP_SKIP_SECONDS=0 bash scripts/run_escenario1.sh 3 nube-piloto
+bash scripts/h2_nube.sh tokens      # inicia sesión con 3 cuentas (pide la contraseña de prueba)
+bash scripts/h2_nube.sh reiniciar   # cuentas de carga sin inscripción ni intentos
+bash scripts/h2_nube.sh piloto      # piloto de 3 usuarios (Docker abierto)
+bash scripts/h2_nube.sh verificar   # estado en la base, directo
 ```
-
-Debe dar 0 fallos reales y 0 de validación. Después, `scripts/seeds/capacity_verificar_estado.sql` confirma el estado en la base.
 
 ## Archivos
 
@@ -60,6 +69,8 @@ Debe dar 0 fallos reales y 0 de validación. Después, `scripts/seeds/capacity_v
 | [`escenario1.jmx`](./escenario1.jmx) | Plan de JMeter del recorrido |
 | [`escenario1_login_rafaga.jmx`](./escenario1_login_rafaga.jmx) | Variante: ráfaga de login |
 | [`scripts/run_escenario1.sh`](../../../../scripts/run_escenario1.sh) | Corre un nivel en Docker y resume |
+| [`scripts/cargar_cuentas_carga_nube.sh`](../../../../scripts/cargar_cuentas_carga_nube.sh) | Aplica un SQL sobre Cloud SQL desde la VM web por IAP (carga de cuentas, reinicio, verificación) |
+| [`scripts/h2_nube.sh`](../../../../scripts/h2_nube.sh) | Atajos cortos: `tokens`, `reiniciar`, `piloto`, `verificar` |
 | [`scripts/capacity_login_tokens.sh`](../../../../scripts/capacity_login_tokens.sh) | Paso previo: inicia sesión con ritmo y guarda los tokens localmente |
 | [`scripts/capacity_resumen_jtl.py`](../../../../scripts/capacity_resumen_jtl.py) | Resumen clasificado (éxito / negocio / validación / real) |
 | [`scripts/seeds/capacity_reset.sql`](../../../../scripts/seeds/capacity_reset.sql) | Deja las cuentas como recién sembradas entre corridas |
