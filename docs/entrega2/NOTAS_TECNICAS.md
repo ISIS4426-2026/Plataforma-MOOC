@@ -33,6 +33,7 @@ salieron de errores que costaron una tarde y se habrían evitado leyéndolas.
 | 21 | Un bind mount del host y un contenedor sin privilegios no se llevan bien | E1, G3, H4, H5 |
 | 22 | Los registros de los contenedores no salían de las VMs — **resuelto** | E1, H1, H3, H5, I2 |
 | 23 | El informe consolidado se cerró antes que la corrida que resume — **resuelto** | H3, I3, I2, I4 |
+| 24 | El histograma de latencia medía en segundos con cortes de milisegundos — **resuelto** | H1, H3, H5, G4 |
 
 ---
 
@@ -1043,3 +1044,56 @@ para ganar tiempo, hay que reabrirlo al cerrar cada dependencia y volver a
 contrastar las cifras. El enunciado lo vuelve crítico en este caso concreto:
 exige distinguir el **máximo probado** de la **capacidad máxima**, y publicar un
 punto de degradación que no se observó es exactamente lo que pide evitar.
+
+---
+
+## 24. El histograma de latencia medía en segundos con cortes de milisegundos
+
+**Afecta a:** H1, H3, H5 y G4. **Estado: resuelto.**
+
+H3 reportó que «la API no reporta métricas propias» y se quedó sin poder
+relacionar la latencia con la API, la cola y el pool, que es una de las cosas que
+el enunciado pide relacionar. La API **sí** exponía métricas en
+`/api/v1/metrics`. El problema era que no servían para nada.
+
+`http.server.request.duration` se declara con `WithUnit("s")` y se registra con
+`time.Since(...).Seconds()`, pero sin cortes explícitos OpenTelemetry usa los de
+por defecto —`0, 5, 10, 25, 50, 75, 100, 250, 500, 750, 1000, 2500, 5000, 7500,
+10000`—, que están pensados para **milisegundos**. Contra una medida en segundos,
+toda petición que tarde menos de cinco segundos cae en el mismo cubo:
+
+```
+http_server_request_duration_seconds_bucket{...,le="0"}    0
+http_server_request_duration_seconds_bucket{...,le="5"}    3126
+http_server_request_duration_seconds_bucket{...,le="10"}   3126   ← y así hasta +Inf
+```
+
+Las 3 126 peticiones en un solo cubo. Un p95 calculado de ahí no dice nada, y el
+síntoma no se parece a la causa: el endpoint responde, las series existen, los
+tableros se dibujan. Simplemente todos los percentiles salen iguales.
+
+Ahora los cortes se declaran explícitos y en la misma unidad que la métrica:
+`.005, .01, .025, .05, .075, .1, .25, .5, .75, 1, 2.5, 5, 7.5, 10`. Son los de
+por defecto de OTel expresados en segundos, y cubren bien lo que H3 midió por
+fuera (p50 ≈ 94 ms, p95 ≈ 380 ms, p99 ≈ 1,4 s).
+
+**El worker tenía el hueco complementario:** contaba trabajos procesados y
+fallidos, pero no cuánto tardaban. El enunciado pide separar la duración del
+procesamiento del tiempo de espera en cola, y sin histograma la única fuente era
+el generador de carga, que mide desde fuera y no distingue una cosa de la otra.
+Se añadió `worker.jobs.duration`, con cortes de medio segundo a diez minutos —una
+transcodificación no se parece a una petición HTTP— y registrando también los
+trabajos que fallan: uno que muere a los cinco minutos cuesta tanta CPU como uno
+que termina.
+
+**De paso, un hallazgo de G4:** `/api/v1/metrics` estaba servido a internet por
+el `location /` de nginx. El comentario de `server.go` dice que el acceso «se
+controla en la capa de red»; esa capa no lo estaba controlando. Publicaba el
+inventario de rutas de la API, sus códigos de respuesta y el volumen de tráfico.
+Ahora nginx lo deniega; el agente de observabilidad no se entera, porque raspa
+`localhost:8080` directamente y no pasa por el proxy.
+
+**La lección general:** una unidad declarada no configura los cubos. Si la
+métrica está en segundos, los cortes van en segundos — y conviene mirar el
+histograma una vez con datos reales antes de confiar en un percentil que sale de
+él.

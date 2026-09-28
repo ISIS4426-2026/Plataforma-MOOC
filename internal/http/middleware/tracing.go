@@ -25,6 +25,15 @@ func Tracing(tracer trace.Tracer, meter metric.Meter) Middleware {
 	duration, _ := meter.Float64Histogram("http.server.request.duration",
 		metric.WithDescription("Duración de las solicitudes HTTP, por endpoint."),
 		metric.WithUnit("s"),
+		// Los cortes van en segundos, como la unidad. Sin esta línea se usan los
+		// de por defecto -- 0, 5, 10, 25 … 10000 --, que están pensados para
+		// milisegundos: contra una medida en segundos **todas** las peticiones
+		// caen en el primer cubo distinto de cero y el histograma queda con un
+		// solo valor útil. Así salió en la campaña de H3: 3 126 peticiones, las
+		// 3 126 en `le="5"`, y un p95 imposible de calcular desde aquí.
+		metric.WithExplicitBucketBoundaries(
+			.005, .01, .025, .05, .075, .1, .25, .5, .75, 1, 2.5, 5, 7.5, 10,
+		),
 	)
 	errorCounter, _ := meter.Int64Counter("http.server.request.errors",
 		metric.WithDescription("Solicitudes HTTP respondidas con error de servidor (5xx), por endpoint."),

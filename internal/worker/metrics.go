@@ -2,6 +2,7 @@ package worker
 
 import (
 	"context"
+	"time"
 
 	"github.com/hibiken/asynq"
 	"go.opentelemetry.io/otel/attribute"
@@ -23,12 +24,33 @@ func MetricsMiddleware(meter metric.Meter) asynq.MiddlewareFunc {
 	failed, _ := meter.Int64Counter("worker.jobs.failed",
 		metric.WithDescription("Trabajos que devolvieron error, por tipo."),
 	)
+	// Cuánto tarda un trabajo, que los contadores no pueden responder. El
+	// enunciado pide separar la duración del procesamiento del tiempo de espera
+	// en cola, y sin esto la única fuente era el generador de carga, que mide
+	// desde fuera y no distingue una cosa de la otra.
+	//
+	// Los cortes van en segundos y cubren de medio segundo a diez minutos: una
+	// transcodificación no se parece a una petición HTTP, así que los de por
+	// defecto -- pensados para milisegundos -- dejarían todo en un solo cubo.
+	duration, _ := meter.Float64Histogram("worker.jobs.duration",
+		metric.WithDescription("Duración del procesamiento de un trabajo, por tipo."),
+		metric.WithUnit("s"),
+		metric.WithExplicitBucketBoundaries(.5, 1, 2.5, 5, 10, 30, 60, 120, 300, 600),
+	)
 
 	return func(next asynq.Handler) asynq.Handler {
 		return asynq.HandlerFunc(func(ctx context.Context, t *asynq.Task) error {
 			attrs := metric.WithAttributes(attribute.String("type", t.Type()))
+			inicio := time.Now()
 
 			err := next.ProcessTask(ctx, t)
+
+			// Se registra la duración de las dos ramas: un trabajo que falla
+			// tarde -- una transcodificación que muere a los cinco minutos --
+			// cuesta tanta CPU como uno que termina, y omitirlo haría parecer
+			// más barata la saturación de lo que es.
+			duration.Record(ctx, time.Since(inicio).Seconds(), attrs)
+
 			if err != nil {
 				failed.Add(ctx, 1, attrs)
 				return err
