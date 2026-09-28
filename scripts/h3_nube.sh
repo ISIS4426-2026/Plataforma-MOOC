@@ -52,8 +52,7 @@ verificar_estado() { # $1 = directorio de la corrida, $2 = N
   sql scripts/seeds/capacity_verificar_estado.sql > "$1/verificacion_bd.txt"
   "$PY" - "$1/verificacion_bd.txt" "$2" <<'PYEOF'
 import re, sys
-texto = open(sys.argv[1], encoding="utf-8", errors="replace").read().replace("
-", "")
+texto = open(sys.argv[1], encoding="utf-8", errors="replace").read().replace(chr(13), "")
 n = int(sys.argv[2])
 fila = re.search(r"^\s*(\d+)\s*\|\s*(\d+)\s*\|\s*(\d+)\s*\|\s*(\d+)\s*$", texto, re.M)
 sueltos = [int(x) for x in re.findall(r"^\s*(\d+)\s*$", texto, re.M)]
@@ -83,7 +82,7 @@ preparar_tokens() { # $1 = cuantas cuentas hacen falta
 esperar_tokens() { # $1 = N
   local tiene
   while :; do
-    tiene=$(( $(wc -l < capacity-planning/datos/tokens.csv 2>/dev/null || echo 1) - 1 ))
+    tiene=0; [ -f capacity-planning/datos/tokens.csv ] && tiene=$(( $(wc -l < capacity-planning/datos/tokens.csv) - 1 ))
     [ "$tiene" -ge "$1" ] && return 0
     kill -0 "${TOKENS_PID:-0}" 2>/dev/null || { log "El inicio de sesion termino con solo ${tiene} cuentas; no alcanza para $1."; return 1; }
     log "esperando tokens: ${tiene}/$1"; sleep 20
