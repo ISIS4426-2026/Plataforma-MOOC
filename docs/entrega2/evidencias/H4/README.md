@@ -2,7 +2,7 @@
 
 Este directorio documenta el cumplimiento del entregable **H4**, correspondiente al **Análisis de capacidad — Escenario 2: Carga, procesamiento y consumo multimedia (10%)** de la Entrega 2.
 
-Tal como estipula el enunciado y los criterios de aceptación, este hito define formalmente todos los parámetros de prueba, concurrencia, perfiles y criterios de parada en el documento acordado [`capacity-planning/escenario2.md`](../../../capacity-planning/escenario2.md) **antes de ejecutar** la carga pesada (H5), respaldado por un **piloto corto** con las etapas instrumentadas y medidas de forma independiente.
+Tal como estipula el enunciado y los criterios de aceptación, este hito define formalmente todos los parámetros de prueba, concurrencia, perfiles y criterios de parada en el documento acordado [`capacity-planning/escenario2.md`](../../../../capacity-planning/escenario2.md) **antes de ejecutar** la carga pesada (H5), respaldado por un **piloto corto** con las etapas instrumentadas y medidas de forma independiente.
 
 ---
 
@@ -10,7 +10,7 @@ Tal como estipula el enunciado y los criterios de aceptación, este hito define 
 
 | Criterio de la Rúbrica / Tarea | Evidencia / Implementación | Estado |
 | :--- | :--- | :---: |
-| **Documento previo acordado** | [`capacity-planning/escenario2.md`](../../../capacity-planning/escenario2.md): Especificación exhaustiva antes de ejecutar | ✅ |
+| **Documento previo acordado** | [`capacity-planning/escenario2.md`](../../../../capacity-planning/escenario2.md): Especificación exhaustiva antes de ejecutar | ✅ |
 | **Tres perfiles de G1 y rendiciones sin upscaling** | Perfiles Corto (2m), Medio (10m) y Largo (30m) a 1280×720; escalera `360p` + `720p` (`internal/transcode.DefaultLadder`) | ✅ |
 | **Niveles crecientes con concurrencia fija** | Concurrencia de workers fija en 2 (`WORKER_CONCURRENCY=2`, VM `e2-highcpu-2` en E1); 5 niveles definidos (desde línea base hasta saturación y drenaje) | ✅ |
 | **Cadencia de reproducción real vs greedy** | Streaming con ráfaga de buffer (2 chunks) + pacing de 6.0s; descarga "lo más rápido posible" identificada y aislada como prueba de saturación de red | ✅ |
@@ -18,14 +18,14 @@ Tal como estipula el enunciado y los criterios de aceptación, este hito define 
 | **Instrumentación desacoplada por etapa** | Cronometraje individual de las 6 etapas: emisión URL, PUT directo, confirmación, espera en cola, procesamiento worker y tiempo a available | ✅ |
 | **Separación de tráfico de control y datos** | Tráfico de control (API Nginx/Go en puerto 443) vs plano de datos (transferencia binaria directa con el almacenamiento de objetos) | ✅ |
 | **Criterios de éxito, saturación y parada** | Umbrales definidos en §7 de `escenario2.md` (p95 API < 500ms, errores > 5% gatillan parada, etc.) | ✅ |
-| **Piloto corto ejecutable y reproducible** | Script [`scripts/run_pilot_escenario2.sh`](../../../scripts/run_pilot_escenario2.sh) y resultados en [`piloto_etapas_instrumentadas.txt`](./piloto_etapas_instrumentadas.txt) | ✅ |
+| **Piloto corto ejecutable y reproducible** | Script [`scripts/run_pilot_escenario2.sh`](../../../../scripts/run_pilot_escenario2.sh) y resultados en [`piloto_etapas_instrumentadas.txt`](./piloto_etapas_instrumentadas.txt) | ✅ |
 
 ---
 
 ## 1. Documento de Planificación Acordado
 
 El documento principal se encuentra en:
-👉 [`capacity-planning/escenario2.md`](../../../capacity-planning/escenario2.md)
+👉 [`capacity-planning/escenario2.md`](../../../../capacity-planning/escenario2.md)
 
 Cubre en profundidad:
 1. **Perfiles multimedia:** Definición técnica de los tres perfiles de G1 (Corto 2m / 2.6MB, Medio 10m / 13.0MB, Largo 30m / 39.0MB, todos 1280×720) y justificación de por qué la función `SelectRenditions` prohíbe el *upscaling* a 1080p.
@@ -40,7 +40,7 @@ Cubre en profundidad:
 
 ## 2. Resultados del Piloto Corto con Instrumentación Desacoplada
 
-El piloto se ejecutó mediante [`scripts/run_pilot_escenario2.sh`](../../../scripts/run_pilot_escenario2.sh) empleando un video sintético real (8s, 1280×720, 25fps) transcodificado por el worker en el pipeline HLS.
+El piloto se ejecutó mediante [`scripts/run_pilot_escenario2.sh`](../../../../scripts/run_pilot_escenario2.sh) empleando un video sintético real (8s, 1280×720, 25fps) transcodificado por el worker en el pipeline HLS.
 
 El log completo y sanitizado se encuentra en [`piloto_etapas_instrumentadas.txt`](./piloto_etapas_instrumentadas.txt).
 

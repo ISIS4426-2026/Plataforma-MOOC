@@ -9,7 +9,7 @@ Este documento describe la suite completa de pruebas automatizadas en **Postman 
 6. **Quizzes: Autoría, Calificación en Servidor e Intentos Idempotentes** (Issue #112).
 7. **Carga Directa al Almacenamiento de Objetos, Confirmación e Idempotencia** (Issue #109).
 
-La suite cumple estrictamente con los criterios de evaluación de la **Sección 9**, los flujos críticos de la **Sección 10.2** del pliego de condiciones y los estándares de diseño y seguridad de [`PROJECT_KEY_ASPECTS.md`](../../PROJECT_KEY_ASPECTS.md).
+La suite cumple estrictamente con los criterios de evaluación de la **Sección 9**, los flujos críticos de la **Sección 10.2** del pliego de condiciones y los estándares de diseño y seguridad de [`PROJECT_KEY_ASPECTS.md`](../PROJECT_KEY_ASPECTS.md).
 
 ---
 

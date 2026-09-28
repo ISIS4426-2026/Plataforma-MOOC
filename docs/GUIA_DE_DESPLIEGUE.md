@@ -1,8 +1,19 @@
 # Guía Definitiva de Despliegue, Puesta en Marcha y Operación — Plataforma MOOC
 
-> **Audiencia:** Evaluadores, nuevos desarrolladores, arquitectos y revisores externos que no participaron del desarrollo original.  
-> **Objetivo:** Permitir a cualquier persona clonar el repositorio, levantar la plataforma completa con Docker Compose, sembrar los datos sintéticos, ejecutar las colecciones de pruebas en Postman/Newman y dejar el sistema 100% operativo sin necesidad de asistencia externa.  
+> **Audiencia:** Evaluadores, nuevos desarrolladores, arquitectos y revisores externos que no participaron del desarrollo original.
+> **Alcance:** **el entorno local con Docker Compose.** Levantar la plataforma en la estación de trabajo, sembrar los datos sintéticos, correr las colecciones de Postman/Newman y dejar el sistema operativo sin asistencia externa.
 > **Alineación Normativa:** Secciones 6, 7, 9 y 10 del Pliego de Especificaciones (`docs/2026-20 proyecto-plataforma-mooc (2).pdf`) y Directrices de Arquitectura ([`docs/PROJECT_KEY_ASPECTS.md`](./PROJECT_KEY_ASPECTS.md)).
+
+> [!IMPORTANT]
+> **¿Buscas el despliegue en la nube?** No está en esta guía. Desde la Entrega 2 la
+> plataforma corre además sobre GCP, con dos máquinas virtuales, base administrada
+> y almacenamiento de objetos, y ese camino es **distinto** al de aquí: no se
+> levanta con `docker compose up` desde tu portátil. La ruta está en la
+> [sección 9](#9-despliegue-en-la-nube-entrega-2).
+>
+> Ambos entornos conviven a propósito. El local usa MinIO y Mailpit; la nube usa
+> Cloud Storage y un proveedor SMTP real. El mismo binario sirve a los dos: el
+> adaptador se elige en ejecución con variables de entorno, no al compilar.
 
 ---
 
@@ -338,13 +349,63 @@ Cuando desee apagar los servicios:
 
 ---
 
-## 9. Referencia Documental y Arquitectónica
+## 9. Despliegue en la nube (Entrega 2)
+
+El entorno de nube **no se levanta desde esta guía ni desde tu portátil**. La
+infraestructura se aprovisiona con Terraform y los componentes corren sobre dos
+máquinas virtuales, así que el procedimiento vive con la infraestructura.
+
+### Dónde está cada cosa
+
+| Quiero… | Documento |
+| :--- | :--- |
+| Entender qué se desplegó y por qué | [`entrega2/ARQUITECTURA.md`](./entrega2/ARQUITECTURA.md) |
+| Aprovisionar o modificar la infraestructura | [`../infra/terraform/README.md`](../infra/terraform/README.md) |
+| Configurar una VM, rotar un secreto, recrear el entorno | [`../infra/terraform/ADMINISTRACION.md`](../infra/terraform/ADMINISTRACION.md) |
+| Ver la configuración efectiva y los costos | [`entrega2/CONFIGURACION_Y_COSTOS.md`](./entrega2/CONFIGURACION_Y_COSTOS.md) |
+| Leer los hallazgos que cuestan una tarde si se ignoran | [`entrega2/NOTAS_TECNICAS.md`](./entrega2/NOTAS_TECNICAS.md) |
+
+### Comprobar que la nube está viva
+
+La URL de la aplicación está publicada en el README. Para verificarla:
+
+```bash
+curl -s https://34.24.52.111.sslip.io/api/v1/health
+# {"status":"pass",...,"services":{"database":"up"}}
+```
+
+Si no responde, **probablemente no está caída: está apagada.** El entorno se apaga
+cuando no se usa, por la política de control de costos. El procedimiento para
+encenderlo está en `ADMINISTRACION.md`.
+
+### Probar contra la nube
+
+Dos comandos, y hacen cosas distintas:
+
+```bash
+make test-e2e-cloud      # recorrido continuo, 61 pasos, ~20 s
+make test-postman-cloud  # las siete colecciones, varios minutos
+```
+
+El primero construye un curso desde cero, sube su video, lo publica, lo inscribe,
+lo califica y lo certifica, releyendo el estado tras cada respuesta: sirve para
+comprobar que las piezas del despliegue están de acuerdo entre sí. El segundo
+ejercita cada familia de endpoints por separado sobre los datos sembrados.
+
+> El segundo tarda varios minutos a propósito. El limitador de inicio de sesión
+> está acotado por dirección IP y no por cuenta, así que el runner espacia las
+> colecciones para no agotar su propio cupo. No es lentitud, es el limitador
+> haciendo su trabajo.
+
+---
+
+## 10. Referencia Documental y Arquitectónica
 
 Para profundizar en el diseño y los estándares del proyecto, consulte los documentos oficiales en el repositorio:
 
-* [Directrices Clave de Arquitectura (`docs/PROJECT_KEY_ASPECTS.md`)](file:///mnt/c/Users/User/Desktop/MBC_IV/Soluciones%20Cloud/Proyectos/P1_data/Plataforma-MOOC/docs/PROJECT_KEY_ASPECTS.md): Reglas no negociables (Quiz Key Secrecy, server-side progress, inmutabilidad de cursos publicados, cero binarios en PostgreSQL).
-* [Plan Maestro de Pruebas de la Etapa (`docs/PLAN_DE_PRUEBAS_ETAPA.md`)](file:///mnt/c/Users/User/Desktop/MBC_IV/Soluciones%20Cloud/Proyectos/P1_data/Plataforma-MOOC/docs/PLAN_DE_PRUEBAS_ETAPA.md): Mapeo completo de las Secciones 6, 9 y 10.2.
-* [Reporte de Aseguramiento de Calidad y Certificación Sección 10 (`docs/e2e/REPORTE_BUGS_Y_CALIDAD_ETAPA.md`)](file:///mnt/c/Users/User/Desktop/MBC_IV/Soluciones%20Cloud/Proyectos/P1_data/Plataforma-MOOC/docs/e2e/REPORTE_BUGS_Y_CALIDAD_ETAPA.md): Matriz formal de bugs, fichas de reproducción y certificación de ausencia de fallas críticas.
-* [Guion Técnico y Libreto del Video de Demostración (`docs/e2e/README_GUION_VIDEO_DEMO.md`)](file:///mnt/c/Users/User/Desktop/MBC_IV/Soluciones%20Cloud/Proyectos/P1_data/Plataforma-MOOC/docs/e2e/README_GUION_VIDEO_DEMO.md): Guion completo para grabación del video cubriendo los 9 segmentos de la Sección 10.2.
-* [Catálogo Detallado de Datos Sintéticos (`docs/DATOS_SINTETICOS.md`)](file:///mnt/c/Users/User/Desktop/MBC_IV/Soluciones%20Cloud/Proyectos/P1_data/Plataforma-MOOC/docs/DATOS_SINTETICOS.md): Descripción pormenorizada de cursos, módulos, quizzes y usuarios sembrados.
-* [Guía de Colecciones Postman (`docs/postman/README.md`)](file:///mnt/c/Users/User/Desktop/MBC_IV/Soluciones%20Cloud/Proyectos/P1_data/Plataforma-MOOC/docs/postman/README.md): Especificación técnica de las 97 peticiones y 216 aserciones automatizadas.
+* [Directrices Clave de Arquitectura (`docs/PROJECT_KEY_ASPECTS.md`)](./PROJECT_KEY_ASPECTS.md): Reglas no negociables (Quiz Key Secrecy, server-side progress, inmutabilidad de cursos publicados, cero binarios en PostgreSQL).
+* [Plan Maestro de Pruebas de la Etapa (`docs/PLAN_DE_PRUEBAS_ETAPA.md`)](./PLAN_DE_PRUEBAS_ETAPA.md): Mapeo completo de las Secciones 6, 9 y 10.2.
+* [Reporte de Aseguramiento de Calidad y Certificación Sección 10 (`docs/e2e/REPORTE_BUGS_Y_CALIDAD_ETAPA.md`)](./e2e/REPORTE_BUGS_Y_CALIDAD_ETAPA.md): Matriz formal de bugs, fichas de reproducción y certificación de ausencia de fallas críticas.
+* [Guion Técnico y Libreto del Video de Demostración (`docs/e2e/README_GUION_VIDEO_DEMO.md`)](./e2e/README_GUION_VIDEO_DEMO.md): Guion completo para grabación del video cubriendo los 9 segmentos de la Sección 10.2.
+* [Catálogo Detallado de Datos Sintéticos (`docs/DATOS_SINTETICOS.md`)](./DATOS_SINTETICOS.md): Descripción pormenorizada de cursos, módulos, quizzes y usuarios sembrados.
+* [Guía de Colecciones Postman (`docs/postman/README.md`)](./postman/README.md): Especificación técnica de las 202 peticiones y 413 aserciones automatizadas.

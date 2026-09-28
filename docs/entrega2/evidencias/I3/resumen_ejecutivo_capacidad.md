@@ -9,24 +9,39 @@
 ## 1. Cuadro Comparativo Integral de Ambos Escenarios
 
 ```mermaid
-flowchart TD
-    subgraph Escenario1["Escenario 1: Actividad Académica (10%)"]
+flowchart LR
+    subgraph e1 ["Escenario 1 · Actividad académica"]
         direction TB
-        E1_LOAD["Carga Sincrónica (1 a 200 usuarios)"]
-        E1_MIX["Mezcla: 64% Lectura / 36% Escritura"]
-        E1_BOTTLENECK["Cuello de Botella:\nmooc-web-server (e2-small vCPU compartida)\n+ Pool de Go (DB_MAX_OPEN_CONNS=25)"]
-        E1_BEHAVIOR["Comportamiento ante saturación:\nLatencia p95 salta de 640ms a 2.8s\n0 violaciones de idempotencia"]
-        E1_LOAD --> E1_MIX --> E1_BOTTLENECK --> E1_BEHAVIOR
+        a1["1 → 200 usuarios<br/>64% lectura · 36% escritura"]
+        a2["Degrada entre 50 y 100<br/>p95: 640 ms → 2 850 ms"]
+        a3["Límite: CPU del Web Server<br/>+ pool de 25 conexiones"]
+        a1 --> a2 --> a3
     end
 
-    subgraph Escenario2["Escenario 2: Procesamiento Multimedia (10%)"]
+    subgraph e2 ["Escenario 2 · Procesamiento multimedia"]
         direction TB
-        E2_LOAD["Carga Asincrónica (1 a 12 profesores, 100 estudiantes)"]
-        E2_STAGES["6 Etapas Desacopladas (Control vs Datos)"]
-        E2_BOTTLENECK["Cuello de Botella:\nmooc-worker-server (e2-highcpu-2)\nFFmpeg al 100% vCPU (concurrencia fija 2)"]
-        E2_BEHAVIOR["Comportamiento ante saturación:\nCola Asynq absorbe contención (12 tareas)\nDrenaje completo en 6.4s sin fallos"]
-        E2_LOAD --> E2_STAGES --> E2_BOTTLENECK --> E2_BEHAVIOR
+        b1["1 → 12 cargas · 100 streamers<br/>6 etapas: control y datos separados"]
+        b2["Degrada cuando λ &gt; μ<br/>espera en cola: 3 035 ms"]
+        b3["Límite: 2 vCPU del Worker<br/>FFmpeg al 100%, concurrencia 2"]
+        b1 --> b2 --> b3
     end
+
+    a3 --> eco["La API nunca fue el límite del escenario 2<br/>firma 4 ms · confirmación 9 ms"]
+    b3 --> eco
+
+    ev1["Evolución: réplicas de lectura<br/>+ PgBouncer"]
+    ev2["Evolución: Cloud CDN<br/>+ grupo autoescalable de workers"]
+    a3 --> ev1
+    b3 --> ev2
+
+    classDef carga fill:#e8f0fe,stroke:#1a73e8,color:#1a202c
+    classDef limite fill:#fde8e8,stroke:#c53030,color:#1a202c
+    classDef evol fill:#e6f4ea,stroke:#1e8e3e,color:#1a202c
+    classDef nota fill:#f1f3f4,stroke:#5f6368,color:#1a202c
+    class a1,b1,a2,b2 carga
+    class a3,b3 limite
+    class ev1,ev2 evol
+    class eco nota
 ```
 
 | Métrica / Dimensión | Escenario 1: Actividad Académica (10%) | Escenario 2: Procesamiento Multimedia (10%) |
