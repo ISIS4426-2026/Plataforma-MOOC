@@ -1,0 +1,29 @@
+# a) Escaneo de puertos desde internet (esta maquina no esta dentro de la VPC)
+# Generado: 2026-09-28T01:02:39Z por scripts/verify_g4.sh (solo lectura)
+
+== web (34.24.52.111) ==
+puerto 22: cerrado o filtrado
+puerto 25: cerrado o filtrado
+puerto 80: ABIERTO
+puerto 443: ABIERTO
+puerto 3000: cerrado o filtrado
+puerto 3306: cerrado o filtrado
+puerto 5432: cerrado o filtrado
+puerto 6379: cerrado o filtrado
+puerto 8080: cerrado o filtrado
+puerto 9090: cerrado o filtrado
+puerto 9100: cerrado o filtrado
+
+== worker (35.237.6.244) ==
+puerto 22: cerrado o filtrado
+puerto 25: cerrado o filtrado
+puerto 80: cerrado o filtrado
+puerto 443: cerrado o filtrado
+puerto 3000: cerrado o filtrado
+puerto 3306: cerrado o filtrado
+puerto 5432: cerrado o filtrado
+puerto 6379: cerrado o filtrado
+puerto 8080: cerrado o filtrado
+puerto 9090: cerrado o filtrado
+puerto 9100: cerrado o filtrado
+

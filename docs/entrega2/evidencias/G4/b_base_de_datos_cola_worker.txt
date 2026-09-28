@@ -1,0 +1,44 @@
+# b) Base de datos administrada, cola (Redis) y Worker Server
+# Generado: 2026-09-28T01:04:02Z por scripts/verify_g4.sh (solo lectura)
+
+== Cloud SQL: direcciones y configuracion de red ==
+{
+  "databaseVersion": "POSTGRES_16",
+  "ipAddresses": [
+    {
+      "ipAddress": "10.171.240.3",
+      "type": "PRIVATE"
+    }
+  ],
+  "settings": {
+    "ipConfiguration": {
+      "ipv4Enabled": false,
+      "privateNetwork": "projects/plataforma-mooc-entrega2/global/networks/mooc-vpc",
+      "sslMode": "ENCRYPTED_ONLY"
+    },
+    "userLabels": {
+      "entrega": "2",
+      "gestion": "terraform",
+      "proyecto": "plataforma-mooc"
+    }
+  },
+  "state": "RUNNABLE"
+}
+
+== VMs y direcciones (la IP externa del worker es solo por costo; ver reglas de firewall) ==
+NAME                IP_INTERNA  IP_EXTERNA    ETIQUETAS
+mooc-web-server     10.0.1.4    34.24.52.111  allow-iap-ssh,web-server
+mooc-worker-server  10.0.1.5    35.237.6.244  allow-iap-ssh,worker-server
+
+== Reglas de firewall de ENTRADA ==
+NAME                    NETWORK   ORIGEN           PERMITE                       ETIQUETA_DESTINO
+default-allow-icmp      default   0.0.0.0/0        icmp
+default-allow-internal  default   10.128.0.0/9     tcp:0-65535,udp:0-65535,icmp
+mooc-allow-internal     mooc-vpc  10.0.1.0/24      icmp,tcp:0-65535,udp:0-65535
+mooc-allow-ssh-iap      mooc-vpc  35.235.240.0/20  tcp:22                        allow-iap-ssh
+mooc-allow-web-ingress  mooc-vpc  0.0.0.0/0        tcp:80,tcp:443                web-server
+
+== Reglas de entrada que alcanzan al worker (etiqueta worker-server) ==
+mooc-allow-internal | origen: 10.0.1.0/24 | permite: ['icmp:todos', 'tcp:0-65535', 'udp:0-65535']
+
+Reglas que abren el worker a internet (0.0.0.0/0): NINGUNA

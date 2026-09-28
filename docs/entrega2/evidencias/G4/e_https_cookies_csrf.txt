@@ -1,0 +1,32 @@
+# e) HTTPS, cookies seguras y CSRF en el despliegue real (https://34.24.52.111.sslip.io)
+# Generado: 2026-09-28T01:05:05Z por scripts/verify_g4.sh (solo lectura)
+
+== HTTP en el puerto 80 redirige a HTTPS? ==
+HTTP/1.1 301 Moved Permanently
+Location: https://34.24.52.111.sslip.io/
+
+== Cabeceras de respuesta HTTPS ==
+HTTP/1.1 200 OK
+(si no aparece Strict-Transport-Security, el servidor no manda HSTS)
+
+== Version minima de TLS: un cliente limitado a TLS 1.1 debe fallar ==
+resultado: HTTP 000, codigo curl 35
+
+== CSRF: peticion que cambia datos, con cookie de sesion, segun el origen ==
+Origin de otro sitio (https://evil.example) : {"code":"csrf_origin_rejected","message":"El origen de la solicitud no está permitido."}
+ [HTTP 403]
+Sin Origin                                  : {"code":"csrf_origin_rejected","message":"El origen de la solicitud no está permitido."}
+ [HTTP 403]
+Origin propio (la app lo deja pasar)        : {"code":"invalid_credentials","message":"Credenciales inválidas."}
+ [HTTP 401]
+(403 csrf_origin_rejected = bloqueado por CSRF; 401 = paso el filtro CSRF y fallo porque la cookie es falsa)
+
+== Atributos de la cookie de sesion ==
+Set-Cookie real capturado en D3: docs/entrega2/evidencias/D3/login_https_cookie_secure.txt
+Definicion en el codigo (internal/http/handler/auth.go):
+21:const SessionCookieName = "__Host-mooc_session"
+421:		HttpOnly: true,
+422:		Secure:   true,
+423:		SameSite: http.SameSiteLaxMode,
+433:		HttpOnly: true,
+434:		Secure:   true,
