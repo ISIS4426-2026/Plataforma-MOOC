@@ -27,15 +27,6 @@ resource "google_compute_instance" "web_server" {
 
   labels = var.labels
 
-  # Sin esto el agente de OS Config de la VM ignora cualquier politica que se
-  # le asigne -- incluida la de Ops Agent de H1 (#131), que se aplico
-  # exitosamente segun la API pero nunca instalo nada porque faltaba esta
-  # bandera. A diferencia de metadata_startup_script, esta clave de metadata
-  # se actualiza en caliente y no fuerza el reemplazo de la instancia.
-  metadata = {
-    enable-osconfig = "TRUE"
-  }
-
   boot_disk {
     initialize_params {
       image  = "debian-cloud/debian-12"
@@ -129,12 +120,6 @@ resource "google_compute_instance" "worker_server" {
   tags = ["worker-server", "allow-iap-ssh"]
 
   labels = var.labels
-
-  # Ver el mismo comentario en web_server: requerido para que la VM acepte
-  # politicas de OS Config (Ops Agent, H1/#131); no fuerza reemplazo.
-  metadata = {
-    enable-osconfig = "TRUE"
-  }
 
   boot_disk {
     initialize_params {
