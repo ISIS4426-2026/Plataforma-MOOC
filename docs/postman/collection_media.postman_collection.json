@@ -4,24 +4,9 @@
     "description": "Carga directa al almacenamiento de objetos, confirmacion e idempotencia (issue A2).\n\nEjecutar con newman DENTRO de la red de docker compose: la URL prefirmada lleva el host dentro de la firma, asi que una peticion desde el anfitrion no puede completar la transferencia. Ver docs/entrega2/NOTAS_TECNICAS.md, nota 1.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
-  "event": [
-    {
-      "listen": "prerequest",
-      "script": {
-        "type": "text/javascript",
-        "exec": [
-          "// G2 (#128): D3 agrego una cookie de sesion Secure (__Host-mooc_session) al",
-          "// hacer login. El cookie jar de Postman la reenvia automaticamente en las",
-          "// peticiones siguientes de la misma corrida, y el middleware de CSRF del",
-          "// servidor rechaza cualquier peticion mutante que la lleve sin una cabecera",
-          "// Origin -- aunque la peticion tambien lleve un Bearer valido. Esta coleccion",
-          "// es un cliente API puro por diseno, nunca deberia depender de esa cookie,",
-          "// asi que se limpia antes de cada peticion.",
-          "pm.cookies.jar().clear(pm.environment.get('baseUrl'), function () {});"
-        ]
-      }
-    }
-  ],
+  "protocolProfileBehavior": {
+    "disableCookies": true
+  },
   "item": [
     {
       "name": "01 Login como Profesor (autor)",

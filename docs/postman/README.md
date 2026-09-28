@@ -349,19 +349,20 @@ con reporte exportable por colección en `docs/entrega2/evidencias/G2/reportes/`
 Detalle completo, incluyendo el hallazgo de CSRF que esto descubrió, en
 [`docs/entrega2/evidencias/G2/README.md`](../entrega2/evidencias/G2/README.md).
 
-**Por qué cada colección lleva ahora un script de pre-petición a nivel de
-colección.** D3 agregó una cookie de sesión `Secure` (`__Host-mooc_session`)
-al iniciar sesión. El cookie jar de Postman la reenvía automáticamente en las
-peticiones siguientes de la misma corrida — como haría un navegador real —, y
-el middleware de CSRF del servidor rechaza cualquier petición mutante que
-lleve esa cookie sin una cabecera `Origin`, así la petición también lleve un
-`Bearer` válido. Localmente esto no se notaba: `CSRF_ALLOWED_ORIGINS` vive
-vacío en desarrollo. Contra la nube, donde D3 sí lo configura, las siete
-colecciones fallaban con `csrf_origin_rejected` desde la segunda petición
-mutante de cada una. La corrección no toca el servidor —el comportamiento es
-el que D3 diseñó a propósito—: cada colección ahora limpia el cookie jar
-antes de cada petición, porque estas colecciones son clientes API puros por
-diseño y nunca debieron depender de esa cookie.
+**Por qué las colecciones deshabilitan el cookie jar.** D3 agregó una cookie de
+sesión `Secure` (`__Host-mooc_session`) al iniciar sesión. Postman conserva las
+cookies por dominio, no por colección ni por environment, y puede reenviar una
+sesión de una corrida anterior. El middleware de CSRF rechaza cualquier
+petición mutante que lleve esa cookie sin una cabecera `Origin`, aunque también
+lleve un `Bearer` válido. Localmente no se veía porque
+`CSRF_ALLOWED_ORIGINS` vive vacío en desarrollo; en la nube se manifiesta como
+`csrf_origin_rejected`, incluso en el primer login si quedó una cookie previa.
+
+Las siete colecciones declaran ahora
+`protocolProfileBehavior.disableCookies: true`. Postman y Newman no guardan ni
+envían cookies durante estas suites, que son clientes API Bearer por diseño.
+La solución viaja dentro de los archivos exportados y no exige limpiar cookies,
+configurar una Domains Allowlist ni cambiar la protección CSRF del servidor.
 
 ---
 
@@ -396,4 +397,3 @@ Como cierre formal del aseguramiento de calidad de la etapa, se ejecutó la suit
 
 Consulte el documento oficial completo:  
 👉 [`docs/e2e/REPORTE_BUGS_Y_CALIDAD_ETAPA.md`](../e2e/REPORTE_BUGS_Y_CALIDAD_ETAPA.md)
-
