@@ -30,13 +30,51 @@ identidad personal de quien lo midió. Estimación de referencia: B1, fechada **
 | Egreso a internet | 5 GiB | ≤ ≈ 0,6 GB (cota superior) | ≤ 12 % |
 | Disco de la base | 10 GiB aprovisionados | 79 MB | 0,8 % |
 
+## Factura real (informe de Facturación)
+
+Leído por Tania Díaz el **2026-09-27** (noche) en Facturación → Informes, agrupado por servicio, intervalo por período de
+cargo **15 a 27 de septiembre de 2026**, cuenta *Billing Account for Education*. Columna «Costo por uso» (bruto, antes de
+créditos):
+
+| Servicio | Costo por uso (USD) | Ahorros / créditos (USD) | Subtotal (USD) |
+| :--- | ---: | ---: | ---: |
+| Cloud SQL | 1,13 | −1,12 | 0,00 |
+| Compute Engine | 0,35 | −0,35 | 0,00 |
+| Networking | 0,06 | −0,06 | 0,00 |
+| Artifact Registry | 0,00 | — | 0,00 |
+| **Total** | **1,54** | **−1,53** | **0,00** |
+
+El resumen del propio informe dice: «Invertiste $0.00 … Ahorraste −$1.53 en este período». **El costo bruto acumulado hasta la
+fecha del informe es de ≈ 1,54 USD, cubierto íntegramente por el cupón: 0,00 USD de gasto real.**
+
+### Lectura frente a B1
+
+| Servicio | B1: costo mensual 24×7 | Factura, 15–27 sept. (bruto) | Comentario |
+| :--- | ---: | ---: | :--- |
+| Compute Engine (2 VM + discos) | 78,22 | 0,35 | Consistente con un uso de decenas de horas, no de un mes |
+| Cloud SQL (instancia + disco) | 51,01 | 1,13 | A ≈ 0,070 USD/h (51,01 ÷ 730) equivale a ≈ 16 h de instancia encendida (derivado, no medido) |
+| Networking (IPs, egreso) | 4,41 (IPs 3,65 + egreso 0,76) | 0,06 | Órdenes de magnitud por debajo |
+| Cloud Storage | 0,08 | (no aparece: < 0,005) | — |
+| Artifact Registry | 0,00 | 0,00 | Bajo el umbral gratuito (415,5 MB de 500 MB) |
+| **Total** | **133,73 / mes** | **1,54 en ≈ 13 días** | **≈ 1,2 % de la estimación mensual** |
+
+**Cómo leer esta comparación, con sus límites:**
+
+- No son periodos equivalentes: B1 es un mes de operación 24×7 y la factura cubre ≈ 13 días de uso intermitente con la política
+  de encendido y apagado. Lo que demuestra es que **esa política funciona**: la estimación de 133,73 USD/mes es un techo de
+  operación continua, no lo que se gastó.
+- **Los datos de facturación llevan retraso** (los últimos 1–2 días se completan después): el informe solo muestra costos
+  hasta el 27 de septiembre y las VMs actuales se crearon ese día. El costo de cómputo real será mayor al 0,35 mostrado;
+  a precio de lista, ≈ 23 h de VM son ≈ 1,2 USD (tabla anterior). **Conviene volver a leer el informe pasados 2–3 días**
+  y anotar aquí la cifra definitiva.
+- El informe se leyó con el filtro *Ahorros (todos)* activo; se usó la columna «Costo por uso», que ya es bruta.
+
 ## Lo que no se pudo medir
 
-- **Costo real de la factura.** Requiere el informe de Facturación de la cuenta (Facturación → Informes, agrupado por
-  SKU y filtrado por el proyecto). Con la cuenta usada para medir, la API de presupuestos no está habilitada y no hay
-  rol de lectura de facturación. **Quien lo tenga debe pegar aquí el costo acumulado por servicio.**
-- **Horas de Cloud SQL.** La métrica de disponibilidad de la instancia no permite reconstruir el total de horas
-  encendida desde su creación con la resolución necesaria.
+- **Factura definitiva.** La leída arriba llega solo hasta el 27 de septiembre por el retraso de facturación; hay que
+  releerla pasados 2–3 días.
+- **Horas de Cloud SQL medidas.** La métrica de disponibilidad no permite reconstruir el total de horas encendida; solo
+  se derivó del costo (≈ 16 h).
 - **Presupuesto de 50 USD con alertas.** Diseñado en B1; no se pudo confirmar que esté activo.
 
 ## Advertencias sobre los datos
