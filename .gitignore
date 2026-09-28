@@ -37,6 +37,7 @@ certbot/www/*
 # Video de prueba generado con ffmpeg para el flujo de multimedia
 clase.mp4
 clase_test.mp4
+scratch/
 
 # Terraform (issue #115)
 #
