@@ -97,7 +97,7 @@ resource "google_sql_database_instance" "main" {
   #
   # Para el cierre de la entrega (issue #133, I6) hay que ponerlo en false,
   # aplicar, y solo entonces destruir. El procedimiento esta en ADMINISTRACION.md.
-  deletion_protection = true
+  deletion_protection = false
 
   settings {
     # Las decisiones de B1, justificadas en
