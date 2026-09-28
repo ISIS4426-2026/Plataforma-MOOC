@@ -232,7 +232,9 @@ Aquí el riesgo es concreto: si `deletion_protection = false` está mergeado en
 no se quita y el `destroy` falla. Y al revés, una rama desactualizada puede
 proponer borrar las VMs o los buckets.
 
+
 ```bash
+#raiz del proyecto
 git checkout main
 git pull --ff-only
 grep -n "deletion_protection" infra/terraform/database.tf   # debe decir false
@@ -247,33 +249,65 @@ true`. Por eso el `apply` va primero: no borra nada, solo aplica el
 
 ```bash
 cd infra/terraform
+```
 
+```bash
+#asignar db pass
 export TF_VAR_db_password="$(gcloud secrets versions access latest \
   --secret=db-password --project=plataforma-mooc-entrega2 | tr -d '\r\n')"
-
+```
+```bash
 # 1. Aplica el cambio ya mergeado. No borra nada.
-terraform apply
-
-# 2. Elimina UNICAMENTE la instancia de base de datos.
-terraform destroy -target=google_sql_database_instance.main
-
-# 3. Apaga las dos VMs conservando sus discos y sus IPs.
+terraform apply #Si ud aplicó el cambio deletion_protection debe decir 1 change, sino 0 changes
+```
+```bash
+# 2. Saca el usuario del estado. NO lo borra en GCP: solo deja de rastrearlo.
+#    Sin esto, el paso 3 falla -- ver la nota de abajo.
+terraform state rm google_sql_user.app
+```
+```bash
+# 3. Elimina UNICAMENTE la instancia de base de datos.
+terraform destroy -target=google_sql_database_instance.main #Debe decir Destroy complete!
+```
+```bash
+# 4. Apaga las dos VMs conservando sus discos y sus IPs.
 #    Esto es gcloud, no Terraform: no depende de la rama ni del estado.
 cd ../..
 gcloud compute instances stop mooc-web-server mooc-worker-server \
   --zone=us-east1-b --project=plataforma-mooc-entrega2
 ```
 
+> **Por qué hay que sacar el usuario del estado.** Sin el paso 2, el `destroy`
+> falla a mitad:
+>
+> ```
+> Error: failed to delete user moocuser: role "moocuser" cannot be dropped
+> because some objects depend on it. Details: 20 objects in database moocdb
+> ```
+>
+> Es PostgreSQL haciendo lo correcto: no se elimina un rol que es dueño de
+> objetos. Y ese fallo **aborta la secuencia antes de llegar a la instancia**, así
+> que la base sigue en pie y el cierre queda a medias.
+>
+> Borrar el usuario no hace falta para nada: eliminar la instancia se lleva
+> dentro sus bases, sus usuarios y sus copias. `terraform state rm` **no toca
+> GCP**, solo deja de rastrearlo — es lo mismo que `database.tf` ya hace con la
+> base mediante `deletion_policy = "ABANDON"` (línea 222). La asimetría entre
+> ambos recursos es la causa de este tropiezo, y **se repetirá en cada `destroy`**
+> mientras el usuario no tenga la misma política.
+
 > **Leer el plan antes de confirmar.** Un `destroy` sin `-target` se llevaría
 > también las VMs, los buckets y la red. Lo que este cierre elimina es **solo la
 > instancia de base de datos**.
+
+### Confirmación de terminación: si va a la ruta de acceso https://34.24.52.111.sslip.io/api/v1/health, tendra un error de "tiempo tardio", lo cual indica que la infraestructura estaría accesible en esa ruta, pero que no se ha perdido la ip asignada.
 
 ## 6. Cómo recrear el entorno, paso a paso
 
 **Este es el orden que se ejecutó y verificó**, no un plan teórico. Cada paso dice
 en qué máquina va, que es lo que más se presta a confusión.
 
-### Paso 1 — Recrear la base · *tu máquina, en `main`*
+### Paso 1 — Recrear la base · *tu máquina, en la rama `main`*
 
 ```bash
 git checkout main && git pull --ff-only
@@ -284,7 +318,7 @@ export TF_VAR_db_password="$(gcloud secrets versions access latest \
 terraform apply
 ```
 
-El plan debe decir **3 to add** —instancia, base y usuario— y nada que destruir.
+El plan debe decir **3 to add** —instancia, base y usuario— y nada que destruir. Este paso puede tomar un tiempo.
 
 > Si el `apply` falla por conflicto de nombre, el nombre anterior sigue
 > reservado: repite con `-var='db_instance_generation=2'`. En esta recreación
@@ -313,39 +347,71 @@ cambiado, lo que afectaría a `QUEUE_PRIVATE_IP`.
 
 ### Paso 4 — Apuntar las VMs a la base nueva · *dentro de cada VM*
 
+
 ```
+# ingresa a la VM desde la terminal de tu máquina
 ! gcloud compute ssh mooc-web-server --zone=us-east1-b --tunnel-through-iap --project=plataforma-mooc-entrega2
 ```
 
 ```bash
-IP_BASE=10.171.240.10      # la del paso 2
+# Dentro de la VM
+# remplaza con la ip obtenida del paso 2
+IP_BASE=10.171.240.10
+```
+```bash
 sudo sed -i "s/^DB_PRIVATE_IP=.*/DB_PRIVATE_IP=${IP_BASE}/" /etc/mooc/web.conf
 sudo grep -E '^DB_PRIVATE_IP=|^QUEUE_PRIVATE_IP=' /etc/mooc/web.conf
 ```
+```bash
+exit
+```
 
-Lo mismo en `mooc-worker-server` sobre `/etc/mooc/worker.conf`.
+Ahora, lo mismo ingresa a la VM del **worker**:
+```bash
+# ingresa a la VM desde la terminal de tu máquina
+! gcloud compute ssh mooc-worker-server --zone=us-east1-b --tunnel-through-iap --project=plataforma-mooc-entrega2
+```
+```bash
+# Dentro de la VM
+# remplaza con la ip obtenida del paso 2
+IP_BASE=10.171.240.10
+```
+```bash
+sudo sed -i "s/^DB_PRIVATE_IP=.*/DB_PRIVATE_IP=${IP_BASE}/" /etc/mooc/worker.conf
+sudo grep -E '^DB_PRIVATE_IP=|^QUEUE_PRIVATE_IP=' /etc/mooc/worker.conf
+```
+```bash
+exit
+```
 
 ### Paso 5 — Copiar esquema y semilla a la VPC · *tu máquina*
-
 La base no tiene IP pública, así que hay que migrar desde dentro. Se usa la VM
 web, que ya está ahí: **no hace falta crear nada**.
 
 ```bash
-# desde la raíz del repositorio
+# Las rutas son relativas: esto SOLO funciona desde la raiz del repositorio.
+# go.mod solo existe ahi, asi que sirve de comprobacion.
+ls go.mod >/dev/null 2>&1 && echo "OK: estas en la raiz" || echo "NOTA: ve a la raiz del repositorio primero"
 gcloud compute scp --recurse migrations scripts/migrate.sh scripts/seeds \
   mooc-web-server:/tmp/ --zone=us-east1-b --tunnel-through-iap \
   --project=plataforma-mooc-entrega2
 ```
 
-> `scripts/recrear-entorno.sh` automatiza esto creando una VM temporal, pero
-> **falla desde Windows** (§3). Esta vía es la que funcionó.
-
 ### Paso 6 — Aplicar esquema y datos · *dentro de la VM web*
 
-`migrate.sh` deriva la ruta de las migraciones desde su propia ubicación, así que
-hay que respetar la estructura `scripts/` junto a `migrations/`:
+**Entra primero.** Este paso NO se ejecuta en tu portátil:
+
+```
+gcloud compute ssh mooc-web-server --zone=us-east1-b --tunnel-through-iap --project=plataforma-mooc-entrega2
+```
+
+Si lo corres fuera, los síntomas son inconfundibles: `/tmp/migrations` no existe,
+`sudo: command not found` y Python abre el alias de Microsoft Store.
 
 ```bash
+# Centinela: avisa si te equivocaste de maquina. No cierra la sesion.
+[ "$(hostname)" = "mooc-web-server" ] && echo "OK: estas en la VM web" || echo "OJO: esto va DENTRO de la VM web"
+
 mkdir -p ~/mig/scripts && cp -r /tmp/migrations /tmp/seeds ~/mig/
 cp /tmp/migrate.sh ~/mig/scripts/
 command -v psql >/dev/null || sudo apt-get install -y -qq postgresql-client
@@ -354,7 +420,12 @@ cd ~/mig
 export PGPASSWORD=$(gcloud secrets versions access latest \
   --secret=db-password --project=plataforma-mooc-entrega2 | tr -d '\r\n')
 ENC=$(python3 -c "import urllib.parse,sys;print(urllib.parse.quote(sys.argv[1],safe=''))" "$PGPASSWORD")
-IP_BASE=10.171.240.10      # la del paso 2
+```
+```bash
+# la del paso 2
+IP_BASE=10.171.240.10
+```
+```bash
 export DATABASE_URL="postgres://moocuser:${ENC}@${IP_BASE}:5432/moocdb?sslmode=require"
 
 bash ./scripts/migrate.sh
@@ -365,9 +436,12 @@ Deben aplicarse **7 migraciones** y la semilla terminar sin error.
 
 ### Paso 7 — Levantar la aplicación · *dentro de cada VM*
 
+#### En **la VM web** donde ya estas:
 ```bash
-sudo systemctl restart mooc-web.service          # y mooc-worker.service en la otra
-sudo grep -c 10.171.240.10 /home/dfortizr1/mooc/.env    # la del paso 2; debe dar 1
+sudo systemctl restart mooc-web.service
+sudo grep -c 10.171.240.10 /home/dfortizr1/mooc/.env    # Remplaza la ip del paso 2; debe dar 1
+```
+```bash
 sudo docker ps --format 'table {{.Names}}	{{.Status}}'
 ```
 
@@ -375,22 +449,53 @@ El `grep -c` en **1** es lo que confirma que `prepare_env.sh` regeneró el `.env
 leyendo el `.conf` del paso 4. Si da `0`, el `sed` no se aplicó antes del
 reinicio.
 
+Resultado esperado:
+NAMES          STATUS
+mooc-api-1     Up 15 seconds (healthy)
+mooc-proxy-1   Up 10 seconds
+mooc-redis-1   Up 36 minutes (healthy)
+
+```bash
+exit
+```
+
+Ahora lo mismo con "web worker". Ingresa a la VM de **worker server**:
+```bash
+# ingresa a la VM desde la terminal de tu máquina
+! gcloud compute ssh mooc-worker-server --zone=us-east1-b --tunnel-through-iap --project=plataforma-mooc-entrega2
+```
+```bash
+sudo systemctl restart mooc-worker.service
+sudo grep -c 10.171.240.10 /home/dfortizr1/mooc/.env    # Remplaza la ip del paso 2; debe dar 1
+```
+```bash
+sudo docker ps --format 'table {{.Names}}	{{.Status}}'
+```
+Resultado esperado:
+NAMES         STATUS
+mooc-worker   Up 17 seconds
+mooc-queue    Up 23 seconds (healthy)
+
+```bash
+exit
+```
+
 ### Paso 8 — Verificar · *tu máquina*
 
 ```bash
-curl -s https://34.24.52.111.sslip.io/api/v1/health     # 200, database: up
-curl -s https://34.24.52.111.sslip.io/api/v1/courses    # 200 CON datos
-make test-e2e-cloud                                     # 61 de 61
+curl -s https://34.24.52.111.sslip.io/api/v1/health # 200, database: up
+```
+```bash
+curl -s https://34.24.52.111.sslip.io/api/v1/courses # 200 CON datos
+```
+```bash
+make test-e2e-cloud  # 61 de 61
 ```
 
 **`health` no basta.** Responde `200` contra una base vacía, porque solo hace
 *ping*. Lo que prueba que el esquema existe es que el catálogo devuelva cursos.
 
 ---
-
-Procedimiento complementario en
-[`../../OPERACION_Y_CAPACIDAD.md`](../../OPERACION_Y_CAPACIDAD.md) y en
-[`ADMINISTRACION.md`](../../../../infra/terraform/ADMINISTRACION.md).
 
 ## 7. Restaurar la protección contra borrado
 
@@ -414,7 +519,8 @@ postura segura** para quien recree el entorno más adelante desde este código.
 | | |
 | :--- | :--- |
 | Fecha de eliminación | *(pendiente)* |
-| Recreación verificada | 2026-09-28 · `mooc-db-1` en `10.171.240.10` · E2E 61/61 en 18 s |
+| Recreación verificada, 1.ª vez | 2026-09-28 · `mooc-db-1` en `10.171.240.10` · E2E **61/61** |
+| Ciclo completo reproducido con el runbook | 2026-09-28 · eliminación y recreación siguiendo §5 y §6 · `mooc-db-1` en `10.171.240.12` · E2E **61/61** |
 | `deletion_protection` restaurado a `true` | *(pendiente)* |
 | Generación de la instancia eliminada | `mooc-db-1` |
 | Copias existentes al eliminar | 3 — una automática y dos bajo demanda, borradas con la instancia |
