@@ -1,0 +1,32 @@
+== 1. Resultados y utilizacion por corrida (ventana medida; metricas de Cloud Monitoring, muestras de 60 s)
+corrida                         usr    rps   p50   p95   p99 real t/o val |   webCPU% webMem%   sqlCPU% sqlConx   tps
+A-nivel1                          1    0.2   113  1576  1711    0   0   0 | 5.54/12.65   30.43 10.81/11.24     4.0  3.98
+A-nivel10                        10    1.8    92   328  1298    0   0   0 | 5.79/8.1    30.72 10.61/11.03     4.0 19.42
+A-nivel25                        25    4.5    96   375  1378    0   0   0 | 5.51/6.16   30.71 11.68/13.34     6.0 46.88
+A-nivel50                        50    8.9    93   338  1289    0   0   0 | 7.22/10.36   30.98 12.8/15.58     6.0  93.3
+A-nivel100                      100   16.5    93   372  1373    0   0   0 | 8.78/13.29   30.43 14.34/18.13     7.0 173.88
+A-nivel200                      200   32.8    94   380  1365    0   0   0 | 12.4/14.97   30.86 20.2/27.05    15.0 347.9
+A-nivel200-rep-r1               200   32.0    96   789  1901    0   0   0 | 11.48/18.52   30.92 17.87/26.69    27.0 341.67
+A-nivel200-rep-r2               200   32.3    94   377  1364    0   0   0 | 19.39/33.89   31.76 20.3/25.96    17.0 356.3
+
+== 2. Nivel de 200 usuarios: variacion entre las 3 corridas
+peticiones/s               media     32.4  desv.est.     0.4  min     32.0  max     32.8  CV   1.1%
+p50 (ms)                   media     94.7  desv.est.     0.9  min     94.0  max     96.0  CV   1.0%
+p95 (ms)                   media    515.3  desv.est.   193.5  min    377.0  max    789.0  CV  37.6%
+p99 (ms)                   media   1543.3  desv.est.   252.9  min   1364.0  max   1901.0  CV  16.4%
+CPU web maxima (%)         media     22.5  desv.est.     8.2  min     15.0  max     33.9  CV  36.6%
+CPU Cloud SQL maxima (%)   media     26.6  desv.est.     0.5  min     26.0  max     27.1  CV   1.7%
+conexiones a la base max   media     19.7  desv.est.     5.2  min     15.0  max     27.0  CV  26.7%
+
+== 3. De donde viene la latencia de cola: conexiones nuevas (JMeter 'Connect' = TCP + TLS)
+A-nivel200                     peticiones 8400 | con conexion nueva 800 (9.5%) | Connect p50 260 ms p95 1285 ms max 3800 ms
+                               peticiones de 1,2-1,7 s: 161 | de ellas con Connect > 900 ms: 161 | CPU maxima del generador (docker stats, % de un nucleo): 233
+A-nivel200-rep-r1              peticiones 8400 | con conexion nueva 800 (9.5%) | Connect p50 284 ms p95 2219 ms max 5795 ms
+                               peticiones de 1,2-1,7 s: 211 | de ellas con Connect > 900 ms: 159 | CPU maxima del generador (docker stats, % de un nucleo): 688
+A-nivel200-rep-r2              peticiones 8400 | con conexion nueva 800 (9.5%) | Connect p50 267 ms p95 1290 ms max 2178 ms
+                               peticiones de 1,2-1,7 s: 152 | de ellas con Connect > 900 ms: 151 | CPU maxima del generador (docker stats, % de un nucleo): 193
+
+== 4. Latencia del servidor sin el costo de conectar (peticiones sobre conexion ya abierta)
+A-nivel200                     n=7600 p50 92 ms  p95 117 ms  p99 416 ms
+A-nivel200-rep-r1              n=7600 p50 94 ms  p95 341 ms  p99 1264 ms
+A-nivel200-rep-r2              n=7600 p50 93 ms  p95 119 ms  p99 319 ms

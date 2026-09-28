@@ -1,0 +1,23 @@
+Muestras totales: 20  | consideradas (tras omitir 0 s de calentamiento): 20
+Duracion de la corrida: 2 s  | hilos maximos: 20
+
+Resultado de las peticiones medidas:
+       10   50.00%  negocio: 429 limite de tasa
+       10   50.00%  ok
+
+Fallos reales: 0 (0.00%)  | fallos de validacion funcional: 0 (0.00%)
+
+paso                                                            n    p50    p95    p99    max  fallos
+L1 POST login (rafaga)                                         20   1673   2035   2035   2035      10
+
+Global ms: p50=1673 p95=2035 p99=2035  | rendimiento: 20.0 peticiones/s
+Timeouts: 0
+
+Mensajes de fallo mas frecuentes:
+     10  Test failed: code expected to equal /
+
+****** received  : [[[429]]]
+
+****** comparison: [[[200]]]
+
+/

@@ -1,0 +1,134 @@
+2026-09-28 05:47:04,596 INFO o.a.j.u.JMeterUtils: Setting Locale to en_EN
+2026-09-28 05:47:04,671 INFO o.a.j.JMeter: Loading user properties from: /opt/apache-jmeter-5.5/bin/user.properties
+2026-09-28 05:47:04,674 INFO o.a.j.JMeter: Loading system properties from: /opt/apache-jmeter-5.5/bin/system.properties
+2026-09-28 05:47:04,676 INFO o.a.j.JMeter: Setting System property: log4j2.formatMsgNoLookups=true
+2026-09-28 05:47:04,677 INFO o.a.j.JMeter: Setting JMeter property: users=20
+2026-09-28 05:47:04,678 INFO o.a.j.JMeter: Setting JMeter property: ramp=1
+2026-09-28 05:47:04,679 INFO o.a.j.JMeter: Setting JMeter property: sessions=3
+2026-09-28 05:47:04,681 INFO o.a.j.JMeter: Setting JMeter property: think_ms=4000
+2026-09-28 05:47:04,682 INFO o.a.j.JMeter: Setting JMeter property: think_range_ms=2000
+2026-09-28 05:47:04,683 INFO o.a.j.JMeter: Setting JMeter property: host=34.24.52.111.sslip.io
+2026-09-28 05:47:04,683 INFO o.a.j.JMeter: Setting JMeter property: port=443
+2026-09-28 05:47:04,684 INFO o.a.j.JMeter: Setting JMeter property: protocol=https
+2026-09-28 05:47:04,685 INFO o.a.j.JMeter: Setting JMeter property: origin=https://34.24.52.111.sslip.io
+2026-09-28 05:47:04,686 INFO o.a.j.JMeter: Setting JMeter property: runId=login-rafaga_20260927_224652
+2026-09-28 05:47:04,687 INFO o.a.j.JMeter: Setting JMeter property: tokens=/jmeter/capacity/tokens.csv
+2026-09-28 05:47:04,688 INFO o.a.j.JMeter: Loading additional properties from: /jmeter/capacity/login.properties
+2026-09-28 05:47:04,728 INFO o.a.j.JMeter: Copyright (c) 1998-2022 The Apache Software Foundation
+2026-09-28 05:47:04,728 INFO o.a.j.JMeter: Version 5.5
+2026-09-28 05:47:04,729 INFO o.a.j.JMeter: java.version=1.8.0_275
+2026-09-28 05:47:04,729 INFO o.a.j.JMeter: java.vm.name=OpenJDK 64-Bit Server VM
+2026-09-28 05:47:04,730 INFO o.a.j.JMeter: os.name=Linux
+2026-09-28 05:47:04,731 INFO o.a.j.JMeter: os.arch=amd64
+2026-09-28 05:47:04,732 INFO o.a.j.JMeter: os.version=5.15.167.4-microsoft-standard-WSL2
+2026-09-28 05:47:04,732 INFO o.a.j.JMeter: file.encoding=UTF-8
+2026-09-28 05:47:04,733 INFO o.a.j.JMeter: java.awt.headless=true
+2026-09-28 05:47:04,734 INFO o.a.j.JMeter: Max memory     =1795162112
+2026-09-28 05:47:04,735 INFO o.a.j.JMeter: Available Processors =12
+2026-09-28 05:47:04,752 INFO o.a.j.JMeter: Default Locale=English (EN)
+2026-09-28 05:47:04,753 INFO o.a.j.JMeter: JMeter  Locale=English (EN)
+2026-09-28 05:47:04,754 INFO o.a.j.JMeter: JMeterHome=/opt/apache-jmeter-5.5
+2026-09-28 05:47:04,755 INFO o.a.j.JMeter: user.dir  =/opt/apache-jmeter-5.5
+2026-09-28 05:47:04,756 INFO o.a.j.JMeter: PWD       =/opt/apache-jmeter-5.5
+2026-09-28 05:47:04,758 INFO o.a.j.JMeter: IP: 172.17.0.2 Name: a14ac126b718 FullName: a14ac126b718
+2026-09-28 05:47:04,832 INFO o.a.j.s.FileServer: Default base='/opt/apache-jmeter-5.5'
+2026-09-28 05:47:04,834 INFO o.a.j.s.FileServer: Set new base='/jmeter'
+2026-09-28 05:47:05,143 INFO o.a.j.s.SaveService: Testplan (JMX) version: 2.2. Testlog (JTL) version: 2.2
+2026-09-28 05:47:05,181 INFO o.a.j.s.SaveService: Using SaveService properties file encoding UTF-8
+2026-09-28 05:47:05,196 INFO o.a.j.s.SaveService: Using SaveService properties version 5.0
+2026-09-28 05:47:05,216 INFO o.a.j.s.SaveService: Loading file: /jmeter/escenario1_login_rafaga.jmx
+2026-09-28 05:47:05,427 INFO o.a.j.p.h.s.HTTPSamplerBase: Parser for text/html is org.apache.jmeter.protocol.http.parser.LagartoBasedHtmlParser
+2026-09-28 05:47:05,428 INFO o.a.j.p.h.s.HTTPSamplerBase: Parser for application/xhtml+xml is org.apache.jmeter.protocol.http.parser.LagartoBasedHtmlParser
+2026-09-28 05:47:05,428 INFO o.a.j.p.h.s.HTTPSamplerBase: Parser for application/xml is org.apache.jmeter.protocol.http.parser.LagartoBasedHtmlParser
+2026-09-28 05:47:05,429 INFO o.a.j.p.h.s.HTTPSamplerBase: Parser for text/xml is org.apache.jmeter.protocol.http.parser.LagartoBasedHtmlParser
+2026-09-28 05:47:05,430 INFO o.a.j.p.h.s.HTTPSamplerBase: Parser for text/vnd.wap.wml is org.apache.jmeter.protocol.http.parser.RegexpHTMLParser
+2026-09-28 05:47:05,431 INFO o.a.j.p.h.s.HTTPSamplerBase: Parser for text/css is org.apache.jmeter.protocol.http.parser.CssParser
+2026-09-28 05:47:06,364 INFO o.a.j.JMeter: Creating summariser <summary>
+2026-09-28 05:47:06,394 INFO o.a.j.e.StandardJMeterEngine: Running the test!
+2026-09-28 05:47:06,398 INFO o.a.j.s.SampleEvent: List of sample_variables: []
+2026-09-28 05:47:06,399 INFO o.a.j.s.SampleEvent: List of sample_variables: []
+2026-09-28 05:47:06,432 INFO o.a.j.e.u.CompoundVariable: Note: Function class names must contain the string: '.functions.'
+2026-09-28 05:47:06,433 INFO o.a.j.e.u.CompoundVariable: Note: Function class names must not contain the string: '.gui.'
+2026-09-28 05:47:07,568 INFO o.a.j.JMeter: Running test (1790567227568)
+2026-09-28 05:47:07,650 INFO o.a.j.e.StandardJMeterEngine: Starting ThreadGroup: 1 : Rafaga de inicios de sesion
+2026-09-28 05:47:07,651 INFO o.a.j.e.StandardJMeterEngine: Starting 20 threads for group Rafaga de inicios de sesion.
+2026-09-28 05:47:07,652 INFO o.a.j.e.StandardJMeterEngine: Thread will continue on error
+2026-09-28 05:47:07,653 INFO o.a.j.t.ThreadGroup: Starting thread group... number=1 threads=20 ramp-up=1 delayedStart=false
+2026-09-28 05:47:07,718 INFO o.a.j.t.ThreadGroup: Started thread group number 1
+2026-09-28 05:47:07,719 INFO o.a.j.e.StandardJMeterEngine: All thread groups have been started
+2026-09-28 05:47:07,829 INFO o.a.j.t.JMeterThread: Thread started: Rafaga de inicios de sesion 1-1
+2026-09-28 05:47:07,834 INFO o.a.j.s.FileServer: Stored: /jmeter/capacity/tokens.csv
+2026-09-28 05:47:07,869 INFO o.a.j.t.JMeterThread: Thread started: Rafaga de inicios de sesion 1-2
+2026-09-28 05:47:07,897 INFO o.a.j.p.h.s.HTTPHCAbstractImpl: Local host = a14ac126b718
+2026-09-28 05:47:07,913 INFO o.a.j.p.h.s.HTTPHC4Impl: HTTP request retry count = 0
+2026-09-28 05:47:07,917 INFO o.a.j.s.SampleResult: Note: Sample TimeStamps are START times
+2026-09-28 05:47:07,917 INFO o.a.j.s.SampleResult: sampleresult.default.encoding is set to ISO-8859-1
+2026-09-28 05:47:07,918 INFO o.a.j.s.SampleResult: sampleresult.useNanoTime=true
+2026-09-28 05:47:07,917 INFO o.a.j.t.JMeterThread: Thread started: Rafaga de inicios de sesion 1-3
+2026-09-28 05:47:07,918 INFO o.a.j.s.SampleResult: sampleresult.nanoThreadSleep=5000
+2026-09-28 05:47:07,967 INFO o.a.j.t.JMeterThread: Thread started: Rafaga de inicios de sesion 1-4
+2026-09-28 05:47:08,014 INFO o.a.j.t.JMeterThread: Thread started: Rafaga de inicios de sesion 1-5
+2026-09-28 05:47:08,061 INFO o.a.j.t.JMeterThread: Thread started: Rafaga de inicios de sesion 1-6
+2026-09-28 05:47:08,109 INFO o.a.j.t.JMeterThread: Thread started: Rafaga de inicios de sesion 1-7
+2026-09-28 05:47:08,160 INFO o.a.j.t.JMeterThread: Thread started: Rafaga de inicios de sesion 1-8
+2026-09-28 05:47:08,204 INFO o.a.j.t.JMeterThread: Thread started: Rafaga de inicios de sesion 1-9
+2026-09-28 05:47:08,255 INFO o.a.j.t.JMeterThread: Thread started: Rafaga de inicios de sesion 1-10
+2026-09-28 05:47:08,303 INFO o.a.j.t.JMeterThread: Thread started: Rafaga de inicios de sesion 1-11
+2026-09-28 05:47:08,344 INFO o.a.j.t.JMeterThread: Thread started: Rafaga de inicios de sesion 1-12
+2026-09-28 05:47:08,388 INFO o.a.j.t.JMeterThread: Thread started: Rafaga de inicios de sesion 1-13
+2026-09-28 05:47:08,438 INFO o.a.j.t.JMeterThread: Thread started: Rafaga de inicios de sesion 1-14
+2026-09-28 05:47:08,481 INFO o.a.j.t.JMeterThread: Thread started: Rafaga de inicios de sesion 1-15
+2026-09-28 05:47:08,527 INFO o.a.j.t.JMeterThread: Thread started: Rafaga de inicios de sesion 1-16
+2026-09-28 05:47:08,537 INFO o.a.j.p.h.s.h.LazyLayeredConnectionSocketFactory: Setting up HTTPS TrustAll Socket Factory
+2026-09-28 05:47:08,568 INFO o.a.j.t.JMeterThread: Thread started: Rafaga de inicios de sesion 1-17
+2026-09-28 05:47:08,615 INFO o.a.j.t.JMeterThread: Thread started: Rafaga de inicios de sesion 1-18
+2026-09-28 05:47:08,620 INFO o.a.j.u.JsseSSLManager: Using default SSL protocol: TLS
+2026-09-28 05:47:08,621 INFO o.a.j.u.JsseSSLManager: SSL session context: per-thread
+2026-09-28 05:47:08,664 INFO o.a.j.t.JMeterThread: Thread started: Rafaga de inicios de sesion 1-19
+2026-09-28 05:47:08,716 INFO o.a.j.t.JMeterThread: Thread started: Rafaga de inicios de sesion 1-20
+2026-09-28 05:47:08,859 INFO o.a.j.u.SSLManager: JmeterKeyStore Location:  type JKS
+2026-09-28 05:47:08,868 INFO o.a.j.u.SSLManager: KeyStore created OK
+2026-09-28 05:47:08,869 WARN o.a.j.u.SSLManager: Keystore file not found, loading empty keystore
+2026-09-28 05:47:10,015 INFO o.a.j.t.JMeterThread: Thread is done: Rafaga de inicios de sesion 1-1
+2026-09-28 05:47:10,015 INFO o.a.j.t.JMeterThread: Thread is done: Rafaga de inicios de sesion 1-17
+2026-09-28 05:47:10,015 INFO o.a.j.t.JMeterThread: Thread is done: Rafaga de inicios de sesion 1-15
+2026-09-28 05:47:10,015 INFO o.a.j.t.JMeterThread: Thread is done: Rafaga de inicios de sesion 1-4
+2026-09-28 05:47:10,015 INFO o.a.j.t.JMeterThread: Thread is done: Rafaga de inicios de sesion 1-10
+2026-09-28 05:47:10,015 INFO o.a.j.t.JMeterThread: Thread is done: Rafaga de inicios de sesion 1-7
+2026-09-28 05:47:10,015 INFO o.a.j.t.JMeterThread: Thread is done: Rafaga de inicios de sesion 1-13
+2026-09-28 05:47:10,015 INFO o.a.j.t.JMeterThread: Thread is done: Rafaga de inicios de sesion 1-18
+2026-09-28 05:47:10,018 INFO o.a.j.t.JMeterThread: Thread finished: Rafaga de inicios de sesion 1-13
+2026-09-28 05:47:10,015 INFO o.a.j.t.JMeterThread: Thread is done: Rafaga de inicios de sesion 1-8
+2026-09-28 05:47:10,015 INFO o.a.j.t.JMeterThread: Thread is done: Rafaga de inicios de sesion 1-16
+2026-09-28 05:47:10,019 INFO o.a.j.t.JMeterThread: Thread finished: Rafaga de inicios de sesion 1-8
+2026-09-28 05:47:10,018 INFO o.a.j.t.JMeterThread: Thread finished: Rafaga de inicios de sesion 1-15
+2026-09-28 05:47:10,017 INFO o.a.j.t.JMeterThread: Thread finished: Rafaga de inicios de sesion 1-7
+2026-09-28 05:47:10,017 INFO o.a.j.t.JMeterThread: Thread finished: Rafaga de inicios de sesion 1-10
+2026-09-28 05:47:10,016 INFO o.a.j.t.JMeterThread: Thread finished: Rafaga de inicios de sesion 1-4
+2026-09-28 05:47:10,016 INFO o.a.j.t.JMeterThread: Thread finished: Rafaga de inicios de sesion 1-17
+2026-09-28 05:47:10,020 INFO o.a.j.t.JMeterThread: Thread finished: Rafaga de inicios de sesion 1-18
+2026-09-28 05:47:10,019 INFO o.a.j.t.JMeterThread: Thread finished: Rafaga de inicios de sesion 1-16
+2026-09-28 05:47:10,019 INFO o.a.j.t.JMeterThread: Thread finished: Rafaga de inicios de sesion 1-1
+2026-09-28 05:47:10,053 INFO o.a.j.t.JMeterThread: Thread is done: Rafaga de inicios de sesion 1-12
+2026-09-28 05:47:10,053 INFO o.a.j.t.JMeterThread: Thread is done: Rafaga de inicios de sesion 1-14
+2026-09-28 05:47:10,054 INFO o.a.j.t.JMeterThread: Thread finished: Rafaga de inicios de sesion 1-12
+2026-09-28 05:47:10,054 INFO o.a.j.t.JMeterThread: Thread finished: Rafaga de inicios de sesion 1-14
+2026-09-28 05:47:10,096 INFO o.a.j.t.JMeterThread: Thread is done: Rafaga de inicios de sesion 1-6
+2026-09-28 05:47:10,097 INFO o.a.j.t.JMeterThread: Thread is done: Rafaga de inicios de sesion 1-9
+2026-09-28 05:47:10,097 INFO o.a.j.t.JMeterThread: Thread finished: Rafaga de inicios de sesion 1-6
+2026-09-28 05:47:10,098 INFO o.a.j.t.JMeterThread: Thread finished: Rafaga de inicios de sesion 1-9
+2026-09-28 05:47:10,123 INFO o.a.j.t.JMeterThread: Thread is done: Rafaga de inicios de sesion 1-3
+2026-09-28 05:47:10,124 INFO o.a.j.t.JMeterThread: Thread finished: Rafaga de inicios de sesion 1-3
+2026-09-28 05:47:10,187 INFO o.a.j.t.JMeterThread: Thread is done: Rafaga de inicios de sesion 1-20
+2026-09-28 05:47:10,188 INFO o.a.j.t.JMeterThread: Thread finished: Rafaga de inicios de sesion 1-20
+2026-09-28 05:47:10,197 INFO o.a.j.t.JMeterThread: Thread is done: Rafaga de inicios de sesion 1-19
+2026-09-28 05:47:10,198 INFO o.a.j.t.JMeterThread: Thread finished: Rafaga de inicios de sesion 1-19
+2026-09-28 05:47:10,243 INFO o.a.j.t.JMeterThread: Thread is done: Rafaga de inicios de sesion 1-11
+2026-09-28 05:47:10,243 INFO o.a.j.t.JMeterThread: Thread finished: Rafaga de inicios de sesion 1-11
+2026-09-28 05:47:10,246 INFO o.a.j.t.JMeterThread: Thread is done: Rafaga de inicios de sesion 1-2
+2026-09-28 05:47:10,247 INFO o.a.j.t.JMeterThread: Thread finished: Rafaga de inicios de sesion 1-2
+2026-09-28 05:47:10,259 INFO o.a.j.t.JMeterThread: Thread is done: Rafaga de inicios de sesion 1-5
+2026-09-28 05:47:10,260 INFO o.a.j.t.JMeterThread: Thread finished: Rafaga de inicios de sesion 1-5
+2026-09-28 05:47:10,261 INFO o.a.j.e.StandardJMeterEngine: Notifying test listeners of end of test
+2026-09-28 05:47:10,262 INFO o.a.j.s.FileServer: Close: /jmeter/capacity/tokens.csv
+2026-09-28 05:47:10,270 INFO o.a.j.r.Summariser: summary =     20 in 00:00:03 =    7.4/s Avg:  1667 Min:  1278 Max:  2035 Err:    10 (50.00%)

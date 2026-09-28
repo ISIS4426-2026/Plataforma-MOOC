@@ -32,7 +32,8 @@ H2_DIR="${ROOT}/docs/entrega2/evidencias/H2"
 DATA_DIR="${ROOT}/capacity-planning/datos"
 STAMP="$(date +%Y%m%d_%H%M%S)"
 RUN="${LABEL}_${STAMP}"
-OUT="${H2_DIR}/resultados/${RUN}"
+RESULTS_ROOT="${RESULTS_ROOT:-${H2_DIR}/resultados}"
+OUT="${RESULTS_ROOT}/${RUN}"
 
 [ -f "${DATA_DIR}/tokens.csv" ] || { echo "Falta ${DATA_DIR}/tokens.csv: corre scripts/capacity_login_tokens.sh"; exit 1; }
 lines=$(($(wc -l < "${DATA_DIR}/tokens.csv") - 1))
@@ -60,8 +61,23 @@ fi
 
 mkdir -p "${OUT}"
 echo "==> ${RUN} (${PLAN}): ${USERS} usuarios contra ${BASE_URL}"
-MSYS_NO_PATHCONV=1 docker run --rm \
-  -v "${H2_DIR}:/jmeter" -v "${DATA_DIR}:/jmeter/capacity:ro" \
+
+# Salud del generador: CPU y memoria del contenedor de JMeter cada 10 s. Si el
+# generador se satura, el resultado no mide a la plataforma (plan, seccion 12).
+CONTENEDOR="jmeter-${RUN}"
+(
+  echo "hora_utc,cpu_pct,memoria" > "${OUT}/generador.csv"
+  while sleep 10; do
+    linea="$(docker stats --no-stream --format '{{.CPUPerc}},{{.MemUsage}}' "${CONTENEDOR}" 2>/dev/null || true)"
+    [ -n "${linea}" ] && echo "$(date -u +%H:%M:%S),${linea}" >> "${OUT}/generador.csv"
+  done
+) &
+MUESTREO=$!
+trap 'kill ${MUESTREO} 2>/dev/null || true' EXIT
+
+date -u +%Y-%m-%dT%H:%M:%SZ > "${OUT}/ventana.txt"
+MSYS_NO_PATHCONV=1 docker run --rm --name "${CONTENEDOR}" \
+  -v "${H2_DIR}:/jmeter" -v "${RESULTS_ROOT}:/jmeter/resultados" -v "${DATA_DIR}:/jmeter/capacity:ro" \
   justb4/jmeter:latest \
   -n -t "/jmeter/${PLAN}" -l "/jmeter/resultados/${RUN}/resultados.jtl" -j "/jmeter/resultados/${RUN}/jmeter.log" \
   -Jusers="${USERS}" -Jramp="${RAMP_SECONDS:-30}" -Jsessions="${SESSIONS:-3}" \
@@ -69,6 +85,9 @@ MSYS_NO_PATHCONV=1 docker run --rm \
   -Jhost="${HOST}" -Jport="${PORT}" -Jprotocol="${PROTO}" -Jorigin="${BASE_URL}" \
   -JrunId="${RUN}" -Jtokens=/jmeter/capacity/tokens.csv "${EXTRA_ARGS[@]}" \
   | tail -n 12
+
+date -u +%Y-%m-%dT%H:%M:%SZ >> "${OUT}/ventana.txt"
+kill "${MUESTREO}" 2>/dev/null || true
 
 PY=python; command -v python >/dev/null 2>&1 || PY=python3
 "$PY" "${SCRIPT_DIR}/capacity_resumen_jtl.py" "${OUT}/resultados.jtl" "${WARMUP_SKIP_SECONDS:-45}" | tee "${OUT}/resumen.txt"

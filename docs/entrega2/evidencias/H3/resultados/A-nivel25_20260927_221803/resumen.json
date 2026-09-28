@@ -1,0 +1,132 @@
+{
+  "muestras": 882,
+  "omitidas_calentamiento_s": 45.0,
+  "duracion_s": 242.2,
+  "hilos_max": 25,
+  "fallos_reales": 0,
+  "fallos_reales_pct": 0.0,
+  "fallos_validacion": 0,
+  "rechazos_negocio": 0,
+  "timeouts": 0,
+  "ms": {
+    "p50": 96,
+    "p95": 375,
+    "p99": 1378,
+    "max": 2684
+  },
+  "rps": 4.48,
+  "pasos": {
+    "05 GET modulos del curso": {
+      "n": 53,
+      "p50": 90,
+      "p95": 103,
+      "p99": 388,
+      "max": 388,
+      "fallos": 0
+    },
+    "06 GET unidades del modulo": {
+      "n": 58,
+      "p50": 92,
+      "p95": 128,
+      "p99": 426,
+      "max": 426,
+      "fallos": 0
+    },
+    "09 POST latido de progreso 2 (recurso completado)": {
+      "n": 74,
+      "p50": 102,
+      "p95": 904,
+      "p99": 2684,
+      "max": 2684,
+      "fallos": 0
+    },
+    "07 GET recursos de la unidad": {
+      "n": 62,
+      "p50": 93,
+      "p95": 131,
+      "p99": 299,
+      "max": 299,
+      "fallos": 0
+    },
+    "09 POST latido de progreso 1 (recurso completado)": {
+      "n": 70,
+      "p50": 102,
+      "p95": 1179,
+      "p99": 1643,
+      "max": 1643,
+      "fallos": 0
+    },
+    "08 GET cuestionario (vista de estudiante)": {
+      "n": 65,
+      "p50": 99,
+      "p95": 501,
+      "p99": 1378,
+      "max": 1378,
+      "fallos": 0
+    },
+    "10 POST envio del quiz": {
+      "n": 75,
+      "p50": 114,
+      "p95": 416,
+      "p99": 1402,
+      "max": 1402,
+      "fallos": 0
+    },
+    "11 POST envio DUPLICADO del quiz (misma clave)": {
+      "n": 75,
+      "p50": 86,
+      "p95": 1280,
+      "p99": 1373,
+      "max": 1373,
+      "fallos": 0
+    },
+    "12 GET avance del curso tras el quiz (validacion)": {
+      "n": 75,
+      "p50": 97,
+      "p95": 1345,
+      "p99": 1387,
+      "max": 1387,
+      "fallos": 0
+    },
+    "13 GET mis envios (validacion de doble calificacion)": {
+      "n": 75,
+      "p50": 96,
+      "p95": 334,
+      "p99": 373,
+      "max": 373,
+      "fallos": 0
+    },
+    "01 GET catalogo de cursos": {
+      "n": 50,
+      "p50": 88,
+      "p95": 101,
+      "p99": 103,
+      "max": 103,
+      "fallos": 0
+    },
+    "02 GET detalle del curso": {
+      "n": 50,
+      "p50": 83,
+      "p95": 96,
+      "p99": 104,
+      "max": 104,
+      "fallos": 0
+    },
+    "03 POST inscripcion": {
+      "n": 50,
+      "p50": 95,
+      "p95": 108,
+      "p99": 114,
+      "max": 114,
+      "fallos": 0
+    },
+    "04 GET estado de mi inscripcion (validacion)": {
+      "n": 50,
+      "p50": 88,
+      "p95": 105,
+      "p99": 472,
+      "max": 472,
+      "fallos": 0
+    }
+  }
+}
