@@ -24,6 +24,7 @@ Este repositorio contiene la implementación completa del backend, contratos Ope
 | **URL de la aplicación** | **<https://34.24.52.111.sslip.io>** — `GET /api/v1/health` responde `200` cuando el entorno está encendido |
 | Documentación de la API | <https://34.24.52.111.sslip.io/api/docs> |
 | Documento de arquitectura | [`docs/entrega2/ARQUITECTURA.md`](docs/entrega2/ARQUITECTURA.md) |
+| Informe de capacidad (20%) | [`capacity-planning/pruebas_de_carga_entrega2.md`](capacity-planning/pruebas_de_carga_entrega2.md) |
 | Evidencias de la entrega | [`docs/entrega2/evidencias/`](docs/entrega2/evidencias/) |
 | Configuración y costos | [`docs/entrega2/CONFIGURACION_Y_COSTOS.md`](docs/entrega2/CONFIGURACION_Y_COSTOS.md) |
 
@@ -363,6 +364,7 @@ El archivo `Makefile` provee comandos estandarizados para asegurar la calidad de
 * [Infraestructura como Código (`infra/terraform/README.md`)](infra/terraform/README.md): Aprovisionamiento con Terraform, estado remoto compartido y **cómo trabaja el equipo sobre la misma infraestructura sin conflictos**. Instalación para Windows, macOS y Linux.
 * [Administración del Proyecto de GCP (`infra/terraform/ADMINISTRACION.md`)](infra/terraform/ADMINISTRACION.md): Tareas de una sola vez — bootstrap del estado remoto, altas y bajas de integrantes.
 * [**Arquitectura en la Nube — Entrega 2** (`docs/entrega2/ARQUITECTURA.md`)](docs/entrega2/ARQUITECTURA.md): **Documento de arquitectura de la entrega.** Correspondencia con los servicios de GCP, modelo de componentes, modelo de despliegue, decisiones y adaptaciones, y diferencias frente a la arquitectura objetivo. Los diagramas son Mermaid y su bloque de código es el archivo fuente.
+* [**Informe Consolidado de Pruebas de Carga y Capacidad — 20%** (`capacity-planning/pruebas_de_carga_entrega2.md`)](capacity-planning/pruebas_de_carga_entrega2.md): **Informe oficial de capacidad.** Análisis integral de los dos escenarios (actividad académica concurrente y procesamiento/streaming multimedia), caracterización de niveles, sustentación de cuellos de botella y evolución respaldada por mediciones.
 * [Configuración Efectiva y Marco de Costos (`docs/entrega2/CONFIGURACION_Y_COSTOS.md`)](docs/entrega2/CONFIGURACION_Y_COSTOS.md): Proveedor, región, perfiles de VM, estimación fechada, presupuesto y política de encendido y apagado.
 * [Notas Técnicas de la Entrega 2 (`docs/entrega2/NOTAS_TECNICAS.md`)](docs/entrega2/NOTAS_TECNICAS.md): Hallazgos que afectan a más de un issue, con el issue al que le toca resolver cada uno. **Conviene leerlo antes de empezar un issue y revisarlo al cerrarlo.**
 * [Ejecución de las Pruebas de Multimedia (`docs/entrega2/EJECUCION_PRUEBAS_MULTIMEDIA.md`)](docs/entrega2/EJECUCION_PRUEBAS_MULTIMEDIA.md): Paso a paso de la carga directa al bucket y la lectura de un manifiesto HLS.
