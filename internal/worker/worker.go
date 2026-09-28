@@ -188,6 +188,14 @@ func NewWorkerEngine(cfg *config.Config, opts ...WorkerOption) (*WorkerEngine, e
 	mux.Use(LoggingMiddleware(we.logger))
 	if we.meter != nil {
 		mux.Use(MetricsMiddleware(we.meter))
+
+		queueNames := make([]string, 0, len(we.queues))
+		for name := range we.queues {
+			queueNames = append(queueNames, name)
+		}
+		if err := RegisterQueueMetrics(we.meter, redisOpt, queueNames); err != nil {
+			return nil, fmt.Errorf("register queue metrics: %w", err)
+		}
 	}
 	handler.RegisterRoutes(mux, we.mediaProcessor)
 

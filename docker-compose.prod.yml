@@ -68,6 +68,15 @@ services:
       - RATE_LIMIT_REGISTER_WINDOW=${RATE_LIMIT_REGISTER_WINDOW:-1h}
       - RATE_LIMIT_RECOVERY_ATTEMPTS=${RATE_LIMIT_RECOVERY_ATTEMPTS:-50}
       - RATE_LIMIT_RECOVERY_WINDOW=${RATE_LIMIT_RECOVERY_WINDOW:-1h}
+    ports:
+      # Issue #131 (H1): sin esto, /api/v1/metrics solo es alcanzable desde
+      # dentro de la red de Docker. El Ops Agent corre como servicio del
+      # sistema operativo, fuera de esa red -- necesita llegar por
+      # localhost:8080, igual que el worker ya publica su :9090. Atado a
+      # 127.0.0.1 (no 0.0.0.0): nginx sigue siendo el unico camino de
+      # entrada desde fuera de la VM, esto solo abre el localhost de la
+      # propia maquina.
+      - "127.0.0.1:8080:8080"
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/api/v1/health"]
       interval: 5s

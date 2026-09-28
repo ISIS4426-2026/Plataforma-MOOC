@@ -1,0 +1,39 @@
+osPolicies:
+  - id: worker-metrics-prometheus-config
+    mode: ENFORCEMENT
+    resourceGroups:
+      - resources:
+          - id: worker-server-ops-agent-config
+            file:
+              path: /etc/google-cloud-ops-agent/config.yaml
+              state: CONTENTS_MATCH
+              permissions: "0644"
+              content: |
+                metrics:
+                  receivers:
+                    hostmetrics:
+                      type: hostmetrics
+                      collection_interval: 30s
+                    worker_prometheus:
+                      type: prometheus
+                      config:
+                        scrape_configs:
+                          - job_name: worker
+                            scrape_interval: 30s
+                            static_configs:
+                              - targets: ["localhost:9090"]
+                            metrics_path: /metrics
+                  service:
+                    pipelines:
+                      hostmetrics:
+                        receivers: [hostmetrics]
+                      worker_prometheus:
+                        receivers: [worker_prometheus]
+instanceFilter:
+  inclusionLabels:
+    - labels:
+        componente: worker
+rollout:
+  disruptionBudget:
+    fixed: 1
+  minWaitDuration: 60s
