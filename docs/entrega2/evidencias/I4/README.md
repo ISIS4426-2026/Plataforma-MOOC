@@ -119,7 +119,7 @@ de que I5 grabe el video —el README debe enlazarlo antes de congelar.
 git checkout main && git pull --ff-only
 git tag -a entrega-2 -m "Entrega 2 — Despliegue basico en la nube"
 git push origin entrega-2
-git rev-parse entrega-2      # registrar este SHA aquí
+git rev-list -n 1 entrega-2  # commit evaluado; registrar este SHA aquí
 ```
 
 | | |
