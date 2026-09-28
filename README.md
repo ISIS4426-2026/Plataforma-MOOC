@@ -18,8 +18,9 @@ Este repositorio contiene la implementación completa del backend, contratos Ope
 
 Desde la **Entrega 2** incluye además el despliegue en **Google Cloud Platform**: infraestructura como código con Terraform, dos máquinas virtuales, base de datos administrada, almacenamiento de objetos gestionado y el análisis de capacidad de la plataforma desplegada.
 
-**Video de sustentación de la Entrega 1:** <https://www.youtube.com/watch?v=0qUeBiy9yfE>
-**Video de sutentación de la Entrega 2:** <https://youtu.be/tn9JgmWbn_M>
+- **Video de sustentación de la Entrega 1:** <https://www.youtube.com/watch?v=0qUeBiy9yfE>
+- **Video de sutentación de la Entrega 2 (Analisis-pruebas):** <https://youtu.be/tn9JgmWbn_M>
+- **Video corto de flujo happy path postman-gcp de Entrega 2 multimedia:** <https://www.youtube.com/watch?v=Zh9pefwJNEA>
 
 ---
 
