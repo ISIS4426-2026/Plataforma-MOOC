@@ -26,6 +26,15 @@ Desde la **Entrega 2** incluye además el despliegue en **Google Cloud Platform*
 
 ## Entrega 2 — Despliegue en la nube
 
+> [!NOTE]
+> **Estado de la infraestructura: apagada tras la entrega.** El enunciado exige
+> eliminar la instancia de base de datos administrada después de cargar la
+> entrega, así que se eliminó y las dos máquinas virtuales quedaron detenidas, también por limitación de gastos.
+> **La URL no responderá** hasta que se recree el entorno, con el procedimiento
+> paso a paso de
+> [`evidencias/I6`](docs/entrega2/evidencias/I6/README.md) §6.
+
+
 ### Los entregables del enunciado, y qué documento satisface cada uno
 
 | | Entregable | Dónde está |
@@ -71,10 +80,10 @@ propio; la decisión y su efecto en el correo saliente están en el documento de
 configuración y costos.
 
 > [!IMPORTANT]
-> **El entorno se apaga cuando no se está usando**, por la política de control de
-> costos que el propio enunciado pide. Si la URL no responde, no está caída: está
-> apagada. El procedimiento para encenderla y, si hiciera falta, para reconstruir
-> el entorno completo desde cero, está en
+> **Recrear no es solo encender.** La instancia de base de datos se eliminó, así
+> que hace falta aprovisionarla, aplicar las migraciones y sembrar los datos
+> antes de que la aplicación sirva. Todo está en
+> [`evidencias/I6`](docs/entrega2/evidencias/I6/README.md) §6 y en
 > [`infra/terraform/ADMINISTRACION.md`](infra/terraform/ADMINISTRACION.md).
 
 ---
