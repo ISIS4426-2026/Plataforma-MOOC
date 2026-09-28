@@ -1,0 +1,183 @@
+{
+  "ventana": {
+    "inicio": "2026-09-28T03:25:10Z",
+    "fin": "2026-09-28T03:29:30Z"
+  },
+  "vm": {
+    "mooc-web-server": {
+      "cpu_ocupada_pct": {
+        "n": 5,
+        "min": 5.8,
+        "media": 7.22,
+        "p95": 10.36,
+        "max": 10.36
+      },
+      "memoria_usada_pct": {
+        "n": 5,
+        "min": 30.08,
+        "media": 30.64,
+        "p95": 30.98,
+        "max": 30.98
+      },
+      "conexiones_tcp": {
+        "n": 5,
+        "min": 26.5,
+        "media": 27.9,
+        "p95": 30.5,
+        "max": 30.5
+      },
+      "procesos_top_nucleos_usados": {
+        "api": {
+          "n": 10,
+          "min": 1391.45,
+          "media": 21024.17,
+          "p95": 34942.05,
+          "max": 34942.05
+        },
+        "otelopscol": {
+          "n": 10,
+          "min": 6387.98,
+          "media": 8935.31,
+          "p95": 11403.57,
+          "max": 11403.57
+        },
+        "redis-server": {
+          "n": 10,
+          "min": 577.65,
+          "media": 3316.96,
+          "p95": 6012.79,
+          "max": 6012.79
+        },
+        "dockerd": {
+          "n": 10,
+          "min": 2787.02,
+          "media": 3760.24,
+          "p95": 5065.6,
+          "max": 5065.6
+        },
+        "containerd": {
+          "n": 10,
+          "min": 1154.84,
+          "media": 1985.8,
+          "p95": 3500.83,
+          "max": 3500.83
+        },
+        "fluent-bit": {
+          "n": 10,
+          "min": 0.0,
+          "media": 1474.57,
+          "p95": 2910.43,
+          "max": 2910.43
+        }
+      }
+    },
+    "mooc-worker-server": {
+      "cpu_ocupada_pct": {
+        "n": 5,
+        "min": 2.81,
+        "media": 2.89,
+        "p95": 3.02,
+        "max": 3.02
+      },
+      "memoria_usada_pct": {
+        "n": 5,
+        "min": 29.91,
+        "media": 30.06,
+        "p95": 30.29,
+        "max": 30.29
+      },
+      "conexiones_tcp": {
+        "n": 5,
+        "min": 28.5,
+        "media": 28.8,
+        "p95": 29.5,
+        "max": 29.5
+      },
+      "procesos_top_nucleos_usados": {
+        "otelopscol": {
+          "n": 10,
+          "min": 7333.19,
+          "media": 9791.13,
+          "p95": 12151.48,
+          "max": 12151.48
+        },
+        "redis-server": {
+          "n": 10,
+          "min": 1428.01,
+          "media": 5041.96,
+          "p95": 8326.42,
+          "max": 8326.42
+        },
+        "fluent-bit": {
+          "n": 10,
+          "min": 0.0,
+          "media": 1733.3,
+          "p95": 3499.87,
+          "max": 3499.87
+        },
+        "containerd": {
+          "n": 10,
+          "min": 753.79,
+          "media": 1291.27,
+          "p95": 1840.72,
+          "max": 1840.72
+        },
+        "worker": {
+          "n": 10,
+          "min": 507.55,
+          "media": 1007.94,
+          "p95": 1492.51,
+          "max": 1492.51
+        },
+        "containerd-shim-runc-v2": {
+          "n": 20,
+          "min": 0.0,
+          "media": 432.95,
+          "p95": 1325.84,
+          "max": 1325.84
+        }
+      }
+    }
+  },
+  "cloudsql": {
+    "cpu_pct": {
+      "n": 5,
+      "min": 9.66,
+      "media": 12.8,
+      "p95": 15.58,
+      "max": 15.58
+    },
+    "memoria_pct": {
+      "n": 5,
+      "min": 26.37,
+      "media": 26.66,
+      "p95": 26.84,
+      "max": 26.84
+    },
+    "conexiones_abiertas": {
+      "n": 5,
+      "min": 3.0,
+      "media": 4.4,
+      "p95": 6.0,
+      "max": 6.0
+    },
+    "transacciones_por_segundo": {
+      "n": 40,
+      "min": 0.0,
+      "media": 7.93,
+      "p95": 88.83,
+      "max": 93.3
+    }
+  },
+  "cola_y_api": {
+    "cola_pending": null,
+    "cola_antiguedad_s": null,
+    "scrape_up": {
+      "n": 10,
+      "min": 0.0,
+      "media": 0.5,
+      "p95": 1.0,
+      "max": 1.0
+    }
+  }
+}

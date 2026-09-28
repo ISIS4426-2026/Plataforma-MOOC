@@ -1,0 +1,29 @@
+==> 1/2 Copiando scripts/seeds/capacity_verificar_estado.sql a mooc-web-server
+capacity_verificar_estado | 1 kB |   1.4 kB/s | ETA: 00:00:00 | 100%
+==> 2/2 Aplicando el SQL desde la VM contra 10.171.240.3
+ estudiantes_con_envios | min_envios | max_envios | envios_totales 
+------------------------+------------+------------+----------------
+                     10 |          3 |          3 |             30
+(1 row)
+
+ inscripciones_activas 
+-----------------------
+                    10
+(1 row)
+
+ insignias_emitidas 
+--------------------
+                 10
+(1 row)
+
+ envios_duplicados_mismo_intento 
+---------------------------------
+                               0
+(1 row)
+
+ cuentas_de_carga 
+------------------
+              200
+(1 row)
+
+==> Listo: scripts/seeds/capacity_verificar_estado.sql aplicado.
