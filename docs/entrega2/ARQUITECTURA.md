@@ -433,7 +433,7 @@ estado releído después de cada respuesta exitosa.
 
 ---
 
-## 7. Dónde está cada cosa
+## 7. Dónde encuentras cada evidencia y soporte de arquitectura
 
 | | |
 | :--- | :--- |

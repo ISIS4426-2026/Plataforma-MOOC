@@ -4,14 +4,19 @@
 [![Docker Compose](https://img.shields.io/badge/Docker-Compose_v2-2496ED?style=flat&logo=docker)](https://www.docker.com/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16_Alpine-4169E1?style=flat&logo=postgresql)](https://www.postgresql.org/)
 [![Redis](https://img.shields.io/badge/Redis-7_Alpine-DC382D?style=flat&logo=redis)](https://redis.io/)
-[![MinIO S3](https://img.shields.io/badge/MinIO-S3_Storage-C72C48?style=flat&logo=minio)](https://min.io/)
-[![Mailpit](https://img.shields.io/badge/Mailpit-Email_Testing-FFA500?style=flat)](https://github.com/axllent/mailpit)
+[![MinIO S3](https://img.shields.io/badge/MinIO-S3_local-C72C48?style=flat&logo=minio)](https://min.io/)
+[![Mailpit](https://img.shields.io/badge/Mailpit-correo_local-FFA500?style=flat)](https://github.com/axllent/mailpit)
 [![OpenAPI 3.1](https://img.shields.io/badge/OpenAPI-3.1-6BA539?style=flat&logo=openapiinitiative)](https://swagger.io/specification/)
-[![Tests E2E](https://img.shields.io/badge/Tests_E2E-100%25_PASS_(216%2F216)-brightgreen?style=flat)](docs/e2e/REPORTE_BUGS_Y_CALIDAD_ETAPA.md)
+[![Google Cloud](https://img.shields.io/badge/Google_Cloud-us--east1-4285F4?style=flat&logo=googlecloud&logoColor=white)](https://cloud.google.com/)
+[![Terraform](https://img.shields.io/badge/Terraform-1.16-7B42BC?style=flat&logo=terraform)](https://www.terraform.io/)
+[![E2E en la nube](https://img.shields.io/badge/E2E_en_la_nube-61%2F61-brightgreen?style=flat)](docs/entrega2/evidencias/G3/README.md)
+[![Colecciones Postman](https://img.shields.io/badge/Postman-202_peticiones_%C2%B7_413_aserciones-FF6C37?style=flat&logo=postman&logoColor=white)](docs/postman/README.md)
 
 Plataforma web de **Cursos Masivos Abiertos en Línea (MOOC)** diseñada para una única organización operadora, desarrollada bajo una arquitectura de **Monolito Modular en Go con Workers Asíncronos Independientes**.
 
-Este repositorio contiene la implementación completa del backend, contratos OpenAPI 3.1, esquemas transaccionales de PostgreSQL, colas distribuidas Asynq/Redis, almacenamiento de objetos S3/MinIO, suite de observabilidad OpenTelemetry y colecciones automatizadas E2E en Postman/Newman.
+Este repositorio contiene la implementación completa del backend, contratos OpenAPI 3.1, esquemas transaccionales de PostgreSQL, colas distribuidas Asynq/Redis, almacenamiento de objetos, suite de observabilidad OpenTelemetry y colecciones automatizadas E2E en Postman/Newman.
+
+Desde la **Entrega 2** incluye además el despliegue en **Google Cloud Platform**: infraestructura como código con Terraform, dos máquinas virtuales, base de datos administrada, almacenamiento de objetos gestionado y el análisis de capacidad de la plataforma desplegada.
 
 ** Video Sustentación :  **  https://www.youtube.com/watch?v=0qUeBiy9yfE
 
@@ -23,6 +28,8 @@ Este repositorio contiene la implementación completa del backend, contratos Ope
 | :--- | :--- |
 | **URL de la aplicación** | **<https://34.24.52.111.sslip.io>** — `GET /api/v1/health` responde `200` cuando el entorno está encendido |
 | Documentación de la API | <https://34.24.52.111.sslip.io/api/docs> |
+| **Cómo desplegar y operar** | [`docs/GUIA_DE_DESPLIEGUE.md`](docs/GUIA_DE_DESPLIEGUE.md) §9 — el ciclo completo, de un commit a la nube |
+| Procedimientos de las VMs y recreación | [`infra/terraform/ADMINISTRACION.md`](infra/terraform/ADMINISTRACION.md) |
 | Documento de arquitectura | [`docs/entrega2/ARQUITECTURA.md`](docs/entrega2/ARQUITECTURA.md) |
 | Informe de capacidad (20%) | [`capacity-planning/pruebas_de_carga_entrega2.md`](capacity-planning/pruebas_de_carga_entrega2.md) |
 | Evidencias de la entrega | [`docs/entrega2/evidencias/`](docs/entrega2/evidencias/) |
@@ -70,7 +77,7 @@ La solución atiende un objetivo de escala inicial de hasta **50.000 usuarios re
 * **Roles Globales:**
   * **Administrador (`administrador`):** Control administrativo de usuarios, roles, estados, sesiones revocables, auditoría inmutable y protección del último administrador activo.
   * **Profesor (`profesor`):** Autoría y estructuración de cursos, previsualización de borradores, validación de publicación y gestión de versiones. Creado exclusivamente por administradores (el registro público de profesores está prohibido).
-  * **Estudiante (`estudiante`):** Autoregistro público con verificación de correo transaccional (Mailpit), inicio de sesión seguro, consumo de contenidos, presentación de quizzes con calificación en servidor y progreso validado.
+  * **Estudiante (`estudiante`):** Autoregistro público con verificación de correo transaccional (Mailpit en local, proveedor SMTP real en la nube), inicio de sesión seguro, consumo de contenidos, presentación de quizzes con calificación en servidor y progreso validado.
 * **Jerarquía Académica de 4 Niveles:**
   $$\text{Curso} \longrightarrow \text{Módulo} \longrightarrow \text{Unidad} \longrightarrow \text{Recurso}$$
 * **Guardrails Inquebrantables de Arquitectura ([`docs/PROJECT_KEY_ASPECTS.md`](docs/PROJECT_KEY_ASPECTS.md)):**
@@ -78,7 +85,7 @@ La solución atiende un objetivo de escala inicial de hasta **50.000 usuarios re
   2. **Progreso Verificado en Servidor:** Rechazo y auditoría de porcentajes enviados por clientes; avance computado mediante permanencia y heartbeats.
   3. **Inmutabilidad de Versiones Publicadas:** Los cursos publicados no se pueden mutar (retornan `409 Conflict`); la edición en MVP requiere despublicación temporal.
   4. **Identificadores Estables (`stable_id`):** Preservan la continuidad del progreso ante reordenamientos y versiones actualizadas.
-  5. **Cero Binarios en PostgreSQL:** Archivos multimedia y PDFs residen exclusivamente en MinIO/S3 y se acceden mediante URLs prefirmadas.
+  5. **Cero Binarios en PostgreSQL:** Archivos multimedia y PDFs residen exclusivamente en el almacenamiento de objetos —MinIO en local, Cloud Storage en la nube— y se acceden mediante URLs prefirmadas.
 
 ```
 ┌─────────────────┐       REST JSON / OpenAPI 3.1      ┌──────────────────────────────────┐
@@ -100,66 +107,86 @@ La solución atiende un objetivo de escala inicial de hasta **50.000 usuarios re
                                                        └──────────────────────────────────┘
 ```
 
+### La arquitectura desplegada es otra
+
+El diagrama de arriba es el **entorno local**: un solo host, con MinIO y Mailpit
+como sustitutos de servicios que en la nube son administrados. Desde la Entrega 2
+la plataforma corre además sobre GCP, y ahí el reparto cambia:
+
+| | Local (Docker Compose) | Nube (GCP, `us-east1`) |
+| :--- | :--- | :--- |
+| Cómputo | Un host, todos los contenedores | **Dos VMs**: `mooc-web-server` y `mooc-worker-server` |
+| Base de datos | Contenedor PostgreSQL 16 | **Cloud SQL**, sin IP pública, alcanzable solo desde la VPC |
+| Objetos | MinIO | **Dos buckets de Cloud Storage**: uno privado para originales, uno público para los derivados HLS |
+| Cola | Redis en el mismo host | Redis en el **Worker Server**, alcanzable por la red privada |
+| Correo | Mailpit | Proveedor SMTP real, con STARTTLS |
+| Entrada | `http://localhost:8080` | HTTPS con certificado, solo la VM web acepta tráfico de internet |
+
+**El modelo de componentes y el de despliegue completos, con sus diagramas y las
+decisiones que los explican, están en
+[`docs/entrega2/ARQUITECTURA.md`](docs/entrega2/ARQUITECTURA.md).** Esta sección
+solo sitúa la diferencia para que nadie tome el diagrama local por el desplegado.
+
 ---
 
 ## Estructura del Monorepo
 
 ```
 .
-├── api/                       # Contratos y especificación OpenAPI 3.1 (/api/v1)
-│   └── openapi.yaml
-├── cmd/                       # Puntos de entrada ejecutables (main.go)
-│   ├── api/                   # Servidor HTTP API REST
-│   └── worker/                # Procesador de tareas asíncronas en background
-├── docs/                      # Documentación arquitectónica, técnica y normativa
-│   ├── 2026-20 proyecto...pdf# Especificación técnica oficial del curso
-│   ├── DATABASE_DESIGN.md     # Modelo relacional y diagramas de base de datos
-│   ├── DATOS_SINTETICOS.md    # Catálogo detallado de entidades y semillas sintéticas
-│   ├── DOMINIO_ACADEMICO_IMPLEMENTACION.md # Autoría, jerarquía, auditoría y observabilidad: qué se hizo y por qué
-│   ├── GUIA_DE_DESPLIEGUE.md  # Guía exhaustiva de despliegue paso a paso
-│   ├── PLAN_DE_PRUEBAS_ETAPA.md # Plan de pruebas formal de la etapa (Sec. 6, 9 y 10.2)
-│   ├── PROJECT_KEY_ASPECTS.md # Directrices y guardrails arquitectónicos no negociables
-│   ├── e2e/                   # Evidencias y reportes de pruebas E2E
-│   │   ├── DEMO_SEGMENTOS_1_Y_2.md # Runbook para sustentación en vivo
-│   │   ├── REPORTE_BUGS_Y_CALIDAD_ETAPA.md # Certificación de Sección 10 y matriz de bugs
-│   │   ├── REPORTE_E2E_IDENTIDAD_Y_AUTORIA.md # Reporte 100% PASS de Newman
-│   │   └── evidencia/         # Respuestas JSON capturadas y logs de contenedores
-│   └── postman/               # Colecciones Postman v2.1 y entornos parametrizados
-│       ├── README.md          # Especificación de peticiones y aserciones Postman
-│       ├── collection_admin.postman_collection.json
-│       ├── collection_api.postman_collection.json
-│       ├── collection_authoring.postman_collection.json
-│       ├── mooc_docker.postman_environment.json
-│       └── mooc_local.postman_environment.json
-├── internal/                  # Código modular encapsulado (Hexagonal / Clean Architecture)
-│   ├── admin/                 # Casos de uso de administración de usuarios y roles
-│   ├── auth/                  # Casos de uso de autenticación, sesiones y recuperación
-│   ├── config/                # Carga de variables de entorno y validación
-│   ├── course/                # Casos de uso de autoría, jerarquía y validación de cursos
-│   ├── domain/                # Entidades puras y puertos (desacoplado de HTTP y Cloud)
-│   ├── http/                  # Adaptadores HTTP (handlers, router, middlewares, RBAC)
-│   ├── mailer/                # Adaptador de envío SMTP para Mailpit
-│   ├── observability/         # Tracing OpenTelemetry, métricas Prometheus y logs slog
-│   ├── postgres/              # Adaptadores de persistencia relacional PostgreSQL
-│   ├── structure/             # Gestión de módulos, unidades y recursos jerárquicos
-│   └── worker/                # Adaptador del procesador asíncrono con Asynq
-├── migrations/                # Scripts SQL de migración numerados (Up/Down reversibles)
-├── scripts/                   # Scripts de automatización, validación, linting y semillas
-│   ├── demo_segment4_idempotency.sh
-│   ├── demo_segments_1_and_2.sh
-│   ├── generate_e2e_report.go
-│   ├── init-db.sh             # Aplicador automático de migraciones en PostgreSQL
-│   ├── lint.sh                # Linter estático (Go fmt, vet, golangci-lint, Spectral)
-│   ├── run_e2e_identity_authoring.sh # Ejecutor E2E y cosechador de evidencias
-│   ├── seed.sh                # Script CLI de carga, limpieza y status de datos
-│   ├── seeds/                 # Datos determinísticos en SQL
-│   └── validate_stage.sh      # Suite integral de verificación de la etapa
-├── Dockerfile.api             # Imagen multi-stage en Go 1.24 para API Server
-├── Dockerfile.worker          # Imagen multi-stage en Go 1.24 para Worker
-├── docker-compose.yml         # Pila completa de infraestructura multi-servicio
-├── Makefile                   # Automatización de tareas de desarrollo y pruebas
-├── go.mod                     # Dependencias del módulo Go
-└── README.md                  # Este documento
+├── api/                       # Contrato OpenAPI 3.1 de /api/v1
+├── capacity-planning/         # Análisis de capacidad (20% de la Entrega 2)
+│   ├── pruebas_de_carga_entrega2.md  # Informe oficial consolidado
+│   ├── escenario1.md          # Plan del escenario académico
+│   └── escenario2.md          # Plan del escenario multimedia
+├── cmd/                       # Puntos de entrada ejecutables
+│   ├── api/                   # Servidor HTTP
+│   ├── worker/                # Procesador asíncrono
+│   └── seed-media/            # Generador del conjunto multimedia de prueba
+├── docs/
+│   ├── entrega2/              # Documentación de la Entrega 2
+│   │   ├── ARQUITECTURA.md    # Documento de arquitectura desplegada (I1)
+│   │   ├── CONFIGURACION_Y_COSTOS.md  # Proveedor, perfiles, estimación y presupuesto
+│   │   ├── NOTAS_TECNICAS.md  # Hallazgos transversales, con el issue que resuelve cada uno
+│   │   └── evidencias/        # Evidencia por issue (A5 … I3)
+│   ├── e2e/                   # Reportes y evidencias E2E de la Entrega 1
+│   ├── postman/               # Colecciones v2.1 y los tres entornos
+│   │   ├── mooc_cloud.postman_environment.json   # Contra el despliegue en GCP
+│   │   ├── mooc_docker.postman_environment.json  # Contra Compose
+│   │   └── mooc_local.postman_environment.json   # Contra binarios locales
+│   ├── DATABASE_DESIGN.md · DATOS_SINTETICOS.md · PROJECT_KEY_ASPECTS.md
+│   └── GUIA_DE_DESPLIEGUE.md  # Despliegue local paso a paso, y ruta a la nube
+├── infra/                     # Infraestructura de la Entrega 2
+│   ├── terraform/             # Aprovisionamiento declarativo de GCP
+│   │   ├── network.tf · database.tf · storage.tf · compute.tf · mail.tf
+│   │   ├── README.md          # Cómo trabaja el equipo sobre el mismo estado
+│   │   └── ADMINISTRACION.md  # Tareas de una vez, operación de las VMs y recreación
+│   └── ops-agent/             # Configuración del agente: métricas y logs de contenedores
+├── internal/                  # Código modular (puertos y adaptadores)
+│   ├── domain/                # Entidades y reglas; sin dependencias de infraestructura
+│   ├── admin/ · auth/ · course/ · structure/   # Identidad y autoría
+│   ├── enrollment/ · quiz/ · progress/         # Inscripción, evaluación y avance
+│   ├── media/ · transcode/                     # Carga directa y derivados HLS
+│   ├── http/                  # Router, handlers y los middlewares (CSRF, límites, idempotencia)
+│   ├── postgres/ · cache/ · storage/ · mailer/ # Adaptadores: base, Redis, objetos y SMTP
+│   ├── observability/         # Trazas, métricas y logs estructurados
+│   ├── config/                # Carga y validación de la configuración de arranque
+│   └── worker/                # Consumidor de la cola asynq
+├── migrations/                # Migraciones SQL numeradas y reversibles
+├── scripts/
+│   ├── e2e_cloud/             # Recorrido E2E continuo contra la nube (make test-e2e-cloud)
+│   ├── prepare_web_env.sh     # Genera el .env del Web Server desde Secret Manager
+│   ├── prepare_worker_env.sh  # Ídem para el Worker Server
+│   ├── publish_images.sh      # Publica las imágenes con el SHA del commit
+│   ├── migrate.sh             # Aplica el esquema contra Cloud SQL
+│   ├── test_postman_cloud.sh  # Las siete colecciones contra el despliegue
+│   ├── h2_nube.sh · h3_nube.sh · run_escenario1.sh   # Campañas de carga
+│   ├── capacity_escenario2/ · pilot_escenario2/      # Motor del escenario 2
+│   ├── seed.sh · seeds/       # Datos sintéticos
+│   └── lint.sh · validate_stage.sh · verify_g4.sh    # Calidad y verificación
+├── docker-compose.yml         # Entorno local completo (incluye MinIO y Mailpit)
+├── docker-compose.prod.yml    # Web Server en la nube
+├── docker-compose.worker.yml  # Worker Server en la nube
+└── nginx.conf                 # Proxy inverso con TLS del despliegue
 ```
 
 ---
@@ -260,7 +287,7 @@ make seed-status
 
 ## Importación y Ejecución de Colecciones Postman
 
-La suite de pruebas Postman / Newman evalúa exhaustivamente el sistema con **194 casos de prueba únicos, 225 peticiones ejecutadas y 415 aserciones automáticas**.
+La suite de pruebas Postman / Newman evalúa exhaustivamente el sistema con **202 peticiones y 413 aserciones automáticas** repartidas en siete colecciones.
 
 ### Opción A: Ejecución Automatizada desatendida con Newman en Docker (Recomendado)
 **No requiere instalar nada en su máquina.** Se ejecuta dentro de la red de Docker Compose con un solo comando:
@@ -351,7 +378,7 @@ El archivo `Makefile` provee comandos estandarizados para asegurar la calidad de
 
 ## Índice de Documentación y Enlaces Oficiales
 
-* [Guía Detallada de Despliegue y Operación (`docs/GUIA_DE_DESPLIEGUE.md`)](docs/GUIA_DE_DESPLIEGUE.md): Manual paso a paso para personas que no participaron del desarrollo.
+* [Guía Detallada de Despliegue y Operación (`docs/GUIA_DE_DESPLIEGUE.md`)](docs/GUIA_DE_DESPLIEGUE.md): Manual paso a paso para personas que no participaron del desarrollo. Cubre el entorno **local** con Docker Compose y, en su §9, la **ruta del despliegue en la nube**: cómo comprobar que está viva, cómo se despliega un cambio y cómo probar contra ella.
 * [Directrices Clave de Arquitectura (`docs/PROJECT_KEY_ASPECTS.md`)](docs/PROJECT_KEY_ASPECTS.md): Reglas no negociables y guardrails de seguridad.
 * [Diseño de Base de Datos (`docs/DATABASE_DESIGN.md`)](docs/DATABASE_DESIGN.md): Esquema relacional, diagrama ER y política de ordenamiento sin colisiones.
 * [Dominio Académico, Auditoría y Observabilidad — Implementación (`docs/DOMINIO_ACADEMICO_IMPLEMENTACION.md`)](docs/DOMINIO_ACADEMICO_IMPLEMENTACION.md): Qué se construyó y por qué para la autoría de cursos, su jerarquía interna, la auditoría inmutable y la observabilidad básica (issues #15–#21).
@@ -360,7 +387,7 @@ El archivo `Makefile` provee comandos estandarizados para asegurar la calidad de
 * [Guía de Demostración para Evaluadores: Segmentos 1 y 2 (`docs/e2e/DEMO_SEGMENTOS_1_Y_2.md`)](docs/e2e/DEMO_SEGMENTOS_1_Y_2.md): Runbook interactivo para sustentar la entrega.
 * [Guion Técnico y Libreto del Video de Demostración (`docs/e2e/README_GUION_VIDEO_DEMO.md`)](docs/e2e/README_GUION_VIDEO_DEMO.md): Guion completo para grabación del video cubriendo los 9 segmentos de la Sección 10.2.
 * [Catálogo de Datos Sintéticos (`docs/DATOS_SINTETICOS.md`)](docs/DATOS_SINTETICOS.md): Semillas determinísticas, credenciales y cursos.
-* [Especificación de Colecciones Postman (`docs/postman/README.md`)](docs/postman/README.md): Detalle técnico de las 194 peticiones y 415 aserciones.
+* [Especificación de Colecciones Postman (`docs/postman/README.md`)](docs/postman/README.md): Detalle técnico de las 202 peticiones y 413 aserciones, colección por colección.
 * [Infraestructura como Código (`infra/terraform/README.md`)](infra/terraform/README.md): Aprovisionamiento con Terraform, estado remoto compartido y **cómo trabaja el equipo sobre la misma infraestructura sin conflictos**. Instalación para Windows, macOS y Linux.
 * [Administración del Proyecto de GCP (`infra/terraform/ADMINISTRACION.md`)](infra/terraform/ADMINISTRACION.md): Tareas de una sola vez — bootstrap del estado remoto, altas y bajas de integrantes.
 * [**Arquitectura en la Nube — Entrega 2** (`docs/entrega2/ARQUITECTURA.md`)](docs/entrega2/ARQUITECTURA.md): **Documento de arquitectura de la entrega.** Correspondencia con los servicios de GCP, modelo de componentes, modelo de despliegue, decisiones y adaptaciones, y diferencias frente a la arquitectura objetivo. Los diagramas son Mermaid y su bloque de código es el archivo fuente.

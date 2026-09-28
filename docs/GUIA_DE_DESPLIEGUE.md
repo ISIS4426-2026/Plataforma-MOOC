@@ -231,7 +231,7 @@ Este comando ejecuta secuencialmente las colecciones de Identidad, Administraci�
 │              assertions │               216 │                0 │
 └─────────────────────────┴───────────────────┴──────────────────┘
 ```
-**Total: 216 aserciones aprobadas con 0 fallos (100% PASS).**
+**Total de la suite: 202 peticiones y 413 aserciones** repartidas en siete colecciones (identidad 44, progreso 31, autoría 30, quizzes 28, multimedia 25, administración 23, inscripciones 21).
 
 ---
 
@@ -377,6 +377,36 @@ curl -s https://34.24.52.111.sslip.io/api/v1/health
 Si no responde, **probablemente no está caída: está apagada.** El entorno se apaga
 cuando no se usa, por la política de control de costos. El procedimiento para
 encenderlo está en `ADMINISTRACION.md`.
+
+### Cómo se despliega un cambio en la nube
+
+No se hace con `docker compose up` desde tu portátil. El ciclo completo, de un
+commit a la nube, son cuatro pasos y **cada uno ocurre en un sitio distinto**:
+
+| | Paso | Dónde se ejecuta |
+| :--- | :--- | :--- |
+| 1 | `terraform apply` — solo si cambió la infraestructura | Tu máquina, **desde `main` ya mezclado** |
+| 2 | `./scripts/publish_images.sh` — construye y publica con el SHA del commit | Tu máquina, con el árbol limpio |
+| 3 | Actualizar `IMAGE_TAG` en `/etc/mooc/web.conf` y `/etc/mooc/worker.conf` | Dentro de cada VM, por SSH con túnel IAP |
+| 4 | `sudo systemctl restart mooc-web.service` y `mooc-worker.service` | Dentro de cada VM |
+
+Tres cosas que no son obvias y cuestan una tarde si se ignoran:
+
+- **El `apply` va desde `main`, nunca desde una rama.** El estado de Terraform es
+  compartido pero el código no: aplicar desde una rama que no tiene el archivo de
+  otra persona hace que Terraform proponga **destruir** sus recursos, y el `apply`
+  no falla al hacerlo. Por eso hay que leer la última línea del plan.
+- **Las dos VMs van al mismo `IMAGE_TAG`.** La API y el worker comparten esquema y
+  convenciones de claves en el bucket; mezclarlos es pedir un fallo que no se
+  parece a su causa.
+- **El `.env` de cada VM no se edita a mano.** Lo genera un script versionado
+  (`prepare_web_env.sh` y `prepare_worker_env.sh`) que lee los secretos de Secret
+  Manager con la identidad de la máquina. Editarlo a mano funciona hasta el
+  siguiente reinicio, que lo regenera.
+
+El procedimiento detallado, incluida la recreación completa del entorno desde
+cero, está en
+[`../infra/terraform/ADMINISTRACION.md`](../infra/terraform/ADMINISTRACION.md).
 
 ### Probar contra la nube
 

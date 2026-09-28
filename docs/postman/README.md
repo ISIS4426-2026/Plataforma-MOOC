@@ -31,7 +31,7 @@ La carpeta `docs/postman/` contiene los siguientes artefactos:
 | [`mooc_cloud.postman_environment.json`](./mooc_cloud.postman_environment.json) | Entorno para ejecuciones contra el despliegue real en la nube (issue #128, G2): `baseUrl` es el origen HTTPS público (`https://34.24.52.111.sslip.io`); `mailpitUrl` va deshabilitado porque Mailpit no existe fuera de local. Detalle en [`docs/entrega2/evidencias/G2/README.md`](../entrega2/evidencias/G2/README.md). |
 | [`README.md`](./README.md) | Documentación técnica integral, matrices de peticiones/aserciones y guía de ejecución. |
 
-**Total de la suite**: **194 peticiones HTTP** definidas (225 ejecutadas) y **415 aserciones automatizadas** con **0 fallos**.
+**Total de la suite**: **202 peticiones HTTP** definidas y **413 aserciones automatizadas** con **0 fallos**.
 
 ---
 
@@ -389,7 +389,7 @@ make demo-segments-1-2
 
 Como cierre formal del aseguramiento de calidad de la etapa, se ejecutó la suite Postman completa contra la infraestructura en producción local (Docker Compose):
 
-* **Ejecución Consolidada:** 112 peticiones ejecutadas, 216 aserciones automáticas aprobadas, 0 fallos (100.0% de éxito).
+* **Ejecución Consolidada (Entrega 1, registro histórico):** 112 peticiones ejecutadas, 216 aserciones aprobadas, 0 fallos. Corresponde al alcance de esa entrega; la suite actual son 202 peticiones y 413 aserciones.
 * **Reporte y Matriz de Bugs:** Clasificación formal de bugs por severidad (Crítica, Alta, Media, Baja), impacto, pasos de reproducción con `curl` y responsable asignado.
 * **Trazabilidad a Issues:** Seguimiento documentado de cada hallazgo crítico (con issues #12, #13, #14, #16, #19, #20 y de mejora continua #29, #30).
 * **Certificación de la Sección 10:** Auditoría formal y dictamen que certifica la **ausencia total de incumplimientos críticos** en el sistema desplegado.

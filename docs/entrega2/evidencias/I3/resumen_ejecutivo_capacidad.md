@@ -6,6 +6,35 @@
 
 ---
 
+## 0. Dónde se degrada el sistema, por qué y a partir de qué capacidad
+
+| | Escenario 1 · actividad académica | Escenario 2 · multimedia |
+| :--- | :--- | :--- |
+| **¿Se degradó?** | **No**, en el rango probado | **Sí** |
+| **¿Dónde?** | En ningún componente del servidor; se alarga la cola de latencia del cliente | En el **Worker Server**, durante la transcodificación |
+| **¿Por qué?** | Por el **establecimiento de conexiones TCP/TLS nuevas**, no por procesar | La tasa de servicio está topada por vCPU (`WORKER_CONCURRENCY=2` sobre 2 vCPU); cuando λ > μ la cola acumula |
+| **¿A partir de qué capacidad?** | No se encontró. **Máximo probado: 200 usuarios / 32,8 pet./s** | **8 profesores simultáneos**: la espera en cola p95 salta de 303 ms a 913 ms, y a 3 035 ms con 12 |
+| **¿Cómo se manifiesta?** | p95 global ≈ 380 ms, plano de 10 a 200 usuarios; ≈ 117 ms sobre conexiones abiertas | **Como espera, no como error**: 0 fallos, 0 en DLQ; el tiempo hasta `completed` sube de 4,3 s a 6,1 s |
+| **Descartado como límite** | CPU del web (12–34 %), CPU de Cloud SQL (máx. 27 %), memoria (≈ 31 %) | API (3–18 ms), Cloud Storage (30–48 MB/s), base (< 10 ms) |
+
+**En el escenario 1 lo que degrada no es el servidor.** Sobre conexiones ya
+abiertas el p95 es ≈ 117 ms y no se mueve con la carga; el p95 global sube por el
+≈ 9,5 % de peticiones que abren conexión nueva (p95 de conexión ≈ 1 285 ms). Por
+eso **200 usuarios es el máximo probado y no la capacidad máxima**: ningún nivel
+activó los criterios de parada y la serie de presión no se ejecutó.
+
+**En el escenario 2 el límite es aritmético.** Dos vCPU transcodifican dos videos
+a la vez y cada uno tarda de 4 a 6 s, así que a partir de ocho llegadas
+simultáneas la cola crece. El trabajo no se pierde ni se rechaza: espera. Al
+cesar la ráfaga, la cola se drenó completa en 6,4 s.
+
+**Primer recurso que se agotaría** con los dos escenarios a la vez: la CPU de
+Cloud SQL (27 % con 32,8 pet./s; una extrapolación lineal —estimación, no
+medición— la pondría en 80 % hacia las 240 pet./s). Segundo candidato: el pool de
+conexiones de la API, que rozó su tope una vez (27 de ≈ 29).
+
+---
+
 ## 1. Cuadro Comparativo Integral de Ambos Escenarios
 
 ```mermaid
@@ -26,7 +55,8 @@ flowchart LR
         b1 --> b2 --> b3
     end
 
-    a3 --> eco["La API nunca fue el límite<br/>firma 4 ms · confirmación 9 ms"]
+    eco["La API nunca fue el límite<br/>firma 4 ms · confirmación 9 ms"]
+    a3 --> eco
     b3 --> eco
 
     ev1["Evolución: ssl_session_cache<br/>y HTTP/2 en nginx"]
