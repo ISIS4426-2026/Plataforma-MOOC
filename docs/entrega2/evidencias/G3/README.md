@@ -7,19 +7,17 @@ Corrida del **2026-09-27** contra `https://34.24.52.111.sslip.io`, proyecto GCP
 go run ./scripts/e2e_cloud      # o: make test-e2e-cloud
 ```
 
-**61 pasos verificados · 59 en verde · 2 fallos · 1 paso declarado fuera de
+**61 pasos verificados · 61 en verde · 0 fallos · 1 paso declarado fuera de
 alcance.**
 
-Los dos fallos que quedan son el mismo defecto abierto (#167) y no están en el
-código de la aplicación. La verificación encontró **cuatro defectos en total**:
-tres ya corregidos y verificados en esta misma corrida, uno abierto.
+La verificación encontró **cuatro defectos**, ninguno en la lógica de negocio.
+Los cuatro están corregidos y comprobados en esta misma corrida.
 
 | | |
 | :--- | :--- |
 | Tabla completa paso a paso | [`resultados.md`](./resultados.md) — la genera el runner, no se edita a mano |
 | Registro íntegro de la corrida | [`corrida_e2e_cloud.txt`](./corrida_e2e_cloud.txt) |
-| Defecto abierto | [#167](https://github.com/ISIS4426-2026/Plataforma-MOOC/issues/167) — el prefijo `hls/` no admite lectura sin firma |
-| Defectos corregidos | [#166](https://github.com/ISIS4426-2026/Plataforma-MOOC/issues/166) y sus dos derivados; notas 19, 20 y 21 de [`NOTAS_TECNICAS.md`](../../NOTAS_TECNICAS.md) |
+| Defectos encontrados y corregidos | [#166](https://github.com/ISIS4426-2026/Plataforma-MOOC/issues/166) y sus dos derivados, [#167](https://github.com/ISIS4426-2026/Plataforma-MOOC/issues/167); notas 1b, 19, 20 y 21 de [`NOTAS_TECNICAS.md`](../../NOTAS_TECNICAS.md) |
 
 ---
 
@@ -54,7 +52,7 @@ numerador y el denominador del progreso.
 | **1. Registro, verificación de correo y login** | 8 + 1 ℹ️ | ✅ | Registro real con entrega SMTP aceptada; la cuenta sin verificar no entra; token inválido rechazado sin distinguir la causa; las cuatro sesiones sembradas se emiten con su rol |
 | **2. Roles, propiedad y accesos denegados** | 8 | ✅ | Estudiante no crea cursos (403); catálogo público sin el borrador; contenido 401 sin sesión y 403 sin inscripción; autor y administrador sí leen; **otro profesor no edita un curso ajeno** — la propiedad manda sobre el rol |
 | **3. Autoría y publicación** | 15 | ✅ | El curso vacío acumula los dos errores de validación y no se publica; posiciones base 0 en módulo, unidad y recursos; publicación con criterio de aprobación; inmutabilidad `409` con el título intacto; el curso aparece en el catálogo |
-| **4. Carga multimedia, procesamiento y consumo** | 12 | ⚠️ 10/12 | Firma V4, carga directa al bucket sin pasar por la API, confirmación idempotente, original legible con firma e **inaccesible sin ella**. El worker de la otra VM transcodifica a HLS en **10 s**. Sigue rojo el consumo público del manifiesto (#167) |
+| **4. Carga multimedia, procesamiento y consumo** | 12 | ✅ | Firma V4, carga directa al bucket sin pasar por la API, confirmación idempotente, original legible con firma e **inaccesible sin ella**. El worker de la otra VM transcodifica a HLS en **10 s** y un reproductor consume el manifiesto sin firma desde el bucket de derivados |
 | **5. Inscripción, quiz idempotente y progreso** | 12 | ✅ | Inscripción activa; el estudiante no ve la clave de respuestas; envío calificado 100/aprobado; **reenvío con la misma `Idempotency-Key` devuelve el mismo `submission_id` y un solo envío en el historial**; progreso 0 → 1/3 → 2/3 → 3/3 con insignia; el latido repetido no infla el avance; el autor no acumula progreso |
 | **6. Insignia y verificación pública** | 5 | ✅ | El dueño lee su insignia con `ETag` y `304` condicional; la de otra persona responde `404`, no `403`; **la verificación pública sin sesión confirma la insignia nombrando el curso y sin identificar al estudiante**; código inexistente `404` |
 
@@ -73,15 +71,16 @@ de contraseña y rechazo de la contraseña anterior— está verificado a mano e
 
 ## Los cuatro defectos que encontró
 
-Ninguno estaba en la lógica de negocio. Tres eran de despliegue y configuración,
-encadenados de tal forma que cada uno tapaba al siguiente; el cuarto es una
-decisión de infraestructura que resultó no ser aplicable.
+Ninguno estaba en la lógica de negocio. Tres eran de despliegue y configuración;
+el cuarto, una decisión de infraestructura que resultó no ser aplicable tal como
+estaba escrita. **Los cuatro están corregidos y comprobados en esta corrida.**
 
-**Los tres primeros están corregidos y verificados en esta corrida.** Que se
-encadenaran es lo interesante: mientras `REDIS_URL` apuntaba al Redis local, la
-API encolaba en el vacío y **nada fallaba visiblemente**, así que ni el worker
-ausente ni su arranque imposible ni el permiso del volumen se podían ver. Cada
-arreglo destapó el siguiente.
+Lo interesante de los tres primeros es que se encadenaban: mientras `REDIS_URL`
+apuntaba al Redis local, la API encolaba en el vacío y **nada fallaba
+visiblemente**, así que ni el worker ausente, ni su arranque imposible, ni el
+permiso del volumen se podían ver. Cada arreglo destapó el siguiente. Un solo
+síntoma —un video que se queda en `pending`— tenía cuatro causas apiladas, y las
+tres primeras no dejaban ni una línea de error en ningún log.
 
 ### #166 — La API encolaba en un Redis que ningún worker lee
 
@@ -135,9 +134,9 @@ juntas.
 declara, que hereda su propiedad al inicializarse. Ni `chmod 777` ni correr como
 root. Nota 21.
 
-### #167 — El prefijo `hls/` no es legible sin firma, y con acceso uniforme no puede serlo
+### #167 — Los derivados no eran legibles sin firma, y como prefijo no podían serlo
 
-**El único que queda abierto**, y el único que no es de despliegue.
+El único que no era de despliegue.
 
 La nota 1b decidió servir `hls/` sin firma y dejar `originals/` privado, y encargó
 a C3 replicarlo en el bucket administrado. `storage.tf` no lo hace, y **no puede
@@ -153,9 +152,26 @@ GET /hls/no-existe-a-proposito/master.m3u8   → 403   (404 si fuera público)
 GET /originals/no-existe/x.mp4               → 403   (correcto, es privado)
 ```
 
-No se corrige aquí: las tres salidas reales están evaluadas en #167 y la que no
-degrada la postura de seguridad —un bucket aparte para los derivados— es un
-cambio de C3/C4, no de una verificación.
+**Corregido separando los derivados a su propio bucket**,
+`plataforma-mooc-entrega2-hls`, de lectura pública sin condiciones porque el
+bucket entero es material derivado. El de media no cambia: los originales, los
+documentos y las miniaturas conservan `public_access_prevention = "enforced"`.
+El worker recibe el destino en `MEDIA_HLS_BUCKET`; vacío significa un solo
+bucket, que es como sigue funcionando el entorno local con MinIO.
+
+Comprobado sobre el contenido real que produjo esta corrida, las tres capas que
+un reproductor recorre:
+
+```
+GET /hls/<stable_id>/master.m3u8   → 200  dos variantes, 640x360 y 1280x720
+GET /hls/<stable_id>/720p.m3u8     → 200  #EXT-X-PLAYLIST-TYPE:VOD
+GET /hls/<stable_id>/720p_0000.ts  → 200  750 308 bytes, video/mp2t
+```
+
+Que la variante resuelva es justamente lo que fallaba: el reproductor la pide por
+ruta relativa y no hereda la firma. Se descartaron las otras dos salidas —ACL por
+objeto degrada la postura de seguridad, y servir `hls/` por el proxy metería todo
+el tráfico de video por la VM web y falsearía las mediciones de H4 y H5.
 
 ## Dos cosas que el runner hace a propósito
 
