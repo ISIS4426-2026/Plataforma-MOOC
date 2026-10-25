@@ -55,8 +55,13 @@ func main() {
 		bucket    = flag.String("bucket", "plataforma-mooc-entrega2-media", "bucket privado de originales, documentos y miniaturas")
 		hlsBucket = flag.String("bucket-hls", "plataforma-mooc-entrega2-hls", "bucket de derivados HLS, de lectura pública (#167)")
 		videoPath = flag.String("video", "docs/media/clase.mp4", "mp4 real que se sube en el tramo de multimedia")
-		outDir    = flag.String("salida", "docs/entrega2/evidencias/G3", "directorio donde se escribe la evidencia")
-		wait      = flag.Duration("espera", 4*time.Minute, "cuánto esperar a que el worker termine la transcodificación")
+		docPath   = flag.String("documento", "docs/media/guia.pdf", "pdf real que se sube en el tramo de documentos")
+		imgPath   = flag.String("imagen", "docs/media/diagrama.png", "imagen real que se sube en el tramo de documentos")
+		// La evidencia de la Entrega 2 esta congelada: es el registro que se
+		// califico. Una corrida de hoy tiene mas pasos que aquella, asi que
+		// escribe en la entrega en curso y no sobre docs/entrega2/evidencias/G3.
+		outDir = flag.String("salida", "docs/entrega3/evidencias/correcciones-entrega1", "directorio donde se escribe la evidencia")
+		wait   = flag.Duration("espera", 4*time.Minute, "cuánto esperar a que el worker termine la transcodificación")
 	)
 	flag.Parse()
 
@@ -77,6 +82,16 @@ func main() {
 	video, err := os.ReadFile(filepath.Join(root, filepath.FromSlash(*videoPath)))
 	if err != nil {
 		fatal(fmt.Errorf("leer el video de prueba: %w", err))
+	}
+
+	doc, err := os.ReadFile(filepath.Join(root, filepath.FromSlash(*docPath)))
+	if err != nil {
+		fatal(fmt.Errorf("leer el documento de prueba: %w", err))
+	}
+
+	img, err := os.ReadFile(filepath.Join(root, filepath.FromSlash(*imgPath)))
+	if err != nil {
+		fatal(fmt.Errorf("leer la imagen de prueba: %w", err))
 	}
 
 	logPath := filepath.Join(root, filepath.FromSlash(*outDir), "corrida_e2e_cloud.txt")
@@ -110,7 +125,7 @@ func main() {
 	fmt.Fprintf(r.log, "Bucket  : %s\n", *bucket)
 	fmt.Fprintf(r.log, "Inicio  : %s\n", r.started.Format(time.RFC3339))
 
-	journey(r, *bucket, *hlsBucket, video, *wait)
+	journey(r, *bucket, *hlsBucket, video, doc, img, *wait)
 
 	tablePath := filepath.Join(root, filepath.FromSlash(*outDir), "resultados.md")
 	if err := r.writeTable(tablePath, origin); err != nil {
@@ -131,7 +146,7 @@ func main() {
 
 // journey walks the six flows in the order a real course lives through them, so
 // each one inherits the state the previous one left behind.
-func journey(r *run, bucket, hlsBucket string, video []byte, wait time.Duration) {
+func journey(r *run, bucket, hlsBucket string, video, doc, img []byte, wait time.Duration) {
 	bucketOrigin := "https://storage.googleapis.com/" + bucket
 	// Los derivados viven en su propio bucket, que es el unico publico (#167).
 	hlsOrigin := "https://storage.googleapis.com/" + hlsBucket
@@ -476,6 +491,103 @@ func journey(r *run, bucket, hlsBucket string, video []byte, wait time.Duration)
 	r.check("Un reproductor consume el manifiesto HLS sin firma", res, 200,
 		"el maestro declara sus variantes por ruta relativa",
 		strings.Contains(body, "#EXT-X-STREAM-INF"))
+
+	// ---- documentos e imágenes ---------------------------------------------
+	//
+	// Este tramo no existía, y esa ausencia es la que dejó pasar el defecto que
+	// encontró la revisión de la Entrega 1: el worker enrutaba cualquier recurso
+	// a la canalización HLS, así que a ffprobe se le pedía encontrar un flujo de
+	// vídeo dentro de un PDF. Respondía «file carries no video or audio stream»,
+	// que es un fallo permanente, y el recurso quedaba en failed para siempre.
+	//
+	// Toda la cobertura previa subía sólo mp4, así que el camino de documentos
+	// nunca se ejercitó. Estas comprobaciones son las que faltaban.
+
+	r.flowIs("4b. Documentos e imágenes sin transcodificación")
+
+	for _, d := range []struct {
+		nombre    string
+		tipo      string
+		fichero   string
+		mime      string
+		bytes     []byte
+		prefijo   string
+		etiqueta  string
+		descargar bool
+	}{
+		{"Guía de la unidad", "pdf", "guia.pdf", "application/pdf", doc, "documents/", "PDF", true},
+		{"Diagrama de la arquitectura", "image", "diagrama.png", "image/png", img, "thumbnails/", "imagen", false},
+	} {
+		recurso := createChild(r, professor, "POST", "/api/v1/units/"+unit.ID+"/resources",
+			map[string]any{
+				"title": d.nombre, "type": d.tipo,
+				"is_visible": true, "is_mandatory": false, "allow_download": d.descargar,
+			}, fmt.Sprintf("Recurso de %s, visible y no obligatorio", d.etiqueta))
+		if recurso.ID == "" {
+			continue
+		}
+
+		var firma struct {
+			UploadURL   string `json:"upload_url"`
+			ObjectKey   string `json:"object_key"`
+			ContentType string `json:"content_type"`
+		}
+		res = r.api.do("POST", "/api/v1/media/presigned-url", professor, map[string]any{
+			"resource_id": recurso.ID, "filename": d.fichero,
+			"mime_type": d.mime, "file_size_bytes": len(d.bytes),
+		}, nil)
+		_ = res.into(&firma)
+		quiero := d.prefijo + recurso.StableID + "/"
+		if !r.check(fmt.Sprintf("La API firma la carga del %s bajo %s", d.etiqueta, d.prefijo), res, 200,
+			fmt.Sprintf("content_type=%q object_key bajo %s", firma.ContentType, quiero),
+			firma.ContentType == d.mime && strings.HasPrefix(firma.ObjectKey, quiero)) {
+			continue
+		}
+
+		res = r.api.absolute("PUT", firma.UploadURL, bytes.NewReader(d.bytes),
+			map[string]string{"Content-Type": d.mime})
+		r.check(fmt.Sprintf("El %s sube directo al bucket con la URL firmada", d.etiqueta), res, 200,
+			fmt.Sprintf("%d bytes aceptados por Cloud Storage", len(d.bytes)), res.err == nil)
+
+		var confirmado struct {
+			ProcessingStatus string `json:"processing_status"`
+		}
+		res = r.api.do("POST", "/api/v1/media/uploads/"+recurso.ID+"/complete", professor,
+			map[string]any{"object_key": firma.ObjectKey}, nil)
+		_ = res.into(&confirmado)
+		r.check(fmt.Sprintf("Confirmar la carga del %s encola su procesamiento", d.etiqueta), res, 202,
+			fmt.Sprintf("processing_status=%q", confirmado.ProcessingStatus),
+			confirmado.ProcessingStatus == "pending")
+
+		// El corazón de la corrección. Antes de ella este sondeo habría acabado
+		// en "failed" pasara el tiempo que pasara.
+		estado, tardo := waitForProcessing(r, professor, unit.ID, recurso.ID, wait)
+		r.check(fmt.Sprintf("El %s queda disponible sin pasar por el transcodificador", d.etiqueta),
+			res, 202,
+			fmt.Sprintf("processing_status=%q tras %s", estado, tardo.Round(time.Second)),
+			estado == "completed")
+
+		var descarga struct {
+			DownloadURL string `json:"download_url"`
+		}
+		res = r.api.do("GET", "/api/v1/media/resources/"+recurso.ID+"/download-url", professor, nil, nil)
+		_ = res.into(&descarga)
+		if r.check(fmt.Sprintf("El autor obtiene URL firmada de lectura del %s", d.etiqueta), res, 200,
+			"la URL lleva firma V4", strings.Contains(descarga.DownloadURL, "X-Goog-Signature")) &&
+			descarga.DownloadURL != "" {
+
+			res = r.api.absolute("GET", descarga.DownloadURL, nil, nil)
+			r.check(fmt.Sprintf("El %s se lee con la firma y devuelve los bytes subidos", d.etiqueta),
+				res, 200,
+				fmt.Sprintf("Content-Length=%s frente a %d subidos",
+					res.header.Get("Content-Length"), len(d.bytes)),
+				res.header.Get("Content-Length") == fmt.Sprint(len(d.bytes)))
+		}
+
+		res = r.api.absolute("GET", bucketOrigin+"/"+firma.ObjectKey, nil, nil)
+		r.check(fmt.Sprintf("El mismo %s sin firma es inaccesible", d.etiqueta), res, 403,
+			fmt.Sprintf("el prefijo %s no es legible de forma anónima", d.prefijo), res.err == nil)
+	}
 
 	// ---- publicación -------------------------------------------------------
 

@@ -14,6 +14,12 @@ import (
 	"time"
 
 	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/domain"
+	// The task-type vocabulary is the API's: internal/media decides which job a
+	// resource needs and writes it into the payload. Reading the constants from
+	// there rather than restating them is what keeps the two sides from drifting
+	// apart silently. The dependency only goes this way -- internal/media never
+	// imports asynq, by design.
+	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/media"
 	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/storage"
 	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/transcode"
 	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/worker/task"
@@ -173,6 +179,24 @@ func (p *MediaProcessor) process(ctx context.Context, payload task.MediaProcessP
 		return fmt.Errorf("mark resource %s processing: %w", resource.ID, err)
 	}
 
+	// An empty task type means a job enqueued before documents had a branch of
+	// their own. Those were all audiovisual, so that is what it maps to: a
+	// message already sitting in the queue must not change meaning because the
+	// worker was redeployed.
+	switch taskType := payload.TaskType; taskType {
+	case "", media.TaskHLSTranscode:
+		return p.processAudiovisual(ctx, resource, payload)
+	case media.TaskMalwareScan:
+		return p.processDocument(ctx, resource, payload)
+	default:
+		return fmt.Errorf("resource %s carries unknown task type %q: %w",
+			resource.ID, taskType, transcode.ErrUnprocessable)
+	}
+}
+
+// processAudiovisual is the HLS pipeline: pull the original down, ask ffprobe
+// what it is, encode the renditions that do not upscale it, upload the results.
+func (p *MediaProcessor) processAudiovisual(ctx context.Context, resource *domain.Resource, payload task.MediaProcessPayload) error {
 	workDir, err := os.MkdirTemp(p.opts.WorkDir, "mooc-media-*")
 	if err != nil {
 		return fmt.Errorf("create work directory: %w", err)
@@ -237,6 +261,78 @@ func (p *MediaProcessor) process(ctx context.Context, payload task.MediaProcessP
 		slog.Float64("duration_seconds", info.DurationSeconds),
 	)
 	return nil
+}
+
+// processDocument handles everything that is not audio or video: PDFs,
+// presentations, downloadable files and images.
+//
+// # Why this branch has to exist
+//
+// Until it did, every job went through the HLS pipeline, so ffprobe was asked
+// to find a video stream inside a PDF. It answers "file carries no video or
+// audio stream", which is wrapped in transcode.ErrUnprocessable -- a permanent
+// failure. The resource was marked failed and never became available to a
+// student. Nothing in the test suite uploaded a document, so it went unnoticed
+// until the Entrega 1 review found it.
+//
+// # What it checks, and what it deliberately does not
+//
+// A document needs no derivatives: what the author uploaded is what the student
+// downloads. So the work is to confirm the object really landed and that it is
+// what its key claims to be, then mark it available.
+//
+// The content type compared here is the one the bucket recorded, which is the
+// one the client declared when it PUT the object. Reading the leading bytes to
+// identify the format, and checking a checksum against a digest the client
+// committed to beforehand, are both real gaps -- they belong to the resumable
+// upload work, which changes the upload path and therefore has to wait until
+// after the comparative load runs.
+func (p *MediaProcessor) processDocument(ctx context.Context, resource *domain.Resource, payload task.MediaProcessPayload) error {
+	info, err := p.store.StatObject(ctx, payload.StoragePath)
+	if err != nil {
+		if errors.Is(err, domain.ErrObjectNotFound) {
+			return fmt.Errorf("document %q is not in the bucket: %w",
+				payload.StoragePath, transcode.ErrUnprocessable)
+		}
+		return fmt.Errorf("stat document %q: %w", payload.StoragePath, err)
+	}
+	if info.SizeBytes <= 0 {
+		return fmt.Errorf("document %q is empty: %w", payload.StoragePath, transcode.ErrUnprocessable)
+	}
+	if info.SizeBytes > p.opts.MaxOriginalBytes {
+		return fmt.Errorf("document %q exceeds the %d byte limit: %w",
+			payload.StoragePath, p.opts.MaxOriginalBytes, transcode.ErrUnprocessable)
+	}
+
+	// A mismatch is permanent: the object is already in the bucket and nothing
+	// about it will change on a retry.
+	if want, ok := storage.CanonicalMIME(filepath.Ext(payload.StoragePath)); ok &&
+		info.ContentType != "" && !sameMediaType(info.ContentType, want) {
+		return fmt.Errorf("document %q is stored as %q but its extension says %q: %w",
+			payload.StoragePath, info.ContentType, want, transcode.ErrUnprocessable)
+	}
+
+	if _, err := p.resources.SetProcessingStatus(ctx, resource.ID, domain.ResourceProcessingCompleted, p.entry(resource.ID)); err != nil {
+		return fmt.Errorf("mark resource %s completed: %w", resource.ID, err)
+	}
+
+	p.logger.InfoContext(ctx, "document accepted without derivatives",
+		slog.String("resource_id", resource.ID),
+		slog.String("object_key", payload.StoragePath),
+		slog.String("content_type", info.ContentType),
+		slog.Int64("bytes", info.SizeBytes),
+	)
+	return nil
+}
+
+// sameMediaType compares two content types ignoring parameters, so that
+// "application/pdf; charset=binary" still matches "application/pdf".
+func sameMediaType(got, want string) bool {
+	parsed, _, err := mime.ParseMediaType(got)
+	if err != nil {
+		parsed = got
+	}
+	return strings.EqualFold(strings.TrimSpace(parsed), want)
 }
 
 // download pulls the original to local disk, refusing anything over the cap.

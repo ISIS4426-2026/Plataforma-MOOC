@@ -29,6 +29,7 @@ lo reemplaza, lo continúa.
 | 13 | [El contrato de la API arrastra dos avisos de Spectral](#13) | D1, H1, H2, H3 |
 | 14 | [Una raya o una barra en un encabezado generan un ancla con guion doble](#14) | G7, H3, I1, I2, I3 |
 | 15 | [La CI avisa de dos obsolescencias con fecha](#15) | H1, H2, H3 |
+| 16 | [Solo el vídeo estaba cubierto, y por eso un PDF nunca llegaba al estudiante](#16) | D2, D3, E3, G4, H3 |
 
 ---
 
@@ -267,6 +268,37 @@ En toda ejecución de `.github/workflows/ci.yml`:
 Hoy no rompen nada, pero H1 toca este workflow para añadir el análisis estático,
 así que es el momento barato de atenderlo. Si no se atiende, entra al inventario
 de H3 con su fecha.
+
+<a id="16"></a>
+## 16. Solo el vídeo estaba cubierto, y por eso un PDF nunca llegaba al estudiante
+
+El worker enrutaba **cualquier** recurso a la canalización HLS, así que a
+`ffprobe` se le pedía encontrar un flujo de vídeo dentro de un PDF. Respondía
+«file carries no video or audio stream», que es `ErrUnprocessable`, o sea un
+fallo permanente: el recurso quedaba en `failed` y nunca estaba disponible.
+
+Sobrevivió a la Entrega 1 y a la Entrega 2 porque **nada lo ejercitaba**: ni el
+E2E, ni las colecciones de Postman, ni la semilla subían algo que no fuera mp4.
+Lo encontró la revisión de la Entrega 1 y se corrigió en
+`fix/entrega1-review-findings`; el detalle está en
+[`CORRECCIONES_ENTREGA1.md`](./CORRECCIONES_ENTREGA1.md).
+
+Tres cosas que conviene llevarse de esto:
+
+- **D2 y D3** pueden ya contar con que un PDF o una imagen llegan a `completed`.
+  Antes del arreglo, la vista de «estado de procesamiento» habría mostrado
+  siempre un fallo para los documentos.
+- **Ninguna petición de Postman espera a que el worker termine.** La colección no
+  podía detectar este tipo de defecto y sigue sin poder: el guardián es el tramo
+  del E2E.
+- **Una rama nueva en una canalización compartida necesita su caso de
+  compatibilidad hacia atrás.** Un trabajo ya encolado no lleva `task_type`, y si
+  el `switch` no trata la cadena vacía como audiovisual, el redespliegue cambia
+  el significado de los mensajes que ya están en la cola.
+
+El tramo nuevo del E2E escribe en `docs/entrega3/evidencias/correcciones-entrega1/`.
+`docs/entrega2/evidencias/G3/` es el registro congelado de lo que se calificó y
+no se sobrescribe.
 
 ---
 
