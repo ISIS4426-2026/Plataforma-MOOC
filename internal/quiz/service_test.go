@@ -33,6 +33,11 @@ type fakeQuizRepo struct {
 	// uso, que es lo que separa ver la clave de no verla.
 	forAuthorCalls  int
 	forStudentCalls int
+
+	// El intento en curso. attempt nulo significa que no hay ninguno abierto.
+	attempt    *domain.QuizAttempt
+	attemptErr error
+	saved      []domain.Answer
 }
 
 func (f *fakeQuizRepo) Create(_ context.Context, q *domain.Quiz, _ *domain.AuditEntry) (*domain.Quiz, error) {
@@ -74,6 +79,41 @@ func (f *fakeQuizRepo) Grade(context.Context, string, string, []domain.Answer, *
 		AttemptsUsed:      1,
 		AttemptsRemaining: 2,
 	}, nil
+}
+
+func (f *fakeQuizRepo) StartAttempt(_ context.Context, quizID, studentID string, _ *domain.AuditEntry) (*domain.QuizAttempt, error) {
+	if f.attemptErr != nil {
+		return nil, f.attemptErr
+	}
+	if f.attempt == nil {
+		f.attempt = &domain.QuizAttempt{
+			QuizID: quizID, StudentID: studentID, Attempt: 1,
+			Quiz: f.quiz, Answers: []domain.Answer{},
+		}
+	}
+	return f.attempt, nil
+}
+
+func (f *fakeQuizRepo) GetAttempt(context.Context, string, string) (*domain.QuizAttempt, error) {
+	if f.attemptErr != nil {
+		return nil, f.attemptErr
+	}
+	if f.attempt == nil {
+		return nil, domain.ErrNotFound
+	}
+	return f.attempt, nil
+}
+
+func (f *fakeQuizRepo) SaveAttemptAnswers(_ context.Context, _, _ string, answers []domain.Answer) (*domain.QuizAttempt, error) {
+	if f.attemptErr != nil {
+		return nil, f.attemptErr
+	}
+	if f.attempt == nil {
+		return nil, domain.ErrNotFound
+	}
+	f.saved = answers
+	f.attempt.Answers = answers
+	return f.attempt, nil
 }
 
 func (f *fakeQuizRepo) ListSubmissions(context.Context, string, string) ([]*domain.QuizSubmission, error) {

@@ -43,7 +43,47 @@ type Quiz struct {
 	// porque es una decision del autor igual que la nota de aprobacion.
 	MaxAttempts int `json:"max_attempts"`
 
+	// TimeLimitSeconds acota lo que dura un intento, contado desde que se
+	// inicia. Nulo es sin limite, que es como se comportaban todos los quizzes
+	// antes de que existiera la columna.
+	TimeLimitSeconds *int `json:"time_limit_seconds,omitempty"`
+
 	Questions []Question `json:"questions,omitempty"`
+}
+
+// QuizAttempt es un intento en curso: el cuestionario congelado tal y como lo
+// vio el estudiante al empezar, lo que lleva respondido y cuando se le acaba el
+// tiempo.
+//
+// Congelarlo es lo que hace reproducible la calificacion. Antes el envio se
+// calificaba leyendo las tablas vivas, asi que si el autor editaba una opcion
+// despues de que alguien presentara, la nota registrada dejaba de corresponder
+// a lo que ese estudiante habia visto.
+type QuizAttempt struct {
+	QuizID    string `json:"quiz_id"`
+	StudentID string `json:"student_id"`
+
+	// Attempt es el numero que ocupara este intento al enviarse. Se fija al
+	// iniciar, no al enviar, para que la expiracion y el cuestionario congelado
+	// pertenezcan a un intento concreto.
+	Attempt int `json:"attempt"`
+
+	// Quiz es el cuestionario congelado, siempre **sin** la clave de
+	// respuestas: el repositorio nunca la copia al construir este valor, y
+	// QuestionOption.IsCorrect tampoco se serializa. Son dos barreras para el
+	// mismo dato porque el enunciado no admite que la clave llegue al cliente.
+	Quiz *Quiz `json:"quiz"`
+
+	Answers []Answer `json:"answers"`
+
+	StartedAt time.Time  `json:"started_at"`
+	UpdatedAt time.Time  `json:"updated_at"`
+	ExpiresAt *time.Time `json:"expires_at,omitempty"`
+}
+
+// Expired informa si el intento ya no admite envio.
+func (a *QuizAttempt) Expired(now time.Time) bool {
+	return a.ExpiresAt != nil && now.After(*a.ExpiresAt)
 }
 
 // Answer es la respuesta a una pregunta.
@@ -121,4 +161,23 @@ type QuizRepository interface {
 	// ListSubmissions devuelve los intentos de un estudiante, del mas reciente
 	// al mas antiguo.
 	ListSubmissions(ctx context.Context, studentID, quizID string) ([]*QuizSubmission, error)
+
+	// StartAttempt abre un intento congelando el cuestionario, o devuelve el que
+	// ya estuviera abierto.
+	//
+	// Iniciar dos veces no consume dos intentos: devolver el borrador existente
+	// es lo que permite recuperar el trabajo despues de cerrar el navegador,
+	// que es justamente el «guardado temporal» que el enunciado pide.
+	//
+	// Devuelve ErrConflict cuando el estudiante ya agoto sus intentos.
+	StartAttempt(ctx context.Context, quizID, studentID string, entry *AuditEntry) (*QuizAttempt, error)
+
+	// GetAttempt devuelve el intento en curso, o ErrNotFound si no hay ninguno.
+	GetAttempt(ctx context.Context, quizID, studentID string) (*QuizAttempt, error)
+
+	// SaveAttemptAnswers guarda lo respondido hasta ahora sin calificar nada.
+	//
+	// Devuelve ErrNotFound si no hay intento abierto y ErrConflict si expiro:
+	// un guardado parcial fuera de plazo no debe parecer aceptado.
+	SaveAttemptAnswers(ctx context.Context, quizID, studentID string, answers []Answer) (*QuizAttempt, error)
 }

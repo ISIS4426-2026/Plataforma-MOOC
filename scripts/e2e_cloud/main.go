@@ -677,6 +677,71 @@ func journey(r *run, bucket, hlsBucket string, video, doc, img []byte, wait time
 	answers := correctAnswers(quiz)
 	key := fmt.Sprintf("g3-envio-%d", time.Now().UnixNano())
 
+	// ---- intento congelado y guardado parcial ------------------------------
+	//
+	// La revisión de la Entrega 1 marcó que no existía ninguno de los dos, y
+	// que «el envío no congela el cuestionario, así que editar el quiz altera
+	// intentos pasados». Estos pasos recorren el flujo nuevo; el envío de más
+	// abajo sigue funcionando sin pasar por él, que es lo que prueba que la
+	// corrección no rompió el contrato anterior.
+
+	var abierto struct {
+		Attempt int `json:"attempt"`
+		Expired bool
+		Quiz    struct {
+			Questions []struct {
+				ID      string `json:"id"`
+				Options []struct {
+					ID        string `json:"id"`
+					IsCorrect bool   `json:"is_correct"`
+				} `json:"options"`
+			} `json:"questions"`
+		} `json:"quiz"`
+		Answers []map[string]string `json:"answers"`
+	}
+	res = r.api.do("POST", "/api/v1/quizzes/"+quiz.ID+"/attempts", student, nil, nil)
+	_ = res.into(&abierto)
+	r.check("El estudiante abre el intento y recibe el cuestionario congelado", res, 200,
+		fmt.Sprintf("attempt=%d con %d pregunta(s), sin respuestas previas",
+			abierto.Attempt, len(abierto.Quiz.Questions)),
+		abierto.Attempt == 1 && len(abierto.Quiz.Questions) == 2 && len(abierto.Answers) == 0)
+
+	// El cuestionario congelado llega sin la clave, igual que la lectura normal
+	// del estudiante: el snapshot la conserva en la base, no en la respuesta.
+	clave := false
+	for _, q := range abierto.Quiz.Questions {
+		for _, o := range q.Options {
+			if o.IsCorrect {
+				clave = true
+			}
+		}
+	}
+	r.check("El intento congelado no lleva la clave de respuestas", res, 200,
+		"ninguna opción viene marcada como correcta", !clave)
+
+	res = r.api.do("POST", "/api/v1/quizzes/"+quiz.ID+"/attempts", student, nil, nil)
+	var reabierto struct {
+		Attempt int `json:"attempt"`
+	}
+	_ = res.into(&reabierto)
+	r.check("Abrir el intento dos veces no consume dos intentos", res, 200,
+		fmt.Sprintf("attempt=%d en ambas llamadas", reabierto.Attempt),
+		reabierto.Attempt == abierto.Attempt)
+
+	res = r.api.do("PUT", "/api/v1/quizzes/"+quiz.ID+"/attempts/current", student,
+		map[string]any{"answers": answers[:1]}, nil)
+	r.check("El estudiante guarda una respuesta parcial sin calificar nada", res, 200,
+		"1 de 2 respuestas guardadas", res.err == nil)
+
+	var recuperado struct {
+		Answers []map[string]string `json:"answers"`
+	}
+	res = r.api.do("GET", "/api/v1/quizzes/"+quiz.ID+"/attempts/current", student, nil, nil)
+	_ = res.into(&recuperado)
+	r.check("El avance sobrevive a cerrar el navegador", res, 200,
+		fmt.Sprintf("%d respuesta(s) recuperadas del intento en curso", len(recuperado.Answers)),
+		len(recuperado.Answers) == 1)
+
 	var first struct {
 		SubmissionID string `json:"submission_id"`
 		Score        int    `json:"score"`

@@ -7,11 +7,11 @@ y sin tocar la ruta que miden los escenarios de carga.
 
 | | Hallazgo | Estado |
 | :--- | :--- | :--- |
-| 1 | Sin respaldo, restauración ni medición de RPO/RTO | ⏳ RTO ya cumplido · falta PITR |
+| 1 | Sin respaldo, restauración ni medición de RPO/RTO | ✅ corregido |
 | 2 | `TaskMalwareScan` sin nada que lo ejecute | ✅ corregido |
 | 3 | Sin autosave; las versiones publicadas no son inmutables | ⏸ aplazado · va a H3 |
-| 4 | Sin CDN; carga no reanudable y sin verificación de integridad | ⏸ aplazado · ver §4 |
-| 5 | Quizzes sin snapshot, guardado parcial ni expiración | ⏳ pendiente en esta rama |
+| 4 | Sin CDN; carga no reanudable y sin verificación de integridad | ⏸ aplazado · ver §5 |
+| 5 | Quizzes sin snapshot, guardado parcial ni expiración | ✅ corregido |
 | 6 | Sin latencia documentada; PDF inaccesible | ✅ la parte de PDF · el resto lo cerró la Entrega 2 |
 
 ---
@@ -141,20 +141,113 @@ por omisión nuevo de `-salida`, y entonces se actualiza la insignia.
 
 ---
 
-## 3 · PITR y la sección RPO/RTO — ⏳ pendiente en esta rama
+## 3 · PITR, RPO y RTO — ✅
 
-El RTO **ya está cumplido y medido** por el issue C2 de la Entrega 2:
-aprovisionar 204 s + restaurar 324 s ≈ **9 minutos frente a un techo de 4
-horas**, con la restauración probada fila por fila sobre una instancia nueva.
+El RTO **ya estaba cumplido y medido** por el issue C2 de la Entrega 2. Lo que
+faltaba era el RPO, y era una línea.
 
-Lo que falta es el RPO. En `infra/terraform/database.tf:178`,
-`point_in_time_recovery_enabled = false` más una copia diaria a las 03:00 UTC
-dan un **RPO de hasta 24 horas**, frente al ≤ 15 min que exige la
-especificación.
+| | Antes | Ahora | Exigido |
+| :--- | :--- | :--- | :--- |
+| **RPO** | hasta **24 h** — copia diaria a las 03:00 UTC, sin registro continuo | **≈ 0** — recuperación a cualquier instante de los últimos 3 días | ≤ 15 min |
+| **RTO** | **≈ 9 min** — 204 s de aprovisionamiento + 324 s de restauración, medidos en C2 | sin cambio | ≤ 4 h |
+
+En `infra/terraform/database.tf`, dentro de `backup_configuration`:
+
+```hcl
+point_in_time_recovery_enabled = true
+transaction_log_retention_days = 3   # alineado con retained_backups
+```
+
+Tres cosas que conviene saber:
+
+- Activar PITR en Cloud SQL **reinicia la instancia**. Da igual ahora: está
+  eliminada, así que surte efecto al recrearla.
+- El coste es almacenamiento del registro de escritura y **crece con la
+  actividad de escritura, no con el tamaño de la base**. Sobre un volumen
+  académico son céntimos, pero entra en la estimación de F3 y conviene mirarlo
+  si una campaña de carga escribe mucho más de lo previsto.
+- A7 recrea desde el tag `entrega-2`, que lleva `false`. La línea base
+  retrospectiva no se contamina con esto.
 
 ---
 
-## 4 · Lo que se aplaza, y por qué
+## 4 · Quizzes: intento congelado, guardado parcial y expiración — ✅
+
+El revisor lo resumió así: *«no hay ningún worker o instancia que permita un
+guardado temporal, no es posible hacer snapshots, el envío no congela el
+cuestionario, así que editar el quiz altera intentos pasados»*.
+
+La última frase es la grave. Un envío se calificaba leyendo las tablas vivas,
+así que si el autor cambiaba una opción después de que alguien presentara, **la
+nota registrada dejaba de corresponder a lo que ese estudiante había visto**.
+La calificación no era reproducible.
+
+### Qué cambia
+
+Migración `000008_quiz_attempt_drafts`:
+
+| | |
+| :--- | :--- |
+| `quizzes.time_limit_seconds` | nulo = sin límite, que es como se comportaban todos hasta ahora |
+| `quiz_submissions.quiz_snapshot` | el cuestionario contra el que se calificó; nulo en las filas anteriores, porque de aquellas no hay forma de saberlo |
+| `quiz_attempt_drafts` | el intento en curso: snapshot, respuestas parciales y vencimiento |
+
+Tres rutas nuevas, ninguna obligatoria:
+
+```
+POST /api/v1/quizzes/{quizID}/attempts            abrir y congelar
+GET  /api/v1/quizzes/{quizID}/attempts/current    recuperar el avance
+PUT  /api/v1/quizzes/{quizID}/attempts/current    guardado parcial
+```
+
+### Las decisiones que importan
+
+**La clave de respuestas no sale de la base.** El snapshot se arma **en SQL**,
+con `jsonb_build_object`, y calificar contra él también es SQL recorriendo el
+JSONB. Entra un cuestionario y unas respuestas, y sale un número — exactamente
+la garantía que ya daba la versión que leía las tablas vivas. Al leer el intento
+para el estudiante, `is_correct` ni siquiera se decodifica: lo que no se lee no
+se puede filtrar por descuido más arriba.
+
+**Se congela siempre, haya intento abierto o no.** Con intento abierto se
+califica contra lo que el estudiante vio; sin él —el envío directo, que es como
+funciona el arnés E2E y cualquier cliente escrito contra el contrato anterior—
+se congela el estado de ese instante. En los dos casos editar el quiz después
+deja de alterar la nota registrada. Eso es lo que mantiene la compatibilidad:
+**presentar sin abrir intento sigue funcionando igual**.
+
+**Abrir dos veces no consume dos intentos.** Devolver el borrador existente es
+lo que permite cerrar el navegador y volver, que es el «guardado temporal» que
+pide el enunciado. El intento se gasta al enviar.
+
+**Un envío fuera de plazo no consume intento.** Nadie pierde una oportunidad por
+algo que el servidor rechazó.
+
+**Enviar cierra el borrador.** Si no, la siguiente lectura ofrecería un intento
+«en curso» que ya está calificado.
+
+### Pruebas
+
+Nueve casos nuevos en `internal/postgres/quiz_repository_test.go`, todos contra
+PostgreSQL real:
+
+| | |
+| :--- | :--- |
+| `FreezesTheQuizOnSubmission` | el defecto del revisor: invertir la clave tras presentar no mueve la nota |
+| `GradesAgainstTheOpenedAttempt` | se califica por lo que vio el estudiante, no por el quiz editado |
+| `StartAttemptIsIdempotent` | abrir dos veces devuelve el mismo intento |
+| `AttemptNeverCarriesTheKey` | sin clave en la respuesta, con clave en la base |
+| `SavesPartialAnswers` | guardar 1 de 3 y recuperarlo |
+| `SaveWithoutAnOpenAttempt` | `ErrNotFound` |
+| `ExpiredAttemptAcceptsNothing` | ni guardar ni enviar, y sin consumir intento |
+| `SubmissionClosesTheAttempt` | el borrador desaparece |
+| `StartAttemptRespectsTheLimit` | agotados los intentos no se abre otro |
+
+Más seis pasos en el tramo de quiz del E2E y el contrato en `api/openapi.yaml`.
+
+---
+
+## 5 · Lo que se aplaza, y por qué
 
 **Versiones inmutables reales (hallazgo 3).** `internal/course/service.go:72`
 fija `Version: 1` al crear; `Publish` sólo cambia el estado y `Unpublish` edita

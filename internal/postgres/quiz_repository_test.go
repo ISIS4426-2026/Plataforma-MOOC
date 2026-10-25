@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"strings"
 	"sync"
 	"testing"
 
@@ -378,5 +379,269 @@ func TestQuizRepositoryOptionOrderIsStable(t *testing.T) {
 				t.Fatalf("la lectura %d devolvió las opciones en otro orden: %v frente a %v", lectura, orden, primera)
 			}
 		}
+	}
+}
+
+// ---- intentos congelados, guardado parcial y expiracion ------------------
+//
+// La revision de la Entrega 1 marco los tres en el criterio de evaluacion
+// academica: «no hay ningun worker o instancia que permita un guardado
+// temporal, no es posible hacer snapshots, el envio no congela el cuestionario,
+// asi que editar el quiz altera intentos pasados».
+//
+// La ultima frase es la que mas pesa, y es la que prueba el primer caso: una
+// nota que cambia cuando el autor edita el cuestionario no es reproducible.
+
+// El defecto del revisor, reproducido y cerrado.
+func TestQuizRepositoryFreezesTheQuizOnSubmission(t *testing.T) {
+	db := newTestDB(t)
+	fixture := newQuizFixture(t, db, 2)
+	ctx := context.Background()
+
+	grade, err := fixture.repo.Grade(ctx, fixture.quiz.ID, fixture.student.ID,
+		fixture.answersFor(t, true), quizEntry(fixture.student.ID, "quiz:"+fixture.quiz.ID))
+	if err != nil {
+		t.Fatalf("Grade returned an error: %v", err)
+	}
+	if grade.Submission.Score != 100 {
+		t.Fatalf("score = %d, se esperaba 100", grade.Submission.Score)
+	}
+
+	// El envio conserva contra que se califico.
+	var snapshot []byte
+	if err := db.QueryRowContext(ctx,
+		`SELECT quiz_snapshot FROM quiz_submissions WHERE id = $1`, grade.Submission.ID,
+	).Scan(&snapshot); err != nil {
+		t.Fatalf("leer el snapshot: %v", err)
+	}
+	if len(snapshot) == 0 {
+		t.Fatal("el envio no guardo el cuestionario con el que se califico")
+	}
+
+	// El autor invierte la clave despues de que el estudiante presentara.
+	if _, err := db.ExecContext(ctx, `
+		UPDATE quiz_options o SET is_correct = NOT o.is_correct
+		FROM quiz_questions q
+		WHERE q.id = o.question_id AND q.quiz_id = $1`, fixture.quiz.ID); err != nil {
+		t.Fatalf("editar la clave: %v", err)
+	}
+
+	envios, err := fixture.repo.ListSubmissions(ctx, fixture.student.ID, fixture.quiz.ID)
+	if err != nil {
+		t.Fatalf("ListSubmissions returned an error: %v", err)
+	}
+	if len(envios) != 1 || envios[0].Score != 100 {
+		t.Fatalf("la nota registrada cambio al editar el quiz: %+v", envios)
+	}
+}
+
+// Calificar contra el cuestionario congelado y no contra las tablas vivas: el
+// estudiante abre el intento, el autor edita, y la nota sale por lo que el
+// estudiante vio.
+func TestQuizRepositoryGradesAgainstTheOpenedAttempt(t *testing.T) {
+	db := newTestDB(t)
+	fixture := newQuizFixture(t, db, 2)
+	ctx := context.Background()
+
+	if _, err := fixture.repo.StartAttempt(ctx, fixture.quiz.ID, fixture.student.ID,
+		quizEntry(fixture.student.ID, "quiz:"+fixture.quiz.ID)); err != nil {
+		t.Fatalf("StartAttempt returned an error: %v", err)
+	}
+
+	// Las respuestas se eligen con la clave vigente al abrir el intento.
+	answers := fixture.answersFor(t, true)
+
+	if _, err := db.ExecContext(ctx, `
+		UPDATE quiz_options o SET is_correct = NOT o.is_correct
+		FROM quiz_questions q
+		WHERE q.id = o.question_id AND q.quiz_id = $1`, fixture.quiz.ID); err != nil {
+		t.Fatalf("editar la clave: %v", err)
+	}
+
+	grade, err := fixture.repo.Grade(ctx, fixture.quiz.ID, fixture.student.ID, answers,
+		quizEntry(fixture.student.ID, "quiz:"+fixture.quiz.ID))
+	if err != nil {
+		t.Fatalf("Grade returned an error: %v", err)
+	}
+	if grade.Submission.Score != 100 {
+		t.Fatalf("score = %d; se califico contra el quiz editado, no contra el que vio el estudiante",
+			grade.Submission.Score)
+	}
+}
+
+// Abrir dos veces no consume dos intentos: devolver el borrador existente es lo
+// que permite recuperar el trabajo tras cerrar el navegador.
+func TestQuizRepositoryStartAttemptIsIdempotent(t *testing.T) {
+	db := newTestDB(t)
+	fixture := newQuizFixture(t, db, 2)
+	ctx := context.Background()
+
+	primero, err := fixture.repo.StartAttempt(ctx, fixture.quiz.ID, fixture.student.ID, nil)
+	if err != nil {
+		t.Fatalf("StartAttempt returned an error: %v", err)
+	}
+	segundo, err := fixture.repo.StartAttempt(ctx, fixture.quiz.ID, fixture.student.ID, nil)
+	if err != nil {
+		t.Fatalf("StartAttempt (segunda vez) returned an error: %v", err)
+	}
+
+	if primero.Attempt != segundo.Attempt || !primero.StartedAt.Equal(segundo.StartedAt) {
+		t.Fatalf("abrir dos veces devolvio intentos distintos: %+v vs %+v", primero, segundo)
+	}
+	if len(primero.Quiz.Questions) != 2 {
+		t.Fatalf("el intento congelo %d preguntas, se esperaban 2", len(primero.Quiz.Questions))
+	}
+}
+
+// La clave viaja dentro del snapshot en la base --sin ella la calificacion no
+// seria reproducible-- pero no puede salir hacia el estudiante.
+func TestQuizRepositoryAttemptNeverCarriesTheKey(t *testing.T) {
+	db := newTestDB(t)
+	fixture := newQuizFixture(t, db, 3)
+	ctx := context.Background()
+
+	attempt, err := fixture.repo.StartAttempt(ctx, fixture.quiz.ID, fixture.student.ID, nil)
+	if err != nil {
+		t.Fatalf("StartAttempt returned an error: %v", err)
+	}
+	for _, question := range attempt.Quiz.Questions {
+		for _, option := range question.Options {
+			if option.IsCorrect {
+				t.Fatalf("la opcion %s salio marcada como correcta", option.ID)
+			}
+		}
+	}
+
+	var guardado []byte
+	if err := db.QueryRowContext(ctx,
+		`SELECT snapshot FROM quiz_attempt_drafts WHERE quiz_id = $1 AND student_id = $2`,
+		fixture.quiz.ID, fixture.student.ID).Scan(&guardado); err != nil {
+		t.Fatalf("leer el snapshot guardado: %v", err)
+	}
+	if !strings.Contains(string(guardado), `"is_correct"`) {
+		t.Error("el snapshot guardado no conserva la clave; la calificacion no seria reproducible")
+	}
+}
+
+func TestQuizRepositorySavesPartialAnswers(t *testing.T) {
+	db := newTestDB(t)
+	fixture := newQuizFixture(t, db, 3)
+	ctx := context.Background()
+
+	if _, err := fixture.repo.StartAttempt(ctx, fixture.quiz.ID, fixture.student.ID, nil); err != nil {
+		t.Fatalf("StartAttempt returned an error: %v", err)
+	}
+
+	// Una sola respuesta de las tres: eso es lo que significa parcial.
+	parcial := fixture.answersFor(t, true)[:1]
+	guardado, err := fixture.repo.SaveAttemptAnswers(ctx, fixture.quiz.ID, fixture.student.ID, parcial)
+	if err != nil {
+		t.Fatalf("SaveAttemptAnswers returned an error: %v", err)
+	}
+	if len(guardado.Answers) != 1 {
+		t.Fatalf("se guardaron %d respuestas, se esperaba 1", len(guardado.Answers))
+	}
+
+	// El caso real: el estudiante cerro el navegador y vuelve.
+	recuperado, err := fixture.repo.GetAttempt(ctx, fixture.quiz.ID, fixture.student.ID)
+	if err != nil {
+		t.Fatalf("GetAttempt returned an error: %v", err)
+	}
+	if len(recuperado.Answers) != 1 || recuperado.Answers[0] != parcial[0] {
+		t.Fatalf("el avance no sobrevivio: %+v", recuperado.Answers)
+	}
+}
+
+func TestQuizRepositorySaveWithoutAnOpenAttempt(t *testing.T) {
+	db := newTestDB(t)
+	fixture := newQuizFixture(t, db, 2)
+
+	_, err := fixture.repo.SaveAttemptAnswers(context.Background(),
+		fixture.quiz.ID, fixture.student.ID, fixture.answersFor(t, true))
+	if !errors.Is(err, domain.ErrNotFound) {
+		t.Fatalf("err = %v, se esperaba ErrNotFound", err)
+	}
+}
+
+func TestQuizRepositoryExpiredAttemptAcceptsNothing(t *testing.T) {
+	db := newTestDB(t)
+	fixture := newQuizFixture(t, db, 2)
+	ctx := context.Background()
+
+	if _, err := db.ExecContext(ctx,
+		`UPDATE quizzes SET time_limit_seconds = 600 WHERE id = $1`, fixture.quiz.ID); err != nil {
+		t.Fatalf("fijar el limite de tiempo: %v", err)
+	}
+	attempt, err := fixture.repo.StartAttempt(ctx, fixture.quiz.ID, fixture.student.ID, nil)
+	if err != nil {
+		t.Fatalf("StartAttempt returned an error: %v", err)
+	}
+	if attempt.ExpiresAt == nil {
+		t.Fatal("un quiz con limite de tiempo abrio un intento sin vencimiento")
+	}
+
+	if _, err := db.ExecContext(ctx,
+		`UPDATE quiz_attempt_drafts SET expires_at = NOW() - INTERVAL '1 second'
+		 WHERE quiz_id = $1 AND student_id = $2`, fixture.quiz.ID, fixture.student.ID); err != nil {
+		t.Fatalf("vencer el intento: %v", err)
+	}
+
+	answers := fixture.answersFor(t, true)
+	if _, err := fixture.repo.SaveAttemptAnswers(ctx, fixture.quiz.ID, fixture.student.ID, answers); !errors.Is(err, domain.ErrConflict) {
+		t.Errorf("guardar fuera de plazo: err = %v, se esperaba ErrConflict", err)
+	}
+	if _, err := fixture.repo.Grade(ctx, fixture.quiz.ID, fixture.student.ID, answers, nil); !errors.Is(err, domain.ErrConflict) {
+		t.Errorf("enviar fuera de plazo: err = %v, se esperaba ErrConflict", err)
+	}
+
+	// Y no consumio intento: nadie pierde una oportunidad por un envio que el
+	// servidor rechazo.
+	envios, err := fixture.repo.ListSubmissions(ctx, fixture.student.ID, fixture.quiz.ID)
+	if err != nil {
+		t.Fatalf("ListSubmissions returned an error: %v", err)
+	}
+	if len(envios) != 0 {
+		t.Errorf("un envio fuera de plazo quedo registrado: %+v", envios)
+	}
+}
+
+// Enviar cierra el intento: dejar el borrador vivo ofreceria despues un intento
+// «en curso» que en realidad ya esta calificado.
+func TestQuizRepositorySubmissionClosesTheAttempt(t *testing.T) {
+	db := newTestDB(t)
+	fixture := newQuizFixture(t, db, 2)
+	ctx := context.Background()
+
+	if _, err := fixture.repo.StartAttempt(ctx, fixture.quiz.ID, fixture.student.ID, nil); err != nil {
+		t.Fatalf("StartAttempt returned an error: %v", err)
+	}
+	if _, err := fixture.repo.Grade(ctx, fixture.quiz.ID, fixture.student.ID,
+		fixture.answersFor(t, true), nil); err != nil {
+		t.Fatalf("Grade returned an error: %v", err)
+	}
+
+	if _, err := fixture.repo.GetAttempt(ctx, fixture.quiz.ID, fixture.student.ID); !errors.Is(err, domain.ErrNotFound) {
+		t.Fatalf("err = %v, se esperaba que el borrador desapareciera", err)
+	}
+}
+
+// Agotados los intentos, no se puede abrir uno nuevo. La comprobacion vive en
+// StartAttempt ademas de en Grade: abrir un intento que nunca se podria enviar
+// seria ofrecerle al estudiante un formulario condenado.
+func TestQuizRepositoryStartAttemptRespectsTheLimit(t *testing.T) {
+	db := newTestDB(t)
+	fixture := newQuizFixture(t, db, 1)
+	ctx := context.Background()
+
+	for i := 0; i < 3; i++ { // MaxAttempts del fixture
+		if _, err := fixture.repo.Grade(ctx, fixture.quiz.ID, fixture.student.ID,
+			fixture.answersFor(t, false), nil); err != nil {
+			t.Fatalf("Grade %d returned an error: %v", i+1, err)
+		}
+	}
+
+	_, err := fixture.repo.StartAttempt(ctx, fixture.quiz.ID, fixture.student.ID, nil)
+	if !errors.Is(err, domain.ErrConflict) {
+		t.Fatalf("err = %v, se esperaba ErrConflict al agotar los intentos", err)
 	}
 }

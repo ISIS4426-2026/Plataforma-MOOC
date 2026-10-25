@@ -172,10 +172,30 @@ resource "google_sql_database_instance" "main" {
         retention_unit   = "COUNT"
       }
 
-      # Recuperacion a un punto en el tiempo desactivada: guarda el registro de
-      # escritura de forma continua y ese si es un coste que crece con la
-      # actividad. Para un ejercicio academico la copia diaria sobra.
-      point_in_time_recovery_enabled = false
+      # Recuperacion a un punto en el tiempo, y no por gusto: es lo unico que
+      # cumple el RPO del enunciado.
+      #
+      # Con solo la copia diaria de las 03:00, una perdida a las 02:00 cuesta
+      # casi un dia entero de escrituras: un RPO de hasta 24 horas frente a los
+      # <= 15 minutos que exige la especificacion. El registro de escritura
+      # continuo lo baja a practicamente cero, porque permite restaurar a
+      # cualquier instante dentro de la ventana de retencion.
+      #
+      # La revision de la Entrega 1 lo marco -- «ni procedimiento, ni medicion
+      # para los criterios de RPO y RTO»--, y el RTO ya estaba cumplido y medido
+      # en C2: 204 s de aprovisionamiento mas 324 s de restauracion, unos 9
+      # minutos contra un techo de 4 horas. Lo que faltaba era esto.
+      #
+      # El coste es almacenamiento del registro y crece con la actividad de
+      # escritura, no con el tamano de la base. Sobre un volumen academico son
+      # centimos al mes, pero entra en la estimacion de F3 y conviene mirarlo si
+      # una campana de carga escribe mucho mas de lo previsto.
+      point_in_time_recovery_enabled = true
+
+      # Tres dias, alineado con retained_backups: no tiene sentido conservar
+      # registro de escritura mas alla de la copia completa mas antigua sobre la
+      # que se podria aplicar.
+      transaction_log_retention_days = 3
     }
 
     # --- Mantenimiento ------------------------------------------------------

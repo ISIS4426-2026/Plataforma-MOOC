@@ -314,3 +314,101 @@ func (h *QuizHandler) respondQuizError(w http.ResponseWriter, r *http.Request, e
 		RespondWithError(w, http.StatusInternalServerError, "internal_error", "Ocurrió un error inesperado.", nil)
 	}
 }
+
+// ---- intento en curso ---------------------------------------------------
+
+// attemptResponse es lo que el cliente necesita para pintar un intento a medias:
+// el cuestionario congelado, lo que lleva respondido y cuanto tiempo le queda.
+//
+// Reutiliza quizResponse, asi que la clave de respuestas no cabe aqui ni
+// aunque alguien la pusiera en el dominio: newStudentQuiz no la copia.
+type attemptResponse struct {
+	Attempt   int          `json:"attempt"`
+	Quiz      quizResponse `json:"quiz"`
+	Answers   []answerPair `json:"answers"`
+	StartedAt string       `json:"started_at"`
+	UpdatedAt string       `json:"updated_at"`
+	ExpiresAt string       `json:"expires_at,omitempty"`
+	Expired   bool         `json:"expired"`
+}
+
+type answerPair struct {
+	QuestionID       string `json:"question_id"`
+	SelectedOptionID string `json:"selected_option_id"`
+}
+
+func newAttemptResponse(a *domain.QuizAttempt) attemptResponse {
+	out := attemptResponse{
+		Attempt:   a.Attempt,
+		Quiz:      newStudentQuiz(a.Quiz),
+		Answers:   make([]answerPair, 0, len(a.Answers)),
+		StartedAt: a.StartedAt.UTC().Format(time.RFC3339),
+		UpdatedAt: a.UpdatedAt.UTC().Format(time.RFC3339),
+		Expired:   a.Expired(time.Now()),
+	}
+	for _, answer := range a.Answers {
+		out.Answers = append(out.Answers, answerPair{
+			QuestionID: answer.QuestionID, SelectedOptionID: answer.SelectedOptionID,
+		})
+	}
+	if a.ExpiresAt != nil {
+		out.ExpiresAt = a.ExpiresAt.UTC().Format(time.RFC3339)
+	}
+	return out
+}
+
+// StartAttempt abre el intento del estudiante, o devuelve el que ya tuviera.
+//
+// Responde 200 y no 201 a proposito: abrir dos veces devuelve el mismo intento,
+// asi que la segunda llamada no crea nada.
+func (h *QuizHandler) StartAttempt(w http.ResponseWriter, r *http.Request) {
+	actor, ok := h.actor(w, r)
+	if !ok {
+		return
+	}
+	attempt, err := h.service.StartAttempt(r.Context(), actor, r.PathValue("quizID"))
+	if err != nil {
+		h.respondQuizError(w, r, err)
+		return
+	}
+	RespondWithJSON(w, http.StatusOK, newAttemptResponse(attempt))
+}
+
+// CurrentAttempt devuelve el intento en curso con lo respondido hasta ahora.
+func (h *QuizHandler) CurrentAttempt(w http.ResponseWriter, r *http.Request) {
+	actor, ok := h.actor(w, r)
+	if !ok {
+		return
+	}
+	attempt, err := h.service.CurrentAttempt(r.Context(), actor, r.PathValue("quizID"))
+	if err != nil {
+		h.respondQuizError(w, r, err)
+		return
+	}
+	RespondWithJSON(w, http.StatusOK, newAttemptResponse(attempt))
+}
+
+// SaveAttempt guarda el avance sin calificar nada.
+func (h *QuizHandler) SaveAttempt(w http.ResponseWriter, r *http.Request) {
+	actor, ok := h.actor(w, r)
+	if !ok {
+		return
+	}
+	var body submitQuizRequest
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		RespondWithError(w, http.StatusBadRequest, "invalid_input", "El cuerpo de la solicitud no es un JSON válido.", nil)
+		return
+	}
+
+	answers := make([]domain.Answer, 0, len(body.Answers))
+	for _, answer := range body.Answers {
+		answers = append(answers, domain.Answer{QuestionID: answer.QuestionID, SelectedOptionID: answer.SelectedOptionID})
+	}
+
+	saved, err := h.service.SaveAnswers(r.Context(), actor, r.PathValue("quizID"), answers)
+	if err != nil {
+		h.respondQuizError(w, r, err)
+		return
+	}
+	RespondWithJSON(w, http.StatusOK, newAttemptResponse(saved))
+}
