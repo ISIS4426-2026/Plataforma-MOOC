@@ -190,3 +190,61 @@ func TestSinCacheLasReplicasSiguenResolviendoContraLaBase(t *testing.T) {
 		}
 	}
 }
+
+// Suspender una cuenta corta sus sesiones en todas las replicas, incluso en las
+// que la tienen cacheada.
+//
+// Funciona por una razon distinta a las de arriba, y conviene que este fijada:
+// Authenticate lee el usuario de la base en **cada** peticion, no de la cache.
+// Lo unico que se cachea es la sesion. Asi que una suspension surte efecto en
+// la siguiente peticion de cualquier replica, con cache compartida o sin ella.
+//
+// Es lo que hace `internal/admin` al suspender, y lo que el issue pide revisar
+// «con el mismo criterio» que el cierre de sesion.
+func TestSuspenderLaCuentaCortaLaSesionEnTodasLasReplicas(t *testing.T) {
+	r := nuevasReplicas(t)
+	correo, clave := r.cuentaActiva(t)
+	token := r.inicioDeSesion(t, correo, clave)
+
+	// Que la replica B la tenga cacheada, o la prueba no diria nada.
+	sesion, usuario, err := r.b.Authenticate(context.Background(), token)
+	if err != nil {
+		t.Fatalf("preparacion: la replica B no acepto la sesion: %v", err)
+	}
+	_ = sesion
+
+	usuario.Status = domain.UserStatusSuspended
+	if err := r.usuarios.Update(context.Background(), usuario); err != nil {
+		t.Fatalf("suspender la cuenta: %v", err)
+	}
+
+	for nombre, replica := range map[string]*auth.Service{"A": r.a, "B": r.b} {
+		if _, _, err := replica.Authenticate(context.Background(), token); !errors.Is(err, domain.ErrUnauthorized) {
+			t.Errorf("replica %s siguio aceptando la sesion de una cuenta suspendida: err = %v", nombre, err)
+		}
+	}
+}
+
+// El reverso de la anterior: la suspension no depende de la cache compartida.
+// Si dependiera, sacarla de las instancias habria sido un cambio de riesgo y no
+// una correccion.
+func TestLaSuspensionNoDependeDeLaCache(t *testing.T) {
+	r := nuevasReplicas(t)
+	correo, clave := r.cuentaActiva(t)
+	token := r.inicioDeSesion(t, correo, clave)
+
+	_, usuario, err := r.b.Authenticate(context.Background(), token)
+	if err != nil {
+		t.Fatalf("preparacion: %v", err)
+	}
+
+	r.cache.setDisabled(true)
+	usuario.Status = domain.UserStatusSuspended
+	if err := r.usuarios.Update(context.Background(), usuario); err != nil {
+		t.Fatalf("suspender la cuenta: %v", err)
+	}
+
+	if _, _, err := r.b.Authenticate(context.Background(), token); !errors.Is(err, domain.ErrUnauthorized) {
+		t.Errorf("con la cache caida la suspension no surtio efecto: err = %v", err)
+	}
+}

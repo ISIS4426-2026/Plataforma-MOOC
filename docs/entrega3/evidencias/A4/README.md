@@ -52,6 +52,18 @@ Con la caché compartida, las cuatro pasan:
 | `ElCierreDeSesionValeEnTodasLasReplicas` | el defecto, cerrado |
 | `RevocarTodasLasSesionesValeEnTodasLasReplicas` | lo mismo para la pantalla de sesiones |
 | `SinCacheLasReplicasSiguenResolviendoContraLaBase` | ver §3 |
+| `SuspenderLaCuentaCortaLaSesionEnTodasLasReplicas` | la suspensión, en §2.1 |
+| `LaSuspensionNoDependeDeLaCache` | y sin caché tampoco |
+
+### 2.1 La suspensión funciona por otra razón
+
+Conviene no confundirla con lo anterior. `Authenticate` lee el usuario **de la
+base en cada petición**; lo único que se cachea es la sesión. Así que suspender
+una cuenta surte efecto en la siguiente petición de cualquier réplica, con caché
+compartida o sin ella.
+
+Es el reverso útil del diseño: si la suspensión dependiera de la caché, sacarla
+de las instancias habría sido un cambio de riesgo y no una corrección.
 
 ## 3. Ninguna instancia conserva estado propio
 
