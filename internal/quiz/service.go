@@ -206,20 +206,8 @@ func (s *Service) Submissions(ctx context.Context, actor Actor, quizID string) (
 // clave correcta de la base. Este metodo nunca la ve, y por eso no puede
 // filtrarla ni equivocarse al aplicarla.
 func (s *Service) Submit(ctx context.Context, actor Actor, quizID string, answers []domain.Answer) (*domain.QuizGrade, error) {
-	if len(answers) == 0 {
-		return nil, fmt.Errorf("a submission needs at least one answer: %w", domain.ErrInvalidInput)
-	}
-	// Una pregunta respondida dos veces es un cliente roto, y aceptarlo
-	// significaria calificar una de las dos en silencio.
-	seen := make(map[string]bool, len(answers))
-	for _, answer := range answers {
-		if answer.QuestionID == "" || answer.SelectedOptionID == "" {
-			return nil, fmt.Errorf("an answer needs both a question and an option: %w", domain.ErrInvalidInput)
-		}
-		if seen[answer.QuestionID] {
-			return nil, fmt.Errorf("question %s answered twice: %w", answer.QuestionID, domain.ErrInvalidInput)
-		}
-		seen[answer.QuestionID] = true
+	if err := validateAnswers(answers, true); err != nil {
+		return nil, err
 	}
 
 	quiz, course, err := s.quizAndCourse(ctx, quizID)
@@ -347,4 +335,112 @@ func newEntry(actor Actor, target string) *domain.AuditEntry {
 		IPAddress:      actor.IPAddress,
 		UserAgent:      actor.UserAgent,
 	}
+}
+
+// ---- intento en curso ---------------------------------------------------
+//
+// El enunciado pide «guardado parcial» y «snapshot», y la revision de la
+// Entrega 1 marco que no existia ninguno de los dos. Los tres metodos de abajo
+// son el flujo completo: abrir un intento congelando el cuestionario, guardar
+// lo que se lleve respondido, y recuperarlo si el estudiante cerro el
+// navegador.
+//
+// Presentar sin pasar por aqui sigue funcionando igual que antes. Es lo que
+// hace el arnes E2E y lo que haria cualquier cliente escrito contra el
+// contrato anterior: abrir el intento es una mejora, no un requisito.
+
+// StartAttempt abre el intento del estudiante sobre un quiz, o devuelve el que
+// ya tuviera abierto.
+//
+// No consume un intento: lo reserva. El intento se gasta al enviar, que es
+// cuando se inserta en quiz_submissions.
+func (s *Service) StartAttempt(ctx context.Context, actor Actor, quizID string) (*domain.QuizAttempt, error) {
+	_, course, err := s.quizAndCourse(ctx, quizID)
+	if err != nil {
+		return nil, err
+	}
+	if err := s.authorizeStudent(ctx, actor, course); err != nil {
+		return nil, err
+	}
+
+	attempt, err := s.deps.Quizzes.StartAttempt(ctx, quizID, actor.ID, newEntry(actor, "quiz:"+quizID))
+	if err != nil {
+		return nil, err
+	}
+
+	s.logger.InfoContext(ctx, "quiz attempt opened",
+		slog.String("student_id", actor.ID),
+		slog.String("quiz_id", quizID),
+		slog.Int("attempt", attempt.Attempt),
+		slog.Bool("timed", attempt.ExpiresAt != nil),
+	)
+	return attempt, nil
+}
+
+// CurrentAttempt devuelve el intento en curso con lo respondido hasta ahora.
+//
+// Un intento expirado se devuelve igualmente, con su ExpiresAt, en lugar de
+// responder como si no existiera: el cliente necesita poder decir «se te acabo
+// el tiempo» y no «no habias empezado».
+func (s *Service) CurrentAttempt(ctx context.Context, actor Actor, quizID string) (*domain.QuizAttempt, error) {
+	_, course, err := s.quizAndCourse(ctx, quizID)
+	if err != nil {
+		return nil, err
+	}
+	if err := s.authorizeStudent(ctx, actor, course); err != nil {
+		return nil, err
+	}
+	return s.deps.Quizzes.GetAttempt(ctx, quizID, actor.ID)
+}
+
+// SaveAnswers guarda el avance sin calificar nada.
+//
+// Admite una lista vacia: borrar lo respondido es una accion legitima del
+// estudiante, y rechazarla obligaria al cliente a inventar un caso especial.
+func (s *Service) SaveAnswers(ctx context.Context, actor Actor, quizID string, answers []domain.Answer) (*domain.QuizAttempt, error) {
+	if err := validateAnswers(answers, false); err != nil {
+		return nil, err
+	}
+
+	_, course, err := s.quizAndCourse(ctx, quizID)
+	if err != nil {
+		return nil, err
+	}
+	if err := s.authorizeStudent(ctx, actor, course); err != nil {
+		return nil, err
+	}
+
+	saved, err := s.deps.Quizzes.SaveAttemptAnswers(ctx, quizID, actor.ID, answers)
+	if err != nil {
+		return nil, err
+	}
+
+	s.logger.InfoContext(ctx, "quiz attempt saved",
+		slog.String("student_id", actor.ID),
+		slog.String("quiz_id", quizID),
+		slog.Int("attempt", saved.Attempt),
+		slog.Int("answers", len(saved.Answers)),
+	)
+	return saved, nil
+}
+
+// validateAnswers rechaza lo que no se puede calificar.
+//
+// Una pregunta respondida dos veces es un cliente roto, y aceptarlo
+// significaria calificar una de las dos en silencio.
+func validateAnswers(answers []domain.Answer, requireAtLeastOne bool) error {
+	if requireAtLeastOne && len(answers) == 0 {
+		return fmt.Errorf("a submission needs at least one answer: %w", domain.ErrInvalidInput)
+	}
+	seen := make(map[string]bool, len(answers))
+	for _, answer := range answers {
+		if answer.QuestionID == "" || answer.SelectedOptionID == "" {
+			return fmt.Errorf("an answer needs both a question and an option: %w", domain.ErrInvalidInput)
+		}
+		if seen[answer.QuestionID] {
+			return fmt.Errorf("question %s answered twice: %w", answer.QuestionID, domain.ErrInvalidInput)
+		}
+		seen[answer.QuestionID] = true
+	}
+	return nil
 }

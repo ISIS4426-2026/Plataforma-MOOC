@@ -1,0 +1,35 @@
+Revision Rubrica 2:
+
+1. Bien
+Criterio: Arquitectura y despliegue - Obligatorio
+Nivel objetivo: Monolito modular en Go, API y workers sin estado, persistencia externa, Docker y Docker Compose, escalamiento a múltiples instancias y recuperación con RPO ≤ 15 min y RTO ≤ 4 h.
+Nivel obtenido: Arquitectura presente pero con estado local, escalamiento no demostrado, componentes fuera de Compose o recuperación sin evidencia.
+Comentario Revisor: No existe ningún script de backup ni de restauración, ni procedimiento, ni medición para los criterios de RPO y RTO.
+
+2. Excelente
+Criterio: Identidad, autorización y seguridad (Must)
+Nivel obtenido mismo nivel obtenido: Registro verificado, sesiones revocables, roles y propiedad aplicados en todo endpoint, URLs firmadas, auditoría inmutable, CSRF/XSS, rate limiting, antimalware, cifrado y secretos externos.
+Comentario Revisor: Para carga antimalware, solo existe la constante TaskMalwareScan, sin integración o worker que lo ejecute. Ustedes lo declaran "programado para etapa de consumo"
+
+3. Bien
+Criterio: Autoría y publicación (Must)
+Nivel objetivo: Jerarquía de cuatro niveles ordenada, editor con autosave y Markdown extendido biyectivo, previsualización, validaciones exhaustivas de publicación, versiones inmutables e identificadores estables.
+Nivel obtenido: Falta un nivel o el ordenamiento, autosave inestable, conversión con pérdida, validaciones parciales o inmutabilidad no garantizada.
+Comentario Revisor: No hay nada relacionado al Autosave en el código enviado. Sobre la revisión de versiones inmutables o identificadores estables, tienen un stable_id implementado y probado; existe la columna version y GetByStableIDAndVersion. Pero nunca se crea una segunda versión: publicar/despublicar opera sobre la misma fila con Version: 1 fijo. 
+
+4. Bien
+Criterio: Multimedia y distribución (Must)
+Nivel objetivo: Carga multipart reanudable con checksum y MIME real, HLS asíncrono e idempotente sin upscaling, original conservado, backoff, DLQ con alerta, CDN, URLs firmadas y visor PDF accesible.
+Nivel obtenido: Carga no reanudable o sin integridad, procesamiento que bloquea o no idempotente, sin DLQ o alerta, sin CDN, o visor y reanudación con fallas.
+Comentario Revisor: El CDN no existe ni es declarado en ninguna parte del código. El propio compose lo dice: "HLS is served straight from the bucket at this stage, with no CDN"
+
+5. Bien
+Criterio: Evaluación académica (Must)
+Nivel objetivo: Quizzes con snapshot, guardado parcial, expiración, clave solo en servidor, calificación reproducible, envío idempotente y retroalimentación según política.
+Nivel obtenido: Guardado parcial o expiración con fallas, envío duplicado con resultados distintos, o retroalimentación fuera de política.
+Comentario Revisor: No hay ningun Worker o instancia que permita un guardado temporal. No es posible hacer Snapshots. El envío no congela el cuestionario, así que editar el quiz altera intentos pasados
+
+6. Excelente
+Criterio: Calidad operativa (Must/Should)
+Nivel objetivo igual a nivel obtenido: p95 y disponibilidad alcanzados en la carga de Etapa 1, nueve flujos con E2E, WCAG 2.2 AA sin hallazgos críticos, logs, métricas y trazas con alertas, CI completo y recuperación probada.
+Comentario Revisor: Como mencionaba en otros items, no hay documentación o revisión de latencia y disponibilidad; no hay workers para el backup y no es posible ver o acceder a archivos PDF. Ya lo penalicé antes, no voy a penalizarlo dos veces, pero tenganlo presente.

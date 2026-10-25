@@ -1392,6 +1392,150 @@ paths:
         '409':
           $ref: '#/components/responses/409Conflict'
 
+  /quizzes/{quiz_id}/attempts:
+    post:
+      tags:
+        - Quizzes
+      summary: Open an attempt, freezing the quiz the student will answer
+      description: >
+        Opens the student's attempt and returns the quiz exactly as they will
+        answer it, without the answer key. The frozen copy is what the
+        submission is graded against, so editing the quiz afterwards no longer
+        changes a grade that was already recorded.
+
+        Opening twice returns the attempt already open rather than starting a
+        second one, which is what lets a student close the browser and come
+        back. It does not consume an attempt either: an attempt is spent when
+        it is submitted.
+
+        Responds 200 and not 201 for the same reason: the second call creates
+        nothing.
+
+        Requires an active enrollment, which excludes the course's author.
+      operationId: startQuizAttempt
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: quiz_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Unique identifier of the quiz.
+      responses:
+        '200':
+          description: Attempt open, with the frozen quiz.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QuizAttempt'
+        '401':
+          $ref: '#/components/responses/401Unauthorized'
+        '403':
+          $ref: '#/components/responses/403Forbidden'
+        '404':
+          $ref: '#/components/responses/404NotFound'
+        '409':
+          description: The student has used every attempt the quiz allows.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /quizzes/{quiz_id}/attempts/current:
+    get:
+      tags:
+        - Quizzes
+      summary: Read the attempt in progress and what has been answered so far
+      description: >
+        Returns the frozen quiz, the answers saved so far and, when the quiz is
+        timed, when the attempt expires.
+
+        An expired attempt is still returned, carrying `expired: true`, instead
+        of answering as though it never existed: the client needs to be able to
+        say "your time ran out" rather than "you had not started".
+      operationId: getCurrentQuizAttempt
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: quiz_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Unique identifier of the quiz.
+      responses:
+        '200':
+          description: The attempt in progress.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QuizAttempt'
+        '401':
+          $ref: '#/components/responses/401Unauthorized'
+        '403':
+          $ref: '#/components/responses/403Forbidden'
+        '404':
+          $ref: '#/components/responses/404NotFound'
+    put:
+      tags:
+        - Quizzes
+      summary: Save progress on the attempt without grading it
+      description: >
+        Replaces the answers held for the attempt in progress. Nothing is
+        graded and no attempt is consumed.
+
+        An empty list is accepted: clearing the answers is a legitimate thing
+        for a student to do, and rejecting it would force the client to invent
+        a special case.
+
+        Saving after the attempt expired answers 409, so that work done out of
+        time is never silently accepted.
+      operationId: saveQuizAttempt
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: quiz_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Unique identifier of the quiz.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/QuizSubmissionRequest'
+      responses:
+        '200':
+          description: Progress saved.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QuizAttempt'
+        '400':
+          $ref: '#/components/responses/400BadRequest'
+        '401':
+          $ref: '#/components/responses/401Unauthorized'
+        '403':
+          $ref: '#/components/responses/403Forbidden'
+        '404':
+          description: No attempt is open for this student and quiz.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: The attempt expired.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
   /quizzes/{quiz_id}/submissions:
     post:
       tags:
@@ -2812,6 +2956,64 @@ components:
         processing_status:
           type: string
           enum: [pending, processing, completed, failed]
+
+    QuizAttempt:
+      type: object
+      description: >
+        An attempt in progress: the quiz frozen as the student will answer it,
+        what they have answered so far, and when their time runs out.
+
+        The frozen copy never carries the answer key. It is held with the key
+        in the database, because that is what makes the grade reproducible, but
+        the key is not read back when this object is built.
+      required:
+        - attempt
+        - quiz
+        - answers
+        - started_at
+        - updated_at
+        - expired
+      properties:
+        attempt:
+          type: integer
+          minimum: 1
+          description: >
+            Which attempt this will be once submitted. Reserved when the attempt
+            opens, not when it is sent, so the deadline and the frozen quiz
+            belong to one specific attempt.
+        quiz:
+          $ref: '#/components/schemas/QuizResponse'
+        answers:
+          type: array
+          description: Saved so far. Empty on a freshly opened attempt.
+          items:
+            type: object
+            required:
+              - question_id
+              - selected_option_id
+            properties:
+              question_id:
+                type: string
+                format: uuid
+              selected_option_id:
+                type: string
+                format: uuid
+        started_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        expires_at:
+          type: string
+          format: date-time
+          description: Absent when the quiz has no time limit.
+        expired:
+          type: boolean
+          description: >
+            True once the deadline has passed. The attempt is still returned so
+            the client can say the time ran out rather than that nothing was
+            started.
 
     QuizSubmissionRequest:
       type: object

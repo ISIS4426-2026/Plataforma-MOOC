@@ -1336,6 +1336,236 @@
         }
       },
       "response": []
+    },
+    {
+      "name": "26 Crear recurso PDF en la unidad",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"responde 201\", function () { pm.response.to.have.status(201); });",
+              "pm.test(\"queda pendiente de procesamiento\", function () {",
+              "    var d = pm.response.json();",
+              "    pm.expect(d.type).to.eql(\"pdf\");",
+              "    pm.environment.set(\"pdfResourceId\", d.id);",
+              "    pm.environment.set(\"pdfResourceStableId\", d.stable_id);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{professorToken}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/units/{{mediaUnitId}}/resources",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "units",
+            "{{mediaUnitId}}",
+            "resources"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"Guia de la unidad\",\n  \"type\": \"pdf\",\n  \"is_visible\": true,\n  \"is_mandatory\": false,\n  \"allow_download\": true\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "27 Solicitar URL prefirmada para el PDF",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"responde 200\", function () { pm.response.to.have.status(200); });",
+              "pm.test(\"la clave va bajo documents/<stable_id>/ y no bajo originals/\", function () {",
+              "    var d = pm.response.json();",
+              "    pm.expect(d.object_key).to.have.string(\"documents/\" + pm.environment.get(\"pdfResourceStableId\") + \"/\");",
+              "    pm.expect(d.object_key).to.not.have.string(\"originals/\");",
+              "    pm.expect(d.object_key).to.have.string(\".pdf\");",
+              "});",
+              "pm.test(\"firma el content-type del documento, no el del video\", function () {",
+              "    var d = pm.response.json();",
+              "    pm.expect(d.method).to.eql(\"PUT\");",
+              "    pm.expect(d.content_type).to.eql(\"application/pdf\");",
+              "    pm.environment.set(\"pdfUploadUrl\", d.upload_url);",
+              "    pm.environment.set(\"pdfObjectKey\", d.object_key);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{professorToken}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/media/presigned-url",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "media",
+            "presigned-url"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"resource_id\": \"{{pdfResourceId}}\",\n  \"filename\": \"guia.pdf\",\n  \"mime_type\": \"application/pdf\",\n  \"file_size_bytes\": 613\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "28 Rechazo: el mime declarado no corresponde a un PDF",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"responde 400\", function () { pm.response.to.have.status(400); });",
+              "pm.test(\"lo rechaza como entrada invalida\", function () {",
+              "    pm.expect(pm.response.json().error.code).to.eql(\"invalid_input\");",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{professorToken}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/media/presigned-url",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "media",
+            "presigned-url"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"resource_id\": \"{{pdfResourceId}}\",\n  \"filename\": \"guia.pdf\",\n  \"mime_type\": \"video/mp4\",\n  \"file_size_bytes\": 613\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "29 Rechazo: un estudiante no obtiene URL de carga del PDF",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"responde 403\", function () { pm.response.to.have.status(403); });",
+              "pm.test(\"la propiedad se aplica tambien a los documentos\", function () {",
+              "    pm.expect(pm.response.json().error.code).to.eql(\"forbidden\");",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{studentToken}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/media/presigned-url",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "media",
+            "presigned-url"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"resource_id\": \"{{pdfResourceId}}\",\n  \"filename\": \"guia.pdf\",\n  \"mime_type\": \"application/pdf\",\n  \"file_size_bytes\": 613\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "response": []
     }
   ]
 }

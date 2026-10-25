@@ -30,13 +30,20 @@ type fakeStore struct {
 	mu      sync.Mutex
 	objects map[string][]byte
 	put     map[string]string // key -> content type
-	statErr error
-	getErr  error
-	putErr  error
+	// contentTypes is what StatObject reports for a key. Empty falls back to
+	// video/mp4, which is what every test wanted before documents existed.
+	contentTypes map[string]string
+	statErr      error
+	getErr       error
+	putErr       error
 }
 
 func newFakeStore() *fakeStore {
-	return &fakeStore{objects: map[string][]byte{}, put: map[string]string{}}
+	return &fakeStore{
+		objects:      map[string][]byte{},
+		put:          map[string]string{},
+		contentTypes: map[string]string{},
+	}
 }
 
 func (f *fakeStore) StatObject(_ context.Context, key string) (*domain.ObjectInfo, error) {
@@ -49,7 +56,11 @@ func (f *fakeStore) StatObject(_ context.Context, key string) (*domain.ObjectInf
 	if !ok {
 		return nil, domain.ErrObjectNotFound
 	}
-	return &domain.ObjectInfo{Key: key, SizeBytes: int64(len(b)), ContentType: "video/mp4"}, nil
+	ct := f.contentTypes[key]
+	if ct == "" {
+		ct = "video/mp4"
+	}
+	return &domain.ObjectInfo{Key: key, SizeBytes: int64(len(b)), ContentType: ct}, nil
 }
 
 func (f *fakeStore) GetObject(_ context.Context, key string) (io.ReadCloser, error) {
@@ -468,5 +479,150 @@ func TestMediaProcessorEscribeLosDerivadosEnSuPropioAlmacen(t *testing.T) {
 	// que el worker sigue pudiendo tocar el bucket privado.
 	if len(originals.put) != 0 {
 		t.Errorf("el worker escribió en el almacén de originales: %v", originals.put)
+	}
+}
+
+// ---- documentos e imagenes ---------------------------------------------
+//
+// Hasta que processDocument existio, cualquier recurso que no fuera audio ni
+// video entraba igual en la canalizacion HLS: se le pedia a ffprobe que
+// encontrara un flujo de video dentro de un PDF, ffprobe respondia «file
+// carries no video or audio stream», y eso es ErrUnprocessable, o sea un fallo
+// permanente. El recurso quedaba en failed y el estudiante nunca lo veia.
+//
+// Ninguna prueba subia un documento, asi que el defecto sobrevivio hasta la
+// revision de la Entrega 1. Estas son las que faltaban.
+
+const documentKey = "documents/" + stableID + "/guia.pdf"
+
+// documentHarness monta el mismo arnes pero con un recurso de tipo PDF ya
+// subido al bucket.
+func documentHarness(t *testing.T, contentType string) *harness {
+	t.Helper()
+
+	h := newHarness(t)
+	h.store.objects[documentKey] = bytes.Repeat([]byte("%PDF-1.7\n"), 64)
+	h.store.contentTypes[documentKey] = contentType
+	h.resources.resource = &domain.Resource{
+		ID: resourceID, StableID: stableID, Type: domain.ResourceTypePDF,
+		ObjectKey: documentKey, ProcessingStatus: string(domain.ResourceProcessingPending),
+	}
+	return h
+}
+
+func documentTask(t *testing.T, key string) *asynq.Task {
+	t.Helper()
+	tk, err := task.NewMediaProcessTask(resourceID, "malware_scan", key)
+	if err != nil {
+		t.Fatalf("NewMediaProcessTask: %v", err)
+	}
+	return tk
+}
+
+// Lo que el revisor no podia hacer: abrir un PDF.
+func TestMediaProcessorDejaUnDocumentoDisponible(t *testing.T) {
+	h := documentHarness(t, "application/pdf")
+
+	if err := h.proc.Handle(context.Background(), documentTask(t, documentKey)); err != nil {
+		t.Fatalf("Handle: %v", err)
+	}
+
+	got := h.resources.seen()
+	if len(got) != 2 || got[0] != domain.ResourceProcessingProcessing ||
+		got[1] != domain.ResourceProcessingCompleted {
+		t.Fatalf("transiciones = %v, se esperaba processing y luego completed", got)
+	}
+}
+
+// Un documento no tiene derivados: lo que subio el autor es lo que descarga el
+// estudiante. Invocar al transcodificador seria el defecto original volviendo.
+func TestMediaProcessorNoTranscodificaUnDocumento(t *testing.T) {
+	h := documentHarness(t, "application/pdf")
+
+	if err := h.proc.Handle(context.Background(), documentTask(t, documentKey)); err != nil {
+		t.Fatalf("Handle: %v", err)
+	}
+
+	if len(h.tc.encoded) != 0 {
+		t.Errorf("se codificaron renditions para un PDF: %v", h.tc.encoded)
+	}
+	if len(h.store.uploadedKeys()) != 0 {
+		t.Errorf("se subieron derivados para un PDF: %v", h.store.uploadedKeys())
+	}
+}
+
+// El parametro del content type no debe tumbar la comparacion.
+func TestMediaProcessorAceptaElContentTypeConParametros(t *testing.T) {
+	h := documentHarness(t, "application/pdf; charset=binary")
+
+	if err := h.proc.Handle(context.Background(), documentTask(t, documentKey)); err != nil {
+		t.Fatalf("Handle: %v", err)
+	}
+	if h.resources.resource.ProcessingStatus != string(domain.ResourceProcessingCompleted) {
+		t.Fatalf("estado = %s, se esperaba completed", h.resources.resource.ProcessingStatus)
+	}
+}
+
+// Un objeto guardado como imagen bajo una clave .pdf es confusion de tipo de
+// contenido, y no se arregla reintentando.
+func TestMediaProcessorRechazaUnDocumentoConTipoQueNoCuadra(t *testing.T) {
+	h := documentHarness(t, "image/png")
+
+	err := h.proc.Handle(context.Background(), documentTask(t, documentKey))
+	if err == nil {
+		t.Fatal("Handle no devolvio error")
+	}
+	if !errors.Is(err, asynq.SkipRetry) {
+		t.Errorf("error = %v, se esperaba que no se reintentara", err)
+	}
+	if h.resources.resource.ProcessingStatus != string(domain.ResourceProcessingFailed) {
+		t.Errorf("estado = %s, se esperaba failed", h.resources.resource.ProcessingStatus)
+	}
+}
+
+func TestMediaProcessorTrataUnDocumentoAusenteComoPermanente(t *testing.T) {
+	h := documentHarness(t, "application/pdf")
+	delete(h.store.objects, documentKey)
+
+	err := h.proc.Handle(context.Background(), documentTask(t, documentKey))
+	if !errors.Is(err, asynq.SkipRetry) {
+		t.Fatalf("error = %v, se esperaba un fallo permanente", err)
+	}
+}
+
+func TestMediaProcessorRechazaUnTipoDeTareaDesconocido(t *testing.T) {
+	h := documentHarness(t, "application/pdf")
+
+	tk, err := task.NewMediaProcessTask(resourceID, "pdf_conversion", documentKey)
+	if err != nil {
+		t.Fatalf("NewMediaProcessTask: %v", err)
+	}
+
+	err = h.proc.Handle(context.Background(), tk)
+	if err == nil {
+		t.Fatal("un tipo de tarea que nadie implementa debe fallar, no transcodificarse")
+	}
+	if !errors.Is(err, asynq.SkipRetry) {
+		t.Errorf("error = %v, se esperaba que no se reintentara", err)
+	}
+}
+
+// Compatibilidad hacia atras: un trabajo encolado antes de que los documentos
+// tuvieran rama propia no lleva task_type. Todos aquellos eran audiovisuales,
+// y un mensaje que ya esta en la cola no puede cambiar de significado porque
+// se redesplego el worker.
+func TestMediaProcessorTrataLaTareaSinTipoComoAudiovisual(t *testing.T) {
+	h := newHarness(t)
+
+	tk, err := task.NewMediaProcessTask(resourceID, "", originalKey)
+	if err != nil {
+		t.Fatalf("NewMediaProcessTask: %v", err)
+	}
+
+	if err := h.proc.Handle(context.Background(), tk); err != nil {
+		t.Fatalf("Handle: %v", err)
+	}
+	if len(h.tc.encoded) == 0 {
+		t.Error("una tarea sin tipo no se transcodifico; los trabajos ya encolados se romperian")
 	}
 }

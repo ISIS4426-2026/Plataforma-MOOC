@@ -319,6 +319,22 @@ func NewServer(cfg *config.Config, deps Deps, logger *slog.Logger) *Server {
 	// Idempotency-Key aqui no es opcional en la practica: el enunciado pide que
 	// «el envio definitivo sea idempotente», y es este middleware el que hace
 	// que un reintento devuelva la misma calificacion sin consumir otro intento.
+	// El intento en curso: abrirlo congela el cuestionario y arranca el reloj,
+	// y guardarlo conserva lo respondido sin calificar nada.
+	//
+	// Son tres rutas nuevas y ninguna obligatoria: presentar sin pasar por
+	// ellas sigue funcionando igual que antes, que es lo que hace el arnes E2E
+	// y lo que haria un cliente escrito contra el contrato anterior. La
+	// diferencia esta en que con intento abierto se califica contra lo que el
+	// estudiante vio, y sin el contra lo que haya en ese instante -- que
+	// tambien queda congelado en el envio.
+	mux.Handle("POST /api/v1/quizzes/{quizID}/attempts",
+		requireAuth(http.HandlerFunc(quizHandler.StartAttempt)))
+	mux.Handle("GET /api/v1/quizzes/{quizID}/attempts/current",
+		requireAuth(http.HandlerFunc(quizHandler.CurrentAttempt)))
+	mux.Handle("PUT /api/v1/quizzes/{quizID}/attempts/current",
+		requireAuth(http.HandlerFunc(quizHandler.SaveAttempt)))
+
 	mux.Handle("POST /api/v1/quizzes/{quizID}/submissions",
 		requireAuth(idempotent(http.HandlerFunc(quizHandler.Submit))))
 	mux.Handle("GET /api/v1/quizzes/{quizID}/submissions/me",

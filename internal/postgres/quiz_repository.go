@@ -267,7 +267,38 @@ func (r *QuizRepository) Grade(
 		return nil, fmt.Errorf("student %s used all %d attempts: %w", studentID, maxAttempts, domain.ErrConflict)
 	}
 
-	score, err := gradeAnswers(ctx, tx, quizID, answers)
+	// El cuestionario contra el que se califica queda congelado pase lo que
+	// pase, haya intento abierto o no.
+	//
+	// Con intento abierto se usa el que se congelo al iniciarlo, que es lo que
+	// el estudiante vio. Sin el --el envio directo, que es como funcionaba
+	// todo hasta ahora y como sigue funcionando el arnes E2E-- se congela el
+	// estado de este instante. En los dos casos, editar el quiz despues deja de
+	// alterar la nota ya registrada, que es el defecto que marco la revision de
+	// la Entrega 1.
+	var (
+		snapshot []byte
+		expired  bool
+	)
+	err = tx.QueryRowContext(ctx,
+		`SELECT snapshot, (expires_at IS NOT NULL AND expires_at <= NOW())
+		 FROM quiz_attempt_drafts WHERE quiz_id = $1 AND student_id = $2`,
+		quizID, studentID,
+	).Scan(&snapshot, &expired)
+	switch {
+	case errors.Is(err, sql.ErrNoRows):
+		if err := tx.QueryRowContext(ctx,
+			`SELECT `+snapshotExpr+` FROM quizzes z WHERE z.id = $1`, quizID,
+		).Scan(&snapshot); err != nil {
+			return nil, fmt.Errorf("freeze quiz at submission: %w", err)
+		}
+	case err != nil:
+		return nil, fmt.Errorf("read attempt draft: %w", err)
+	case expired:
+		return nil, fmt.Errorf("attempt for quiz %s expired: %w", quizID, domain.ErrConflict)
+	}
+
+	score, err := gradeAgainstSnapshot(ctx, tx, snapshot, answers)
 	if err != nil {
 		return nil, err
 	}
@@ -283,10 +314,10 @@ func (r *QuizRepository) Grade(
 		Attempt: used + 1, Score: score, Passed: passed,
 	}
 	err = tx.QueryRowContext(ctx, `
-		INSERT INTO quiz_submissions (quiz_id, student_id, answers, score, passed, attempt)
-		VALUES ($1, $2, $3::jsonb, $4, $5, $6)
+		INSERT INTO quiz_submissions (quiz_id, student_id, answers, score, passed, attempt, quiz_snapshot)
+		VALUES ($1, $2, $3::jsonb, $4, $5, $6, $7::jsonb)
 		RETURNING id, submitted_at`,
-		quizID, studentID, encoded, score, passed, submission.Attempt,
+		quizID, studentID, encoded, score, passed, submission.Attempt, snapshot,
 	).Scan(&submission.ID, &submission.SubmittedAt)
 	if isUniqueViolation(err) {
 		// Otro envio del mismo estudiante gano la carrera y se quedo con este
@@ -297,6 +328,14 @@ func (r *QuizRepository) Grade(
 	}
 	if err != nil {
 		return nil, fmt.Errorf("record submission: %w", err)
+	}
+
+	// El intento ya se consumio: su borrador no debe sobrevivir al envio, o la
+	// siguiente lectura ofreceria un intento en curso que ya esta calificado.
+	if _, err := tx.ExecContext(ctx,
+		`DELETE FROM quiz_attempt_drafts WHERE quiz_id = $1 AND student_id = $2`,
+		quizID, studentID); err != nil {
+		return nil, fmt.Errorf("close attempt draft: %w", err)
 	}
 
 	if entry != nil {
@@ -316,42 +355,44 @@ func (r *QuizRepository) Grade(
 	}, nil
 }
 
-// gradeAnswers calcula el porcentaje de aciertos leyendo la clave de la base.
+// gradeAgainstSnapshot calcula el porcentaje de aciertos contra el cuestionario
+// congelado, recorriendo el JSONB dentro de la misma transaccion.
 //
-// La clave no sale de esta funcion ni en el valor de retorno ni en el error: lo
-// unico que se devuelve es un numero.
-func gradeAnswers(ctx context.Context, tx *sql.Tx, quizID string, answers []domain.Answer) (int, error) {
-	var total int
-	if err := tx.QueryRowContext(ctx,
-		`SELECT COUNT(*) FROM quiz_questions WHERE quiz_id = $1`, quizID,
-	).Scan(&total); err != nil {
-		return 0, fmt.Errorf("count questions: %w", err)
-	}
-	if total == 0 {
-		// Un quiz sin preguntas no se aprueba por omision. Calificar con 100 lo
-		// convertiria en un aprobado automatico, que es lo contrario de evaluar.
-		return 0, nil
-	}
-
-	// Una sola consulta con las opciones elegidas: cuenta cuantas de ellas son
-	// correctas Y pertenecen a una pregunta de este quiz. Lo segundo importa --
-	// sin ello, enviar el id de una opcion correcta de otro quiz sumaria punto.
+// Sigue valiendo lo que decia la version que leia las tablas vivas: la clave no
+// sale de esta funcion ni en el valor de retorno ni en el error. Lo unico que
+// se devuelve es un numero.
+//
+// Calificar contra el snapshot y no contra las tablas es lo que hace
+// reproducible la nota. Tambien cierra de paso el agujero que la version
+// anterior cerraba con un JOIN: una opcion correcta de otro quiz no puede sumar
+// punto, porque sencillamente no esta en este snapshot.
+func gradeAgainstSnapshot(ctx context.Context, tx *sql.Tx, snapshot []byte, answers []domain.Answer) (int, error) {
 	selected := make([]string, 0, len(answers))
 	for _, a := range answers {
 		selected = append(selected, a.SelectedOptionID)
 	}
 
-	var correct int
-	if err := tx.QueryRowContext(ctx, `
-		SELECT COUNT(DISTINCT o.question_id)
-		FROM quiz_options o
-		JOIN quiz_questions q ON q.id = o.question_id
-		WHERE q.quiz_id = $1
-		  AND o.is_correct
-		  AND o.id::text = ANY($2::text[])`,
-		quizID, pq.Array(selected),
-	).Scan(&correct); err != nil {
+	var total, correct int
+	err := tx.QueryRowContext(ctx, `
+		SELECT
+			jsonb_array_length($1::jsonb -> 'questions'),
+			COALESCE((
+				SELECT COUNT(DISTINCT q ->> 'id')
+				FROM jsonb_array_elements($1::jsonb -> 'questions') AS q,
+				     jsonb_array_elements(q -> 'options') AS o
+				WHERE (o ->> 'is_correct')::boolean
+				  AND (o ->> 'id') = ANY($2::text[])
+			), 0)`,
+		snapshot, pq.Array(selected),
+	).Scan(&total, &correct)
+	if err != nil {
 		return 0, fmt.Errorf("grade answers: %w", err)
+	}
+
+	if total == 0 {
+		// Un quiz sin preguntas no se aprueba por omision. Calificar con 100 lo
+		// convertiria en un aprobado automatico, que es lo contrario de evaluar.
+		return 0, nil
 	}
 
 	// Redondeo al entero mas cercano, que es lo que admite la columna. Con 3
@@ -403,4 +444,217 @@ func quizResourceID(ctx context.Context, q querier, quizID string) (string, erro
 func isUniqueViolation(err error) bool {
 	var pqErr *pq.Error
 	return errors.As(err, &pqErr) && pqErr.Code == "23505"
+}
+
+// ---- intentos en curso --------------------------------------------------
+//
+// El cuestionario congelado se arma **en SQL**, con jsonb_build_object, y no
+// leyendolo a Go para serializarlo despues. La razon es la misma que da la
+// cabecera de este fichero: la clave de respuestas vive dentro del snapshot y
+// no tiene por que pasar por la memoria del proceso para llegar a su columna.
+
+const snapshotExpr = `
+	jsonb_build_object(
+		'quiz_id', z.id,
+		'title', z.title,
+		'passing_score', z.passing_score,
+		'questions', COALESCE((
+			SELECT jsonb_agg(jsonb_build_object(
+				'id', q.id,
+				'prompt', q.prompt,
+				'position', q.position,
+				'options', COALESCE((
+					SELECT jsonb_agg(jsonb_build_object(
+						'id', o.id, 'text', o.text,
+						'position', o.position, 'is_correct', o.is_correct
+					) ORDER BY o.position)
+					FROM quiz_options o WHERE o.question_id = q.id
+				), '[]'::jsonb)
+			) ORDER BY q.position)
+			FROM quiz_questions q WHERE q.quiz_id = z.id
+		), '[]'::jsonb)
+	)`
+
+// snapshotRow es la forma del JSONB congelado. Vive aqui y no en domain porque
+// es un detalle de como se guarda, no del dominio.
+type snapshotRow struct {
+	QuizID       string `json:"quiz_id"`
+	Title        string `json:"title"`
+	PassingScore int    `json:"passing_score"`
+	Questions    []struct {
+		ID       string `json:"id"`
+		Prompt   string `json:"prompt"`
+		Position int    `json:"position"`
+		Options  []struct {
+			ID       string `json:"id"`
+			Text     string `json:"text"`
+			Position int    `json:"position"`
+			// is_correct esta en el JSON, pero no se declara aqui: lo que no se
+			// decodifica no se puede filtrar por descuido mas arriba.
+		} `json:"options"`
+	} `json:"questions"`
+}
+
+// toQuiz construye el quiz que ve el estudiante. IsCorrect queda en false
+// siempre, porque el campo ni siquiera se lee del JSON.
+func (s snapshotRow) toQuiz() *domain.Quiz {
+	quiz := &domain.Quiz{ID: s.QuizID, Title: s.Title, PassingScore: s.PassingScore}
+	for _, q := range s.Questions {
+		question := domain.Question{ID: q.ID, QuizID: s.QuizID, Prompt: q.Prompt, Position: q.Position}
+		for _, o := range q.Options {
+			question.Options = append(question.Options, domain.QuestionOption{
+				ID: o.ID, Text: o.Text, Position: o.Position,
+			})
+		}
+		quiz.Questions = append(quiz.Questions, question)
+	}
+	return quiz
+}
+
+func scanAttempt(scan func(...any) error) (*domain.QuizAttempt, error) {
+	var (
+		attempt           domain.QuizAttempt
+		rawSnap, rawAnsws []byte
+		expires           sql.NullTime
+	)
+	if err := scan(&attempt.QuizID, &attempt.StudentID, &attempt.Attempt,
+		&rawSnap, &rawAnsws, &attempt.StartedAt, &attempt.UpdatedAt, &expires); err != nil {
+		return nil, err
+	}
+	var snap snapshotRow
+	if err := json.Unmarshal(rawSnap, &snap); err != nil {
+		return nil, fmt.Errorf("decode attempt snapshot: %w", err)
+	}
+	attempt.Quiz = snap.toQuiz()
+	if err := json.Unmarshal(rawAnsws, &attempt.Answers); err != nil {
+		return nil, fmt.Errorf("decode attempt answers: %w", err)
+	}
+	if attempt.Answers == nil {
+		attempt.Answers = []domain.Answer{}
+	}
+	if expires.Valid {
+		attempt.ExpiresAt = &expires.Time
+	}
+	return &attempt, nil
+}
+
+const attemptColumns = `quiz_id, student_id, attempt, snapshot, answers, started_at, updated_at, expires_at`
+
+func (r *QuizRepository) StartAttempt(
+	ctx context.Context, quizID, studentID string, entry *domain.AuditEntry,
+) (*domain.QuizAttempt, error) {
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return nil, fmt.Errorf("begin transaction: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	// Un intento ya abierto se devuelve tal cual. Volver a congelar el
+	// cuestionario a mitad de camino seria cambiarle las preguntas al
+	// estudiante, que es justo lo que esto viene a impedir.
+	existing, err := scanAttempt(tx.QueryRowContext(ctx,
+		`SELECT `+attemptColumns+` FROM quiz_attempt_drafts
+		 WHERE quiz_id = $1 AND student_id = $2`, quizID, studentID).Scan)
+	if err == nil {
+		return existing, tx.Commit()
+	}
+	if !errors.Is(err, sql.ErrNoRows) {
+		return nil, fmt.Errorf("read attempt draft: %w", err)
+	}
+
+	var maxAttempts int
+	err = tx.QueryRowContext(ctx,
+		`SELECT max_attempts FROM quizzes WHERE id = $1`, quizID).Scan(&maxAttempts)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, domain.ErrNotFound
+	}
+	if err != nil {
+		return nil, fmt.Errorf("read quiz policy: %w", err)
+	}
+
+	var used int
+	if err := tx.QueryRowContext(ctx,
+		`SELECT COUNT(*) FROM quiz_submissions WHERE quiz_id = $1 AND student_id = $2`,
+		quizID, studentID).Scan(&used); err != nil {
+		return nil, fmt.Errorf("count attempts: %w", err)
+	}
+	if used >= maxAttempts {
+		return nil, fmt.Errorf("student %s used all %d attempts: %w",
+			studentID, maxAttempts, domain.ErrConflict)
+	}
+
+	created, err := scanAttempt(tx.QueryRowContext(ctx, `
+		INSERT INTO quiz_attempt_drafts (quiz_id, student_id, attempt, snapshot, expires_at)
+		SELECT z.id, $2, $3, `+snapshotExpr+`,
+		       CASE WHEN z.time_limit_seconds IS NULL THEN NULL
+		            ELSE NOW() + make_interval(secs => z.time_limit_seconds) END
+		FROM quizzes z WHERE z.id = $1
+		RETURNING `+attemptColumns,
+		quizID, studentID, used+1).Scan)
+	if isUniqueViolation(err) {
+		// Dos peticiones de inicio a la vez: la que pierde la carrera informa
+		// conflicto en lugar de abrir un segundo intento.
+		return nil, fmt.Errorf("concurrent attempt start: %w", domain.ErrConflict)
+	}
+	if err != nil {
+		return nil, fmt.Errorf("open attempt draft: %w", err)
+	}
+
+	if entry != nil {
+		entry.Action = domain.AuditActionQuizSubmitted
+		if err := insertAuditEntry(ctx, tx, entry); err != nil {
+			return nil, err
+		}
+	}
+	return created, tx.Commit()
+}
+
+func (r *QuizRepository) GetAttempt(ctx context.Context, quizID, studentID string) (*domain.QuizAttempt, error) {
+	attempt, err := scanAttempt(r.db.QueryRowContext(ctx,
+		`SELECT `+attemptColumns+` FROM quiz_attempt_drafts
+		 WHERE quiz_id = $1 AND student_id = $2`, quizID, studentID).Scan)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, domain.ErrNotFound
+	}
+	if err != nil {
+		return nil, fmt.Errorf("get attempt draft: %w", err)
+	}
+	return attempt, nil
+}
+
+func (r *QuizRepository) SaveAttemptAnswers(
+	ctx context.Context, quizID, studentID string, answers []domain.Answer,
+) (*domain.QuizAttempt, error) {
+	if answers == nil {
+		answers = []domain.Answer{}
+	}
+	encoded, err := json.Marshal(answers)
+	if err != nil {
+		return nil, fmt.Errorf("encode answers: %w", err)
+	}
+
+	// El plazo se comprueba en el UPDATE y no antes: entre leer y escribir cabe
+	// justo el instante en que el intento caduca.
+	saved, err := scanAttempt(r.db.QueryRowContext(ctx, `
+		UPDATE quiz_attempt_drafts
+		SET answers = $3::jsonb, updated_at = NOW()
+		WHERE quiz_id = $1 AND student_id = $2
+		  AND (expires_at IS NULL OR expires_at > NOW())
+		RETURNING `+attemptColumns,
+		quizID, studentID, encoded).Scan)
+	if errors.Is(err, sql.ErrNoRows) {
+		// O no hay borrador, o lo hay pero expiro. Distinguirlo importa: lo
+		// primero es un error del cliente y lo segundo una regla de negocio.
+		var exists bool
+		if qerr := r.db.QueryRowContext(ctx,
+			`SELECT TRUE FROM quiz_attempt_drafts WHERE quiz_id = $1 AND student_id = $2`,
+			quizID, studentID).Scan(&exists); qerr == nil {
+			return nil, fmt.Errorf("attempt for quiz %s expired: %w", quizID, domain.ErrConflict)
+		}
+		return nil, domain.ErrNotFound
+	}
+	if err != nil {
+		return nil, fmt.Errorf("save attempt answers: %w", err)
+	}
+	return saved, nil
 }

@@ -29,6 +29,9 @@ lo reemplaza, lo continúa.
 | 13 | [El contrato de la API arrastra dos avisos de Spectral](#13) | D1, H1, H2, H3 |
 | 14 | [Una raya o una barra en un encabezado generan un ancla con guion doble](#14) | G7, H3, I1, I2, I3 |
 | 15 | [La CI avisa de dos obsolescencias con fecha](#15) | H1, H2, H3 |
+| 16 | [Solo el vídeo estaba cubierto, y por eso un PDF nunca llegaba al estudiante](#16) | D2, D3, E3, G4, H3 |
+| 17 | [El quiz se congela por intento, y el envío directo sigue funcionando](#17) | D2, E2, G3 |
+| 18 | [PITR cambia el coste con la escritura, no con el tamaño de la base](#18) | A7, F3, I2, I6 |
 
 ---
 
@@ -267,6 +270,79 @@ En toda ejecución de `.github/workflows/ci.yml`:
 Hoy no rompen nada, pero H1 toca este workflow para añadir el análisis estático,
 así que es el momento barato de atenderlo. Si no se atiende, entra al inventario
 de H3 con su fecha.
+
+<a id="16"></a>
+## 16. Solo el vídeo estaba cubierto, y por eso un PDF nunca llegaba al estudiante
+
+El worker enrutaba **cualquier** recurso a la canalización HLS, así que a
+`ffprobe` se le pedía encontrar un flujo de vídeo dentro de un PDF. Respondía
+«file carries no video or audio stream», que es `ErrUnprocessable`, o sea un
+fallo permanente: el recurso quedaba en `failed` y nunca estaba disponible.
+
+Sobrevivió a la Entrega 1 y a la Entrega 2 porque **nada lo ejercitaba**: ni el
+E2E, ni las colecciones de Postman, ni la semilla subían algo que no fuera mp4.
+Lo encontró la revisión de la Entrega 1 y se corrigió en la rama
+`fix/entrega1-review-findings`: el worker enruta ahora los documentos por una
+rama propia, y el E2E y Postman cubren el caso.
+
+Tres cosas que conviene llevarse de esto:
+
+- **D2 y D3** pueden ya contar con que un PDF o una imagen llegan a `completed`.
+  Antes del arreglo, la vista de «estado de procesamiento» habría mostrado
+  siempre un fallo para los documentos.
+- **Ninguna petición de Postman espera a que el worker termine.** La colección no
+  podía detectar este tipo de defecto y sigue sin poder: el guardián es el tramo
+  del E2E.
+- **Una rama nueva en una canalización compartida necesita su caso de
+  compatibilidad hacia atrás.** Un trabajo ya encolado no lleva `task_type`, y si
+  el `switch` no trata la cadena vacía como audiovisual, el redespliegue cambia
+  el significado de los mensajes que ya están en la cola.
+
+El tramo nuevo del E2E escribe en `docs/entrega3/evidencias/correcciones-entrega1/`.
+`docs/entrega2/evidencias/G3/` es el registro congelado de lo que se calificó y
+no se sobrescribe.
+
+<a id="17"></a>
+## 17. El quiz se congela por intento, y el envío directo sigue funcionando
+
+Hay dos caminos para presentar, y los dos valen:
+
+- **Con intento abierto** (`POST /quizzes/{id}/attempts`): el cuestionario se
+  congela al abrirlo y la nota sale por lo que el estudiante vio. Admite
+  guardado parcial y, si el quiz tiene `time_limit_seconds`, vence.
+- **Envío directo** a `/submissions`, sin abrir nada: es como funcionaba todo
+  antes, es lo que hace el arnés E2E, y **sigue funcionando igual**. También
+  congela el cuestionario, pero en el instante del envío.
+
+En los dos casos, editar el quiz después deja de alterar una nota ya
+registrada. Antes no era así, y eso era lo que el revisor marcó.
+
+Para **D2**: la vista del estudiante debería abrir el intento al entrar al quiz
+y guardar al cambiar de pregunta. Recuperar el avance con
+`GET /attempts/current` es lo que cubre el caso de cerrar el navegador. Un
+intento vencido se devuelve igualmente con `expired: true`, para poder decir
+«se te acabó el tiempo» en vez de «no habías empezado».
+
+Dos detalles que ahorran sorpresas: abrir el intento **dos veces devuelve el
+mismo**, y un envío fuera de plazo **no consume intento**.
+
+<a id="18"></a>
+## 18. PITR cambia el coste con la escritura, no con el tamaño de la base
+
+`point_in_time_recovery_enabled` está ahora en `true`, que es lo que baja el RPO
+de 24 horas a prácticamente cero. El RTO ya estaba en unos 9 minutos, medido en
+C2.
+
+Lo que conviene vigilar: el registro de escritura continuo se factura por
+almacenamiento y **crece con la actividad de escritura**, no con el tamaño de la
+base. Sobre un volumen académico son céntimos, pero una campaña de carga escribe
+mucho más que el uso normal. Entra en la estimación de **F3** y conviene mirar
+el consumo real después de las corridas de G3 y G4.
+
+Dos avisos operativos: activar PITR **reinicia la instancia**, así que no se
+toca con una campaña en marcha; y **A7 recrea desde el tag `entrega-2`**, que
+lleva `false`, de modo que la línea base retrospectiva no queda contaminada por
+este cambio.
 
 ---
 
