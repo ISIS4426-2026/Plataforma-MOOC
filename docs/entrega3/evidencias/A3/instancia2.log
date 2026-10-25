@@ -1,0 +1,14 @@
+==> Base: moocdb en PostgreSQL 16.15 on x86_64-pc-linux-musl, compiled by gcc (Alpine 15.2.0) 15.2.0, 64-bit
+NOTICE:  relation "schema_migrations" already exists, skipping
+
+    ya aplicada   000001_init_schema
+    ya aplicada   000002_auth_tokens
+    ya aplicada   000003_academic_ordering
+    ya aplicada   000004_audit_immutability
+    ya aplicada   000005_resource_downloadable
+    ya aplicada   000006_enrollments
+    ya aplicada   000007_quiz_attempts
+    ya aplicada   000008_quiz_attempt_drafts
+
+==> Nada que aplicar: el esquema ya esta al dia.
+==> Comprueba el resultado con: bash ./scripts/migrate.sh --verify

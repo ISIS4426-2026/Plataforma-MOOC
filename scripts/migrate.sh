@@ -23,6 +23,26 @@
 # se vuelve a intentar desde cero. Lo que no puede pasar --y es el fallo que
 # arruina una base-- es quedar aplicada sin registrar, o registrada sin aplicar.
 #
+# QUE LO HACE SEGURO CON VARIAS INSTANCIAS A LA VEZ  (issue #195, A3)
+#
+# Con una sola VM daba igual quien migrara: habia uno. Un grupo administrado
+# puede levantar tres instancias simultaneas, y las tres arrancarian con el
+# mismo esquema pendiente.
+#
+# Leer que falta y despues aplicarlo deja una ventana entre ambas cosas, y dos
+# instancias caben dentro de ella: las dos ven 000008 pendiente, las dos la
+# ejecutan, y la segunda muere con «relation already exists». La instancia no
+# arranca, y el grupo la recrea para que vuelva a fallar igual.
+#
+# Por eso cada migracion toma un **advisory lock de transaccion** antes de
+# comprobar si ya esta aplicada, y la comprobacion ocurre **dentro** del lock.
+# La segunda instancia espera, entra, ve que ya esta, y no hace nada. Las tres
+# terminan con exito y el esquema se aplico una vez.
+#
+# El lock es de transaccion, no de sesion: PostgreSQL lo suelta en el commit o
+# en el rollback, tambien si el proceso muere. Un lock de sesion olvidado
+# bloquearia los arranques siguientes hasta que alguien lo soltara a mano.
+#
 # USO
 #
 #   export DATABASE_URL='postgres://moocuser:CONTRASENA@10.x.x.x:5432/moocdb?sslmode=require'
@@ -30,6 +50,11 @@
 #   bash ./scripts/migrate.sh --status   # solo informa, no toca nada
 #   bash ./scripts/migrate.sh --verify   # comprueba el esquema resultante
 #   bash ./scripts/migrate.sh --baseline # adopta una base que ya tiene el esquema
+#   bash ./scripts/migrate.sh --require  # falla si falta alguna; no aplica nada
+#
+# `--require` es la comprobacion que hace el arranque de una instancia antes de
+# levantar la API: si el esquema no trae lo que esta imagen necesita, mas vale
+# no atender peticiones que atenderlas contra una base que no corresponde.
 #
 # `--baseline` existe para las bases de desarrollo. En local el esquema lo creo
 # el hook de inicializacion, que no dejo tabla de control, asi que este script
@@ -48,13 +73,14 @@ case "${1:-}" in
     --status) MODO="estado" ;;
     --verify) MODO="verificar" ;;
     --baseline) MODO="baseline" ;;
+    --require) MODO="exigir" ;;
     --help | -h)
         sed -n '2,40p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
         exit 0
         ;;
     "") ;;
     *)
-        echo "opcion desconocida: $1  (--status, --verify, --baseline, --help)" >&2
+        echo "opcion desconocida: $1  (--status, --verify, --baseline, --require, --help)" >&2
         exit 2
         ;;
 esac
@@ -216,6 +242,30 @@ if [[ "${MODO}" == "baseline" ]]; then
     exit 0
 fi
 
+# --- Modo --require ---------------------------------------------------------
+# No aplica nada: solo responde si esta base trae lo que esta copia del
+# repositorio necesita. Es lo que ejecuta el arranque de una instancia antes de
+# levantar la API.
+if [[ "${MODO}" == "exigir" ]]; then
+    faltantes=0
+    for ruta in "${MIGRATIONS_DIR}"/*.up.sql; do
+        version="$(basename "${ruta}" .up.sql)"
+        if ! esta_aplicada "${version}"; then
+            echo "    FALTA        ${version}" >&2
+            faltantes=$((faltantes + 1))
+        fi
+    done
+    if [[ ${faltantes} -gt 0 ]]; then
+        echo >&2
+        echo "ERROR: el esquema no trae ${faltantes} migracion(es) que esta imagen necesita." >&2
+        echo "       Aplicalas antes de que la instancia empiece a atender:" >&2
+        echo "         bash ./scripts/migrate.sh" >&2
+        exit 1
+    fi
+    echo "==> El esquema trae todo lo que esta imagen necesita."
+    exit 0
+fi
+
 # --- Aplicar / informar -----------------------------------------------------
 pendientes=0
 aplicadas=0
@@ -224,28 +274,51 @@ echo
 for ruta in "${MIGRATIONS_DIR}"/*.up.sql; do
     version="$(basename "${ruta}" .up.sql)"
 
-    if esta_aplicada "${version}"; then
-        echo "    ya aplicada  ${version}"
-        continue
-    fi
-
-    pendientes=$((pendientes + 1))
-
     if [[ "${MODO}" == "estado" ]]; then
-        echo "    PENDIENTE    ${version}"
+        if esta_aplicada "${version}"; then
+            echo "    ya aplicada  ${version}"
+        else
+            echo "    PENDIENTE    ${version}"
+            pendientes=$((pendientes + 1))
+        fi
         continue
     fi
 
-    echo "==> Aplicando   ${version}"
+    # La lista leida al empezar sirve para informar, no para decidir: entre
+    # aquella lectura y este momento otra instancia puede haber aplicado esta
+    # misma migracion. La decision se toma dentro del lock.
+    #
+    # El orden importa y es el unico que funciona:
+    #
+    #   1. BEGIN                   -- lo pone --single-transaction
+    #   2. tomar el lock           -- la segunda instancia espera aqui
+    #   3. preguntar si ya esta    -- ya con el lock en la mano
+    #   4. aplicar y registrar, o no hacer nada
+    #   5. COMMIT                  -- suelta el lock y libera a la siguiente
+    #
+    # Preguntar antes del paso 2 seria volver a la carrera que esto evita.
+    salida="$(psql_ --quiet --single-transaction \
+        -v ver="${version}" -v ruta="${ruta}" -f - <<'SQL'
+-- En un bloque DO para que no imprima la tabla de una columna vacia que
+-- devuelve la funcion. Lo que interesa es el efecto, no el valor.
+DO $$ BEGIN PERFORM pg_advisory_xact_lock(4426195); END $$;
+SELECT NOT EXISTS (
+    SELECT 1 FROM schema_migrations WHERE version = :'ver'
+) AS pendiente \gset
+\if :pendiente
+\echo '==> Aplicando   ' :ver
+\i :ruta
+INSERT INTO schema_migrations (version) VALUES (:'ver');
+\else
+\echo '    ya aplicada  ' :ver
+\endif
+SQL
+    )"
+    echo "${salida}"
 
-    # La migracion y su registro, en la misma transaccion. El orden de -f y -c
-    # es el orden de ejecucion, y --single-transaction envuelve ambos: si el
-    # archivo falla, el INSERT no llega a ocurrir.
-    psql_ --quiet --single-transaction \
-        -f "${ruta}" \
-        -c "INSERT INTO schema_migrations (version) VALUES ('${version}');"
-
-    aplicadas=$((aplicadas + 1))
+    if [[ "${salida}" == *"Aplicando"* ]]; then
+        aplicadas=$((aplicadas + 1))
+    fi
 done
 
 echo
