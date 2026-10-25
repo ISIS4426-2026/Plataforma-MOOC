@@ -24,6 +24,31 @@ Desde la **Entrega 2** incluye además el despliegue en **Google Cloud Platform*
 
 ---
 
+## Entrega 3 — Aplicación elástica IaaS
+
+> [!NOTE]
+> **En construcción.** La Entrega 3 evoluciona el despliegue de dos máquinas fijas
+> hacia dos grupos de instancias con escalamiento automático entre 1 y 3, un
+> balanceador externo, una cola compartida fuera de ambos grupos y un frontend
+> mínimo funcional. Las URL HTTPS del frontend y del balanceador se publican aquí
+> cuando existan.
+
+| | |
+| :--- | :--- |
+| Backlog | [44 issues, #193–#236](https://github.com/ISIS4426-2026/Plataforma-MOOC/issues?q=is%3Aissue+label%3Aentrega-3), milestone *Entrega 3 - Aplicacion elastica IaaS* |
+| Notas técnicas | [`docs/entrega3/NOTAS_TECNICAS.md`](docs/entrega3/NOTAS_TECNICAS.md) — **leer antes de empezar un issue, anotar antes de cerrarlo** |
+| Evidencias | [`docs/entrega3/evidencias/`](docs/entrega3/evidencias/) — un directorio por issue |
+| Documento de arquitectura | `docs/entrega3/arquitectura.md` *(I1, I2)* |
+| Informe de capacidad | `capacity-planning/pruebas_de_carga_entrega3.md` *(G7)* |
+| Deuda técnica | `docs/entrega3/deuda-tecnica.md` *(H3)* |
+| URL del frontend | *(pendiente, D1)* |
+| URL del balanceador de la API | *(pendiente, C3)* |
+
+**Base de la entrega:** parte del tag [`entrega-2`](https://github.com/ISIS4426-2026/Plataforma-MOOC/releases/tag/entrega-2)
+(commit `1827cdc`); commit base `d7ac108`.
+
+---
+
 ## Entrega 2 — Despliegue en la nube
 
 > [!NOTE]
