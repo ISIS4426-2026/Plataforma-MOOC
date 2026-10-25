@@ -4,7 +4,9 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"net"
 	"net/http"
+	"sync/atomic"
 	"time"
 
 	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/admin"
@@ -34,11 +36,36 @@ const (
 	idleTimeout       = 120 * time.Second
 )
 
+// processStart marca el arranque del proceso.
+//
+// Las variables de paquete se inicializan antes que main(), asi que esto queda
+// a unos microsegundos del inicio real. Medir desde NewServer daria dos
+// milisegundos y dejaria fuera lo que de verdad tarda: abrir el pool de
+// PostgreSQL, conectar con Redis y construir el cliente de almacenamiento.
+//
+// Ese numero completo es el que calibra el periodo de inicializacion del
+// autoscaler. Si se fija por debajo del arranque real, el autoscaler cuenta
+// como sobrecargada una replica que todavia se esta montando y pide otra.
+var processStart = time.Now()
+
 type Server struct {
 	cfg     *config.Config
 	logger  *slog.Logger
 	handler http.Handler
 	http    *http.Server
+
+	// ready pasa a true cuando el servidor empieza a escuchar. Hasta entonces
+	// /api/v1/ready responde 503 aunque la base conteste: el proceso vive pero
+	// todavia no puede atender, y el balanceador no debe mandarle trafico.
+	ready *atomic.Bool
+
+	// instance identifica a esta replica. El valor publico viaja en una
+	// cabecera; el privado, solo al log.
+	instance middleware.InstanceID
+
+	// startedAt es el instante en que arranco el proceso. Restarlo al momento en
+	// que queda listo da el tiempo de arranque que pide el issue.
+	startedAt time.Time
 }
 
 // NewServer wires the routing table and the middleware chain shared by every
@@ -75,6 +102,16 @@ func NewServer(cfg *config.Config, deps Deps, logger *slog.Logger) *Server {
 	if logger == nil {
 		logger = slog.Default()
 	}
+
+	// Toda linea de log de este proceso lleva la replica que la escribio. Es la
+	// otra mitad de la cabecera X-Instance-ID: la cabecera sirve para la
+	// evidencia que se publica, y esto para buscar en Cloud Logging por
+	// instancia cuando hay tres contestando a la vez.
+	//
+	// Se etiqueta aqui arriba, antes de construir nada, para que lo hereden
+	// tambien los limitadores y los manejadores y no solo los middlewares.
+	instance := middleware.NewInstanceID(cfg.InstanceID)
+	logger = logger.With(slog.String("instance", instance.Private))
 
 	mux := http.NewServeMux()
 
@@ -145,6 +182,19 @@ func NewServer(cfg *config.Config, deps Deps, logger *slog.Logger) *Server {
 	}, logger)
 
 	// Register API v1 routes
+	//
+	// Tres rutas de salud, y cada una contesta a quien le pregunta:
+	//
+	//   /api/v1/live    el autohealing del grupo. Sin dependencias, para que un
+	//                   parpadeo de la base no haga recrear las tres replicas.
+	//   /api/v1/ready   el balanceador. Prueba la base y la bandera de arranque.
+	//   /api/v1/health  la vista interna, con el detalle por dependencia. La usan
+	//                   el healthcheck de Compose, el arnes E2E y Postman.
+	//
+	// El reparto entre las dos primeras esta explicado en readiness.go.
+	ready := &atomic.Bool{}
+	mux.Handle("GET /api/v1/live", handler.NewLivenessHandler())
+	mux.Handle("GET /api/v1/ready", handler.NewReadinessHandler(deps.DB, ready))
 	mux.Handle("GET /api/v1/health", handler.NewHealthHandler(deps.DB))
 
 	// Metrics for scraping (issue #21). Unauthenticated, same as a
@@ -362,6 +412,7 @@ func NewServer(cfg *config.Config, deps Deps, logger *slog.Logger) *Server {
 	// including the ones CSRF rejects, and CSRF is innermost so a forged
 	// request is refused before it reaches a handler.
 	root := middleware.Chain(mux,
+		middleware.WithInstanceID(instance),
 		middleware.ForwardedHeaders(cfg.TrustedProxyIP),
 		middleware.RequestID(),
 		middleware.Tracing(tracer, meter),
@@ -371,9 +422,12 @@ func NewServer(cfg *config.Config, deps Deps, logger *slog.Logger) *Server {
 	)
 
 	return &Server{
-		cfg:     cfg,
-		logger:  logger,
-		handler: root,
+		cfg:       cfg,
+		logger:    logger,
+		handler:   root,
+		ready:     ready,
+		instance:  instance,
+		startedAt: processStart,
 		http: &http.Server{
 			Addr:              fmt.Sprintf(":%s", cfg.Port),
 			Handler:           root,
@@ -389,12 +443,27 @@ func NewServer(cfg *config.Config, deps Deps, logger *slog.Logger) *Server {
 // http.ErrServerClosed is the expected outcome of calling Shutdown and not a
 // failure the caller should report.
 func (s *Server) Start() error {
-	s.logger.Info("api server listening",
+	listener, err := net.Listen("tcp", s.http.Addr)
+	if err != nil {
+		return err
+	}
+
+	// A partir de aqui el puerto acepta conexiones y todo lo que la instancia
+	// necesita esta construido. Ese es el criterio de «listo», y es el que hay
+	// que contar para calibrar el periodo de inicializacion del autoscaler: no
+	// el arranque del contenedor, ni la primera peticion servida.
+	s.ready.Store(true)
+	s.logger.Info("api server ready",
 		slog.String("addr", s.http.Addr),
 		slog.String("env", s.cfg.Environment),
+		slog.String("instance_public", s.instance.Public),
+		// Legible en el log, que es donde se lee. slog.Duration lo serializaria
+		// en nanosegundos y habria que dividir a mano en cada evidencia.
+		slog.String("startup", time.Since(s.startedAt).Round(time.Millisecond).String()),
+		slog.String("ready_criterion", "el puerto acepta conexiones y las dependencias estan construidas"),
 	)
 
-	if err := s.http.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+	if err := s.http.Serve(listener); err != nil && err != http.ErrServerClosed {
 		return err
 	}
 	return nil
@@ -403,6 +472,11 @@ func (s *Server) Start() error {
 // Shutdown stops accepting connections and waits for in-flight requests to
 // finish, up to the deadline carried by ctx.
 func (s *Server) Shutdown(ctx context.Context) error {
+	// Primero dejar de declararse listo, y despues drenar. Asi el balanceador
+	// retira esta replica de la rotacion mientras las peticiones en curso
+	// terminan, en lugar de seguir mandandole trabajo hasta el ultimo momento.
+	s.ready.Store(false)
+	s.logger.Info("api server draining")
 	return s.http.Shutdown(ctx)
 }
 

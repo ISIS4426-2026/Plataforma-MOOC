@@ -111,6 +111,14 @@ type Config struct {
 	// TrustedProxyIP is the one proxy allowed to supply X-Forwarded headers.
 	TrustedProxyIP string
 
+	// InstanceID identifica a esta replica entre las del grupo.
+	//
+	// Vacio usa el nombre de la maquina, que es lo que basta en local y en una
+	// VM suelta. En un grupo administrado el script de arranque lo fija con el
+	// id numerico que devuelve el servidor de metadatos de GCE, que es estable
+	// entre reinicios del contenedor y unico en el proyecto.
+	InstanceID string
+
 	// Rate limits for the sensitive endpoints. The defaults are sized for
 	// development; production should tighten them, particularly on login.
 	RateLimitLoginAttempts    int
@@ -168,6 +176,7 @@ func Load() *Config {
 
 		CSRFAllowedOrigins: getEnvList("CSRF_ALLOWED_ORIGINS"),
 		TrustedProxyIP:     getEnv("TRUSTED_PROXY_IP", ""),
+		InstanceID:         getEnv("INSTANCE_ID", ""),
 
 		RateLimitLoginAttempts:    getEnvInt("RATE_LIMIT_LOGIN_ATTEMPTS", 10),
 		RateLimitLoginWindow:      getEnvDuration("RATE_LIMIT_LOGIN_WINDOW", time.Minute),
