@@ -168,6 +168,38 @@ func journey(r *run, bucket, hlsBucket string, video, doc, img []byte, wait time
 		return
 	}
 
+	// Las dos sondas que miraran el balanceador y el grupo administrado. Se
+	// comprueban aqui, antes que nada, porque de ellas depende que una replica
+	// reciba trafico y que no la recreen por error.
+	res = r.api.do("GET", "/api/v1/live", "", nil, nil)
+	r.check("La sonda de liveness responde sin consultar dependencias", res, 200,
+		"200 mientras el proceso sirva, para que un parpadeo de la base no recree las réplicas",
+		res.err == nil)
+
+	res = r.api.do("GET", "/api/v1/ready", "", nil, nil)
+	r.check("La sonda de readiness declara que la réplica puede atender", res, 200,
+		"200 con la base alcanzable", res.err == nil)
+
+	// El criterio de aceptación de A2: la sonda no revela dependencias,
+	// versiones ni topología. Es la respuesta que cualquiera puede pedir al
+	// balanceador sin autenticarse.
+	cuerpoSonda := strings.ToLower(string(res.body))
+	filtra := ""
+	for _, palabra := range []string{"database", "postgres", "redis", "bucket", "version", "host", "addr"} {
+		if strings.Contains(cuerpoSonda, palabra) {
+			filtra = palabra
+		}
+	}
+	r.check("La sonda pública no revela dependencias ni topología", res, 200,
+		fmt.Sprintf("cuerpo=%s", strings.TrimSpace(string(res.body))), filtra == "")
+
+	// Sin este identificador no hay forma de demostrar que el balanceador
+	// reparte entre réplicas, que es lo que piden C4 y el escenario 3A.
+	instancia := res.header.Get("X-Instance-ID")
+	r.check("Cada respuesta dice qué réplica la atendió", res, 200,
+		fmt.Sprintf("X-Instance-ID=%q", instancia),
+		instancia != "")
+
 	// ---- 1. identidad ------------------------------------------------------
 
 	r.flowIs("1. Registro, verificación de correo y login")

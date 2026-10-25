@@ -41,6 +41,8 @@ services:
       - DATABASE_URL=${DATABASE_URL}
       - REDIS_URL=${REDIS_URL:-redis:6379}
       - TRUSTED_PROXY_IP=172.30.0.2
+      # Vacio cae en el nombre del contenedor, que ya distingue replicas.
+      - INSTANCE_ID=${INSTANCE_ID:-}
       - STORAGE_BACKEND=gcs
       - S3_BUCKET=${S3_BUCKET:-plataforma-mooc-entrega2-media}
       - GCP_PROJECT_ID=${GCP_PROJECT_ID:-plataforma-mooc-entrega2}

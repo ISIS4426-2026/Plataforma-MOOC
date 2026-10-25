@@ -32,6 +32,7 @@ lo reemplaza, lo continúa.
 | 16 | [Solo el vídeo estaba cubierto, y por eso un PDF nunca llegaba al estudiante](#16) | D2, D3, E3, G4, H3 |
 | 17 | [El quiz se congela por intento, y el envío directo sigue funcionando](#17) | D2, E2, G3 |
 | 18 | [PITR cambia el coste con la escritura, no con el tamaño de la base](#18) | A7, F3, I2, I6 |
+| 19 | [Tres sondas de salud, y cada una contesta a quien le pregunta](#19) | B3, C1, C3, C4, C5, E1, G5 |
 
 ---
 
@@ -343,6 +344,37 @@ Dos avisos operativos: activar PITR **reinicia la instancia**, así que no se
 toca con una campaña en marcha; y **A7 recrea desde el tag `entrega-2`**, que
 lleva `false`, de modo que la línea base retrospectiva no queda contaminada por
 este cambio.
+
+<a id="19"></a>
+## 19. Tres sondas de salud, y cada una contesta a quien le pregunta
+
+| Ruta | Quién la mira | Prueba |
+| :--- | :--- | :--- |
+| `/api/v1/live` | autohealing del grupo (C1, C5) | nada |
+| `/api/v1/ready` | health check del balanceador (C3, C4) | la base, más la bandera de arranque |
+| `/api/v1/health` | Compose, arnés E2E, Postman | la base, con detalle por dependencia |
+
+**No las intercambies.** El grupo administrado *destruye y recrea* la máquina
+que falla su comprobación; el balanceador solo deja de enviarle tráfico. Si el
+autohealing mirara `/ready`, un parpadeo de Cloud SQL haría fallar a las tres
+réplicas a la vez y el grupo las recrearía todas: un problema transitorio de una
+dependencia compartida convertido en una caída completa.
+
+`/api/v1/health` se queda como estaba porque el E2E y Postman afirman sobre
+`services.database`. Es la vista interna; las otras dos no revelan dependencias
+ni topología, y hay una prueba que lo fija.
+
+**Para C4 y G5:** toda respuesta lleva `X-Instance-ID`, un resumen corto que
+distingue réplicas sin delatar el nombre de la máquina. El nombre completo va en
+cada línea de log bajo la clave `instance`. Con eso se demuestra el reparto y se
+busca en Cloud Logging por réplica.
+
+**Para B3, C2 y C6:** el log `api server ready` trae `startup` y el criterio con
+el que se decide que la instancia está lista. En local son **93 ms**, que es
+solo la parte de aplicación. El arranque que calibra el autoscaler —VM, imagen,
+secretos, contenedores— lo mide B3. Si el periodo de inicialización se fija por
+debajo del arranque real, el autoscaler cuenta como sobrecargada una réplica que
+todavía se está montando y pide otra.
 
 ---
 

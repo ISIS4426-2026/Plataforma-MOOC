@@ -79,6 +79,21 @@ DB_PASSWORD="$(DB_PASSWORD="${DB_PASSWORD}" python3 -c 'import os; print(os.envi
 # A database password is part of a URI, so reserved characters must be encoded.
 ENCODED_DB_PASSWORD="$(DB_PASSWORD="${DB_PASSWORD}" python3 -c 'import os, urllib.parse; print(urllib.parse.quote(os.environ["DB_PASSWORD"], safe=""))')"
 
+# Which replica this is, from the metadata server.
+#
+# The numeric instance id, not the name: it is unique in the project and stable
+# across container restarts, while a managed group reuses names. It is what
+# makes it possible to say which replica answered a request once three of them
+# are behind a balancer.
+#
+# Not fatal when it is missing. The API falls back to the machine's hostname,
+# which is enough to tell replicas apart, and refusing to start a web server
+# over a metadata lookup would be the wrong trade.
+INSTANCE_ID="$(curl -fsS --max-time 2 \
+  -H 'Metadata-Flavor: Google' \
+  'http://metadata.google.internal/computeMetadata/v1/instance/id' 2>/dev/null || true)"
+[[ "${INSTANCE_ID}" =~ ^[0-9A-Za-z._-]*$ ]] || INSTANCE_ID=""
+
 umask 077
 TMP_FILE="$(mktemp "${REPO_DIR}/.env.tmp.XXXXXX")"
 trap 'rm -f "${TMP_FILE:-}"' EXIT
@@ -90,6 +105,7 @@ APP_DOMAIN='${APP_DOMAIN}'
 APP_BASE_URL='https://${APP_DOMAIN}'
 CSRF_ALLOWED_ORIGINS='https://${APP_DOMAIN}'
 TRUSTED_PROXY_IP='172.30.0.2'
+INSTANCE_ID='${INSTANCE_ID}'
 DATABASE_URL='postgres://moocuser:${ENCODED_DB_PASSWORD}@${DB_PRIVATE_IP}:5432/moocdb?sslmode=require'
 REDIS_URL='${QUEUE_PRIVATE_IP}:6379'
 STORAGE_BACKEND='gcs'

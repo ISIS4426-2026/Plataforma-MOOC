@@ -42,6 +42,71 @@ tags:
     description: Direct presigned S3 upload URLs and async media processing orchestration.
 
 paths:
+  /live:
+    get:
+      tags:
+        - Health
+      summary: Liveness probe for the instance group
+      description: >
+        Answers 200 while the process is serving. It probes nothing.
+
+
+        This is what the managed instance group's autohealing watches, and it
+        must stay independent of every shared dependency. A probe that touched
+        the database would fail on all three replicas during a Cloud SQL blip,
+        the group would recreate all of them, and a transient problem would
+        become a full outage.
+
+
+        The body carries no detail: the only consumer is an automated probe
+        that reads the status code.
+      operationId: getLiveness
+      responses:
+        '200':
+          description: The process is alive and serving.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProbeStatus'
+
+  /ready:
+    get:
+      tags:
+        - Health
+      summary: Readiness probe for the load balancer
+      description: >
+        Answers 200 when this replica can actually serve a request, and 503
+        when it cannot. This is what the balancer's health check watches, so a
+        503 takes the replica out of rotation without destroying it.
+
+
+        It answers 503 during the window in which the process is alive but
+        still assembling itself, even if the database responds: sending traffic
+        then would hand out errors. It also answers 503 while the instance is
+        draining, so the balancer stops routing before in-flight requests
+        finish.
+
+
+        The body names no dependency, version or internal address. The detail
+        of which dependency failed lives in the internal health view and in the
+        logs.
+      operationId: getReadiness
+      responses:
+        '200':
+          description: The replica can serve requests.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProbeStatus'
+        '503':
+          description: >
+            The replica cannot serve: still starting, draining, or a dependency
+            is unreachable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProbeStatus'
+
   /health:
     get:
       tags:
@@ -2333,6 +2398,19 @@ components:
       example: "a8b9c1d2-e3f4-4a5b-8c6d-7e8f9a0b1c2d"
 
   schemas:
+    ProbeStatus:
+      type: object
+      description: >
+        All a liveness or readiness probe returns. Deliberately without detail:
+        naming the dependency that failed would expose internal topology on an
+        endpoint that anyone can reach through the balancer.
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum: [pass, fail]
+
     HealthStatus:
       type: object
       required:
