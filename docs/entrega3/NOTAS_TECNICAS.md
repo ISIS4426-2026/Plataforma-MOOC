@@ -281,9 +281,9 @@ fallo permanente: el recurso quedaba en `failed` y nunca estaba disponible.
 
 Sobrevivió a la Entrega 1 y a la Entrega 2 porque **nada lo ejercitaba**: ni el
 E2E, ni las colecciones de Postman, ni la semilla subían algo que no fuera mp4.
-Lo encontró la revisión de la Entrega 1 y se corrigió en
-`fix/entrega1-review-findings`; el detalle está en
-[`CORRECCIONES_ENTREGA1.md`](./CORRECCIONES_ENTREGA1.md).
+Lo encontró la revisión de la Entrega 1 y se corrigió en la rama
+`fix/entrega1-review-findings`: el worker enruta ahora los documentos por una
+rama propia, y el E2E y Postman cubren el caso.
 
 Tres cosas que conviene llevarse de esto:
 

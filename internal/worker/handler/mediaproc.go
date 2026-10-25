@@ -275,18 +275,14 @@ func (p *MediaProcessor) processAudiovisual(ctx context.Context, resource *domai
 // student. Nothing in the test suite uploaded a document, so it went unnoticed
 // until the Entrega 1 review found it.
 //
-// # What it checks, and what it deliberately does not
+// # What it checks
 //
 // A document needs no derivatives: what the author uploaded is what the student
 // downloads. So the work is to confirm the object really landed and that it is
 // what its key claims to be, then mark it available.
 //
 // The content type compared here is the one the bucket recorded, which is the
-// one the client declared when it PUT the object. Reading the leading bytes to
-// identify the format, and checking a checksum against a digest the client
-// committed to beforehand, are both real gaps -- they belong to the resumable
-// upload work, which changes the upload path and therefore has to wait until
-// after the comparative load runs.
+// one the client declared when it PUT the object.
 func (p *MediaProcessor) processDocument(ctx context.Context, resource *domain.Resource, payload task.MediaProcessPayload) error {
 	info, err := p.store.StatObject(ctx, payload.StoragePath)
 	if err != nil {
