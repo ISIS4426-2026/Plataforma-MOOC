@@ -33,6 +33,8 @@ lo reemplaza, lo continúa.
 | 17 | [El quiz se congela por intento, y el envío directo sigue funcionando](#17) | D2, E2, G3 |
 | 18 | [PITR cambia el coste con la escritura, no con el tamaño de la base](#18) | A7, F3, I2, I6 |
 | 19 | [Tres sondas de salud, y cada una contesta a quien le pregunta](#19) | B3, C1, C3, C4, C5, E1, G5 |
+| 20 | [La línea base no lleva las correcciones, y eso mete una variable en G3](#20) | A7, G3, G4, G7 |
+| 21 | [Toda migración tiene que ser compatible con la imagen anterior](#21) | **cualquiera que añada una migración**: B3, C1, C5, D1 |
 
 ---
 
@@ -375,6 +377,87 @@ solo la parte de aplicación. El arranque que calibra el autoscaler —VM, image
 secretos, contenedores— lo mide B3. Si el periodo de inicialización se fija por
 debajo del arranque real, el autoscaler cuenta como sobrecargada una réplica que
 todavía se está montando y pide otra.
+
+<a id="20"></a>
+## 20. La línea base no lleva las correcciones, y eso mete una variable en G3
+
+**A7 despliega el código del tag `entrega-2` (`1827cdc`)**, no el de `main`. Es
+deliberado: desplegar el código corregido convertiría la línea base en otra
+cosa y la comparación de G3 y G4 dejaría de significar nada. Las imágenes del
+tag siguen en Artifact Registry, que I6 conservó justo para esto.
+
+Lo que sí entra en A7, y debe entrar, son **A5** (los archivos de 2, 10 y 30
+minutos reales) y **A6** (destino registrado, percentiles comprobados, TTFF
+medido). Sin ellos reproducirías la misma medición inválida que costó un tercio
+del criterio del escenario 2. A7 no es «repetir la Entrega 2 tal cual»: es el
+sistema de la Entrega 2 bajo la disciplina de medición nueva.
+
+### La variable suelta
+
+Tres cambios ya mergeados meten coste **por petición** en el camino que miden G3
+y G4, y la línea base no los tendrá:
+
+| Cambio | Dónde pesa |
+| :--- | :--- |
+| Snapshot de quiz | `Grade` arma el snapshot en SQL y borra el borrador: dos operaciones extra por envío. El escenario 1 envía dos veces por usuario (pasos 10 y 11) |
+| PITR | registro de escritura continuo en Cloud SQL, y el escenario 1 es mitad escrituras |
+| Enrutado de documentos | sin efecto: el escenario 2 es solo vídeo |
+
+Si en G3 sube la latencia de escritura, **sin medir esto no se puede decir si
+fue la arquitectura elástica o el snapshot de quizzes**. El enunciado lo prohíbe
+expresamente: *«mantener constantes los parámetros ajenos al cambio estudiado;
+cualquier diferencia deberá declararse y discutirse como posible causa de los
+resultados»*.
+
+### Qué se decidió
+
+**Medirlo, no solo declararlo.** En el mismo encendido de A7, después de la
+corrida de línea base, se despliega la imagen de `main` sobre la **misma
+infraestructura de dos VMs** y se repite el escenario 1. Eso aísla el coste de
+las correcciones sin mezclarlo con el cambio de arquitectura, y convierte una
+advertencia en un número que G3 descuenta.
+
+Esa segunda corrida es además la primera oportunidad de ejecutar los pasos del
+E2E que no se han podido probar: documentos, imágenes y el intento de quiz
+congelado.
+
+<a id="21"></a>
+## 21. Toda migración tiene que ser compatible con la imagen anterior
+
+Las migraciones se aplican **al arrancar la instancia**, protegidas por un
+advisory lock de transacción (`scripts/migrate.sh`). Tres instancias simultáneas
+aplican el esquema una sola vez y ninguna falla; está probado en
+[`evidencias/A3`](./evidencias/A3/README.md), junto con la demostración de que
+el aplicador anterior hacía fallar a dos de las tres.
+
+**La contrapartida, que es lo que hay que recordar al escribir una migración:**
+
+> Durante una rotación del grupo conviven la imagen vieja y la nueva. La
+> instancia nueva aplica la migración mientras las viejas siguen sirviendo
+> contra el esquema ya cambiado.
+
+Por tanto:
+
+| Se puede | No se puede |
+| :--- | :--- |
+| Añadir una tabla | Borrar una tabla o columna que el código viejo lea |
+| Añadir una columna anulable o con `DEFAULT` | Renombrar una columna |
+| Añadir un índice | Añadir un `NOT NULL` sin valor por defecto |
+| Relajar una restricción | Endurecer una restricción que el código viejo viole |
+
+Un borrado o un renombrado se hace **en dos despliegues**: primero dejar de
+usarlo en el código, después quitarlo del esquema. La migración `000008` cumple
+la regla: todo lo que añade es anulable o una tabla nueva.
+
+**Para B3:** el arranque ejecuta `migrate.sh` y después `migrate.sh --require`.
+La segunda parece redundante y no lo es: si el esquema no trae lo que la imagen
+necesita, sale con código 1 y la API no se levanta. Mejor una instancia que no
+arranca que una que atiende contra una base que no corresponde.
+
+Dos trampas al reproducirlo en Windows: el montaje de Docker necesita la ruta de
+Windows (`cygpath -w`), y la copia de trabajo puede tener CRLF aunque el
+repositorio guarde LF, lo que dentro del contenedor da `$'': command not
+found`.
 
 ---
 

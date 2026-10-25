@@ -1,0 +1,13 @@
+==> Base: moocdb en PostgreSQL 16.15 on x86_64-pc-linux-musl, compiled by gcc (Alpine 15.2.0) 15.2.0, 64-bit
+
+==> Aplicando    000001_init_schema
+==> Aplicando    000002_auth_tokens
+==> Aplicando    000003_academic_ordering
+==> Aplicando    000004_audit_immutability
+==> Aplicando    000005_resource_downloadable
+==> Aplicando    000006_enrollments
+    ya aplicada   000007_quiz_attempts
+==> Aplicando    000008_quiz_attempt_drafts
+
+==> 7 migracion(es) aplicada(s).
+==> Comprueba el resultado con: bash ./scripts/migrate.sh --verify
