@@ -133,6 +133,13 @@ captura. No es burocracia: relanzar una corrida de autoscaling solo para grabarl
 cuesta dinero y tiempo, y el enunciado permite mostrar procesos largos de
 ejecuciones previas **solo si sus registros completos están en el repositorio**.
 
+**Antes de cerrar uno de esos issues, corre
+`bash ./scripts/check_evidencias.sh`.** Lee la columna *Captura* del README de
+evidencias y falla si algún directorio está vacío o si un archivo pasa de
+10 MiB. Es criterio de aceptación de I3 y de I5, así que el tag `entrega-3` no
+se crea con capturas faltantes — pero esperar a I5 para descubrirlo es tarde:
+para entonces puede que el entorno ya no exista.
+
 Convención: `docs/entrega3/evidencias/<clave>/capturas/`, PNG para pantallas,
 consola y gráficas, vídeo corto solo cuando el movimiento es la prueba, nombre
 `AAAA-MM-DD_descripcion.png`. Sin credenciales, tokens ni IPs privadas a la
@@ -456,7 +463,8 @@ arranca que una que atiende contra una base que no corresponde.
 
 Dos trampas al reproducirlo en Windows: el montaje de Docker necesita la ruta de
 Windows (`cygpath -w`), y la copia de trabajo puede tener CRLF aunque el
-repositorio guarde LF, lo que dentro del contenedor da `$'': command not
+repositorio guarde LF, lo que dentro del contenedor da `$'
+': command not
 found`.
 
 ---

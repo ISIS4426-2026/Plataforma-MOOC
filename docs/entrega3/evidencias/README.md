@@ -9,6 +9,17 @@ cuando el movimiento es la prueba; nombre `AAAA-MM-DD_descripcion.png`. Sin
 credenciales, tokens ni IPs privadas a la vista. Lo que pase de ~10 MB va a la
 plataforma del vídeo y se enlaza desde el README del issue.
 
+Antes de **cerrar** uno de los marcados, corre:
+
+```bash
+bash ./scripts/check_evidencias.sh            # falla si falta alguna
+bash ./scripts/check_evidencias.sh --informe  # solo informa
+```
+
+Lee la columna *Captura* de esta misma tabla, así que no hay una segunda lista
+que mantener. Es criterio de aceptación de I3 y de I5: **el tag `entrega-3` no
+se crea con capturas faltantes**.
+
 Antes de empezar cualquiera de estos issues, lee
 [`../NOTAS_TECNICAS.md`](../NOTAS_TECNICAS.md); antes de cerrarlo, anota allí lo
 que el resto del equipo deba saber.
