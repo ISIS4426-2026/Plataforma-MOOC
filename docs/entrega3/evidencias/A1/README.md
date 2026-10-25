@@ -4,7 +4,7 @@
 | :--- | :---: |
 | Partir del tag `entrega-2` y registrar el commit base | ✅ · §1 |
 | Milestone y etiquetas nuevas | ✅ · §2 |
-| CI verde en la rama base | ✅ en local · §3 · falta el enlace a Actions |
+| CI verde en la rama base | ✅ · §3 |
 | Backlog publicado con bloques, dependencias y responsables | ✅ · §4 |
 | `docs/entrega3/NOTAS_TECNICAS.md` creado y sembrado | ✅ · §5 |
 | Árbol `docs/entrega3/evidencias/<clave>/capturas/` | ✅ · §5 |
@@ -82,9 +82,25 @@ such file or directory` porque la ruta del proyecto lleva espacios y `make` no
 los cita al invocar el script. Se evita llamando directamente a
 `bash ./scripts/lint.sh`.
 
+### Ejecución en GitHub Actions
+
 | | |
 | :--- | :--- |
-| Ejecución de la CI sobre el commit base | *(pendiente de subir la rama)* |
+| Ejecución | [#40215607831](https://github.com/ISIS4426-2026/Plataforma-MOOC/actions/runs/40215607831) — **success** |
+| Commit | `39d947e` (rama `docs/e3-a1-base`) |
+| PR | [#237](https://github.com/ISIS4426-2026/Plataforma-MOOC/pull/237) |
+| `Terraform Format & Validate` | ✅ |
+| `Build, Lint, Migrations & Unit Tests` | ✅ |
+
+Dos avisos del entorno de ejecución, ajenos al proyecto y que conviene tener
+presentes porque acabarán rompiendo la CI si no se atienden:
+
+- `actions/checkout@v4` y `hashicorp/setup-terraform@v3` declaran Node.js 20, ya
+  obsoleto, y el runner los fuerza a Node.js 24.
+- La etiqueta `ubuntu-latest` migra a Ubuntu 26 a partir del 19 de octubre de
+  2026.
+
+Ninguno de los dos falla hoy. Quedan anotados para el inventario de deuda de H3.
 
 ## 4. Backlog
 

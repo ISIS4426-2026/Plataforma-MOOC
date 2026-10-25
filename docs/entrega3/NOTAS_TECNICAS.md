@@ -28,6 +28,7 @@ lo reemplaza, lo continúa.
 | 12 | [`make lint` se rompe en Windows si la ruta lleva espacios](#12) | **todos los que linten en Windows** |
 | 13 | [El contrato de la API arrastra dos avisos de Spectral](#13) | D1, H1, H2, H3 |
 | 14 | [Una raya o una barra en un encabezado generan un ancla con guion doble](#14) | G7, H3, I1, I2, I3 |
+| 15 | [La CI avisa de dos obsolescencias con fecha](#15) | H1, H2, H3 |
 
 ---
 
@@ -250,6 +251,22 @@ encabezado que vive dentro de un bloque de código**, que no genera ancla ningun
 Afecta a cualquiera que escriba un documento largo con índice: G7, H3, I1, I2 e
 I3. Comprueba las anclas antes de dar el documento por cerrado; un índice roto no
 lo detecta la CI.
+
+<a id="15"></a>
+## 15. La CI avisa de dos obsolescencias con fecha
+
+En toda ejecución de `.github/workflows/ci.yml`:
+
+- `actions/checkout@v4` y `hashicorp/setup-terraform@v3` declaran **Node.js 20**,
+  ya obsoleto; el runner los fuerza a Node.js 24. Se arregla subiendo a
+  `actions/checkout@v5` y `hashicorp/setup-terraform@v4`.
+- La etiqueta `ubuntu-latest` **migra a Ubuntu 26 el 19 de octubre de 2026**. El
+  salto de imagen puede cambiar versiones de herramientas del sistema sin aviso;
+  fijar `ubuntu-24.04` lo hace predecible mientras dura la entrega.
+
+Hoy no rompen nada, pero H1 toca este workflow para añadir el análisis estático,
+así que es el momento barato de atenderlo. Si no se atiende, entra al inventario
+de H3 con su fecha.
 
 ---
 
