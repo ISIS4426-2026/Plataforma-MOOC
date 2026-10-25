@@ -20,7 +20,7 @@
 
 ## Índice
 
-- [Informe Consolidado de Pruebas de Carga y Capacidad — Entrega 2](#informe-consolidado-de-pruebas-de-carga-y-capacidad-entrega-2)
+- [Informe Consolidado de Pruebas de Carga y Capacidad — Entrega 2](#informe-consolidado-de-pruebas-de-carga-y-capacidad--entrega-2)
   - [Índice](#índice)
   - [Resumen Ejecutivo y Topología de Pruebas](#resumen-ejecutivo-y-topología-de-pruebas)
     - [Respuesta directa: dónde se degrada, por qué y a partir de qué capacidad](#respuesta-directa-dónde-se-degrada-por-qué-y-a-partir-de-qué-capacidad)
@@ -52,7 +52,7 @@
     - [2.5 Consumo Multimedia HLS: Cadencia Real vs Descarga Greedy](#25-consumo-multimedia-hls-cadencia-real-vs-descarga-greedy)
     - [2.6 Decisión de Medición de QoE con Reproductor Real (TTFF e Interrupciones)](#26-decisión-de-medición-de-qoe-con-reproductor-real-ttff-e-interrupciones)
       - [Justificación Metodológica](#justificación-metodológica)
-      - [Sonda de Reproductor Real (HTML5 / Media Source Extensions)](#sonda-de-reproductor-real-html5-media-source-extensions)
+      - [Sonda de Reproductor Real (HTML5 / Media Source Extensions)](#sonda-de-reproductor-real-html5--media-source-extensions)
     - [2.7 Observación del Drenaje de Cola y Verificación Terminal](#27-observación-del-drenaje-de-cola-y-verificación-terminal)
       - [Verificación Terminal en PostgreSQL](#verificación-terminal-en-postgresql)
     - [2.8 Cuello de botella: la vCPU del worker, a partir de 8 cargas simultáneas](#28-cuello-de-botella-la-vcpu-del-worker-a-partir-de-8-cargas-simultáneas)
@@ -62,17 +62,6 @@
     - [Scripts de Ejecución](#scripts-de-ejecución)
     - [Resultados Originales y Registros Sanitizados](#resultados-originales-y-registros-sanitizados)
     - [Pasos para Reproducir](#pasos-para-reproducir)
-- [-------------------------------------------------------------](#-------------------------------------------------------------)
-- [Escenario 1: Actividad Académica (JMeter)](#escenario-1-actividad-académica-jmeter)
-- [-------------------------------------------------------------](#-------------------------------------------------------------)
-- [1. Generar tokens de sesión localmente (preautenticación)](#1-generar-tokens-de-sesión-localmente-preautenticación)
-- [2. Limpiar estado de las cuentas en la base de datos](#2-limpiar-estado-de-las-cuentas-en-la-base-de-datos)
-- [3. Ejecutar corrida de JMeter en contenedor (ej. 25 usuarios)](#3-ejecutar-corrida-de-jmeter-en-contenedor-ej-25-usuarios)
-- [4. Verificar integridad terminal en Cloud SQL](#4-verificar-integridad-terminal-en-cloud-sql)
-- [-------------------------------------------------------------](#-------------------------------------------------------------)
-- [Escenario 2: Procesamiento y Streaming Multimedia (Go)](#escenario-2-procesamiento-y-streaming-multimedia-go)
-- [-------------------------------------------------------------](#-------------------------------------------------------------)
-- [1. Ejecutar suite de capacidad multimedia (5 niveles + drenaje)](#1-ejecutar-suite-de-capacidad-multimedia-5-niveles-drenaje)
 
 ---
 ## Resumen Ejecutivo y Topología de Pruebas
