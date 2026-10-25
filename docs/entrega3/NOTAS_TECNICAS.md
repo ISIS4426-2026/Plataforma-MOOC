@@ -35,6 +35,8 @@ lo reemplaza, lo continúa.
 | 19 | [Tres sondas de salud, y cada una contesta a quien le pregunta](#19) | B3, C1, C3, C4, C5, E1, G5 |
 | 20 | [La línea base no lleva las correcciones, y eso mete una variable en G3](#20) | A7, G3, G4, G7 |
 | 21 | [Toda migración tiene que ser compatible con la imagen anterior](#21) | **cualquiera que añada una migración**: B3, C1, C5, D1 |
+| 22 | [Dónde se aloje el frontend decide tres configuraciones a la vez](#22) | **D1**, A4, C3, E1 |
+| 23 | [La cola y las sesiones comparten política de expulsión](#23) | B1, C6, F3 |
 
 ---
 
@@ -466,6 +468,52 @@ Windows (`cygpath -w`), y la copia de trabajo puede tener CRLF aunque el
 repositorio guarde LF, lo que dentro del contenedor da `$'
 ': command not
 found`.
+
+<a id="22"></a>
+## 22. Dónde se aloje el frontend decide tres configuraciones a la vez
+
+La cookie de sesión es `SameSite=Lax` por omisión, y **`Lax` solo viaja en
+navegaciones de primer nivel**. Un frontend servido desde *otro origen* que la
+API no podría autenticarse: su `fetch` saldría sin cookie. El login respondería
+200, dejaría su cookie, y la siguiente petición llegaría sin sesión.
+
+| Dónde se aloje | Qué hace falta |
+| :--- | :--- |
+| **Detrás del mismo balanceador** ← recomendado | nada. Mismo sitio, `lax` basta, sin CORS |
+| En otro origen | las **tres** juntas: CORS con credenciales, `SESSION_COOKIE_SAMESITE=none`, y el origen en `CSRF_ALLOWED_ORIGINS` |
+
+**Faltando cualquiera de las tres, el frontend no se autentica.** Es la clase de
+fallo que se diagnostica mal, porque cada pieza por separado parece correcta.
+
+**Para D1:** elegir el mismo balanceador no es solo comodidad. Con `none` el
+navegador deja de aportar nada contra CSRF y la protección descansa entera en la
+comprobación de origen. Un fallo de configuración en esa lista pasa de ser una
+molestia a ser la única barrera que faltaba.
+
+El middleware de CORS ya está (`internal/http/middleware/cors.go`): comparte
+lista con CSRF, nunca devuelve comodín —incompatible con `Allow-Credentials`— y
+expone `X-Request-ID` y `X-Instance-ID`, que son las que C4 y G5 necesitan para
+demostrar el reparto entre réplicas.
+
+<a id="23"></a>
+## 23. La cola y las sesiones comparten política de expulsión
+
+Las sesiones viven en la base lógica **1** de Redis y la cola de asynq en la
+**0** (`REDIS_SESSION_DB`). Eso separa lo que se puede inspeccionar, medir y
+vaciar sin tocar lo otro — un `FLUSHDB` equivocado se lleva una sola cosa.
+
+**Lo que no separa es la memoria.** La política de expulsión es de la instancia
+entera, no de la base. Y asynq **exige `maxmemory-policy noeviction`**: un
+trabajo expulsado es un trabajo perdido.
+
+Consecuencia para **B1**: con las dos cosas en el mismo servicio, el control de
+memoria de las sesiones es **su TTL**, no la expulsión. Si las sesiones llenaran
+la memoria, lo que rompe es la cola — y rompe en silencio, porque un `LPUSH`
+rechazado se ve como un trabajo que nunca llegó.
+
+Dos salidas, a decidir en B1: dimensionar con holgura y vigilar el uso de
+memoria, o darles instancias separadas. Lo segundo cuesta más y lo primero
+exige una alerta; lo que no vale es no elegir.
 
 ---
 

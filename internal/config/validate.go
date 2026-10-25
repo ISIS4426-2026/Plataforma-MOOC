@@ -242,6 +242,22 @@ func (c *Config) problemasDeSuperficieHTTP() []string {
 		problemas = append(problemas, "TRUSTED_PROXY_IP debe ser la IP interna fija del proxy")
 	}
 
+	// El modo de la cookie decide si un frontend de otro origen puede
+	// autenticarse. Un valor que no se reconoce no puede pasar en silencio: el
+	// sintoma seria un login que responde 200 y una sesion que no existe.
+	switch c.SessionCookieSameSite {
+	case "", "lax", "strict", "none":
+	default:
+		problemas = append(problemas,
+			"SESSION_COOKIE_SAMESITE debe ser lax, strict o none")
+	}
+
+	// Una base logica fuera de rango no la acepta Redis, y el error aparece al
+	// primer SELECT, no al arrancar.
+	if c.SessionCacheDB < 0 || c.SessionCacheDB > 15 {
+		problemas = append(problemas, "REDIS_SESSION_DB debe estar entre 0 y 15")
+	}
+
 	if len(c.CSRFAllowedOrigins) == 0 {
 		problemas = append(problemas, "CSRF_ALLOWED_ORIGINS vacio en produccion")
 	} else {

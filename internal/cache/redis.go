@@ -24,6 +24,17 @@ func Connect(ctx context.Context, cfg *config.Config) (*redis.Client, error) {
 		return nil, err
 	}
 
+	// Las sesiones viven en su propia base logica; la cola de asynq se queda en
+	// la 0. No es aislamiento de memoria --la politica de expulsion es de la
+	// instancia entera-- sino de operacion: inspeccionar, medir o vaciar una no
+	// toca la otra, y un FLUSHDB equivocado se lleva una sola cosa.
+	//
+	// Importa ahora porque en la Entrega 2 cada VM tenia su propio Redis y daba
+	// igual; a partir de B1 las dos cosas comparten servicio.
+	if cfg.SessionCacheDB > 0 {
+		options.DB = cfg.SessionCacheDB
+	}
+
 	client := redis.NewClient(options)
 
 	if err := client.Ping(ctx).Err(); err != nil {

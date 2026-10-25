@@ -128,7 +128,17 @@ func NewServer(cfg *config.Config, deps Deps, logger *slog.Logger) *Server {
 		meter = otel.Meter("plataforma-mooc-api")
 	}
 
-	authHandler := handler.NewAuthHandler(deps.Auth, logger)
+	// El modo de la cookie de sesion sale de la configuracion porque depende de
+	// donde se aloje el frontend. Un valor que no se reconoce cae en `lax`, que
+	// es el seguro, y se avisa: fallar el arranque por esto seria peor, pero
+	// hacerlo en silencio dejaria un frontend que no se autentica sin que nadie
+	// sepa por que.
+	sameSite, ok := handler.SameSiteFromConfig(cfg.SessionCookieSameSite)
+	if !ok {
+		logger.Warn("SESSION_COOKIE_SAMESITE no reconocido; se usa lax",
+			slog.String("valor", cfg.SessionCookieSameSite))
+	}
+	authHandler := handler.NewAuthHandlerWithSameSite(deps.Auth, sameSite, logger)
 	adminHandler := handler.NewAdminHandler(deps.Admin, logger)
 	courseHandler := handler.NewCourseHandler(deps.Course, logger)
 	structureHandler := handler.NewStructureHandler(deps.Structure, logger)
@@ -413,6 +423,12 @@ func NewServer(cfg *config.Config, deps Deps, logger *slog.Logger) *Server {
 	// request is refused before it reaches a handler.
 	root := middleware.Chain(mux,
 		middleware.WithInstanceID(instance),
+		// CORS va fuera de todo lo demas porque un preflight no lleva cookie
+		// ni cabecera de traza: tiene que contestarse antes de que nada mas
+		// intente leerlos. Comparte lista con CSRF a proposito, porque los dos
+		// responden a la misma pregunta -- quien puede hablar con esta API
+		// desde un navegador-- y dos listas distintas se desincronizan.
+		middleware.CORS(middleware.CORSConfig{AllowedOrigins: cfg.CSRFAllowedOrigins}),
 		middleware.ForwardedHeaders(cfg.TrustedProxyIP),
 		middleware.RequestID(),
 		middleware.Tracing(tracer, meter),
