@@ -103,6 +103,27 @@ type Config struct {
 	// again.
 	IdempotencyTTL time.Duration
 
+	// SessionCacheDB es la base logica de Redis donde viven las sesiones.
+	//
+	// La cola de asynq vive en la 0. Separarlas no cambia el aislamiento de
+	// memoria --la politica de expulsion es de la instancia entera, no de la
+	// base-- pero si separa lo que se puede inspeccionar, vaciar y medir sin
+	// tocar lo otro. Un FLUSHDB equivocado se lleva una sola cosa.
+	SessionCacheDB int
+
+	// SessionCookieSameSite decide si la cookie de sesion viaja en peticiones
+	// entre sitios distintos.
+	//
+	// `lax` --el valor por omision-- solo la manda en navegaciones de primer
+	// nivel, asi que un frontend servido desde otro origen **no podria
+	// autenticarse**: su fetch saldria sin cookie. `none` la manda siempre y
+	// exige Secure, y entonces la proteccion contra CSRF descansa entera en la
+	// comprobacion de origen.
+	//
+	// La decision la toma D1 al elegir donde se aloja el frontend. Si va detras
+	// del mismo balanceador, esto se queda en `lax`, que es lo preferible.
+	SessionCookieSameSite string
+
 	// CSRFAllowedOrigins lists the browser origins allowed to send state-changing
 	// requests. Production requires this list for cookie-authenticated requests;
 	// Bearer clients without browser origin headers remain compatible.
@@ -175,8 +196,11 @@ func Load() *Config {
 		IdempotencyTTL: getEnvDuration("IDEMPOTENCY_TTL", 24*time.Hour),
 
 		CSRFAllowedOrigins: getEnvList("CSRF_ALLOWED_ORIGINS"),
-		TrustedProxyIP:     getEnv("TRUSTED_PROXY_IP", ""),
-		InstanceID:         getEnv("INSTANCE_ID", ""),
+		SessionCacheDB:     getEnvInt("REDIS_SESSION_DB", 1),
+		SessionCookieSameSite: strings.ToLower(strings.TrimSpace(
+			getEnv("SESSION_COOKIE_SAMESITE", "lax"))),
+		TrustedProxyIP: getEnv("TRUSTED_PROXY_IP", ""),
+		InstanceID:     getEnv("INSTANCE_ID", ""),
 
 		RateLimitLoginAttempts:    getEnvInt("RATE_LIMIT_LOGIN_ATTEMPTS", 10),
 		RateLimitLoginWindow:      getEnvDuration("RATE_LIMIT_LOGIN_WINDOW", time.Minute),

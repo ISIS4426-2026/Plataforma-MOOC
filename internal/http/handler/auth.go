@@ -25,13 +25,57 @@ const SessionCookieName = "__Host-mooc_session"
 type AuthHandler struct {
 	service *auth.Service
 	logger  *slog.Logger
+
+	// sameSite decide si la cookie de sesion viaja entre sitios distintos.
+	//
+	// Es configuracion y no una constante porque la respuesta depende de donde
+	// se aloje el frontend, y eso lo decide D1. Ver SameSiteFromConfig.
+	sameSite http.SameSite
 }
 
 func NewAuthHandler(service *auth.Service, logger *slog.Logger) *AuthHandler {
+	return NewAuthHandlerWithSameSite(service, http.SameSiteLaxMode, logger)
+}
+
+// NewAuthHandlerWithSameSite construye el manejador fijando el modo de la
+// cookie de sesion.
+func NewAuthHandlerWithSameSite(service *auth.Service, sameSite http.SameSite, logger *slog.Logger) *AuthHandler {
 	if logger == nil {
 		logger = slog.Default()
 	}
-	return &AuthHandler{service: service, logger: logger}
+	if sameSite == 0 {
+		sameSite = http.SameSiteLaxMode
+	}
+	return &AuthHandler{service: service, logger: logger, sameSite: sameSite}
+}
+
+// SameSiteFromConfig traduce el valor de configuracion al de net/http.
+//
+// # Por que esto es una decision y no un detalle
+//
+// `lax` solo manda la cookie en navegaciones de primer nivel. Un frontend
+// servido desde **otro origen** que la API no podria autenticarse: su `fetch`
+// saldria sin cookie y la sesion no existiria para el, por mucho que el login
+// hubiera funcionado.
+//
+// `none` la manda siempre y exige Secure. Entonces el navegador deja de
+// aportar nada contra CSRF y la proteccion descansa **entera** en la
+// comprobacion de origen de middleware.CSRF.
+//
+// Lo preferible es no necesitarlo: si el frontend se sirve detras del mismo
+// balanceador que la API, todo es del mismo sitio, `lax` basta y no hace falta
+// ni CORS. Esa es la recomendacion de A4 para D1.
+func SameSiteFromConfig(valor string) (http.SameSite, bool) {
+	switch strings.ToLower(strings.TrimSpace(valor)) {
+	case "", "lax":
+		return http.SameSiteLaxMode, true
+	case "strict":
+		return http.SameSiteStrictMode, true
+	case "none":
+		return http.SameSiteNoneMode, true
+	default:
+		return http.SameSiteLaxMode, false
+	}
 }
 
 // userResponse is the public projection of a user.
@@ -193,7 +237,7 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	http.SetCookie(w, sessionCookie(result.Token, result.Session.ExpiresAt))
+	http.SetCookie(w, h.sessionCookie(result.Token, result.Session.ExpiresAt))
 
 	RespondWithJSON(w, http.StatusOK, loginResponse{
 		Token:     result.Token,
@@ -261,7 +305,7 @@ func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if cookie, err := r.Cookie(SessionCookieName); err == nil && cookie.Value == token {
-		http.SetCookie(w, expiredSessionCookie())
+		http.SetCookie(w, h.expiredSessionCookie())
 	}
 
 	w.WriteHeader(http.StatusNoContent)
@@ -412,7 +456,10 @@ func SessionToken(r *http.Request) (string, bool) {
 	return cookie.Value, true
 }
 
-func sessionCookie(token string, expiresAt time.Time) *http.Cookie {
+// Sin Domain a proposito: la cookie queda atada al host exacto que la emitio.
+// Ponerle el dominio padre la compartiria con cualquier subdominio, y con un
+// balanceador delante eso es mas superficie, no mas comodidad.
+func (h *AuthHandler) sessionCookie(token string, expiresAt time.Time) *http.Cookie {
 	return &http.Cookie{
 		Name:     SessionCookieName,
 		Value:    token,
@@ -420,11 +467,14 @@ func sessionCookie(token string, expiresAt time.Time) *http.Cookie {
 		Expires:  expiresAt,
 		HttpOnly: true,
 		Secure:   true,
-		SameSite: http.SameSiteLaxMode,
+		SameSite: h.sameSite,
 	}
 }
 
-func expiredSessionCookie() *http.Cookie {
+// La cookie de borrado tiene que llevar los mismos atributos que la que
+// sustituye. Un SameSite distinto crea una cookie **distinta** para el
+// navegador, asi que la de verdad sobreviviria al cierre de sesion.
+func (h *AuthHandler) expiredSessionCookie() *http.Cookie {
 	return &http.Cookie{
 		Name:     SessionCookieName,
 		Value:    "",
@@ -432,7 +482,7 @@ func expiredSessionCookie() *http.Cookie {
 		MaxAge:   -1,
 		HttpOnly: true,
 		Secure:   true,
-		SameSite: http.SameSiteLaxMode,
+		SameSite: h.sameSite,
 	}
 }
 

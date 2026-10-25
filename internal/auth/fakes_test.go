@@ -184,6 +184,13 @@ type fakeSessionCache struct {
 	disabled bool
 }
 
+// setDisabled simula que Redis no responde, para ejercitar la vuelta a la base.
+func (f *fakeSessionCache) setDisabled(v bool) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.disabled = v
+}
+
 func newFakeSessionCache() *fakeSessionCache {
 	return &fakeSessionCache{sessions: make(map[string]*domain.Session)}
 }

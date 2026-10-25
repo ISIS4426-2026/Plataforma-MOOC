@@ -1,3 +1,15 @@
+# La cola y la cache de sesiones viven FUERA de esta maquina.
+#
+# En la Entrega 2 este fichero levantaba su propio redis y cada VM tenia el
+# suyo. Con un grupo de 1 a 3 replicas eso rompe dos cosas a la vez: el cierre
+# de sesion solo borraria la cache de la replica que lo atendio --las demas
+# seguirian sirviendo la sesion hasta que expirara-- y la cola viviria en una
+# maquina que el autoscaler puede destruir.
+#
+# REDIS_URL es obligatoria y apunta al servicio compartido que aprovisiona B1.
+# Sin valor por omision a proposito: uno que apuntara aqui dentro devolveria en
+# silencio el defecto que esto arregla.
+#
 # ==============================================================================
 # Plataforma MOOC - Docker Compose para Producción en la Nube (Issue C4)
 # ==============================================================================
@@ -39,7 +51,7 @@ services:
       - APP_ENV=production
       - PORT=8080
       - DATABASE_URL=${DATABASE_URL}
-      - REDIS_URL=${REDIS_URL:-redis:6379}
+      - REDIS_URL=${REDIS_URL:?REDIS_URL debe apuntar al servicio compartido, no a este host}
       - TRUSTED_PROXY_IP=172.30.0.2
       # Vacio cae en el nombre del contenedor, que ya distingue replicas.
       - INSTANCE_ID=${INSTANCE_ID:-}
@@ -85,24 +97,9 @@ services:
       timeout: 5s
       retries: 5
       start_period: 5s
-    depends_on:
-      redis:
-        condition: service_healthy
     networks:
       backend:
         ipv4_address: 172.30.0.3
-    restart: unless-stopped
-
-  redis:
-    image: redis:7-alpine
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-    networks:
-      backend:
-        ipv4_address: 172.30.0.4
     restart: unless-stopped
 
   worker:
@@ -110,7 +107,7 @@ services:
     environment:
       - APP_ENV=production
       - DATABASE_URL=${DATABASE_URL}
-      - REDIS_URL=${REDIS_URL:-redis:6379}
+      - REDIS_URL=${REDIS_URL:?REDIS_URL debe apuntar al servicio compartido, no a este host}
       - STORAGE_BACKEND=gcs
       - S3_BUCKET=${S3_BUCKET:-plataforma-mooc-entrega2-media}
       - GCP_PROJECT_ID=${GCP_PROJECT_ID:-plataforma-mooc-entrega2}
@@ -142,9 +139,6 @@ services:
     ports:
       - "${WORKER_METRICS_PORT:-9090}:9090"
 
-    depends_on:
-      redis:
-        condition: service_healthy
     networks:
       backend:
         ipv4_address: 172.30.0.5
