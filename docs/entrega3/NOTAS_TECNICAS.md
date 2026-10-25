@@ -37,6 +37,7 @@ lo reemplaza, lo continúa.
 | 21 | [Toda migración tiene que ser compatible con la imagen anterior](#21) | **cualquiera que añada una migración**: B3, C1, C5, D1 |
 | 22 | [Dónde se aloje el frontend decide tres configuraciones a la vez](#22) | **D1**, A4, C3, E1 |
 | 23 | [La cola y las sesiones comparten política de expulsión](#23) | B1, C6, F3 |
+| 24 | [Transcodificar un vídeo real cuesta 1,2× su duración, y eso cambia la campaña](#24) | **G4, G6**, A7, C5, C6, F3 |
 
 ---
 
@@ -514,6 +515,58 @@ rechazado se ve como un trabajo que nunca llegó.
 Dos salidas, a decidir en B1: dimensionar con holgura y vigilar el uso de
 memoria, o darles instancias separadas. Lo segundo cuesta más y lo primero
 exige una alerta; lo que no vale es no elegir.
+
+<a id="24"></a>
+## 24. Transcodificar un vídeo real cuesta 1,2× su duración, y eso cambia la campaña
+
+Medido, no estimado: la escalera real (360p + 720p) sobre el perfil corto, en
+**1 vCPU**, tarda **141 s para 120 s de vídeo**.
+
+| Perfil | Transcodificación en 1 vCPU |
+| :--- | ---: |
+| Corto (2 min) | ~2,4 min |
+| Medio (10 min) | ~12 min |
+| Largo (30 min) | **~35 min** |
+
+### Las tasas de la Entrega 2 no sirven
+
+El resumen del escenario 2 declara **12,29 a 123,87 vídeos/min**. Con perfiles
+reales, un worker de 1 vCPU rinde **0,43 vídeos/min** en el perfil corto. La
+diferencia es de 30 a 290 veces, y es aritméticamente imposible: no se
+transcodifican 124 vídeos de dos minutos en un minuto con dos vCPU.
+
+Esos números salen de los clips de 8 segundos. **No se comparan con nada medido
+con perfiles reales.** A7 los rehace.
+
+### Para G4 y G6: una corrida de Nivel 3 se mide en horas
+
+El plan declara Nivel 3 con **3,0 vídeos/min** de inyección y dos workers.
+
+| | |
+| :--- | :--- |
+| Tasa de servicio real, 2 workers, perfil corto | ~0,85 vídeos/min |
+| Tasa de llegada declarada | 3,0 vídeos/min |
+| Acumulación | ~2,2 vídeos/min |
+
+Diez minutos de inyección dejan ~22 vídeos en cola, **~26 minutos más** de
+drenaje si todos fueran cortos. Cada perfil largo en la mezcla añade 35 minutos
+de una vCPU.
+
+Hay que decidirlo **al planificar**, no al descubrirlo: o se baja la tasa de
+inyección, o se acota cuántos largos entran, o se asume la duración y el coste.
+Con los clips de 8 segundos esto no se veía.
+
+**Para C6**, el lado bueno: con el procesamiento tan lento respecto de la
+llegada, la profundidad de cola es una señal de escalamiento clarísima y con
+mucho margen de reacción. El autoscaler tiene minutos, no segundos, para
+levantar un worker.
+
+### Un defecto menor, de paso
+
+El recuento declarado de segmentos, `2 × ⌈D/6⌉`, se pasa un 20 %: el worker fija
+el GOP en `segmentSeconds()*30 = 180` fotogramas asumiendo 30 fps, pero el vídeo
+va a 25, así que los segmentos duran ~7,06 s y no 6. Salen 34 en vez de 40 para
+el perfil corto. No rompe nada; la cifra declarada no es la real. Para **H3**.
 
 ---
 
