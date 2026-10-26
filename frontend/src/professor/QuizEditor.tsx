@@ -2,6 +2,7 @@ import { useRef, useState, type FormEvent } from "react";
 import { ApiError, newIdempotencyKey } from "../api/client";
 import type { Resource } from "../api/types";
 import { ErrorState, Spinner } from "../components/ui";
+import { plural } from "../lib/names";
 import { useAsync } from "../hooks/useAsync";
 import { addQuestion, createQuiz, getAuthorQuiz } from "./api";
 
@@ -31,7 +32,7 @@ export function QuizEditor({ resource, editable }: { resource: Resource; editabl
   return (
     <div className="quiz-editor">
       <p className="muted">
-        {q.title} · nota mínima {q.passing_score} · {q.max_attempts} intentos · {preguntas.length} pregunta(s)
+        {q.title} · nota mínima {q.passing_score} · {plural(q.max_attempts, "intento", "intentos")} · {plural(preguntas.length, "pregunta", "preguntas")}
       </p>
       {preguntas.length === 0 && <p className="muted">Aún no tiene preguntas. Un cuestionario sin preguntas no sirve para evaluar.</p>}
       <ol>

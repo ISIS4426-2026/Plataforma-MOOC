@@ -3,6 +3,7 @@ import { ApiError, newIdempotencyKey } from "../api/client";
 import { getQuiz, mySubmissions, openAttempt, saveAttempt, submitQuiz } from "../api/endpoints";
 import type { QuizAttempt, QuizSubmission } from "../api/types";
 import { Badge, ErrorState, Spinner } from "../components/ui";
+import { plural } from "../lib/names";
 import { useAsync } from "../hooks/useAsync";
 
 /**
@@ -174,7 +175,7 @@ export function QuizView({ resourceId, onGraded }: { resourceId: string; onGrade
     <div className="quiz-intro">
       <h3>{q.title}</h3>
       <p className="muted">
-        {q.questions.length} preguntas · nota mínima para aprobar: {q.passing_score} · intentos: {usados} de {q.max_attempts} usados
+        {plural(q.questions.length, "pregunta", "preguntas")} · nota mínima para aprobar: {q.passing_score} · intentos: {usados} de {q.max_attempts} usados
       </p>
       {previos.status === "ok" && previos.data.length > 0 && (
         <table className="mini">

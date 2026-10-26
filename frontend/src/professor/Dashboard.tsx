@@ -1,13 +1,14 @@
 import { ArrowRight, PlusCircle } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
+import { primerNombre } from "../lib/names";
 import { Badge, EmptyState, ErrorState, Spinner, gradiente } from "../components/ui";
 import { ETIQUETA_ESTADO, TONO_ESTADO, useProfessorData } from "./ProfessorData";
 
 export default function ProfessorDashboard() {
   const { user } = useAuth();
   const { state, refresh } = useProfessorData();
-  const nombre = user?.full_name.split(" ")[0] ?? "";
+  const nombre = primerNombre(user?.full_name ?? "");
 
   return (
     <>

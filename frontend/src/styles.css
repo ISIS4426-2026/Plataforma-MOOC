@@ -173,6 +173,8 @@ button.link { background: none; border: 0; color: inherit; font-size: 1.2rem; cu
 /* ---------- Adaptable ---------- */
 @media (max-width: 1180px) {
   .app { grid-template-columns: 200px minmax(0, 1fr); }
+  /* Con dos columnas el panel derecho baja a una segunda fila: una barra lateral fija taparia ese panel al desplazarse. */
+  .sidebar { position: static; height: auto; }
   .rightpanel { grid-column: 1 / -1; position: static; height: auto; flex-direction: row; flex-wrap: wrap; align-items: flex-start; gap: 28px; }
 }
 @media (max-width: 800px) {

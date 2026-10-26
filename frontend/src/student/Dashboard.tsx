@@ -1,6 +1,7 @@
 import { ArrowRight } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
+import { primerNombre } from "../lib/names";
 import { EmptyState, ErrorState, ProgressBar, Spinner, gradiente } from "../components/ui";
 import { EnrollButton } from "./EnrollButton";
 import { useStudentData } from "./StudentData";
@@ -8,7 +9,7 @@ import { useStudentData } from "./StudentData";
 export default function Dashboard() {
   const { user } = useAuth();
   const { state, refresh } = useStudentData();
-  const nombre = user?.full_name.split(" ")[0] ?? "";
+  const nombre = primerNombre(user?.full_name ?? "");
 
   return (
     <>

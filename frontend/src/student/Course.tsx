@@ -7,7 +7,7 @@ import type { Progress, Resource } from "../api/types";
 import { Badge, EmptyState, ErrorState, PageTitle, ProgressBar, Spinner } from "../components/ui";
 import { useAsync } from "../hooks/useAsync";
 import { Markdown } from "../lib/markdown";
-import { disponible } from "../lib/resources";
+import { disponible, sinArchivo } from "../lib/resources";
 import { EnrollButton } from "./EnrollButton";
 import { QuizView } from "./QuizView";
 import { useStudentData } from "./StudentData";
@@ -153,7 +153,7 @@ function Classroom({ courseId, title, description, resourceId }: { courseId: str
                           >
                             <IconoRecurso r={r} />
                             <span>{r.title}</span>
-                            {!disponible(r) ? <small>{r.processing_status === "failed" ? "falló" : "procesando"}</small> : hecho ? <Check size={14} aria-label="Completado" /> : <CircleDashed size={14} aria-label="Pendiente" />}
+                            {!disponible(r) ? <small>{r.processing_status === "failed" ? "falló" : sinArchivo(r) ? "sin archivo" : "procesando"}</small> : hecho ? <Check size={14} aria-label="Completado" /> : <CircleDashed size={14} aria-label="Pendiente" />}
                           </button>
                         </li>
                       );
@@ -198,10 +198,18 @@ function ResourceViewer({ courseId, resource, completado, onProgress }: { course
   }
 
   if (!disponible(resource)) {
-    return resource.processing_status === "failed" ? (
-      <p role="alert" className="error">
-        El procesamiento de este archivo falló. Avisa a tu profesor para que lo suba de nuevo.
-      </p>
+    if (resource.processing_status === "failed") {
+      return (
+        <p role="alert" className="error">
+          El procesamiento de este archivo falló. Avisa a tu profesor para que lo suba de nuevo.
+        </p>
+      );
+    }
+    return sinArchivo(resource) ? (
+      <div className="state" role="status">
+        <strong>Este recurso todavía no tiene archivo</strong>
+        <span className="muted">Tu profesor aún no lo ha subido. Vuelve más tarde.</span>
+      </div>
     ) : (
       <div className="state" role="status">
         <Loader2 className="spin" size={22} aria-hidden="true" />
