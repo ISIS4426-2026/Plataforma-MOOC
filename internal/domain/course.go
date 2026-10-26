@@ -144,6 +144,11 @@ type CourseRepository interface {
 	// ListPublished returns one page of published courses, newest first.
 	ListPublished(ctx context.Context, filter CourseFilter) (*CoursePage, error)
 
+	// ListByAuthor returns one page of the courses an author owns, in any status
+	// (drafts included), newest first. It is the author's own workspace: the
+	// public catalog never shows a draft.
+	ListByAuthor(ctx context.Context, authorID string, filter CourseFilter) (*CoursePage, error)
+
 	// Update changes a draft's title and description.
 	//
 	// Returns ErrCourseImmutable if the course's current status is

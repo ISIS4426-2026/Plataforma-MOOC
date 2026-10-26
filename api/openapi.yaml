@@ -2196,6 +2196,46 @@ paths:
         '401':
           $ref: '#/components/responses/401Unauthorized'
 
+  /me/courses:
+    get:
+      tags:
+        - Courses
+      summary: List the caller's own courses, drafts included
+      description: >
+        The author's workspace: every course the caller created, in any status
+        (draft, published or unpublished), most recent first and paged like the
+        public catalog. The public catalog only lists published courses, so
+        without this a professor could not find the draft they are still
+        building.
+
+        Only professors and administrators reach it; a student gets 403.
+        Whatever the role, the list holds only the caller's own courses.
+      operationId: listMyCourses
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/CursorParam'
+        - $ref: '#/components/parameters/LimitParam'
+        - name: search
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Text search query to filter the caller's courses by title or description.
+      responses:
+        '200':
+          description: One page of the caller's courses.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CourseListResponse'
+        '400':
+          $ref: '#/components/responses/400BadRequest'
+        '401':
+          $ref: '#/components/responses/401Unauthorized'
+        '403':
+          $ref: '#/components/responses/403Forbidden'
+
   /media/presigned-url:
     post:
       tags:

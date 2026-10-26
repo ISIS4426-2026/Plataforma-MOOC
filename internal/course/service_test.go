@@ -207,3 +207,41 @@ func TestEachCreateAndUpdateRecordsExactlyOneAuditEntry(t *testing.T) {
 		t.Errorf("second entry action = %q, want %q", repo.entries[1].Action, domain.AuditActionCourseUpdated)
 	}
 }
+
+// A professor's workspace lists their own courses in every status, and nobody
+// else's (issue #213): the public catalog cannot show a draft, so without this a
+// professor could not find the course they are still building.
+func TestListMineReturnsOnlyTheCallersCoursesIncludingDrafts(t *testing.T) {
+	svc, _ := newTestService()
+	ctx := context.Background()
+
+	for _, title := range []string{"Mine one", "Mine two"} {
+		if _, err := svc.Create(ctx, professor("prof-1"), title, "d"); err != nil {
+			t.Fatalf("Create returned an error: %v", err)
+		}
+	}
+	if _, err := svc.Create(ctx, professor("prof-2"), "Someone else's", "d"); err != nil {
+		t.Fatalf("Create returned an error: %v", err)
+	}
+
+	mine, err := svc.ListMine(ctx, professor("prof-1"), domain.CourseFilter{})
+	if err != nil {
+		t.Fatalf("ListMine returned an error: %v", err)
+	}
+	if len(mine.Courses) != 2 {
+		t.Fatalf("ListMine returned %d courses, want the caller's 2 drafts", len(mine.Courses))
+	}
+	for _, c := range mine.Courses {
+		if c.AuthorID != "prof-1" || c.Status != domain.CourseStatusDraft {
+			t.Errorf("ListMine returned %q by %q in status %q", c.Title, c.AuthorID, c.Status)
+		}
+	}
+
+	others, err := svc.ListMine(ctx, professor("prof-2"), domain.CourseFilter{})
+	if err != nil {
+		t.Fatalf("ListMine returned an error: %v", err)
+	}
+	if len(others.Courses) != 1 || others.Courses[0].Title != "Someone else's" {
+		t.Errorf("the other professor sees %d courses, want only their own", len(others.Courses))
+	}
+}
