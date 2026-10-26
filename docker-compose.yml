@@ -194,6 +194,26 @@ services:
       retries: 5
       start_period: 3s
 
+  # Frontend (issue #211, D1). Opcional: solo arranca con `--profile frontend`, para no cargar
+  # a quien trabaja solo en el backend. Sirve la interfaz y reenvia /api a la API en el MISMO
+  # origen (http://localhost:8081). La API debe aceptar ese origen:
+  #   CSRF_ALLOWED_ORIGINS=http://localhost:8081 docker compose --profile frontend up -d
+  web:
+    profiles: ["frontend"]
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+      args:
+        APP_COMMIT: ${APP_COMMIT:-desconocido}
+    environment:
+      API_UPSTREAM: api:8080
+      STORAGE_ORIGINS: http://localhost:9000
+    ports:
+      - "${WEB_PORT:-8081}:80"
+    depends_on:
+      api:
+        condition: service_healthy
+
 volumes:
   postgres_data:
   minio_data:

@@ -40,6 +40,7 @@ lo reemplaza, lo continúa.
 | 24 | [Transcodificar un vídeo real cuesta 1,2× su duración, y eso cambia la campaña](#24) | **G4, G6**, A7, C5, C6, F3 |
 | 25 | [Antes de publicar una cifra hay once reglas, y están en código](#25) | **todos los que midan**: A7, G1, G3, G4, G5, G6, G7, H2, H3 |
 | 26 | [El entorno de la Entrega 2 está a medias, y ninguna imagen del tag está publicada](#26) | **A7, B1, B2**, C1, C3, C5, G3, I6 |
+| 27 | [El frontend se sirve en el mismo origen, y la API no tiene «mis cursos» ni «quién soy»](#27) | **D2, D3**, A4, B3, C1, C3, E1 |
 
 ---
 
@@ -727,6 +728,64 @@ buffer y las interrupciones signifiquen algo.
 escribe `REDIS_URL='${QUEUE_PRIVATE_IP}:6379'`: la cola de la VM worker por la
 VPC, con las sesiones en la base lógica 1. No hace falta esperar a B1 para
 desplegar `main` sobre la Entrega 2.
+
+<a id="27"></a>
+## 27. El frontend se sirve en el mismo origen, y la API no tiene «mis cursos» ni «quién soy»
+
+**Afecta a:** D2, D3 (consumen el cliente y la sesión), A4 y E1 (origen y cookie), B3, C1 y C3
+(la imagen del frontend entra en la plantilla y el balanceador la expone).
+
+**Decisión de D1 (#211): React + Vite + TypeScript, servido por nginx en el mismo origen que la API.**
+Aplica la recomendación de la nota 22: con el mismo origen la cookie `SameSite=Lax` viaja sola,
+no hay CORS, y la lista de `CSRF_ALLOWED_ORIGINS` solo necesita el origen público. El frontend
+se compila a archivos estáticos y los sirve una imagen propia (`Dockerfile.web`, plantilla
+`nginx.web.conf`) que reenvía `/api/` a la API. Cada instancia del grupo elástico puede llevar la
+misma imagen: **la versión del frontend viaja con la de la plantilla**. Un bucket detrás del
+balanceador sigue siendo posible, pero obligaría a coordinar la regla de ruta con C3.
+
+**Lo que B3, C1 y C3 deben saber** (no está resuelto en D1, porque depende de la infraestructura nueva):
+
+- La imagen escucha en **HTTP, puerto 80**; el HTTPS lo termina el balanceador. Variables:
+  `API_UPSTREAM` (por defecto `api:8080`) y `STORAGE_ORIGINS` (por defecto
+  `https://storage.googleapis.com`, para la política de contenido).
+- `docker-compose.prod.yml` **no se tocó**: sigue con el nginx de la Entrega 2. Para que una
+  instancia sirva el frontend hay que sustituir ese servicio por esta imagen (o montar el build) y
+  decidir quién termina el TLS. Esa integración es de B3 y C1.
+- Detrás de un balanceador, `X-Forwarded-For` ya no trae la IP del cliente sino la del balanceador.
+  `nginx.web.conf` conserva el criterio de `nginx.conf` (la IP del par, sin fiarse del cliente);
+  si C3 necesita la IP real para el límite de login, hay que decidir qué cabecera se acepta y de
+  quién. Es el mismo problema que la nota 11 del límite por IP.
+- **Origen que debe aceptar la API:** `CSRF_ALLOWED_ORIGINS` = la URL HTTPS pública del
+  balanceador (exacta, con esquema y sin barra final). Con otro valor, todo POST con cookie da
+  `403 csrf_origin_rejected` y la interfaz lo muestra como «origen rechazado».
+
+**Dos huecos del contrato que D2 y D3 van a tocar** (verificado en `api/openapi.yaml` y en
+`internal/http/server.go` de `main`, 2026-10-26):
+
+1. **No hay forma de listar los cursos propios de un profesor.** `GET /courses` es solo el catálogo
+   de publicados y no admite filtro por autor. «Consultar sus cursos» es flujo obligatorio del
+   profesor y los borradores no salen en el catálogo: **D3 no se puede completar sin un endpoint
+   nuevo** (p. ej. `GET /courses?mine=true` o `GET /me/courses`).
+2. **No hay `GET /me`.** El login es lo único que entrega el usuario. Mientras no exista, el
+   frontend guarda ese usuario (sin token) en `sessionStorage` para sobrevivir a una recarga, y
+   trata cualquier `401` como sesión vencida. Es una ayuda de interfaz: la autoridad es la cookie
+   y el servidor.
+
+**El cliente nunca lee el token del login.** La respuesta lo trae en el cuerpo, pero el frontend se
+autentica solo con la cookie `HttpOnly`: un XSS no tiene un token que robar. La CSRF la cubre la
+comprobación de origen de la API (el navegador manda `Origin` en toda escritura del mismo origen).
+
+**Trampas:**
+
+- `vite build` pone en el bundle la dirección de relleno `http://localhost` de `react-router`, y un
+  campo `internal`. No son nuestras. `frontend/scripts/check-bundle.mjs` no busca `localhost` a
+  secas sino con puerto o loopback, ni `.internal` suelto; la construcción de la imagen **falla**
+  si el bundle lleva claves, cadenas de conexión o direcciones privadas.
+- El contexto de Docker no incluye `.git`: el commit llega por `--build-arg APP_COMMIT`. Un build
+  local con cambios sin commitear se marca `-sin-commit` para que la versión visible no afirme
+  más de lo que es.
+- `Dockerfile.api` copia todo el repositorio: `frontend/node_modules` y `frontend/dist` están en
+  `.dockerignore` para no meterlos en su contexto.
 
 ---
 

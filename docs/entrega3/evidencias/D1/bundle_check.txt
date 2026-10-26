@@ -1,0 +1,3 @@
+# Revision del bundle (dist)
+# Archivos revisados: 4. Reglas: 13.
+# RESULTADO: sin hallazgos
