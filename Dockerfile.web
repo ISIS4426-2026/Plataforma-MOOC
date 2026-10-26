@@ -27,6 +27,8 @@ COPY --from=build /app/dist /usr/share/nginx/html
 COPY nginx.web.conf /etc/nginx/templates/default.conf.template
 # API_UPSTREAM: donde esta la API vista desde el contenedor (Compose: "api:8080").
 # STORAGE_ORIGINS: de donde puede el navegador pedir archivos (subidas firmadas y video HLS).
+# HLS_BASE_URL: base publica de los derivados HLS; el manifiesto es <base>/hls/<id>/master.m3u8.
 ENV API_UPSTREAM=api:8080 \
-    STORAGE_ORIGINS=https://storage.googleapis.com
+    STORAGE_ORIGINS=https://storage.googleapis.com \
+    HLS_BASE_URL=
 EXPOSE 80

@@ -55,7 +55,8 @@ export default defineConfig(({ mode }) => {
         },
       },
     },
-    build: { sourcemap: false },
+    // hls.js pesa ~570 kB y se carga aparte, solo al abrir un video: el aviso de tamano no aplica.
+    build: { sourcemap: false, chunkSizeWarningLimit: 700 },
     test: { environment: "node" },
   };
 });
