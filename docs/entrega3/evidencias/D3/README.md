@@ -38,8 +38,8 @@ cambiaba de sesión. Hay que registrarlo en la corrida de la nube (los videos de
 ## Pendiente
 
 1. Corrida en la nube con capturas, incluida la del cambio «Procesando → Disponible».
-2. **Fredy debe aprobar `GET /me/courses`**: es un cambio aditivo en el contrato (`api/openapi.yaml`) y en el
-   servidor; va en un PR separado de la interfaz.
+2. ~~Aprobación de `GET /me/courses`~~ **Hecho** (2026-10-26): Fredy dio su OK al cambio aditivo en el contrato
+   (`api/openapi.yaml`) y en el servidor. Va en un PR separado de la interfaz.
 3. Capturas locales del editor (no se guardaron al disco en esta sesión).
 
 ## Nunca

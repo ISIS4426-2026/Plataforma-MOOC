@@ -796,7 +796,7 @@ Qué hace cada interfaz está en las evidencias de [D2](./evidencias/D2/README.m
 | :--- | :--- | :--- | :--- |
 | `processing_status` por defecto es `completed` | Un recurso recién creado, **sin archivo**, ya figura como «disponible» (nota 8: `completed` del código = «available» del enunciado) y pasa la validación de publicación | Para tipos con archivo exige `object_key`; sin él muestra «sin archivo», no «procesando» ni «disponible» | A1, A5, G1, quien valide la publicación |
 | `GET /courses/{id}` es público para cursos publicados | La interfaz del profesor podía abrir el editor de un curso ajeno | Verifica que el curso esté en `GET /me/courses`; el servidor igual responde 403 a toda escritura | D3, D4 |
-| `GET /me/courses` es un endpoint nuevo | Sin él el profesor no puede ver sus borradores | Rama `feat/213-api-mis-cursos-profesor`, cambio aditivo en `api/openapi.yaml`; **requiere visto bueno de Fredy** | A2, D3 |
+| `GET /me/courses` es un endpoint nuevo | Sin él el profesor no puede ver sus borradores | Rama `feat/213-api-mis-cursos-profesor`, cambio aditivo en `api/openapi.yaml`; aprobado por Fredy (2026-10-26) | A2, D3 |
 | No existe `GET /me` | El usuario solo llega en el login | Se guarda sin token en `sessionStorage`; cualquier 401 = sesión vencida | D1 |
 | Las inscripciones no traen el id del curso | No se puede ir de «mis inscripciones» al curso | `courseIndex()` recorre el catálogo para mapear el id estable al curso | D2 |
 | Envío duplicado concurrente del cuestionario | El segundo envío recibe 409 | Guardia `useRef` contra doble clic en enviar, inscribirse, crear curso/módulo/recurso | D2, D3 |
