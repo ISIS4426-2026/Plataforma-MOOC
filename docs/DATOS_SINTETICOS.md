@@ -284,6 +284,26 @@ medir.
 
 ### 7.2 Curso multimedia
 
+> **Cómo se obtienen esos tres archivos** (issue #197, A5):
+>
+> ```bash
+> bash ./scripts/generar_media_prueba.sh              # genera y verifica
+> bash ./scripts/generar_media_prueba.sh --verificar  # solo comprueba
+> ```
+>
+> El script **verifica campo por campo** —duración, resolución, códecs,
+> frecuencia de audio— contra el perfil declarado, y falla si algo no coincide.
+> No es ceremonia: la Entrega 2 declaró estos tres perfiles y la campaña subió
+> clips de 8, 20 y 40 segundos, y nada lo detectó.
+>
+> Los `.mp4` no se versionan —el largo son 39 MB y `scratch/` está en
+> `.gitignore`—; lo versionado es el script. Las salidas de `ffprobe` quedan en
+> [`docs/entrega3/evidencias/A5/`](./entrega3/evidencias/A5/README.md).
+>
+> Transcodificar el perfil largo cuesta **~35 minutos de una vCPU**. Antes de
+> lanzar una campaña con él, lee la nota 24 de
+> [`NOTAS_TECNICAS.md`](./entrega3/NOTAS_TECNICAS.md).
+
 `go run ./cmd/seed-media` (documentado en
 [`docs/entrega2/evidencias/G1/README.md`](entrega2/evidencias/G1/README.md))
 crea un curso técnico dedicado —**Perfiles de Video para Pruebas de
