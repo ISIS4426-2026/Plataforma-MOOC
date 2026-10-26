@@ -1,0 +1,85 @@
+==============================================================================
+ EVIDENCIA A7 - PRE-VUELO DE LA LINEA BASE RETROSPECTIVA (issue #199)
+==============================================================================
+Fecha UTC : 2026-10-26T01:44:24Z
+Codigo    : dbdfe83 (rama main)
+Proyecto  : plataforma-mooc-entrega2
+Alcance   : SOLO LECTURA. Este pre-vuelo no crea, cambia ni destruye nada.
+Secretos  : SANITIZADO. La contrasena de la base no se lee ni se imprime.
+==============================================================================
+
+
+== 0. Herramientas
+  ok     git
+  ok     terraform
+  ok     gcloud
+  ok     python
+
+== 1. Las dos corridas y su codigo
+  corrida 1 (linea base)   1827cdc2ee24c9c785529f0443dc76c7f607e0f5  tag entrega-2
+  corrida 2 (corregida)    dbdfe830e575985f3e8b49890396ebe0907f3672  main
+  diferencia de aplicacion: 24 files changed, 2429 insertions(+), 68 deletions(-)
+  diferencia de infra     : infra/terraform/database.tf 
+
+== 2. Arbol de trabajo en entrega-2
+  ok     /tmp/a7-entrega2 ya esta en el tag
+
+== 3. Plan de Terraform desde el tag (solo lectura)
+  ok     backend inicializado
+  Plan: 3 to add, 0 to change, 0 to destroy.
+  ok     ninguna destruccion propuesta
+         crea   google_sql_database.mooc will be created
+         crea   google_sql_database_instance.main will be created
+         crea   google_sql_user.app will be created
+  AVISO  sin TF_VAR_db_password: la linea de google_sql_user del plan es indicativa
+
+== 4. Imagenes en Artifact Registry
+  FALTA  corrida 1 (tag) api: publicar api:1827cdc2ee24
+  FALTA  corrida 1 (tag) worker: publicar worker:1827cdc2ee24
+  FALTA  corrida 2 (main) api: publicar api:dbdfe830e575
+  FALTA  corrida 2 (main) worker: publicar worker:dbdfe830e575
+
+== 5. Estado actual del entorno
+  ok     mooc-web-server apagada (hay que encenderla: Terraform no gestiona el encendido)
+  ok     mooc-worker-server apagada (hay que encenderla: Terraform no gestiona el encendido)
+  ok     no hay instancia de base: la crea el apply
+  ok     la base se borro hace 27 dias: el nombre ya esta libre
+  ok     el secreto db-password existe (no se lee su valor aqui)
+
+== 6. Comprobaciones de A6 y A5
+  ok     las reglas de medicion se cumplen (capacity_criterios.py)
+  ok     los tres perfiles multimedia son los declarados
+
+== 7. Coste y duracion estimados de la campana
+  fase                                            horas
+  Provisionar, encender, desplegar y sembrar        1.5
+  Escenario 1, 6 niveles, codigo del tag            1.3
+  Escenario 2, 5 niveles con perfiles reales        2.2
+  Desplegar la imagen corregida y migrar            0.5
+  Escenario 1, 6 niveles, codigo corregido          1.3
+  Verificar el E2E pendiente y destruir             0.7
+  TOTAL con el entorno encendido                    7.5
+
+  Computo + base: 7.5 h x 0.169 USD/h = 1.27 USD
+  Egreso HLS acotado a 10 segmentos por estudiante: 3,55 GB = 0.43 USD
+  Egreso HLS sin acotar (video entero)            : 22,1 GB = 2.65 USD
+
+  CAMPANA ACOTADA : 1.69 USD
+  CAMPANA COMPLETA: 3.92 USD  (el 6% del credito de 50)
+
+  El escenario 2 son 162 minutos de video a 1,2x en 2 vCPU: 97 minutos
+  de transcodificado que no se pueden acelerar (nota tecnica 24).
+  Usa -max-segmentos 10 salvo que quieras medir el egreso completo.
+
+== Resumen
+  Antes de aplicar hay que resolver:
+    - corrida 1 (tag) api: publicar api:1827cdc2ee24
+    - corrida 1 (tag) worker: publicar worker:1827cdc2ee24
+    - corrida 2 (main) api: publicar api:dbdfe830e575
+    - corrida 2 (main) worker: publicar worker:dbdfe830e575
+
+  Nada en rojo, pero faltan los pendientes de arriba.
+
+==============================================================================
+ Este archivo no contiene credenciales, llaves ni secretos.
+==============================================================================

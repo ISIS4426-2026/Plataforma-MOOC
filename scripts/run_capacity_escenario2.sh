@@ -36,6 +36,8 @@
 #             usa MinIO.
 #   PATRON    cadencia (por omisión, reproducción a 1x) o maxima (sin pausa).
 #   MAX_SEGMENTOS  segmentos por estudiante; 0 = todos. Acota el egreso.
+#   OUT_DIR   directorio de evidencia. Por omision el de H5, que es de la
+#             entrega anterior; A7 lo redirige al suyo.
 # ==============================================================================
 
 set -euo pipefail
@@ -43,7 +45,10 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 SCRATCH_DIR="${ROOT_DIR}/scratch"
-EVIDENCIAS_DIR="${ROOT_DIR}/docs/entrega2/evidencias/H5"
+# OUT_DIR permite medir hacia otro directorio sin repetir -out-dir detras de los
+# argumentos del guion. A7 lo usa para no escribir sobre la evidencia de H5, que
+# es de la entrega anterior.
+EVIDENCIAS_DIR="${OUT_DIR:-${ROOT_DIR}/docs/entrega2/evidencias/H5}"
 
 : "${ENTORNO:?Declara el entorno medido, p. ej. ENTORNO=nube-entrega3. Sin esto la evidencia no dice contra qué se midió (A6)}"
 PATRON="${PATRON:-cadencia}"
@@ -96,7 +101,7 @@ else
             -max-segmentos "${MAX_SEGMENTOS}" \
             -redis "redis:6379" \
             -db "postgres://moocuser:moocpassword@postgres:5432/moocdb?sslmode=disable" \
-            -out-dir "/workspace/docs/entrega2/evidencias/H5" \
+            -out-dir "/workspace/${EVIDENCIAS_DIR#${ROOT_DIR}/}" \
             -video-corto "/workspace/scratch/video_corto.mp4" \
             -video-medio "/workspace/scratch/video_medio.mp4" \
             -video-largo "/workspace/scratch/video_largo.mp4" \
