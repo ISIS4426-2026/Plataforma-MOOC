@@ -66,6 +66,8 @@ el cuerpo no sea JSON; sin respuesta de red → `status 0`; 204 sin cuerpo; clav
 - El commit llega por `VITE_APP_COMMIT` (CI: `github.sha`; imagen: `--build-arg APP_COMMIT`); en local se
   lee de git. **Un build con cambios sin commitear se marca `-sin-commit`**, para que la versión visible no
   afirme más de lo que es.
+- Comprobado en las dos direcciones: con cambios sin commitear el build dice `<sha>-sin-commit`; desde el
+  commit limpio `650bdec28268` dice solo el SHA ([`version_build_local.json`](./version_build_local.json)).
 - ⚠️ Las capturas de esta carpeta muestran `3affa11394ea-sin-commit`: se tomaron antes de que existiera el
   commit de D1. Para la evidencia en cloud, el build debe salir de un commit limpio.
 
@@ -106,7 +108,7 @@ Dos falsos positivos de la librería de rutas se resolvieron afinando la regla, 
 2. **Confirmar con Fredy** el alojamiento (mismo origen vía nginx, opción A): lo consumen A4, C3 y E1.
 3. **Dos huecos de la API que bloquean a D2 y D3** (nota 27): listar los cursos propios del profesor y un
    `GET /me`.
-4. Capturar una vez más la versión desde un build de commit limpio.
+4. Capturar la interfaz una vez más con la versión de un commit limpio (las capturas actuales muestran `-sin-commit`).
 
 ## Nunca
 
