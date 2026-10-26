@@ -1,5 +1,10 @@
 import { API_BASE_URL, API_PREFIX } from "../config";
 
+export interface FieldProblem {
+  field: string;
+  message: string;
+}
+
 /** Error de la API o de la red, con lo necesario para mostrarlo y para rastrearlo. */
 export class ApiError extends Error {
   constructor(
@@ -12,6 +17,8 @@ export class ApiError extends Error {
     readonly requestId?: string,
     /** X-Instance-ID: que replica de la API contesto. */
     readonly instanceId?: string,
+    /** Problemas campo a campo (p. ej. por que un curso no se puede publicar: 422 validation_failed). */
+    readonly details?: FieldProblem[],
   ) {
     super(message);
     this.name = "ApiError";
@@ -45,12 +52,16 @@ export interface RequestOptions {
   signal?: AbortSignal;
   /** El login responde 401 cuando las credenciales son malas: no es una sesion vencida. */
   skipUnauthorizedHook?: boolean;
+  /** ETag que el cliente leyo; con el la API rechaza (412) una edicion sobre una version vieja. */
+  ifMatch?: string;
 }
 
 export interface ApiResult<T> {
   data: T;
   requestId?: string;
   instanceId?: string;
+  /** ETag de la respuesta, para enviarlo despues como If-Match. */
+  etag?: string;
 }
 
 export function newIdempotencyKey(): string {
@@ -68,6 +79,7 @@ export async function request<T>(path: string, options: RequestOptions = {}): Pr
   const headers: Record<string, string> = { Accept: "application/json" };
   if (options.body !== undefined) headers["Content-Type"] = "application/json";
   if (options.idempotencyKey) headers["Idempotency-Key"] = options.idempotencyKey;
+  if (options.ifMatch) headers["If-Match"] = options.ifMatch;
 
   let response: Response;
   try {
@@ -92,20 +104,24 @@ export async function request<T>(path: string, options: RequestOptions = {}): Pr
 
   if (response.ok) {
     const text = await response.text();
-    return { data: (text ? JSON.parse(text) : undefined) as T, requestId, instanceId };
+    return { data: (text ? JSON.parse(text) : undefined) as T, requestId, instanceId, etag: response.headers.get("ETag") ?? undefined };
   }
 
   let code = "http_error";
   let message = `La solicitud fallo (HTTP ${response.status}).`;
+  let details: FieldProblem[] | undefined;
   try {
-    const body = (await response.json()) as { code?: string; message?: string };
+    const body = (await response.json()) as { code?: string; message?: string; details?: unknown };
     if (body.code) code = body.code;
     if (body.message) message = body.message;
+    if (Array.isArray(body.details)) {
+      details = body.details.filter((d): d is FieldProblem => typeof d?.message === "string");
+    }
   } catch {
     // Cuerpo vacio o no JSON (p. ej. una pagina de error del balanceador): se deja el mensaje generico.
   }
 
-  const error = new ApiError(response.status, code, message, requestId, instanceId);
+  const error = new ApiError(response.status, code, message, requestId, instanceId, details);
   if (response.status === 401 && !options.skipUnauthorizedHook) hooks.onUnauthorized?.(error);
   else if (response.status === 403) hooks.onForbidden?.(error);
   else if (response.status >= 500) hooks.onServerError?.(error);

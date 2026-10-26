@@ -207,7 +207,7 @@ services:
         APP_COMMIT: ${APP_COMMIT:-desconocido}
     environment:
       API_UPSTREAM: api:8080
-      STORAGE_ORIGINS: http://localhost:9000
+      STORAGE_ORIGINS: ${STORAGE_ORIGINS:-http://localhost:9000}
       HLS_BASE_URL: http://localhost:9000/${S3_BUCKET:-mooc-storage}
     ports:
       - "${WEB_PORT:-8081}:80"

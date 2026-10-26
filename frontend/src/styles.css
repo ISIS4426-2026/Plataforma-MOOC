@@ -186,3 +186,34 @@ button.link { background: none; border: 0; color: inherit; font-size: 1.2rem; cu
   .topbar-row { flex-direction: column; align-items: stretch; }
   .search { max-width: none; }
 }
+
+/* ---------- Formularios y edicion (profesor) ---------- */
+.form { display: flex; flex-direction: column; gap: 6px; }
+.form label { display: block; font-weight: 700; margin: 10px 0 2px; }
+.form input:not([type="checkbox"]):not([type="radio"]):not([type="file"]), .form textarea, .form select, .add-title input {
+  width: 100%; padding: 10px 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--bg); color: var(--ink); font: inherit;
+}
+.form textarea { resize: vertical; }
+.form .actions, .actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
+.form h2 { margin-bottom: 4px; }
+.check { display: flex !important; align-items: center; gap: 8px; font-weight: 600 !important; }
+.check input { width: 18px; height: 18px; accent-color: var(--accent); }
+.inline-form { background: var(--bg); border-radius: 14px; padding: 12px 16px; margin: 8px 0; }
+.inline-form fieldset { border: 1px solid var(--line); border-radius: 12px; padding: 10px 14px; margin: 8px 0; }
+.option-row { display: flex; align-items: center; gap: 10px; margin: 6px 0; }
+.option-row input[type="radio"] { width: 18px; height: 18px; accent-color: var(--accent); }
+.ok-text { color: var(--ok); font-weight: 700; margin: 8px 0 0; }
+.modulo { border-top: 1px solid var(--line); padding: 16px 0 6px; }
+.modulo:first-of-type { border-top: 0; }
+.unidad { margin: 10px 0 14px 16px; padding-left: 14px; border-left: 3px solid var(--accent-soft); }
+.row-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.row-actions { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.recursos { list-style: none; margin: 8px 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.recurso { background: var(--bg); border-radius: 14px; padding: 10px 14px; }
+.add-title { display: flex; align-items: center; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+.add-title input { flex: 1; min-width: 180px; }
+.upload { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 10px; }
+.upload-progress { display: flex; flex-direction: column; gap: 4px; min-width: 200px; flex: 1; }
+.quiz-editor ol { padding-left: 20px; }
+.quiz-editor li.correct { color: var(--ok); font-weight: 700; }
+.notice.info { background: var(--accent-soft); color: var(--accent); }

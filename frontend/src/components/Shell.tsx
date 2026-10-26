@@ -3,6 +3,7 @@ import { useState, type FormEvent, type ReactNode } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { useAuth, type Role } from "../auth/AuthContext";
 import { APP_VERSION } from "../config";
+import { ETIQUETA_ESTADO, useProfessorData } from "../professor/ProfessorData";
 import { useStudentData } from "../student/StudentData";
 import { NoticeBanner } from "./Chrome";
 import { Avatar, ProgressBar } from "./ui";
@@ -110,6 +111,7 @@ export function Shell() {
           <small className="muted">{user.email}</small>
         </div>
         {user.role === "estudiante" && <StudentSummary />}
+        {user.role === "profesor" && <ProfessorSummary />}
       </aside>
     </div>
   );
@@ -153,6 +155,46 @@ function StudentSummary() {
               <NavLink to={`/cursos/${m.course!.id}`}>{m.course!.title}</NavLink>
               <ProgressBar value={m.progress?.percentage ?? 0} label={`Progreso de ${m.course!.title}`} />
               <small className="muted">{Math.round(m.progress?.percentage ?? 0)} % completado</small>
+            </li>
+          ))}
+        </ul>
+      )}
+    </>
+  );
+}
+
+function ProfessorSummary() {
+  const { state } = useProfessorData();
+  if (state.status === "loading") return <p className="muted center">Cargando tus cursos…</p>;
+  if (state.status === "error") return <p className="muted center">No se pudieron cargar tus cursos.</p>;
+
+  const cuenta = (estado: "draft" | "published" | "unpublished") => state.courses.filter((c) => c.status === estado).length;
+  const pendientes = state.courses.filter((c) => c.status !== "published").slice(0, 3);
+  return (
+    <>
+      <div className="stats">
+        <div>
+          <strong>{cuenta("published")}</strong>
+          <span className="muted">Publicados</span>
+        </div>
+        <div>
+          <strong>{cuenta("draft")}</strong>
+          <span className="muted">Borradores</span>
+        </div>
+        <div>
+          <strong>{cuenta("unpublished")}</strong>
+          <span className="muted">Despublic.</span>
+        </div>
+      </div>
+      <h2 className="side-title">Por terminar</h2>
+      {pendientes.length === 0 ? (
+        <p className="muted">No tienes borradores pendientes.</p>
+      ) : (
+        <ul className="next-list">
+          {pendientes.map((c) => (
+            <li key={c.id}>
+              <NavLink to={`/profesor/cursos/${c.id}`}>{c.title}</NavLink>
+              <small className="muted">{ETIQUETA_ESTADO[c.status]}</small>
             </li>
           ))}
         </ul>

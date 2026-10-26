@@ -1,22 +1,28 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { Markdown } from "./markdown";
-import { disponible } from "./resources";
+import { disponible, sinArchivo } from "./resources";
 
 describe("disponible (un recurso en procesamiento nunca se muestra como disponible)", () => {
   it.each(["pending", "processing", "failed"] as const)("video %s NO esta disponible", (estado) => {
-    expect(disponible({ type: "video", processing_status: estado })).toBe(false);
+    expect(disponible({ type: "video", processing_status: estado, object_key: "originals/x.mp4" })).toBe(false);
   });
-  it("video completed SI", () => expect(disponible({ type: "video", processing_status: "completed" })).toBe(true));
+  it("video completed con archivo SI", () => {
+    expect(disponible({ type: "video", processing_status: "completed", object_key: "originals/x.mp4" })).toBe(true);
+  });
+  it("video `completed` pero SIN archivo NO (la base pone `completed` por defecto: nota 28)", () => {
+    expect(disponible({ type: "video", processing_status: "completed", object_key: undefined })).toBe(false);
+    expect(sinArchivo({ type: "video", processing_status: "completed", object_key: undefined })).toBe(true);
+  });
   it("un PDF sin estado NO esta disponible (necesita pasar por el worker)", () => {
-    expect(disponible({ type: "pdf", processing_status: undefined })).toBe(false);
+    expect(disponible({ type: "pdf", processing_status: undefined, object_key: undefined })).toBe(false);
   });
   it("texto y cuestionario sin estado SI (no pasan por el worker)", () => {
-    expect(disponible({ type: "text", processing_status: undefined })).toBe(true);
-    expect(disponible({ type: "quiz", processing_status: undefined })).toBe(true);
+    expect(disponible({ type: "text", processing_status: undefined, object_key: undefined })).toBe(true);
+    expect(disponible({ type: "quiz", processing_status: undefined, object_key: undefined })).toBe(true);
   });
   it("un texto cuyo estado es failed NO esta disponible", () => {
-    expect(disponible({ type: "text", processing_status: "failed" })).toBe(false);
+    expect(disponible({ type: "text", processing_status: "failed", object_key: undefined })).toBe(false);
   });
 });
 

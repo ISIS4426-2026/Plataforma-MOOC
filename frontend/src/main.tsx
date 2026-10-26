@@ -10,6 +10,11 @@ import { loadRuntimeConfig } from "./runtime";
 import Catalog from "./student/Catalog";
 import Course from "./student/Course";
 import Dashboard from "./student/Dashboard";
+import ProfessorDashboard from "./professor/Dashboard";
+import CourseEditor from "./professor/CourseEditor";
+import NewCourse from "./professor/NewCourse";
+import ProfessorCourses from "./professor/MyCourses";
+import { ProfessorDataProvider } from "./professor/ProfessorData";
 import MyCourses from "./student/MyCourses";
 import { StudentDataProvider } from "./student/StudentData";
 import "./styles.css";
@@ -18,13 +23,21 @@ import "./styles.css";
 function RequireAuth() {
   const { user } = useAuth();
   if (!user) return <Navigate to="/login" replace />;
-  return user.role === "estudiante" ? (
-    <StudentDataProvider>
-      <Shell />
-    </StudentDataProvider>
-  ) : (
-    <Shell />
-  );
+  if (user.role === "estudiante") {
+    return (
+      <StudentDataProvider>
+        <Shell />
+      </StudentDataProvider>
+    );
+  }
+  if (user.role === "profesor") {
+    return (
+      <ProfessorDataProvider>
+        <Shell />
+      </ProfessorDataProvider>
+    );
+  }
+  return <Shell />;
 }
 
 /** Cada rol ve solo sus rutas; las demas lo devuelven a su inicio (la autorizacion real es del servidor). */
@@ -63,6 +76,38 @@ void loadRuntimeConfig().then(() =>
                 element={
                   <SoloRol rol="estudiante">
                     <MyCourses />
+                  </SoloRol>
+                }
+              />
+              <Route
+                path="profesor"
+                element={
+                  <SoloRol rol="profesor">
+                    <ProfessorDashboard />
+                  </SoloRol>
+                }
+              />
+              <Route
+                path="profesor/cursos"
+                element={
+                  <SoloRol rol="profesor">
+                    <ProfessorCourses />
+                  </SoloRol>
+                }
+              />
+              <Route
+                path="profesor/cursos/nuevo"
+                element={
+                  <SoloRol rol="profesor">
+                    <NewCourse />
+                  </SoloRol>
+                }
+              />
+              <Route
+                path="profesor/cursos/:courseId"
+                element={
+                  <SoloRol rol="profesor">
+                    <CourseEditor />
                   </SoloRol>
                 }
               />
