@@ -28,6 +28,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"sort"
 	"strings"
 	"sync"
@@ -40,6 +41,9 @@ import (
 type Config struct {
 	BaseURL    string
 	HLSBaseURL string
+	Entorno    string
+	Patron     string
+	MaxSegs    int
 	RedisAddr  string
 	DBConnStr  string
 	OutDir     string
@@ -49,6 +53,92 @@ type Config struct {
 	VideoMedio string
 	VideoLargo string
 	QuickMode  bool
+}
+
+// Los dos patrones de consumo que el enunciado pide distinguir. Se declara cual
+// se usa y queda en la cabecera de cada archivo de evidencia: un margen de
+// buffer o una interrupcion solo significan algo con cadencia de reproduccion,
+// y una tasa de transferencia solo significa algo a maxima velocidad.
+const (
+	patronCadencia = "cadencia"
+	patronMaxima   = "maxima"
+)
+
+// hostsLocales son los nombres que delatan una medicion que no es contra la
+// nube. Misma lista que scripts/capacity_criterios.py.
+var hostsLocales = []string{
+	"localhost", "127.0.0.1", "host.docker.internal",
+	"api", "web", "minio", "postgres", "redis",
+}
+
+// clasificarDestino devuelve "local" o "remoto" a partir de la URL medida. No se
+// declara a mano: el escenario 2 de la Entrega 2 se publico como medicion de la
+// nube siendo `http://api:8080`, y lo que falto fue justo esto.
+func clasificarDestino(raw string) string {
+	resto := raw
+	if i := strings.Index(resto, "://"); i >= 0 {
+		resto = resto[i+3:]
+	}
+	host := strings.ToLower(strings.SplitN(strings.SplitN(resto, "/", 2)[0], ":", 2)[0])
+	if slices.Contains(hostsLocales, host) {
+		return "local"
+	}
+	return "remoto"
+}
+
+// cabeceraEvidencia es el bloque que encabeza TODO archivo que este programa
+// escribe. Criterio de A6: una medicion sin destino y entorno registrados no se
+// publica. Mientras no estuvo, nada en la evidencia contradecia la afirmacion de
+// que se habia medido contra la nube.
+func cabeceraEvidencia(cfg Config) string {
+	commit := "desconocido"
+	if salida, err := os.ReadFile(".git/HEAD"); err == nil {
+		commit = strings.TrimSpace(string(salida))
+	}
+	host, _ := os.Hostname()
+	return fmt.Sprintf(
+		"Destino medido   : %s  [%s]\n"+
+			"Base HLS         : %s\n"+
+			"Entorno          : %s\n"+
+			"Patron de consumo: %s (segmentos por estudiante: %s)\n"+
+			"Codigo           : %s\n"+
+			"Generador        : %s\n"+
+			"Fecha UTC        : %s\n",
+		cfg.BaseURL, clasificarDestino(cfg.BaseURL), cfg.HLSBaseURL, cfg.Entorno,
+		cfg.Patron, limiteSegmentos(cfg.MaxSegs), commit, host,
+		time.Now().UTC().Format(time.RFC3339))
+}
+
+// margenTexto y stallsTexto dicen «no aplica» en vez de dar un numero cuando el
+// patron de consumo no permite calcularlo. Descargando a maxima velocidad no hay
+// instante de reproduccion que incumplir, asi que un margen de buffer o una
+// cuenta de interrupciones serian inventados --y es asi como la Entrega 2
+// publico «0 interrupciones» y «+5,99 s de margen».
+func margenTexto(h HLSStreamResult) string {
+	if h.Patron != patronCadencia || math.IsNaN(h.MargenMinSec) {
+		return "no aplica (patrón sin cadencia)"
+	}
+	return fmt.Sprintf("%.2f s en el peor segmento", h.MargenMinSec)
+}
+
+func stallsTexto(h HLSStreamResult) string {
+	if h.Patron != patronCadencia {
+		return "no aplica (patrón sin cadencia)"
+	}
+	return fmt.Sprintf("%d", h.Stalls)
+}
+
+// cabeceraMarkdown es la misma cabecera, en bloque de codigo, para los archivos
+// .md de evidencia.
+func cabeceraMarkdown(cfg Config) string {
+	return "```\n" + cabeceraEvidencia(cfg) + "```\n\n"
+}
+
+func limiteSegmentos(n int) string {
+	if n <= 0 {
+		return "todos"
+	}
+	return fmt.Sprintf("%d", n)
 }
 
 type StageMetrics struct {
@@ -84,9 +174,14 @@ type HLSStreamResult struct {
 	StreamerID    int
 	ManifestTTFB  time.Duration
 	VariantTTFB   time.Duration
-	SegmentsCount int
-	AvgSegLatency time.Duration
-	BufferMargin  float64
+	SegmentsCount int           // segmentos por estudiante
+	Observaciones int           // descargas de segmento medidas: estudiantes x segmentos
+	SegLatency    StageMetrics  // latencia de segmento, con percentiles
+	AvgSegLatency time.Duration // se conserva por compatibilidad con las tablas
+	SegDurSec     float64       // duracion real declarada en la lista, no un supuesto
+	Streamers     int
+	Patron        string
+	MargenMinSec  float64 // margen de buffer MEDIDO, el peor de la corrida
 	Stalls        int
 	Success       bool
 }
@@ -116,7 +211,9 @@ type LevelMetrics struct {
 	Stage6              StageMetrics
 	HLSStreaming        HLSStreamResult
 	GreedyDownloadMBps  float64
-	PlayerTTFF          time.Duration
+	// PrimerSegmentoDur es transporte: manifiesto + variante + primer segmento.
+	// NO es el tiempo al primer cuadro, y no se publica como tal.
+	PrimerSegmentoDur time.Duration
 }
 
 type DrainSnapshot struct {
@@ -224,8 +321,16 @@ func (c *httpClient) doJSON(method, endpoint string, body any, target any) (int,
 
 func main() {
 	cfg := Config{}
-	flag.StringVar(&cfg.BaseURL, "base", "http://api:8080", "Base URL for the MOOC API")
-	flag.StringVar(&cfg.HLSBaseURL, "hls-base", "", "Base URL for HLS derivatives (auto-derived if empty)")
+	// Sin destino por omision. El `http://api:8080` que habia aqui es la razon
+	// por la que el escenario 2 de la Entrega 2 se midio contra Docker Compose:
+	// quien lo corrio no eligio ese destino, lo heredo.
+	flag.StringVar(&cfg.BaseURL, "base", "", "Base URL de la API (obligatorio, sin valor por omision)")
+	flag.StringVar(&cfg.HLSBaseURL, "hls-base", "", "Base URL de los derivados HLS (obligatorio si el destino no es local)")
+	flag.StringVar(&cfg.Entorno, "entorno", "", "Etiqueta del entorno medido, p. ej. nube-entrega3 (obligatorio)")
+	flag.StringVar(&cfg.Patron, "patron-consumo", patronCadencia,
+		"Patron de consumo HLS: cadencia (reproduccion a 1x) o maxima (descarga sin pausa)")
+	flag.IntVar(&cfg.MaxSegs, "max-segmentos", 0,
+		"Segmentos por estudiante; 0 = todos. Acota el coste de egreso de un nivel")
 	flag.StringVar(&cfg.RedisAddr, "redis", "redis:6379", "Redis address for Asynq inspector")
 	flag.StringVar(&cfg.DBConnStr, "db", "postgres://moocuser:moocpassword@postgres:5432/moocdb?sslmode=disable", "PostgreSQL connection string")
 	flag.StringVar(&cfg.OutDir, "out-dir", "docs/entrega2/evidencias/H5", "Output directory for evidence files")
@@ -237,12 +342,29 @@ func main() {
 	flag.BoolVar(&cfg.QuickMode, "quick", false, "Fast execution mode for validation")
 	flag.Parse()
 
+	// Criterios de medicion de A6 (issue #198): sin destino y entorno
+	// declarados no se mide, porque entonces la evidencia no puede decir contra
+	// que se midio. Ver capacity-planning/criterios_de_medicion.md.
+	if cfg.BaseURL == "" {
+		log.Fatalf("Falta -base. No hay destino por omision: declara contra que mides.\n" +
+			"  ej. -base https://<host> -hls-base https://storage.googleapis.com/<bucket> -entorno nube-entrega3")
+	}
+	if cfg.Entorno == "" {
+		log.Fatalf("Falta -entorno. Es la etiqueta que distingue una corrida en la nube de una en Compose.")
+	}
+	if cfg.Patron != patronCadencia && cfg.Patron != patronMaxima {
+		log.Fatalf("-patron-consumo debe ser %q o %q, no %q", patronCadencia, patronMaxima, cfg.Patron)
+	}
+	if cfg.HLSBaseURL == "" && clasificarDestino(cfg.BaseURL) != "local" {
+		log.Fatalf("Falta -hls-base. Solo se adivina para el entorno local; contra la nube hay que\n" +
+			"  declarar el bucket, o se mediran los derivados de otro entorno.")
+	}
+
 	_ = os.MkdirAll(cfg.OutDir, 0755)
 
 	log.Printf("================================================================================")
 	log.Printf(" Plataforma MOOC - Escenario 2: Análisis de Capacidad Multimedia (Issue H5)")
 	log.Printf("================================================================================")
-	log.Printf("API Base URL     : %s", cfg.BaseURL)
 	log.Printf("Redis Endpoint   : %s", cfg.RedisAddr)
 	log.Printf("Output Evidence  : %s", cfg.OutDir)
 
@@ -325,14 +447,16 @@ func main() {
 	log.Printf("Entorno de curso listo: Curso=%s, Módulo=%s, Unidad=%s", course.ID, module.ID, unit.ID)
 
 	// Determine HLS base URL
+	// Solo el entorno local se adivina. Antes esto miraba si la URL contenia la
+	// IP de la VM de la Entrega 2 para decidir entre el bucket y MinIO: con la
+	// IP cambiada --y cambia en cada recreacion-- la campana habria medido los
+	// derivados de MinIO creyendo medir los de Cloud Storage.
 	hlsBase := cfg.HLSBaseURL
 	if hlsBase == "" {
-		if strings.Contains(cfg.BaseURL, "34.24.52.111") {
-			hlsBase = "https://storage.googleapis.com/plataforma-mooc-entrega2-hls"
-		} else {
-			hlsBase = "http://minio:9000/mooc-storage"
-		}
+		hlsBase = "http://minio:9000/mooc-storage"
 	}
+	cfg.HLSBaseURL = hlsBase
+	log.Printf("%s", cabeceraEvidencia(cfg))
 
 	// -------------------------------------------------------------------------
 	// Definición de Niveles de Carga
@@ -568,23 +692,38 @@ func main() {
 		// Run HLS Streaming validation using the produced stable ID
 		if lastStableID != "" {
 			hlsClient := newHTTPClient(cfg.BaseURL)
-			lm.HLSStreaming = runHLSStreamingSimulation(hlsClient, hlsBase, lastStableID, ldef.PacingSec, ldef.Streamers)
+			lm.HLSStreaming = runHLSStreamingSimulation(hlsClient, hlsBase, lastStableID,
+				ldef.PacingSec, ldef.Streamers, cfg.Patron, cfg.MaxSegs)
 			lm.GreedyDownloadMBps = runGreedyBulkDownload(hlsClient, hlsBase, lastStableID)
-			lm.PlayerTTFF = lm.HLSStreaming.ManifestTTFB + lm.HLSStreaming.VariantTTFB + lm.HLSStreaming.AvgSegLatency + 45*time.Millisecond
+
+			// Lo que esta medicion puede sostener: el tiempo hasta tener el
+			// primer segmento descargado. Es transporte, no reproduccion.
+			//
+			// Antes esta linea sumaba 45 ms fijos y el resultado se publicaba
+			// como «tiempo al primer cuadro» de una «sonda de reproductor
+			// real». Los 45 ms eran una constante escrita en el codigo; sumarla
+			// a una latencia de red devuelve la misma latencia desplazada, y no
+			// habia reproductor en ninguna parte. La revision lo marco.
+			//
+			// El tiempo al primer cuadro solo se publica si lo produjo un
+			// reproductor; como medirlo esta en la seccion 6 del documento de
+			// criterios, y lo implementa G4. Hasta entonces esta cifra se
+			// publica con su nombre.
+			lm.PrimerSegmentoDur = lm.HLSStreaming.ManifestTTFB + lm.HLSStreaming.VariantTTFB + lm.HLSStreaming.AvgSegLatency
 		}
 
 		log.Printf("  >>> Resumen %s:", ldef.Name)
 		log.Printf("      Duración total corrida     : %v", lm.Duration.Round(time.Millisecond))
 		log.Printf("      Trabajos completados       : %d/%d (Fallos: %d)", lm.JobsProcessed, ldef.TotalUploads, lm.JobsFailed)
-		log.Printf("      Tasa de procesamiento      : %.2f videos/min", lm.ThroughputVidsMin)
+		log.Printf("      Rendimiento en la ventana  : %.2f videos/min (no es la tasa de servicio)", lm.ThroughputVidsMin)
 		log.Printf("      Pico de cola (pending)     : %d tareas (Activas: %d)", lm.PeakPendingQueue, lm.PeakActiveQueue)
 		log.Printf("      Antigüedad máx. en cola    : %.2f s", lm.PeakOldestAgeSec)
-		log.Printf("      Etapa 1 (Firma API p95)    : %v", lm.Stage1.P95Dur.Round(time.Millisecond))
-		log.Printf("      Etapa 2 (PUT Directo p95)  : %v (Throughput: %.2f MB/s)", lm.Stage2.P95Dur.Round(time.Millisecond), lm.Stage2ThroughputMBs)
-		log.Printf("      Etapa 3 (Confirmación p95) : %v", lm.Stage3.P95Dur.Round(time.Millisecond))
-		log.Printf("      Etapa 4 (Espera Cola p95)  : %v", lm.Stage4.P95Dur.Round(time.Millisecond))
-		log.Printf("      Etapa 5 (FFmpeg Proc p95)  : %v", lm.Stage5.P95Dur.Round(time.Millisecond))
-		log.Printf("      Etapa 6 (Total Avail p95)  : %v", lm.Stage6.P95Dur.Round(time.Millisecond))
+		log.Printf("      Etapa 1 (Firma API p95)    : %v", lm.Stage1.Texto(95))
+		log.Printf("      Etapa 2 (PUT Directo p95)  : %v (Throughput: %.2f MB/s)", lm.Stage2.Texto(95), lm.Stage2ThroughputMBs)
+		log.Printf("      Etapa 3 (Confirmación p95) : %v", lm.Stage3.Texto(95))
+		log.Printf("      Etapa 4 (Espera Cola p95)  : %v", lm.Stage4.Texto(95))
+		log.Printf("      Etapa 5 (FFmpeg Proc p95)  : %v", lm.Stage5.Texto(95))
+		log.Printf("      Etapa 6 (Total Avail p95)  : %v", lm.Stage6.Texto(95))
 
 		levelResults = append(levelResults, lm)
 	}
@@ -592,12 +731,12 @@ func main() {
 	// -------------------------------------------------------------------------
 	// Generar y Escribir Todos los Archivos de Evidencia
 	// -------------------------------------------------------------------------
-	writeCorridaLog(filepath.Join(cfg.OutDir, "corrida_niveles_escenario2.txt"), levelResults)
-	writeDrainLog(filepath.Join(cfg.OutDir, "drenaje_cola_verificacion.txt"), drainResult)
-	writeExecutiveSummary(filepath.Join(cfg.OutDir, "resumen_ejecutivo_escenario2.md"), levelResults, drainResult)
-	writeBottleneckAnalysis(filepath.Join(cfg.OutDir, "analisis_cuello_de_botella.md"), levelResults, drainResult)
-	writeH5README(filepath.Join(cfg.OutDir, "README.md"), levelResults, drainResult)
-	writeCapacityReportFile(filepath.Join(cfg.OutDir, "reporte_carga_escenario2.md"), levelResults, drainResult)
+	writeCorridaLog(filepath.Join(cfg.OutDir, "corrida_niveles_escenario2.txt"), cfg, levelResults)
+	writeDrainLog(filepath.Join(cfg.OutDir, "drenaje_cola_verificacion.txt"), cfg, drainResult)
+	writeExecutiveSummary(filepath.Join(cfg.OutDir, "resumen_ejecutivo_escenario2.md"), cfg, levelResults, drainResult)
+	writeBottleneckAnalysis(filepath.Join(cfg.OutDir, "analisis_cuello_de_botella.md"), cfg, levelResults, drainResult)
+	writeH5README(filepath.Join(cfg.OutDir, "README.md"), cfg, levelResults, drainResult)
+	writeCapacityReportFile(filepath.Join(cfg.OutDir, "reporte_carga_escenario2.md"), cfg, levelResults, drainResult)
 
 	log.Printf("\n================================================================================")
 	log.Printf(" Escenario 2 Finalizado Exitosamente.")
@@ -770,9 +909,47 @@ func executeUploadLifecycle(client *httpClient, unitID string, jobIdx int, profi
 	return res
 }
 
-func runHLSStreamingSimulation(client *httpClient, hlsBase, stableID string, pacingSec float64, streamers int) HLSStreamResult {
+// runHLSStreamingSimulation consume el video como lo haria un estudiante, con
+// el patron declarado y con la concurrencia declarada.
+//
+// # Que estaba mal
+//
+// La version anterior recibia `pacingSec` y `streamers` y **no usaba ninguno de
+// los dos**: un solo lector secuencial, sin pausa entre segmentos, leyendo tres
+// segmentos. Los niveles declaraban 2, 10, 25, 50 y 100 estudiantes con cadencia
+// de 6,0 s, y el informe publico esas cifras. Nunca hubo mas de un estudiante ni
+// una sola pausa.
+//
+// De ahi salian dos de las metricas derivadas de una constante que la revision
+// marco:
+//
+//   - el margen de buffer era `6.0 - latencia`, es decir una constante menos una
+//     latencia de red, publicado como «+5,99 s de margen»;
+//   - una interrupcion se contaba si un segmento tardaba mas de 6 s, sobre un
+//     patron que descargaba a maxima velocidad: cero interrupciones estaba
+//     garantizado por aritmetica, no observado.
+//
+// Y el 6,0 tampoco era el dato real: los segmentos duran ~7,06 s porque el GOP
+// se calcula asumiendo 30 fps sobre un video a 25 (nota tecnica 24). Ahora la
+// duracion se lee de la propia lista de reproduccion.
+//
+// # Como se mide ahora
+//
+// Cada estudiante es una goroutine que descarga la lista y sus segmentos. Con
+// patron `cadencia`, el segmento i debe estar listo antes de su instante de
+// reproduccion --t0 + i*duracion, tras el buffer inicial--; el margen es lo que
+// falta para ese instante y una interrupcion es un margen negativo. Ambas cosas
+// se miden contra la duracion declarada por el contenido, no contra un numero
+// escrito aqui. Con patron `maxima` no hay instante de reproduccion que cumplir,
+// asi que no se reportan ni margen ni interrupciones: se declara que no aplican.
+func runHLSStreamingSimulation(client *httpClient, hlsBase, stableID string, pacingSec float64, streamers int, patron string, maxSegmentos int) HLSStreamResult {
 	res := HLSStreamResult{
-		Success: true,
+		Success:   true,
+		Streamers: streamers,
+		Patron:    patron,
+	}
+	if streamers < 1 {
+		streamers = 1
 	}
 
 	masterURL := fmt.Sprintf("%s/hls/%s/master.m3u8", strings.TrimRight(hlsBase, "/"), stableID)
@@ -811,32 +988,120 @@ func runHLSStreamingSimulation(client *httpClient, hlsBase, stableID string, pac
 		res.Success = false
 		return res
 	}
-
-	testSegCount := len(segments)
-	if testSegCount > 3 {
-		testSegCount = 3
+	if maxSegmentos > 0 && len(segments) > maxSegmentos {
+		segments = segments[:maxSegmentos]
 	}
-	res.SegmentsCount = testSegCount
+	res.SegmentsCount = len(segments)
 
-	var cumLatency time.Duration
-	for i := 0; i < testSegCount; i++ {
-		segURL := fmt.Sprintf("%s/hls/%s/%s", strings.TrimRight(hlsBase, "/"), stableID, segments[i])
-		sStart := time.Now()
-		sResp, err := client.client.Get(segURL)
-		sDur := time.Since(sStart)
-		if err == nil && sResp.StatusCode == 200 {
-			_, _ = io.ReadAll(sResp.Body)
-			sResp.Body.Close()
-		}
-		cumLatency += sDur
-		if sDur > 6*time.Second {
+	// Duracion de segmento segun el contenido, no segun un supuesto. Se toma el
+	// mayor EXTINF, que es lo que un reproductor usa para dimensionar el buffer.
+	res.SegDurSec = duracionDeSegmento(string(vBytes), pacingSec)
+
+	// El buffer inicial son dos segmentos, como declara el plan: hasta que esten
+	// descargados no empieza la reproduccion, asi que no hay instante que
+	// incumplir.
+	const buffferInicialSegmentos = 2
+
+	type muestra struct {
+		latencia time.Duration
+		margen   float64
+		stall    bool
+	}
+
+	var mu sync.Mutex
+	var muestras []muestra
+	var wg sync.WaitGroup
+
+	for s := 0; s < streamers; s++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			inicio := time.Now()
+			for i, seg := range segments {
+				segURL := fmt.Sprintf("%s/hls/%s/%s", strings.TrimRight(hlsBase, "/"), stableID, seg)
+				sStart := time.Now()
+				sResp, err := client.client.Get(segURL)
+				sDur := time.Since(sStart)
+				if err == nil {
+					if sResp.StatusCode == 200 {
+						_, _ = io.ReadAll(sResp.Body)
+					}
+					sResp.Body.Close()
+				}
+
+				m := muestra{latencia: sDur}
+				if patron == patronCadencia {
+					// Instante en que la reproduccion necesita este segmento.
+					deadline := float64(i-buffferInicialSegmentos) * res.SegDurSec
+					m.margen = deadline - time.Since(inicio).Seconds()
+					m.stall = i >= buffferInicialSegmentos && m.margen < 0
+				}
+
+				mu.Lock()
+				muestras = append(muestras, m)
+				mu.Unlock()
+
+				// La pausa es lo que convierte esto en reproduccion y no en
+				// descarga: un estudiante consume un segmento cada SegDurSec.
+				if patron == patronCadencia && i >= buffferInicialSegmentos {
+					if espera := time.Duration(res.SegDurSec*float64(time.Second)) - sDur; espera > 0 {
+						time.Sleep(espera)
+					}
+				}
+			}
+		}()
+	}
+	wg.Wait()
+
+	if len(muestras) == 0 {
+		res.Success = false
+		return res
+	}
+
+	// Con estudiantes concurrentes por segmentos, aqui si hay observaciones de
+	// sobra para un p95 de verdad: 25 estudiantes por 34 segmentos son 850
+	// medidas. Es lo contrario del p95 de ocho subidas.
+	latencias := make([]time.Duration, 0, len(muestras))
+	res.MargenMinSec = math.Inf(1)
+	var cum time.Duration
+	for _, m := range muestras {
+		latencias = append(latencias, m.latencia)
+		cum += m.latencia
+		if m.stall {
 			res.Stalls++
 		}
+		if patron == patronCadencia && m.margen < res.MargenMinSec {
+			res.MargenMinSec = m.margen
+		}
 	}
-	res.AvgSegLatency = cumLatency / time.Duration(testSegCount)
-	res.BufferMargin = 6.0 - res.AvgSegLatency.Seconds()
+	res.Observaciones = len(muestras)
+	res.SegLatency = computeStageMetrics(latencias, len(muestras), 0)
+	res.AvgSegLatency = cum / time.Duration(len(muestras))
+	if math.IsInf(res.MargenMinSec, 1) {
+		res.MargenMinSec = math.NaN() // no aplica: el patron no tiene cadencia
+	}
 
 	return res
+}
+
+// duracionDeSegmento lee el mayor EXTINF de la lista de variante. Si la lista no
+// lo declara --no deberia pasar--, cae al valor del plan, pero lo dice en el
+// registro para que no se publique un supuesto como medicion.
+func duracionDeSegmento(playlist string, porOmision float64) float64 {
+	extinf := regexp.MustCompile(`#EXTINF:([0-9.]+)`)
+	mayor := 0.0
+	for _, m := range extinf.FindAllStringSubmatch(playlist, -1) {
+		var v float64
+		if _, err := fmt.Sscanf(m[1], "%f", &v); err == nil && v > mayor {
+			mayor = v
+		}
+	}
+	if mayor == 0 {
+		log.Printf("AVISO: la lista no declara EXTINF; se usa la duracion del plan (%.1f s). "+
+			"El margen de buffer que salga de aqui es un supuesto, no una medicion.", porOmision)
+		return porOmision
+	}
+	return mayor
 }
 
 func runGreedyBulkDownload(client *httpClient, hlsBase, stableID string) float64 {
@@ -1003,20 +1268,76 @@ func computeStageMetrics(durs []time.Duration, successes, failures int) StageMet
 	sm.TotalDur = total
 	sm.AvgDur = total / time.Duration(len(durs))
 
-	p50Idx := len(durs) / 2
-	sm.P50Dur = durs[p50Idx]
-
-	p95Idx := int(float64(len(durs)-1) * 0.95)
-	sm.P95Dur = durs[p95Idx]
+	sm.P50Dur = percentil(durs, 50)
+	sm.P95Dur = percentil(durs, 95)
 
 	return sm
 }
 
-func writeCorridaLog(path string, levels []LevelMetrics) {
+// percentil usa el mismo estimador que scripts/capacity_criterios.py: rango mas
+// cercano con techo, indice = ceil(p/100 * n) - 1.
+//
+// # Que estaba mal
+//
+// Antes habia una formula por percentil: `len/2` para el p50 e
+// `int((n-1)*0.95)` para el p95. Con dos observaciones eso da indice 1 para el
+// p50 e indice 0 para el p95, asi que **el p95 publicado era el valor minimo de
+// la muestra**. Los niveles del escenario 2 subian 1, 2, 4, 8 y 12 videos: el
+// regimen donde el defecto aparece. Es el origen de los «p95 por debajo del
+// p50» que la revision de la Entrega 2 marco.
+//
+// Con un solo estimador monotono eso no puede volver a pasar. La autoprueba de
+// capacity_criterios.py reproduce el caso viejo y comprueba el nuevo.
+func percentil(ordenados []time.Duration, p int) time.Duration {
+	if len(ordenados) == 0 {
+		return 0
+	}
+	k := int(math.Ceil(float64(p)/100.0*float64(len(ordenados)))) - 1
+	if k < 0 {
+		k = 0
+	}
+	if k > len(ordenados)-1 {
+		k = len(ordenados) - 1
+	}
+	return ordenados[k]
+}
+
+// obsMinimas es cuantas observaciones hacen falta para que un percentil exista
+// como estadistico de orden: n >= 1/(1-p). Por debajo, el «p95» es el maximo
+// con otro nombre.
+var obsMinimas = map[int]int{50: 5, 95: 20, 99: 100}
+
+// Texto formatea un percentil para publicarlo, o dice por que no hay numero.
+//
+// Esto tapa *todos* los p95 por etapa del escenario 2 de la Entrega 2, no solo
+// los invertidos: con 12 subidas como maximo, ningun nivel llega a las 20
+// observaciones que un p95 necesita. No es que estuvieran mal calculados
+// --ademas lo estaban--: es que no existian.
+//
+// Consecuencia para G4: o el nivel sube 20 videos o mas, o se publica mediana,
+// minimo, maximo y las observaciones en crudo.
+func (sm StageMetrics) Texto(p int) string {
+	var d time.Duration
+	switch p {
+	case 50:
+		d = sm.P50Dur
+	case 95:
+		d = sm.P95Dur
+	default:
+		return fmt.Sprintf("percentil %d no calculado", p)
+	}
+	if sm.Count < obsMinimas[p] {
+		return fmt.Sprintf("n/d (n=%d)", sm.Count)
+	}
+	return d.Round(time.Millisecond).String()
+}
+
+func writeCorridaLog(path string, cfg Config, levels []LevelMetrics) {
 	var sb strings.Builder
 	sb.WriteString("================================================================================\n")
 	sb.WriteString(" EVIDENCIA H5 - LOG DE CORRIDA FORMAL DE NIVELES (ESCENARIO 2 DE CAPACIDAD)\n")
 	sb.WriteString("================================================================================\n")
+	sb.WriteString(cabeceraEvidencia(cfg))
 	sb.WriteString(fmt.Sprintf("Fecha de corrida      : %s\n", time.Now().UTC().Format(time.RFC3339)))
 	sb.WriteString("Concurrencia workers  : WORKER_CONCURRENCY=2 (Fija en 1 worker por vCPU)\n")
 	sb.WriteString("Seguridad / Secretos  : SANITIZADO. Cero credenciales, llaves ni firmas V4 registradas.\n\n")
@@ -1036,30 +1357,35 @@ func writeCorridaLog(path string, levels []LevelMetrics) {
 		sb.WriteString("  [Desglose Desacoplado por Etapa]\n")
 		sb.WriteString(fmt.Sprintf("  %-8s | %-38s | %-12s | %-12s | %-12s\n", "Etapa", "Operación", "Avg", "p50", "p95"))
 		sb.WriteString("  " + strings.Repeat("-", 90) + "\n")
-		sb.WriteString(fmt.Sprintf("  Etapa 1  | %-38s | %-12v | %-12v | %-12v\n", "Emisión URL Prefirmada (API Control)", lm.Stage1.AvgDur.Round(time.Millisecond), lm.Stage1.P50Dur.Round(time.Millisecond), lm.Stage1.P95Dur.Round(time.Millisecond)))
-		sb.WriteString(fmt.Sprintf("  Etapa 2  | %-38s | %-12v | %-12v | %-12v\n", "Transferencia Directa (PUT Storage)", lm.Stage2.AvgDur.Round(time.Millisecond), lm.Stage2.P50Dur.Round(time.Millisecond), lm.Stage2.P95Dur.Round(time.Millisecond)))
-		sb.WriteString(fmt.Sprintf("  Etapa 3  | %-38s | %-12v | %-12v | %-12v\n", "Confirmación Carga (API Control)", lm.Stage3.AvgDur.Round(time.Millisecond), lm.Stage3.P50Dur.Round(time.Millisecond), lm.Stage3.P95Dur.Round(time.Millisecond)))
-		sb.WriteString(fmt.Sprintf("  Etapa 4  | %-38s | %-12v | %-12v | %-12v\n", "Espera en Cola (Redis Asynq)", lm.Stage4.AvgDur.Round(time.Millisecond), lm.Stage4.P50Dur.Round(time.Millisecond), lm.Stage4.P95Dur.Round(time.Millisecond)))
-		sb.WriteString(fmt.Sprintf("  Etapa 5  | %-38s | %-12v | %-12v | %-12v\n", "Procesamiento FFmpeg (Worker Server)", lm.Stage5.AvgDur.Round(time.Millisecond), lm.Stage5.P50Dur.Round(time.Millisecond), lm.Stage5.P95Dur.Round(time.Millisecond)))
-		sb.WriteString(fmt.Sprintf("  Etapa 6  | %-38s | %-12v | %-12v | %-12v\n\n", "Tiempo Total a Available", lm.Stage6.AvgDur.Round(time.Millisecond), lm.Stage6.P50Dur.Round(time.Millisecond), lm.Stage6.P95Dur.Round(time.Millisecond)))
+		sb.WriteString(fmt.Sprintf("  Etapa 1  | %-38s | %-12v | %-12v | %-12v\n", "Emisión URL Prefirmada (API Control)", lm.Stage1.AvgDur.Round(time.Millisecond), lm.Stage1.Texto(50), lm.Stage1.Texto(95)))
+		sb.WriteString(fmt.Sprintf("  Etapa 2  | %-38s | %-12v | %-12v | %-12v\n", "Transferencia Directa (PUT Storage)", lm.Stage2.AvgDur.Round(time.Millisecond), lm.Stage2.Texto(50), lm.Stage2.Texto(95)))
+		sb.WriteString(fmt.Sprintf("  Etapa 3  | %-38s | %-12v | %-12v | %-12v\n", "Confirmación Carga (API Control)", lm.Stage3.AvgDur.Round(time.Millisecond), lm.Stage3.Texto(50), lm.Stage3.Texto(95)))
+		sb.WriteString(fmt.Sprintf("  Etapa 4  | %-38s | %-12v | %-12v | %-12v\n", "Espera en Cola (Redis Asynq)", lm.Stage4.AvgDur.Round(time.Millisecond), lm.Stage4.Texto(50), lm.Stage4.Texto(95)))
+		sb.WriteString(fmt.Sprintf("  Etapa 5  | %-38s | %-12v | %-12v | %-12v\n", "Procesamiento FFmpeg (Worker Server)", lm.Stage5.AvgDur.Round(time.Millisecond), lm.Stage5.Texto(50), lm.Stage5.Texto(95)))
+		sb.WriteString(fmt.Sprintf("  Etapa 6  | %-38s | %-12v | %-12v | %-12v\n\n", "Tiempo Total a Available", lm.Stage6.AvgDur.Round(time.Millisecond), lm.Stage6.Texto(50), lm.Stage6.Texto(95)))
 
 		sb.WriteString("  [Consumo Multimedia HLS]\n")
 		sb.WriteString(fmt.Sprintf("  • Latencia Manifiesto Maestro : %v\n", lm.HLSStreaming.ManifestTTFB.Round(time.Millisecond)))
 		sb.WriteString(fmt.Sprintf("  • Latencia Lista Variante     : %v\n", lm.HLSStreaming.VariantTTFB.Round(time.Millisecond)))
 		sb.WriteString(fmt.Sprintf("  • Latencia Promedio Segmento  : %v\n", lm.HLSStreaming.AvgSegLatency.Round(time.Millisecond)))
-		sb.WriteString(fmt.Sprintf("  • Margen de Buffer Saludable  : %.2f s (Stalls: %d)\n", lm.HLSStreaming.BufferMargin, lm.HLSStreaming.Stalls))
+		sb.WriteString(fmt.Sprintf("  • Latencia de Segmento        : p50 %s | p95 %s | n=%d observaciones\n",
+			lm.HLSStreaming.SegLatency.Texto(50), lm.HLSStreaming.SegLatency.Texto(95), lm.HLSStreaming.Observaciones))
+		sb.WriteString(fmt.Sprintf("  • Consumo Declarado           : %d estudiantes concurrentes, patrón %s, %d segmentos de %.2f s\n",
+			lm.HLSStreaming.Streamers, lm.HLSStreaming.Patron, lm.HLSStreaming.SegmentsCount, lm.HLSStreaming.SegDurSec))
+		sb.WriteString(fmt.Sprintf("  • Margen de Buffer Medido     : %s | Interrupciones: %s\n", margenTexto(lm.HLSStreaming), stallsTexto(lm.HLSStreaming)))
 		sb.WriteString(fmt.Sprintf("  • Descarga Greedy (Bulk)      : %.2f MB/s (Aislada como prueba de estrés de red)\n", lm.GreedyDownloadMBps))
-		sb.WriteString(fmt.Sprintf("  • Sonda QoE Reproductor (TTFF): %v\n\n", lm.PlayerTTFF.Round(time.Millisecond)))
+		sb.WriteString(fmt.Sprintf("  • Primer Segmento Descargado  : %v (transporte; NO es tiempo al primer cuadro)\n\n", lm.PrimerSegmentoDur.Round(time.Millisecond)))
 	}
 
 	_ = os.WriteFile(path, []byte(sb.String()), 0644)
 }
 
-func writeDrainLog(path string, d DrainResult) {
+func writeDrainLog(path string, cfg Config, d DrainResult) {
 	var sb strings.Builder
 	sb.WriteString("================================================================================\n")
 	sb.WriteString(" EVIDENCIA H5 - OBSERVACIÓN DE DRENAJE DE COLA Y VERIFICACIÓN TERMINAL\n")
 	sb.WriteString("================================================================================\n")
+	sb.WriteString(cabeceraEvidencia(cfg))
 	sb.WriteString(fmt.Sprintf("Inicio de observación : %s\n", d.StartTime.UTC().Format(time.RFC3339)))
 	sb.WriteString(fmt.Sprintf("Fin de observación    : %s\n", d.EndTime.UTC().Format(time.RFC3339)))
 	sb.WriteString(fmt.Sprintf("Tiempo total drenaje  : %v\n", d.TotalDuration.Round(time.Millisecond)))
@@ -1098,11 +1424,12 @@ func writeDrainLog(path string, d DrainResult) {
 	_ = os.WriteFile(path, []byte(sb.String()), 0644)
 }
 
-func writeExecutiveSummary(path string, levels []LevelMetrics, drain DrainResult) {
+func writeExecutiveSummary(path string, cfg Config, levels []LevelMetrics, drain DrainResult) {
 	var sb strings.Builder
 	sb.WriteString("# Resumen Ejecutivo: Análisis de Capacidad — Escenario 2 (Entrega 2, Issue H5)\n\n")
 	sb.WriteString("Este documento consolida los hallazgos y métricas cuantitativas obtenidas durante la ejecución de los **5 niveles escalonados de carga** (Línea Base y Niveles 1 al 4) para el flujo multimedia de la Plataforma MOOC.\n\n")
 
+	sb.WriteString(cabeceraMarkdown(cfg))
 	sb.WriteString("## 1. Tabla Comparativa de Niveles de Carga\n\n")
 	sb.WriteString("| Métrica | Nivel 0 (Base) | Nivel 1 (Sub-sat) | Nivel 2 (Equilibrio) | Nivel 3 (Saturación) | Nivel 4 (Estrés/Drenaje) |\n")
 	sb.WriteString("| :--- | :---: | :---: | :---: | :---: | :---: |\n")
@@ -1113,26 +1440,40 @@ func writeExecutiveSummary(path string, levels []LevelMetrics, drain DrainResult
 		levels[0].TotalUploads, levels[1].TotalUploads, levels[2].TotalUploads, levels[3].TotalUploads, levels[4].TotalUploads))
 	sb.WriteString(fmt.Sprintf("| **Estudiantes Streaming HLS** | %d | %d | %d | %d | %d |\n",
 		levels[0].StreamersCount, levels[1].StreamersCount, levels[2].StreamersCount, levels[3].StreamersCount, levels[4].StreamersCount))
-	sb.WriteString(fmt.Sprintf("| **Tasa Servicio (vid/min)** | %.2f | %.2f | %.2f | %.2f | %.2f |\n",
+	// No es la tasa de servicio. Es el rendimiento observado en la ventana del
+	// propio nivel, que para una rafaga de 8 subidas es tan corta que el numero
+	// sale disparado: asi la Entrega 2 publico «123,87 vid/min» cuando
+	// transcodificar cuesta 1,2x la duracion del video (nota tecnica 24). La
+	// tasa de servicio por vCPU se mide con la etapa 5, no con esto.
+	sb.WriteString(fmt.Sprintf("| **Rendimiento observado en la ventana del nivel (vid/min)** | %.2f | %.2f | %.2f | %.2f | %.2f |\n",
 		levels[0].ThroughputVidsMin, levels[1].ThroughputVidsMin, levels[2].ThroughputVidsMin, levels[3].ThroughputVidsMin, levels[4].ThroughputVidsMin))
 	sb.WriteString(fmt.Sprintf("| **Pico Cola (pending)** | %d | %d | %d | %d | %d |\n",
 		levels[0].PeakPendingQueue, levels[1].PeakPendingQueue, levels[2].PeakPendingQueue, levels[3].PeakPendingQueue, levels[4].PeakPendingQueue))
 	sb.WriteString(fmt.Sprintf("| **Antigüedad Máx. Cola** | %.2fs | %.2fs | %.2fs | %.2fs | %.2fs |\n",
 		levels[0].PeakOldestAgeSec, levels[1].PeakOldestAgeSec, levels[2].PeakOldestAgeSec, levels[3].PeakOldestAgeSec, levels[4].PeakOldestAgeSec))
 	sb.WriteString(fmt.Sprintf("| **Etapa 1 (Firma p95)** | %v | %v | %v | %v | %v |\n",
-		levels[0].Stage1.P95Dur.Round(time.Millisecond), levels[1].Stage1.P95Dur.Round(time.Millisecond), levels[2].Stage1.P95Dur.Round(time.Millisecond), levels[3].Stage1.P95Dur.Round(time.Millisecond), levels[4].Stage1.P95Dur.Round(time.Millisecond)))
+		levels[0].Stage1.Texto(95), levels[1].Stage1.Texto(95), levels[2].Stage1.Texto(95), levels[3].Stage1.Texto(95), levels[4].Stage1.Texto(95)))
 	sb.WriteString(fmt.Sprintf("| **Etapa 2 (PUT Directo p95)** | %v | %v | %v | %v | %v |\n",
-		levels[0].Stage2.P95Dur.Round(time.Millisecond), levels[1].Stage2.P95Dur.Round(time.Millisecond), levels[2].Stage2.P95Dur.Round(time.Millisecond), levels[3].Stage2.P95Dur.Round(time.Millisecond), levels[4].Stage2.P95Dur.Round(time.Millisecond)))
+		levels[0].Stage2.Texto(95), levels[1].Stage2.Texto(95), levels[2].Stage2.Texto(95), levels[3].Stage2.Texto(95), levels[4].Stage2.Texto(95)))
 	sb.WriteString(fmt.Sprintf("| **Etapa 3 (Confirmación p95)**| %v | %v | %v | %v | %v |\n",
-		levels[0].Stage3.P95Dur.Round(time.Millisecond), levels[1].Stage3.P95Dur.Round(time.Millisecond), levels[2].Stage3.P95Dur.Round(time.Millisecond), levels[3].Stage3.P95Dur.Round(time.Millisecond), levels[4].Stage3.P95Dur.Round(time.Millisecond)))
+		levels[0].Stage3.Texto(95), levels[1].Stage3.Texto(95), levels[2].Stage3.Texto(95), levels[3].Stage3.Texto(95), levels[4].Stage3.Texto(95)))
 	sb.WriteString(fmt.Sprintf("| **Etapa 4 (Espera Cola p95)** | %v | %v | %v | %v | %v |\n",
-		levels[0].Stage4.P95Dur.Round(time.Millisecond), levels[1].Stage4.P95Dur.Round(time.Millisecond), levels[2].Stage4.P95Dur.Round(time.Millisecond), levels[3].Stage4.P95Dur.Round(time.Millisecond), levels[4].Stage4.P95Dur.Round(time.Millisecond)))
+		levels[0].Stage4.Texto(95), levels[1].Stage4.Texto(95), levels[2].Stage4.Texto(95), levels[3].Stage4.Texto(95), levels[4].Stage4.Texto(95)))
 	sb.WriteString(fmt.Sprintf("| **Etapa 5 (Proc FFmpeg p95)** | %v | %v | %v | %v | %v |\n",
-		levels[0].Stage5.P95Dur.Round(time.Millisecond), levels[1].Stage5.P95Dur.Round(time.Millisecond), levels[2].Stage5.P95Dur.Round(time.Millisecond), levels[3].Stage5.P95Dur.Round(time.Millisecond), levels[4].Stage5.P95Dur.Round(time.Millisecond)))
+		levels[0].Stage5.Texto(95), levels[1].Stage5.Texto(95), levels[2].Stage5.Texto(95), levels[3].Stage5.Texto(95), levels[4].Stage5.Texto(95)))
 	sb.WriteString(fmt.Sprintf("| **Etapa 6 (Total Avail p95)** | %v | %v | %v | %v | %v |\n",
-		levels[0].Stage6.P95Dur.Round(time.Millisecond), levels[1].Stage6.P95Dur.Round(time.Millisecond), levels[2].Stage6.P95Dur.Round(time.Millisecond), levels[3].Stage6.P95Dur.Round(time.Millisecond), levels[4].Stage6.P95Dur.Round(time.Millisecond)))
-	sb.WriteString(fmt.Sprintf("| **QoE TTFF Reproductor** | %v | %v | %v | %v | %v |\n\n",
-		levels[0].PlayerTTFF.Round(time.Millisecond), levels[1].PlayerTTFF.Round(time.Millisecond), levels[2].PlayerTTFF.Round(time.Millisecond), levels[3].PlayerTTFF.Round(time.Millisecond), levels[4].PlayerTTFF.Round(time.Millisecond)))
+		levels[0].Stage6.Texto(95), levels[1].Stage6.Texto(95), levels[2].Stage6.Texto(95), levels[3].Stage6.Texto(95), levels[4].Stage6.Texto(95)))
+	sb.WriteString(fmt.Sprintf("| **Primer segmento descargado** | %v | %v | %v | %v | %v |\n",
+		levels[0].PrimerSegmentoDur.Round(time.Millisecond), levels[1].PrimerSegmentoDur.Round(time.Millisecond), levels[2].PrimerSegmentoDur.Round(time.Millisecond), levels[3].PrimerSegmentoDur.Round(time.Millisecond), levels[4].PrimerSegmentoDur.Round(time.Millisecond)))
+	sb.WriteString(fmt.Sprintf("| **Latencia de segmento (p95)** | %s | %s | %s | %s | %s |\n",
+		levels[0].HLSStreaming.SegLatency.Texto(95), levels[1].HLSStreaming.SegLatency.Texto(95), levels[2].HLSStreaming.SegLatency.Texto(95), levels[3].HLSStreaming.SegLatency.Texto(95), levels[4].HLSStreaming.SegLatency.Texto(95)))
+	sb.WriteString(fmt.Sprintf("| **Margen de buffer medido** | %s | %s | %s | %s | %s |\n",
+		margenTexto(levels[0].HLSStreaming), margenTexto(levels[1].HLSStreaming), margenTexto(levels[2].HLSStreaming), margenTexto(levels[3].HLSStreaming), margenTexto(levels[4].HLSStreaming)))
+	sb.WriteString(fmt.Sprintf("| **Interrupciones observadas** | %s | %s | %s | %s | %s |\n\n",
+		stallsTexto(levels[0].HLSStreaming), stallsTexto(levels[1].HLSStreaming), stallsTexto(levels[2].HLSStreaming), stallsTexto(levels[3].HLSStreaming), stallsTexto(levels[4].HLSStreaming)))
+	sb.WriteString("> El **tiempo al primer cuadro** no aparece en esta tabla. Solo se publica si lo produce un reproductor; " +
+		"ver la sección 6 de [`capacity-planning/criterios_de_medicion.md`](../../../../capacity-planning/criterios_de_medicion.md). " +
+		"La Entrega 2 lo reportó como latencia HTTP más 45 ms fijos, que es una constante y no una medición.\n\n")
 
 	sb.WriteString("## 2. Hallazgos Principales por Etapa\n\n")
 	sb.WriteString("1. **Plano de Control (Etapas 1 y 3):** La emisión de URLs prefirmadas (`POST /api/v1/media/presigned-url`) y la confirmación (`POST /api/v1/media/uploads/{id}/complete`) mantuvieron latencias p95 inferiores a **20 ms** a lo largo de todos los niveles. Esto demuestra que desacoplar la carga mediante URLs firmadas protege completamente al servidor Web de la degradación por transferencia de archivos.\n")
@@ -1144,9 +1485,10 @@ func writeExecutiveSummary(path string, levels []LevelMetrics, drain DrainResult
 	_ = os.WriteFile(path, []byte(sb.String()), 0644)
 }
 
-func writeBottleneckAnalysis(path string, levels []LevelMetrics, drain DrainResult) {
+func writeBottleneckAnalysis(path string, cfg Config, levels []LevelMetrics, drain DrainResult) {
 	var sb strings.Builder
 	sb.WriteString("# Análisis del Cuello de Botella y Propuesta de Evolución Arquitectural (H5)\n\n")
+	sb.WriteString(cabeceraMarkdown(cfg))
 	sb.WriteString("## 1. Identificación y Sustentación del Cuello de Botella Primario\n\n")
 	sb.WriteString("A partir de la instrumentación desacoplada en 6 etapas y los 5 niveles evaluados, el **cuello de botella primario** del flujo multimedia queda identificado de forma concluyente en la **capacidad de cómputo (vCPU) de los workers durante la transcodificación con FFmpeg (Etapa 5)**.\n\n")
 
@@ -1189,11 +1531,12 @@ func writeBottleneckAnalysis(path string, levels []LevelMetrics, drain DrainResu
 	_ = os.WriteFile(path, []byte(sb.String()), 0644)
 }
 
-func writeH5README(path string, levels []LevelMetrics, drain DrainResult) {
+func writeH5README(path string, cfg Config, levels []LevelMetrics, drain DrainResult) {
 	var sb strings.Builder
 	sb.WriteString("# Evidencia H5 — Análisis de Capacidad: Escenario 2 (Carga, Procesamiento y Consumo Multimedia)\n\n")
 	sb.WriteString("Este directorio documenta el cumplimiento exhaustivo del entregable **H5**, correspondiente a la rúbrica **Análisis de capacidad — escenario 2 (10%)** de la Entrega 2.\n\n")
 
+	sb.WriteString(cabeceraMarkdown(cfg))
 	sb.WriteString("## Estado y Verificación de Criterios de Aceptación\n\n")
 	sb.WriteString("| Criterio de la Rúbrica / Tarea | Evidencia Generada | Estado |\n")
 	sb.WriteString("| :--- | :--- | :---: |\n")
@@ -1202,8 +1545,9 @@ func writeH5README(path string, levels []LevelMetrics, drain DrainResult) {
 	sb.WriteString("| **Trabajos completados por unidad de tiempo, reintentos y fallos** | Throughput registrado (videos/min), cero fallos y cero retries en [`corrida_niveles_escenario2.txt`](./corrida_niveles_escenario2.txt) | ✅ |\n")
 	sb.WriteString("| **Evolución de profundidad y antigüedad de la cola** | Métricas `worker.queue.pending` y `oldest_pending_age_seconds` capturadas por nivel | ✅ |\n")
 	sb.WriteString("| **Latencia, throughput y errores en storage vs control API** | Tráfico de control (API REST) vs transferencia binaria (Object Storage) rigurosamente segregados | ✅ |\n")
-	sb.WriteString("| **Latencia y errores de manifiestos y segmentos HLS** | Streaming con cadencia real (pacing 6.0s) vs greedy bulk download medidos en todos los niveles | ✅ |\n")
-	sb.WriteString("| **Decisión de reproductor real (TTFF y stalls)** | Sonda emuladora de eventos HTML5/MSE documentada, justificando por qué HTTP puro no prueba renderizado | ✅ |\n")
+	sb.WriteString(fmt.Sprintf("| **Latencia y errores de manifiestos y segmentos HLS** | Patrón declarado `%s`, %d estudiantes concurrentes en el nivel máximo; descarga a máxima velocidad medida aparte | ✅ |\n",
+		cfg.Patron, levels[len(levels)-1].HLSStreaming.Streamers))
+	sb.WriteString("| **Decisión de reproductor real (TTFF y stalls)** | **Pendiente.** El tiempo al primer cuadro no se publica: esta campaña mide transporte, no reproducción. Criterio y forma de medirlo en [`criterios_de_medicion.md`](../../../../capacity-planning/criterios_de_medicion.md), sección 6 | ⏳ |\n")
 	sb.WriteString("| **Observación del drenaje y verificación de consistencia** | Vaciado total cronometrado en [`drenaje_cola_verificacion.txt`](./drenaje_cola_verificacion.txt), 0 trabajos huérfanos | ✅ |\n")
 	sb.WriteString("| **Cuello de botella identificado y evolución (CDN / escalado)** | Análisis cuantitativo sustentado en [`analisis_cuello_de_botella.md`](./analisis_cuello_de_botella.md) | ✅ |\n")
 	sb.WriteString("| **Seguridad de secretos estricta** | Cero credenciales, tokens o firmas V4 en repositorios ni logs (sanitización automática) | ✅ |\n\n")
@@ -1227,7 +1571,7 @@ func writeH5README(path string, levels []LevelMetrics, drain DrainResult) {
 	_ = os.WriteFile(path, []byte(sb.String()), 0644)
 }
 
-func writeCapacityReportFile(path string, levels []LevelMetrics, drain DrainResult) {
+func writeCapacityReportFile(path string, cfg Config, levels []LevelMetrics, drain DrainResult) {
 	_ = os.MkdirAll(filepath.Dir(path), 0755)
 
 	var sb strings.Builder
@@ -1237,22 +1581,23 @@ func writeCapacityReportFile(path string, levels []LevelMetrics, drain DrainResu
 	sb.WriteString(fmt.Sprintf("**Fecha de consolidación:** %s\n\n", time.Now().UTC().Format(time.RFC3339)))
 
 	sb.WriteString("---\n\n")
+	sb.WriteString(cabeceraMarkdown(cfg))
 	sb.WriteString("## Escenario 2: Carga, Procesamiento y Consumo Multimedia (10%)\n\n")
 	sb.WriteString("### 1. Definición del Escenario y Condiciones de Prueba\n\n")
 	sb.WriteString("El escenario simula profesores subiendo contenido multimedia directamente al almacenamiento de objetos mientras estudiantes reproducen flujos de video HLS ya disponibles en el sistema.\n\n")
 	sb.WriteString("- **Concurrencia de Workers Fija:** Fijada en 2 (`WORKER_CONCURRENCY=2`), asignando exactamente 1 proceso de transcodificación por vCPU física de la instancia `mooc-worker-server` (`e2-highcpu-2`), manteniendo el uso de memoria acotado (~1.2 GiB) y previniendo caídas por *Out Of Memory*.\n")
 	sb.WriteString("- **Perfiles Multimedia y Escalera:** Perfiles corto (2 min), medio (10 min) y largo (30 min) a 1280×720 (720p). Escalera HLS estricta a 360p y 720p sin upscaling (`internal/transcode.DefaultLadder`).\n")
-	sb.WriteString("- **Cadencia de Reproducción:** Streaming continuo simulado con buffer inicial de 2 segmentos (~12s) y pacing sostenido de 6.0s entre chunks. Descarga masiva (\"lo más rápido posible\") aislada independientemente como prueba de saturación de red.\n\n")
+	sb.WriteString(fmt.Sprintf("- **Patrón de Consumo Declarado:** `%s`. Con `cadencia`, cada estudiante concurrente reproduce a 1x: buffer inicial de 2 segmentos y una pausa por segmento igual a su duración real, leída del `#EXTINF` de la lista de variante y no supuesta. Con `maxima`, descarga sin pausa, y entonces no se reportan margen de buffer ni interrupciones porque no hay instante de reproducción que incumplir. La descarga masiva se mide siempre aparte como prueba de saturación de red.\n\n", cfg.Patron))
 
 	sb.WriteString("### 2. Resultados Numéricos por Nivel y Variación de Métricas\n\n")
-	sb.WriteString("| Nivel | Subidas / Concurrencia | Estudiantes HLS | Throughput (vid/min) | Pico Cola (pending) | Antigüedad Cola | Etapa 1 (Firma p95) | Etapa 2 (PUT p95) | Etapa 3 (Confirm p95) | Etapa 4 (Espera p95) | Etapa 5 (Proc p95) | Etapa 6 (Total p95) |\n")
+	sb.WriteString("| Nivel | Subidas / Concurrencia | Estudiantes HLS | Rendimiento en la ventana (vid/min) | Pico Cola (pending) | Antigüedad Cola | Etapa 1 (Firma p95) | Etapa 2 (PUT p95) | Etapa 3 (Confirm p95) | Etapa 4 (Espera p95) | Etapa 5 (Proc p95) | Etapa 6 (Total p95) |\n")
 	sb.WriteString("| :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |\n")
 
 	for _, l := range levels {
 		sb.WriteString(fmt.Sprintf("| **Nivel %d** | %d subidas (%d prof) | %d est | %.2f | %d | %.2fs | %v | %v | %v | %v | %v | %v |\n",
 			l.Level, l.TotalUploads, l.UploadWorkers, l.StreamersCount, l.ThroughputVidsMin, l.PeakPendingQueue, l.PeakOldestAgeSec,
-			l.Stage1.P95Dur.Round(time.Millisecond), l.Stage2.P95Dur.Round(time.Millisecond), l.Stage3.P95Dur.Round(time.Millisecond),
-			l.Stage4.P95Dur.Round(time.Millisecond), l.Stage5.P95Dur.Round(time.Millisecond), l.Stage6.P95Dur.Round(time.Millisecond)))
+			l.Stage1.Texto(95), l.Stage2.Texto(95), l.Stage3.Texto(95),
+			l.Stage4.Texto(95), l.Stage5.Texto(95), l.Stage6.Texto(95)))
 	}
 
 	sb.WriteString("\n### 3. Observación del Drenaje de Cola y Verificación Terminal\n\n")

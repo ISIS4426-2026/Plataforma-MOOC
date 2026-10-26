@@ -1,0 +1,87 @@
+==============================================================================
+ EVIDENCIA A6 - SALIDA CRUDA DE LAS COMPROBACIONES DE CRITERIOS (issue #198)
+==============================================================================
+Fecha UTC : 2026-10-26T01:01:02Z
+Codigo    : a22c678 (rama feat/a6-measurement-criteria)
+Entorno   : local, sin nube: estas comprobaciones no necesitan entorno.
+Secretos  : SANITIZADO. Sin credenciales, llaves ni IPs privadas.
+
+------------------------------------------------------------------------------
+ 1. Las reglas, en codigo: python scripts/capacity_criterios.py --autoprueba
+------------------------------------------------------------------------------
+ok  reproducido: con n=2 el estimador viejo da p50=5000 y p95=1000
+    (el p95 era el valor minimo de la muestra)
+ok  el estimador nuevo es monotono para n = 1..399
+ok  con 8 observaciones el p95 sale 'n/d (n=8)', no un numero
+ok  con 120 observaciones los tres percentiles se publican
+
+ERROR: percentiles no monotonos. Esto no se publica.
+  tabla de la Entrega 2: p95=1000 < p50=5000
+
+       Un p95 por debajo del p50 es imposible con el estimador de
+       capacity_criterios.py, asi que la causa esta en los datos:
+       muestras de ventanas distintas mezcladas, o un conteo que
+       cambia entre un percentil y otro. Revisa antes de publicar;
+       la Entrega 2 publico esto y costo el criterio.
+ok  la puerta de monotonia aborta con los percentiles de la Entrega 2
+ok  el destino de la Entrega 2 (http://api:8080) se clasifica como local
+
+Todas las reglas se cumplen.
+
+------------------------------------------------------------------------------
+ 2. La campana se niega a correr sin destino declarado
+------------------------------------------------------------------------------
+$ go run ./scripts/capacity_escenario2 
+Falta -base. No hay destino por omision: declara contra que mides.
+ej. -base https://<host> -hls-base https://storage.googleapis.com/<bucket> -entorno nube-entrega3
+exit status 1
+
+$ go run ./scripts/capacity_escenario2 -base https://ejemplo.nube.test
+Falta -entorno. Es la etiqueta que distingue una corrida en la nube de una en Compose.
+exit status 1
+
+$ go run ./scripts/capacity_escenario2 -base https://ejemplo.nube.test -entorno nube-entrega3
+Falta -hls-base. Solo se adivina para el entorno local; contra la nube hay que
+declarar el bucket, o se mediran los derivados de otro entorno.
+exit status 1
+
+------------------------------------------------------------------------------
+ 3. El ejecutor del escenario 2 exige declarar el entorno medido
+------------------------------------------------------------------------------
+$ bash ./scripts/run_capacity_escenario2.sh
+./scripts/run_capacity_escenario2.sh: line 48: ENTORNO: Declara el entorno medido, p. ej. ENTORNO=nube-entrega3. Sin esto la evidencia no dice contra qué se midió (A6)
+
+------------------------------------------------------------------------------
+ 4. Una corrida local no se publica como medicion de la nube
+------------------------------------------------------------------------------
+$ python scripts/capacity_resumen_jtl.py <corrida con destino local> 45 --exigir-nube
+ERROR: la corrida de <directorio de la corrida> apunta a http://api:8080,
+       que es el entorno local. No se publica como medicion de la nube.
+       Es exactamente el defecto que invalido el escenario 2 de la
+       Entrega 2.
+codigo de salida: 5
+
+------------------------------------------------------------------------------
+ 5. Un percentil que no llega a su minimo de observaciones sale como n/d
+------------------------------------------------------------------------------
+Fallos reales: 0 (0.00%)  | fallos de validacion funcional: 0 (0.00%)
+
+paso                                                    n          p50          p95          p99    max  fallos
+05 GET modulos del curso                                2    n/d (n=2)    n/d (n=2)    n/d (n=2)    192       0
+06 GET unidades del modulo                              2    n/d (n=2)    n/d (n=2)    n/d (n=2)    160       0
+07 GET recursos de la unidad                            3    n/d (n=3)    n/d (n=3)    n/d (n=3)    141       0
+08 GET cuestionario (vista de estudiante)               3    n/d (n=3)    n/d (n=3)    n/d (n=3)    191       0
+09 POST latido de progreso 1 (recurso completado)       3    n/d (n=3)    n/d (n=3)    n/d (n=3)    167       0
+09 POST latido de progreso 2 (recurso completado)       3    n/d (n=3)    n/d (n=3)    n/d (n=3)    174       0
+10 POST envio del quiz                                  3    n/d (n=3)    n/d (n=3)    n/d (n=3)    168       0
+11 POST envio DUPLICADO del quiz (misma clave)          3    n/d (n=3)    n/d (n=3)    n/d (n=3)    139       0
+12 GET avance del curso tras el quiz (validacion)       3    n/d (n=3)    n/d (n=3)    n/d (n=3)    174       0
+13 GET mis envios (validacion de doble calificacio      3    n/d (n=3)    n/d (n=3)    n/d (n=3)    194       0
+
+Ventana de agregacion: 13 s (medidas, sin el calentamiento)  | corrida completa: 58 s
+Global ms: p50=155 p95=192 p99=n/d (n=28)  | rendimiento: 2.2 peticiones/s
+Timeouts: 0
+
+==============================================================================
+ Este archivo no contiene credenciales, llaves ni secretos.
+==============================================================================

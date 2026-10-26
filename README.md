@@ -39,6 +39,7 @@ Desde la **Entrega 2** incluye además el despliegue en **Google Cloud Platform*
 | Notas técnicas | [`docs/entrega3/NOTAS_TECNICAS.md`](docs/entrega3/NOTAS_TECNICAS.md) — **leer antes de empezar un issue, anotar antes de cerrarlo** |
 | Evidencias | [`docs/entrega3/evidencias/`](docs/entrega3/evidencias/) — un directorio por issue |
 | Documento de arquitectura | `docs/entrega3/arquitectura.md` *(I1, I2)* |
+| Criterios de medición | [`capacity-planning/criterios_de_medicion.md`](capacity-planning/criterios_de_medicion.md) — **qué puede publicarse como cifra**; se comprueba con `python scripts/capacity_criterios.py --autoprueba` |
 | Informe de capacidad | `capacity-planning/pruebas_de_carga_entrega3.md` *(G7)* |
 | Deuda técnica | `docs/entrega3/deuda-tecnica.md` *(H3)* |
 | URL del frontend | *(pendiente, D1)* |

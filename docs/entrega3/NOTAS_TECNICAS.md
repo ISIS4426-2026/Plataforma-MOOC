@@ -38,6 +38,7 @@ lo reemplaza, lo continúa.
 | 22 | [Dónde se aloje el frontend decide tres configuraciones a la vez](#22) | **D1**, A4, C3, E1 |
 | 23 | [La cola y las sesiones comparten política de expulsión](#23) | B1, C6, F3 |
 | 24 | [Transcodificar un vídeo real cuesta 1,2× su duración, y eso cambia la campaña](#24) | **G4, G6**, A7, C5, C6, F3 |
+| 25 | [Antes de publicar una cifra hay once reglas, y están en código](#25) | **todos los que midan**: A7, G1, G3, G4, G5, G6, G7, H2, H3 |
 
 ---
 
@@ -567,6 +568,63 @@ El recuento declarado de segmentos, `2 × ⌈D/6⌉`, se pasa un 20 %: el worker
 el GOP en `segmentSeconds()*30 = 180` fotogramas asumiendo 30 fps, pero el vídeo
 va a 25, así que los segmentos duran ~7,06 s y no 6. Salen 34 en vez de 40 para
 el perfil corto. No rompe nada; la cifra declarada no es la real. Para **H3**.
+
+<a id="25"></a>
+## 25. Antes de publicar una cifra hay once reglas, y están en código
+
+Las reglas de medición de toda la entrega están acordadas y fechadas en
+[`capacity-planning/criterios_de_medicion.md`](../../capacity-planning/criterios_de_medicion.md)
+(A6, 2026-10-25) y, lo que importa más, **implementadas**:
+
+```bash
+python scripts/capacity_criterios.py --autoprueba   # corre esto antes de medir
+```
+
+Un criterio que vive solo en un documento se olvida a las dos corridas. La
+Entrega 2 tenía los criterios escritos en los dos planes y publicó percentiles
+invertidos igualmente, porque nada los miraba.
+
+### Lo que te va a frenar si no lo sabes
+
+- **No hay destino por omisión en ningún guion.** `run_escenario1.sh`,
+  `h2_nube.sh`, `h3_nube.sh` y la campaña del escenario 2 exigen que declares
+  `BASE_URL` o `-base`, y además `ENTORNO`. La IP de la VM de la Entrega 2 ya no
+  es el valor por omisión de nada.
+- **Cada corrida escribe `destino.json`** y el resumen se niega a hacer tablas si
+  falta. Una corrida sin él queda marcada `"publicable": false`.
+- **Con `EXIGIR_NUBE=1` el resumen falla si el destino es local.** Úsalo en toda
+  corrida que vayas a publicar como medición de la nube.
+- **`-hls-base` es obligatoria contra la nube.** Antes se adivinaba comparando la
+  URL con una IP literal.
+- **Las tablas dicen `n/d (n=k)`** donde no hay observaciones para sostener el
+  percentil. No es un error: es la respuesta.
+
+### Dos cosas que cambian decisiones de otros issues
+
+**Un p95 necesita 20 observaciones, y un p99 cien.** Eso invalida *todos* los p95
+por etapa del escenario 2 de la Entrega 2 —los niveles subían 1, 2, 4, 8 y 12
+vídeos— y obliga a **G4** a elegir: o un nivel sube 20 vídeos o más, o sus etapas
+se publican con mediana, mínimo, máximo y observaciones en crudo. Con la nota 24
+encima —cada vídeo largo son 35 minutos de una vCPU—, esa elección tiene coste y
+hay que hacerla al planificar.
+
+El consumo HLS es el caso contrario: 25 estudiantes por 34 segmentos son 850
+observaciones. Ahí sí hay p95.
+
+**Dos métricas más de la Entrega 2 salían de una constante**, además del tiempo al
+primer cuadro que marcó la revisión: el margen de buffer era `6,0 − latencia` y
+una interrupción se contaba si un segmento tardaba más de 6 s **sobre un patrón
+que descargaba sin pausa**, así que el «0 interrupciones» estaba garantizado por
+aritmética. Y el simulador recibía la cadencia y el número de estudiantes y no
+usaba ninguno de los dos: nunca hubo más de un estudiante ni una sola pausa, pese
+a que se publicaron 100 concurrentes.
+
+Para **G4 y G7**: ninguna de esas cifras se puede comparar. La §11 del documento
+de criterios dice, cifra por cifra, qué sobrevive de la Entrega 2. El escenario 1
+sobrevive entero; del escenario 2 solo el planteamiento.
+
+**Para H3**, de paso: el 6,0 supuesto se equivocaba un 18 %. La duración de
+segmento ahora se lee del `#EXTINF`, que es ~7,06 s por lo de la nota 24.
 
 ---
 

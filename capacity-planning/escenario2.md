@@ -64,6 +64,14 @@ Se evalúan 5 niveles escalonados que contrastan la generación de contenido por
 
 ## 3. Cadencia de Descarga de Segmentos: Reproducción Real vs "Lo Más Rápido Posible"
 
+> [!IMPORTANT]
+> **En la Entrega 2 esta cadencia tampoco se aplicó.** El simulador recibía la
+> pausa y el número de estudiantes y no usaba ninguno de los dos: un solo lector
+> secuencial, sin pausas, leyendo tres segmentos. Desde A6 el patrón se declara
+> con `-patron-consumo`, cada estudiante es concurrente, y la duración del
+> segmento se lee del `#EXTINF` de la lista en vez de suponerse 6,0 s (son
+> ~7,06 s: nota técnica 24).
+
 ### 3.1 Modelado de Cadencia Real (Streaming HLS)
 
 Un reproductor real (Hls.js, ExoPlayer, Safari) no descarga todos los segmentos en un solo bloque, sino que sigue una cadencia sincronizada con el tiempo de reproducción:
@@ -90,6 +98,14 @@ Descargar todos los segmentos de forma continua y consecutiva con pausa cero:
 ---
 
 ## 4. Decisión: Tiempo al Primer Cuadro (TTFF) e Interrupciones (Stalls)
+
+> [!IMPORTANT]
+> **La sonda que esta sección describe no se implementó.** En la Entrega 2 el
+> tiempo al primer cuadro se calculó como latencia HTTP más 45 ms fijos, no con
+> un navegador. Desde A6, estas dos métricas solo se publican si las produce un
+> reproductor; mientras no lo haya, la campaña publica *tiempo hasta el primer
+> segmento descargado* con ese nombre. Ver la §6 de
+> [`criterios_de_medicion.md`](./criterios_de_medicion.md).
 
 El enunciado oficial estipula:
 > *«Si se reporta tiempo hasta el primer cuadro o interrupciones de reproducción, deben medirse con un reproductor; las peticiones HTTP por sí solas no demuestran esas métricas.»*

@@ -314,6 +314,20 @@ cambiar el tipo de VM, agregar réplicas de lectura ni un balanceador con la CPU
 
 ## Escenario 2: Carga, Procesamiento y Consumo Multimedia (10%)
 
+> [!WARNING]
+> **Fe de erratas, 2026-10-25.** La retroalimentación del curso calificó este
+> criterio con **6.67/10**. Las cifras de esta sección **no se pueden comparar
+> con nada medido con los perfiles reales**: se midió contra Docker Compose y no
+> contra la nube, los perfiles de 2, 10 y 30 minutos eran clips de 8, 20 y 40
+> segundos, hay percentiles calculados con menos observaciones de las que
+> necesitan —y con un estimador que se invertía—, y tres métricas de consumo
+> salían de una constante sumada a una latencia.
+>
+> Qué sobrevive y qué no, cifra por cifra, en la §11 de
+> [`criterios_de_medicion.md`](./criterios_de_medicion.md). La medición se repite
+> contra la nube en A7 ([#199](https://github.com/ISIS4426-2026/Plataforma-MOOC/issues/199)).
+> El escenario 1 no está afectado.
+
 ### 2.1 Definición del Escenario, Perfiles y Regla de NO Upscaling
 
 El Escenario 2 evalúa el comportamiento del pipeline multimedia cuando profesores cargan archivos de video de forma directa al almacenamiento de objetos (Cloud Storage) mientras estudiantes consumen transmisiones adaptativas HLS (*HTTP Live Streaming*) previamente procesadas.

@@ -66,3 +66,8 @@ application_default_credentials.json
 
 # H2 (#132): tokens de sesion de las cuentas de carga. Son credenciales: nunca al repositorio.
 capacity-planning/datos/
+
+# A6 (#198): los guiones de capacidad ahora importan capacity_criterios.py, y
+# Python deja su cache al lado del modulo.
+__pycache__/
+*.pyc

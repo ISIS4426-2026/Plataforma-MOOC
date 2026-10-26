@@ -12,7 +12,10 @@
 
 set -euo pipefail
 
-export BASE_URL="${BASE_URL:-https://34.24.52.111.sslip.io}"
+# Sin destino por omision (A6, issue #198): la IP de la Entrega 2 ya no es la
+# de este entorno, y un destino heredado en silencio es como el escenario 2
+# acabo midiendo contra Docker Compose y publicandolo como nube.
+export BASE_URL="${BASE_URL:?Declara el destino, p. ej. BASE_URL=https://<host> bash scripts/h2_nube.sh ...}"
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
 
 case "${1:-}" in
