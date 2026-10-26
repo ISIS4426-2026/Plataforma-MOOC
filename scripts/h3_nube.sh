@@ -22,8 +22,13 @@ cd "$(dirname "${BASH_SOURCE[0]}")/.."
 ROOT="$(pwd)"
 
 MODO="${MODO:-nube}"
-if [ "$MODO" = "nube" ]; then export BASE_URL="${BASE_URL:-https://34.24.52.111.sslip.io}"
+# En modo nube no hay destino por omision (A6, issue #198): heredar una IP de
+# la entrega anterior es medir un entorno y publicar otro.
+if [ "$MODO" = "nube" ]; then
+  export BASE_URL="${BASE_URL:?En modo nube hay que declarar el destino: BASE_URL=https://<host> ...}"
+  export EXIGIR_NUBE=1
 else export BASE_URL="${BASE_URL:-http://host.docker.internal:8080}"; fi
+export ENTORNO="${ENTORNO:-${MODO}}"
 export RESULTS_ROOT="${RESULTS_ROOT:-${ROOT}/docs/entrega2/evidencias/H3/resultados}"
 mkdir -p "${RESULTS_ROOT}"
 

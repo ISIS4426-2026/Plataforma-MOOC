@@ -13,6 +13,11 @@
 # Variables opcionales (todas tienen el valor del plan; cambiarlas cambia la mezcla):
 #   RAMP_SECONDS (30)   THINK_MS (4000)   THINK_RANGE_MS (2000)   SESSIONS (3)
 #   WARMUP_SKIP_SECONDS (45) segundos iniciales que el resumen omite
+#   ENTORNO      etiqueta del entorno medido, p. ej. nube-entrega3 o compose-local.
+#                Queda en destino.json junto a los datos crudos (A6).
+#   EXIGIR_NUBE  cualquier valor hace que el resumen falle si el destino es
+#                local. Toda corrida que se vaya a publicar como medicion de la
+#                nube debe llevarlo.
 #
 # Variante separada, rafaga de login (mide el limitador, no la capacidad):
 #   VARIANT=login CAPACITY_PASSWORD=<contrasena de prueba> bash scripts/run_escenario1.sh 20 login
@@ -89,6 +94,29 @@ MSYS_NO_PATHCONV=1 docker run --rm --name "${CONTENEDOR}" \
 date -u +%Y-%m-%dT%H:%M:%SZ >> "${OUT}/ventana.txt"
 kill "${MUESTREO}" 2>/dev/null || true
 
+# Destino y entorno de la corrida, junto a los datos crudos (A6, issue #198).
+# El escenario 2 de la Entrega 2 se publico como medicion de la nube siendo una
+# medicion contra Docker Compose, y no se podia contradecir porque la salida
+# cruda no decia contra que se habia medido. Ahora si lo dice, y el resumen se
+# niega a publicar tablas cuando esto falta.
+cat > "${OUT}/destino.json" <<JSON
+{
+  "base_url": "${BASE_URL}",
+  "entorno": "${ENTORNO:-sin declarar}",
+  "plan": "${PLAN}",
+  "usuarios": ${USERS},
+  "rampa_s": ${RAMP_SECONDS:-30},
+  "pausa_ms": "${THINK_MS:-4000}+-${THINK_RANGE_MS:-2000}",
+  "sesiones": ${SESSIONS:-3},
+  "calentamiento_omitido_s": ${WARMUP_SKIP_SECONDS:-45},
+  "commit": "$(git -C "${ROOT}" rev-parse --short HEAD 2>/dev/null || echo desconocido)",
+  "generador": "justb4/jmeter:latest en $(hostname)",
+  "inicio_utc": "$(sed -n 1p "${OUT}/ventana.txt")",
+  "fin_utc": "$(sed -n 2p "${OUT}/ventana.txt")"
+}
+JSON
+
 PY=python; command -v python >/dev/null 2>&1 || PY=python3
-"$PY" "${SCRIPT_DIR}/capacity_resumen_jtl.py" "${OUT}/resultados.jtl" "${WARMUP_SKIP_SECONDS:-45}" | tee "${OUT}/resumen.txt"
+"$PY" "${SCRIPT_DIR}/capacity_resumen_jtl.py" "${OUT}/resultados.jtl" "${WARMUP_SKIP_SECONDS:-45}" \
+  --exigir-destino ${EXIGIR_NUBE:+--exigir-nube} | tee "${OUT}/resumen.txt"
 echo "==> Resultados originales: ${OUT}/resultados.jtl"

@@ -9,19 +9,22 @@ Separa lo que importa para el informe de capacidad:
   * latencias p50/p95/p99 y rendimiento.
 
 Uso: python scripts/capacity_resumen_jtl.py resultados.jtl [segundos_de_calentamiento_a_omitir]
+     [--exigir-destino] [--exigir-nube]
 No imprime cabeceras ni cuerpos (el .jtl no los guarda).
+
+Los percentiles y las reglas de publicacion salen de capacity_criterios.py
+(issue #198, A6): un solo estimador, minimo de observaciones por percentil,
+comprobacion de monotonia antes de publicar y destino de la corrida registrado.
 """
 import csv
 import sys
 from collections import Counter, defaultdict
 
+import capacity_criterios as cc
 
-def pct(values, p):
-    if not values:
-        return 0
-    values = sorted(values)
-    k = max(0, min(len(values) - 1, int(round(p / 100 * len(values) + 0.5)) - 1))
-    return values[k]
+# Un solo estimador para todo el repositorio. Tener dos ya costo un criterio
+# de la rubrica: ver capacity_criterios.py.
+pct = cc.percentil
 
 
 def clase(code, ok, msg):
@@ -39,8 +42,34 @@ def clase(code, ok, msg):
 
 
 def main():
-    path = sys.argv[1]
-    skip_s = float(sys.argv[2]) if len(sys.argv) > 2 else 0.0
+    import os
+
+    args = [a for a in sys.argv[1:] if not a.startswith("--")]
+    banderas = {a for a in sys.argv[1:] if a.startswith("--")}
+    path = args[0]
+    skip_s = float(args[1]) if len(args) > 1 else 0.0
+
+    # Destino de la corrida. La Entrega 2 publico como nube una corrida contra
+    # Docker Compose porque la salida cruda no decia contra que se habia medido.
+    directorio = os.path.dirname(os.path.abspath(path))
+    publicable = True
+    destino = None
+    if "--exigir-destino" in banderas or "--exigir-nube" in banderas:
+        destino = cc.leer_destino(directorio, exigir_remoto="--exigir-nube" in banderas)
+    elif os.path.exists(os.path.join(directorio, cc.ARCHIVO_DESTINO)):
+        destino = cc.leer_destino(directorio)
+    else:
+        publicable = False
+
+    if destino:
+        print(cc.describir_destino(destino))
+    else:
+        print("Destino      : SIN REGISTRAR")
+        print("               Esta corrida NO ES PUBLICABLE (A6): no consta contra")
+        print("               que entorno se midio. Reejecutala con el guion, que")
+        print("               escribe destino.json, o no uses sus cifras.")
+    print()
+
     rows = list(csv.DictReader(open(path, encoding="utf-8", newline="")))
     rows = [r for r in rows if not r["label"].startswith("_")]
     if not rows:
@@ -72,14 +101,41 @@ def main():
         por_label[r["label"]].append(int(r["elapsed"]))
         if r["success"] != "true":
             fallos[r["label"]] += 1
-    print(f"\n{'paso':58s} {'n':>6s} {'p50':>6s} {'p95':>6s} {'p99':>6s} {'max':>6s} {'fallos':>7s}")
+    # Los percentiles se imprimen con la regla de observaciones minimas: un p95
+    # con 8 muestras es el maximo con otro nombre, y un paso que se ejecuta una
+    # vez por sesion junta pocas muestras aunque la corrida sea larga.
+    print(f"\n{'paso':50s} {'n':>6s} {'p50':>12s} {'p95':>12s} {'p99':>12s} {'max':>6s} {'fallos':>7s}")
+    bloques = []
     for label in sorted(por_label):
         v = por_label[label]
-        print(f"{label[:58]:58s} {len(v):6d} {pct(v,50):6d} {pct(v,95):6d} {pct(v,99):6d} {max(v):6d} {fallos[label]:7d}")
+        ps = cc.percentiles(v)
+        bloques.append((label, ps))
+        print(f"{label[:50]:50s} {len(v):6d} "
+              f"{cc.formatear(ps[50], len(v)):>12s} {cc.formatear(ps[95], len(v)):>12s} "
+              f"{cc.formatear(ps[99], len(v)):>12s} {max(v):6d} {fallos[label]:7d}")
 
     todos = [int(r["elapsed"]) for r in medidas]
-    ventana = max(1.0, (max(int(r["timeStamp"]) for r in medidas) - min(int(r["timeStamp"]) for r in medidas)) / 1000.0)
-    print(f"\nGlobal ms: p50={pct(todos,50)} p95={pct(todos,95)} p99={pct(todos,99)}  | rendimiento: {len(medidas)/ventana:.1f} peticiones/s")
+    globales = cc.percentiles(todos)
+    bloques.append(("global", globales))
+
+    # Ventana de agregacion: desde el inicio de la primera peticion medida hasta
+    # el fin de la ultima. Antes el rendimiento se dividia por la distancia entre
+    # los *inicios*, que deja fuera la ultima peticion, mientras que la duracion
+    # publicada incluia el calentamiento: dos ventanas distintas en la misma
+    # tabla. A6 exige una sola, declarada.
+    ventana = max(1.0, (max(int(r["timeStamp"]) + int(r["elapsed"]) for r in medidas)
+                        - min(int(r["timeStamp"]) for r in medidas)) / 1000.0)
+    print(f"\nVentana de agregacion: {ventana:.0f} s (medidas, sin el calentamiento)"
+          f"  | corrida completa: {span:.0f} s")
+    print(f"Global ms: p50={cc.formatear(globales[50], len(todos))} "
+          f"p95={cc.formatear(globales[95], len(todos))} "
+          f"p99={cc.formatear(globales[99], len(todos))}"
+          f"  | rendimiento: {len(medidas)/ventana:.1f} peticiones/s")
+
+    # La comprobacion vive aqui, en el script que publica, y no en una revision
+    # aparte: una revision aparte es exactamente lo que no ocurrio en la
+    # Entrega 2.
+    cc.exigir_monotonia(bloques)
 
     # Timeouts: las peticiones sin respuesta HTTP cuyo motivo es un tiempo agotado.
     timeouts = sum(1 for r in medidas
@@ -89,21 +145,32 @@ def main():
     # Salida para maquina: la lee el orquestador de H3 (scripts/h3_nube.sh) para decidir
     # si sube de nivel, y el analisis de la evidencia.
     import json
-    import os
     resumen_json = {
-        "muestras": len(medidas), "omitidas_calentamiento_s": skip_s, "duracion_s": round(span, 1),
+        # `publicable` es lo que decide si estas cifras pueden entrar en un
+        # informe. Falso cuando no consta el destino de la corrida.
+        "publicable": publicable,
+        "destino": destino,
+        "muestras": len(medidas), "omitidas_calentamiento_s": skip_s,
+        "duracion_corrida_s": round(span, 1), "ventana_agregacion_s": round(ventana, 1),
         "hilos_max": max(int(r["allThreads"]) for r in rows),
         "fallos_reales": reales, "fallos_reales_pct": round(100 * reales / total, 3),
         "fallos_validacion": valid,
         "rechazos_negocio": sum(v for k, v in clases.items() if k.startswith("negocio")),
         "timeouts": timeouts,
+        # `ms` son los percentiles en crudo: los lee el orquestador para decidir
+        # si para la escalera, y para eso conviene el valor aunque haya pocas
+        # muestras --un criterio de parada es conservador, no una publicacion--.
+        # `ms_publicables` es lo que puede salir en una tabla: nulo donde no hay
+        # observaciones para sostenerlo.
         "ms": {"p50": pct(todos, 50), "p95": pct(todos, 95), "p99": pct(todos, 99), "max": max(todos)},
+        "ms_publicables": {f"p{p}": v for p, v in globales.items()},
         "rps": round(len(medidas) / ventana, 2),
-        "pasos": {l: {"n": len(v), "p50": pct(v, 50), "p95": pct(v, 95), "p99": pct(v, 99), "max": max(v), "fallos": fallos[l]}
+        "pasos": {l: {"n": len(v), "p50": pct(v, 50), "p95": pct(v, 95), "p99": pct(v, 99), "max": max(v), "fallos": fallos[l],
+                      "publicables": {f"p{p}": v2 for p, v2 in cc.percentiles(v).items()}}
                   for l, v in por_label.items()},
     }
-    destino = os.path.join(os.path.dirname(os.path.abspath(path)), "resumen.json")
-    with open(destino, "w", encoding="utf-8", newline="\n") as f:
+    salida = os.path.join(directorio, "resumen.json")
+    with open(salida, "w", encoding="utf-8", newline="\n") as f:
         json.dump(resumen_json, f, indent=2, ensure_ascii=False)
 
     msgs = Counter(r["failureMessage"][:110] for r in medidas if r["success"] != "true" and r["failureMessage"])
