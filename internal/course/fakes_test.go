@@ -180,3 +180,17 @@ func (f *fakeResourceRepo) AttachMedia(context.Context, string, string, *domain.
 func (f *fakeResourceRepo) SetProcessingStatus(context.Context, string, domain.ResourceProcessingStatus, *domain.AuditEntry) (*domain.Resource, error) {
 	return nil, nil
 }
+
+func (f *fakeCourseRepo) ListByAuthor(_ context.Context, authorID string, _ domain.CourseFilter) (*domain.CoursePage, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+
+	var page domain.CoursePage
+	for _, c := range f.courses {
+		if c.AuthorID == authorID {
+			copied := *c
+			page.Courses = append(page.Courses, &copied)
+		}
+	}
+	return &page, nil
+}

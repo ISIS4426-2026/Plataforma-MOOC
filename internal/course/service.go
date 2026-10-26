@@ -97,6 +97,14 @@ func (s *Service) ListPublished(ctx context.Context, filter domain.CourseFilter)
 	return s.deps.Courses.ListPublished(ctx, filter)
 }
 
+// ListMine returns one page of the caller's own courses in any status. Only
+// authors (professors and administrators) reach it: the route guards on the
+// role, and the repository filters by author, so nobody sees another author's
+// drafts through it.
+func (s *Service) ListMine(ctx context.Context, actor Actor, filter domain.CourseFilter) (*domain.CoursePage, error) {
+	return s.deps.Courses.ListByAuthor(ctx, actor.ID, filter)
+}
+
 // Update changes a draft's title and description.
 //
 // Ownership is checked here rather than inside the repository transaction,

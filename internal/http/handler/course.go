@@ -101,8 +101,10 @@ func (h *CourseHandler) Get(w http.ResponseWriter, r *http.Request) {
 	RespondWithETag(w, r, found.ETag(), newCourseResponse(found))
 }
 
-// List handles GET /api/v1/courses.
-func (h *CourseHandler) List(w http.ResponseWriter, r *http.Request) {
+// parseCourseFilter reads the search, cursor and limit query parameters shared by
+// the public catalog and the author's own listing. It answers false after writing
+// the 400 itself.
+func parseCourseFilter(w http.ResponseWriter, r *http.Request) (domain.CourseFilter, bool) {
 	filter := domain.CourseFilter{
 		Search: r.URL.Query().Get("search"),
 		Cursor: r.URL.Query().Get("cursor"),
@@ -112,17 +114,14 @@ func (h *CourseHandler) List(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			RespondWithError(w, http.StatusBadRequest, "invalid_input",
 				"El parámetro limit debe ser un número.", nil)
-			return
+			return filter, false
 		}
 		filter.Limit = limit
 	}
+	return filter, true
+}
 
-	page, err := h.service.ListPublished(r.Context(), filter)
-	if err != nil {
-		h.respondCourseError(w, r, err)
-		return
-	}
-
+func respondCoursePage(w http.ResponseWriter, page *domain.CoursePage) {
 	items := make([]courseResponse, 0, len(page.Courses))
 	for _, c := range page.Courses {
 		items = append(items, newCourseResponse(c))
@@ -138,6 +137,44 @@ func (h *CourseHandler) List(w http.ResponseWriter, r *http.Request) {
 	}
 
 	RespondWithJSON(w, http.StatusOK, response)
+}
+
+// List handles GET /api/v1/courses.
+func (h *CourseHandler) List(w http.ResponseWriter, r *http.Request) {
+	filter, ok := parseCourseFilter(w, r)
+	if !ok {
+		return
+	}
+
+	page, err := h.service.ListPublished(r.Context(), filter)
+	if err != nil {
+		h.respondCourseError(w, r, err)
+		return
+	}
+
+	respondCoursePage(w, page)
+}
+
+// Mine handles GET /api/v1/me/courses: the caller's own courses, drafts included.
+// The public catalog cannot answer this (it only lists published courses), and a
+// professor needs to find the draft they are still building.
+func (h *CourseHandler) Mine(w http.ResponseWriter, r *http.Request) {
+	actor, ok := h.actor(w, r)
+	if !ok {
+		return
+	}
+	filter, ok := parseCourseFilter(w, r)
+	if !ok {
+		return
+	}
+
+	page, err := h.service.ListMine(r.Context(), actor, filter)
+	if err != nil {
+		h.respondCourseError(w, r, err)
+		return
+	}
+
+	respondCoursePage(w, page)
 }
 
 // Update handles PUT /api/v1/courses/{course_id}.
