@@ -41,7 +41,7 @@ export default function Dashboard() {
             </div>
           ) : (
             <div className="cards">
-              {state.mine.slice(0, 3).map((m, i) => (
+              {state.mine.slice(0, 5).map((m, i) => (
                 <Link key={m.enrollment.id} to={m.course ? `/cursos/${m.course.id}` : "/mis-cursos"} className={`course-card ${gradiente(i)}`}>
                   <strong>{m.course?.title ?? "Curso no disponible"}</strong>
                   <span>
