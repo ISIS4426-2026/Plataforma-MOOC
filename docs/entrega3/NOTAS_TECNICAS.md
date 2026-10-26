@@ -39,6 +39,7 @@ lo reemplaza, lo continúa.
 | 23 | [La cola y las sesiones comparten política de expulsión](#23) | B1, C6, F3 |
 | 24 | [Transcodificar un vídeo real cuesta 1,2× su duración, y eso cambia la campaña](#24) | **G4, G6**, A7, C5, C6, F3 |
 | 25 | [Antes de publicar una cifra hay once reglas, y están en código](#25) | **todos los que midan**: A7, G1, G3, G4, G5, G6, G7, H2, H3 |
+| 26 | [El entorno de la Entrega 2 está a medias, y ninguna imagen del tag está publicada](#26) | **A7, B1, B2**, C1, C3, C5, G3, I6 |
 
 ---
 
@@ -59,8 +60,25 @@ rama de trabajo.** En rama se valida con `fmt`, `init -backend=false` y
 `validate`, que es justo lo que hace la CI.
 
 A7 añade un caso nuevo: recrea el entorno **de la Entrega 2** para medir la línea
-base retrospectiva. Eso necesita un **prefijo de estado remoto distinto**, o
-arrasará con lo que haya de la Entrega 3.
+base retrospectiva.
+
+> **Corrección (A7, 2026-10-25).** Esta nota decía que A7 necesitaba un prefijo de
+> estado distinto. **Es al revés, y el prefijo nuevo no es viable.** El entorno de
+> la Entrega 2 sigue existiendo a medias —VPC, NAT, las dos VMs apagadas, los
+> buckets, Artifact Registry, 50 recursos en total— y está registrado en el
+> prefijo `entrega2`. Un prefijo nuevo intentaría crear de cero recursos que ya
+> existen, y los buckets tienen nombre único global: fallaría.
+>
+> **A7 usa `entrega2`** —el plan desde el tag lo confirma: 3 a crear, 0 a cambiar,
+> **0 a destruir**— y **la Entrega 3 estrena `entrega3`** cuando B1 y B2 empiecen.
+> Lo que hay que respetar es el orden: A7 corre y destruye **antes** de que
+> ninguna rama de la Entrega 3 aplique Terraform. Con una sola arquitectura viva
+> a la vez, un prefijo no mezcla nada.
+>
+> **Para B1, B2, B3, C1, C3, C5, F2 e I6:** vuestro primer `terraform apply` va
+> con el prefijo `entrega3`. Antes de aplicar, `bash ./scripts/a7_preparar.sh`
+> dice si A7 ya terminó: si el plan desde el tag propone destrucciones, es que
+> alguien se adelantó.
 
 <a id="2"></a>
 ## 2. La línea base del escenario 2 de la Entrega 2 no sirve
@@ -625,6 +643,90 @@ sobrevive entero; del escenario 2 solo el planteamiento.
 
 **Para H3**, de paso: el 6,0 supuesto se equivocaba un 18 %. La duración de
 segmento ahora se lee del `#EXTINF`, que es ~7,06 s por lo de la nota 24.
+
+<a id="26"></a>
+## 26. El entorno de la Entrega 2 está a medias, y ninguna imagen del tag está publicada
+
+Estado real, comprobado el 2026-10-25 con `bash ./scripts/a7_preparar.sh`:
+
+| | |
+| :--- | :--- |
+| Las dos VMs | **existen, apagadas** (`TERMINATED`). Conservan disco e IP |
+| Cloud SQL | **borrada el 2026-09-28**, y también fuera del estado de Terraform |
+| VPC, NAT, buckets, Artifact Registry, cuentas de servicio | existen: 50 recursos en el estado |
+| Plan de Terraform desde el tag | **3 a crear, 0 a cambiar, 0 a destruir** |
+
+Consecuencias que ahorran tiempo:
+
+- **Encender no basta.** Falta la base, así que hace falta `terraform apply`. Y
+  **Terraform no gestiona el encendido**: `desired_status` no está declarado, por
+  eso el plan dice «0 a cambiar» con las dos máquinas apagadas. Se encienden con
+  `gcloud compute instances start`.
+- **La IP privada de la base será distinta** de la que las VMs tienen escrita.
+  Hay que editar `/etc/mooc/web.conf` y `/etc/mooc/worker.conf` y reiniciar los
+  servicios, como en el paso 4 de I6.
+- El nombre `mooc-db-1` ya está libre (Google reserva una semana; se borró hace
+  27 días). Si volviera a estarlo, se aplica con `-var db_instance_generation=2`,
+  **y eso cambia el nombre de conexión y la IP otra vez**.
+
+### Ninguna de las imágenes publicadas es el código del tag
+
+En Artifact Registry hay cinco imágenes, todas del 2026-09-27. **Ninguna
+corresponde al commit del tag `entrega-2` ni a `main`.** La más reciente está
+**59 commits antes del tag**, y la diferencia incluye `internal/worker/` con
+`queue_metrics.go`, que es justo lo que el escenario 2 instrumenta.
+
+Así que medir la línea base exige **construir y publicar** la imagen del tag, y
+la corrida corregida la de `main`. Dos cosas que conviene saber antes:
+
+- `publish_images.sh` usa `git rev-parse HEAD` y `.` como contexto, **ambos
+  relativos al directorio actual**. Hay que hacer `cd` al árbol del tag; llamarlo
+  por ruta absoluta desde el repositorio etiquetaría el código de `main` con el
+  SHA del tag.
+- `entrega-2` es un **tag anotado**: `git rev-parse entrega-2` devuelve el objeto
+  de tag (`e81fa4ef…`), no el commit. El SHA que vale como `IMAGE_TAG` es
+  `git rev-parse entrega-2^{commit}` → `1827cdc2…`. `prepare_web_env.sh` solo
+  valida que sean 40 caracteres hexadecimales, así que el objeto de tag pasaría la
+  validación y luego no existiría como imagen.
+
+### Por qué la Entrega 2 midió el escenario 2 contra Docker Compose
+
+No fue descuido. La campaña necesita el inspector de la cola (Redis), y el
+cortafuegos solo abre el 6379 dentro de `10.0.1.0/24`; Cloud SQL no tiene IP
+pública. Desde un portátil no hay a dónde conectarse, y `-base http://api:8080`
+estaba como valor por omisión.
+
+La salida no es medir Compose, es llevar los dos puertos por el **túnel SSH de
+IAP**, que usa el 22 y no abre nada nuevo —**F1** sigue pudiendo demostrar que no
+hay puertos de aplicación ni de datos expuestos—:
+
+```bash
+gcloud compute ssh mooc-worker-server --zone=us-east1-b --tunnel-through-iap \
+    --project=plataforma-mooc-entrega2 \
+    -- -N -L 6379:localhost:6379 -L 5432:<ip privada de la base>:5432
+```
+
+### Lo que cuesta, para que nadie se lo encuentre a mitad
+
+| | |
+| :--- | :--- |
+| Entorno completo encendido | 0,169 USD/h · **4,05 USD/día** |
+| Campaña de A7 completa | ~7,5 h → **1,69 USD** acotando el consumo HLS |
+| Consumo HLS **sin acotar**, desde el portátil | 22,1 GB de egreso → **2,65 USD**, más que todo el cómputo |
+| Escenario 2 con perfiles reales | 162 min de vídeo a 1,2× en 2 vCPU → **97 min de pared** irreducibles |
+
+Para **G4 y G6**: el egreso del consumo HLS es la partida que se dispara, no el
+cómputo. `-max-segmentos` lo acota, y con 10 segmentos por estudiante quedan 8
+con instante de reproducción que cumplir, que es lo mínimo para que el margen de
+buffer y las interrupciones signifiquen algo.
+
+### `REDIS_URL` en la disposición de dos VMs
+
+`docker-compose.prod.yml` de `main` ya no levanta Redis y exige `REDIS_URL`
+(A4). **Funciona sin cambios sobre las dos VMs**, porque `prepare_web_env.sh` ya
+escribe `REDIS_URL='${QUEUE_PRIVATE_IP}:6379'`: la cola de la VM worker por la
+VPC, con las sesiones en la base lógica 1. No hace falta esperar a B1 para
+desplegar `main` sobre la Entrega 2.
 
 ---
 
