@@ -82,7 +82,7 @@ code { background: var(--accent-soft); padding: 1px 5px; border-radius: 5px; fon
 .hero { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 28px 32px; }
 .hero h1 { margin-bottom: 6px; }
 .hero p { max-width: 46ch; margin: 0 0 16px; }
-.hero-art { width: 190px; flex: none; }
+.hero-art { width: 300px; max-width: 38%; height: auto; flex: none; }
 .section-head { display: flex; align-items: center; justify-content: space-between; margin: 6px 0 12px; }
 .page-title { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
 .page-title p { margin: 4px 0 0; }

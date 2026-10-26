@@ -1,5 +1,6 @@
 import { ArrowRight, PlusCircle } from "lucide-react";
 import { Link } from "react-router-dom";
+import { HeroArt } from "../components/HeroArt";
 import { useAuth } from "../auth/AuthContext";
 import { primerNombre } from "../lib/names";
 import { Badge, EmptyState, ErrorState, Spinner, gradiente } from "../components/ui";
@@ -20,11 +21,7 @@ export default function ProfessorDashboard() {
             <PlusCircle size={16} aria-hidden="true" /> Crear curso
           </Link>
         </div>
-        <svg className="hero-art" viewBox="0 0 220 150" aria-hidden="true">
-          <rect x="30" y="92" width="150" height="26" rx="6" fill="#5a67ad" />
-          <rect x="22" y="64" width="150" height="26" rx="6" fill="#f2a7b6" />
-          <rect x="40" y="36" width="150" height="26" rx="6" fill="#aab4e6" />
-        </svg>
+        <HeroArt />
       </section>
 
       <section>

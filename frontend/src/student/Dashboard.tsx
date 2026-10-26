@@ -1,5 +1,6 @@
 import { ArrowRight } from "lucide-react";
 import { Link } from "react-router-dom";
+import { HeroArt } from "../components/HeroArt";
 import { useAuth } from "../auth/AuthContext";
 import { primerNombre } from "../lib/names";
 import { EmptyState, ErrorState, ProgressBar, Spinner, gradiente } from "../components/ui";
@@ -21,14 +22,7 @@ export default function Dashboard() {
             Explorar catálogo
           </Link>
         </div>
-        <svg className="hero-art" viewBox="0 0 220 150" aria-hidden="true">
-          <rect x="30" y="92" width="150" height="26" rx="6" fill="#5a67ad" />
-          <rect x="22" y="64" width="150" height="26" rx="6" fill="#f2a7b6" />
-          <rect x="40" y="36" width="150" height="26" rx="6" fill="#aab4e6" />
-          <rect x="52" y="44" width="52" height="5" rx="2.5" fill="#fff" opacity=".8" />
-          <rect x="34" y="72" width="40" height="5" rx="2.5" fill="#fff" opacity=".8" />
-          <rect x="42" y="100" width="60" height="5" rx="2.5" fill="#fff" opacity=".7" />
-        </svg>
+        <HeroArt />
       </section>
 
       <section>
