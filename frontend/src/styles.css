@@ -80,9 +80,10 @@ code { background: var(--accent-soft); padding: 1px 5px; border-radius: 5px; fon
 .next-list a { font-weight: 700; text-decoration: none; display: block; margin-bottom: 6px; }
 
 /* ---------- Bloques de contenido ---------- */
-.hero { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 28px 32px; }
-.hero h1 { margin-bottom: 6px; }
-.hero p { max-width: 46ch; margin: 0 0 16px; }
+.hero { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 36px 40px; }
+.hero h1 { margin-bottom: 10px; font-size: clamp(1.8rem, 3.2vw, 2.5rem); line-height: 1.15; }
+.hero p { max-width: 40ch; margin: 0 0 22px; font-size: 1.15rem; line-height: 1.5; }
+.hero .btn { padding: 13px 28px; font-size: 1.05rem; }
 .hero-art { width: 300px; max-width: 38%; height: auto; flex: none; }
 .section-head { display: flex; align-items: center; justify-content: space-between; margin: 6px 0 12px; }
 .page-title { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
