@@ -13,7 +13,8 @@ function commit(env: Record<string, string>): string {
       .trim();
     // Un build con cambios sin commitear no corresponde a ningun commit: se marca, para que
     // la version visible nunca afirme mas de lo que es.
-    const sucio = execSync("git status --porcelain", { stdio: ["ignore", "pipe", "ignore"] }).toString().trim();
+    // Solo archivos versionados: un PDF suelto en la carpeta no cambia el codigo compilado.
+    const sucio = execSync("git status --porcelain --untracked-files=no", { stdio: ["ignore", "pipe", "ignore"] }).toString().trim();
     return sucio ? `${sha}-sin-commit` : sha;
   } catch {
     return "desconocido";
