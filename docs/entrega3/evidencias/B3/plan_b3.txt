@@ -1,0 +1,28 @@
+Plan de solo lectura tras B3 (#202), 2026-10-27T12:31:10Z
+
+B3 NO ANADE NI CAMBIA NINGUN RECURSO. El plan es identico al de B2:
+el mecanismo de arranque son ficheros y locals que C1 y C5 consumiran.
+
+Las dos VMs fijas NO se recrean, y eso fue una decision: ver la seccion 5
+de la evidencia. metadata_startup_script es ForceNew en el proveedor.
+
+Generado con TF_VAR_smtp_from y TF_VAR_smtp_username de marcador: no
+afectan a que recursos cambian, solo al valor de dos claves de metadata.
+
+  # google_compute_address.queue_internal_ip will be created
+  # google_compute_address.worker_server_ip will be destroyed
+  # google_compute_firewall.allow_internal will be destroyed
+  # google_compute_firewall.allow_internal_icmp will be created
+  # google_compute_firewall.allow_lb_and_health_checks will be created
+  # google_compute_firewall.allow_queue_internal will be created
+  # google_compute_firewall.allow_web_ingress will be updated in-place
+  # google_compute_instance.queue_server will be created
+  # google_compute_instance.worker_server will be updated in-place
+  # google_project_iam_member.queue_telemetry["roles/logging.logWriter"] will be created
+  # google_project_iam_member.queue_telemetry["roles/monitoring.metricWriter"] will be created
+  # google_service_account.queue_server will be created
+  # google_service_account.worker_server will be updated in-place
+  # google_sql_database.mooc will be created
+  # google_sql_database_instance.main will be created
+  # google_sql_user.app will be created
+Plan: 11 to add, 3 to change, 2 to destroy.

@@ -1,0 +1,46 @@
+# Unidad de la API (B3, #202).
+#
+# Versionada en el repositorio, no escrita a mano en la VM. La anterior vivia
+# solo en /etc/systemd/system de cada maquina y llevaba dentro la ruta de un
+# directorio personal (/home/dfortizr1/mooc), que no existe en una instancia que
+# acaba de crear un grupo administrado.
+#
+# `mooc-bootstrap.sh` la instala desde /opt/mooc/infra/bootstrap/, es decir desde
+# el mismo commit que la imagen que se va a correr.
+
+[Unit]
+Description=Plataforma MOOC - API y proxy inverso
+# `network-online.target` y no solo `network.target`: el guion de entorno lee
+# secretos de Secret Manager y la metadata, y las dos cosas necesitan red
+# resuelta, no solo interfaces levantadas.
+After=docker.service network-online.target
+Wants=network-online.target
+Requires=docker.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+WorkingDirectory=/opt/mooc
+
+# Regenera el .env en cada arranque, con los secretos leidos con la identidad de
+# la instancia. Es lo que hace que editar el .env a mano no sobreviva a un
+# reinicio, que es deliberado: la fuente de verdad es /etc/mooc/web.conf mas
+# Secret Manager.
+ExecStartPre=/bin/bash /opt/mooc/prepare_env.sh
+
+# La imagen se baja antes de levantar, para que un fallo de registro se vea como
+# lo que es y no como un contenedor que no arranca.
+ExecStartPre=/usr/bin/docker compose -p mooc -f /opt/mooc/docker-compose.prod.yml --env-file /opt/mooc/.env pull -q
+
+# `-p mooc` fija el nombre del proyecto de Compose. Sin el, lo deriva del
+# directorio: si la ruta cambiara, los contenedores de la ruta anterior quedarian
+# como un proyecto distinto en vez de reutilizarse, que es justo la duplicacion
+# que el criterio de aceptacion prohibe.
+ExecStart=/usr/bin/docker compose -p mooc -f /opt/mooc/docker-compose.prod.yml --env-file /opt/mooc/.env up -d --remove-orphans
+
+ExecStop=/usr/bin/docker compose -p mooc -f /opt/mooc/docker-compose.prod.yml --env-file /opt/mooc/.env down
+
+TimeoutStartSec=600
+
+[Install]
+WantedBy=multi-user.target
