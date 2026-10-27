@@ -21,8 +21,19 @@ resource "google_service_account" "web_server" {
 resource "google_service_account" "worker_server" {
   project      = var.project_id
   account_id   = "sa-worker-server"
-  display_name = "Worker Server: workers, FFmpeg y la cola asynq"
+  display_name = "Worker Server: workers y FFmpeg"
   description  = "Identidad de la VM que procesa multimedia. Escribe derivados; no firma URLs."
+}
+
+# La cola dejo de vivir dentro de la VM del worker en B1 (#200), asi que tiene su
+# propia identidad. Lo que la distingue de las otras dos es lo que NO necesita:
+# no abre la base de datos, no lee objetos y no firma nada. Solo guarda trabajos
+# en memoria y reporta telemetria.
+resource "google_service_account" "queue_server" {
+  project      = var.project_id
+  account_id   = "sa-queue-server"
+  display_name = "Queue Server: cola compartida asynq/Redis"
+  description  = "Identidad de la VM de la cola. No abre la base, no lee objetos y no firma URLs."
 }
 
 # ---------------------------------------------------------------------------
@@ -61,6 +72,30 @@ resource "google_project_iam_member" "common" {
   project = var.project_id
   role    = each.value.role
   member  = each.value.member
+}
+
+# ---------------------------------------------------------------------------
+# La cola: telemetria y nada mas
+# ---------------------------------------------------------------------------
+# Deliberadamente fuera de `local.service_accounts`, y por tanto del producto
+# cartesiano de arriba: `common_roles` incluye `roles/cloudsql.client`, y la VM
+# de la cola no abre la base de datos. Meterla en el producto habria sido una
+# linea mas corta y un permiso de mas.
+#
+# Los dos roles que si tiene son los que hacen falta para que C6 lea la senal de
+# la cola: el exportador de `worker.queue.pending` y
+# `oldest_pending_age_seconds` tiene que vivir **fuera** de los grupos
+# elasticos, porque si vive dentro el autoescalador se queda ciego justo cuando
+# reduce a una instancia (nota tecnica 4). Esta VM es su sitio natural.
+resource "google_project_iam_member" "queue_telemetry" {
+  for_each = toset([
+    "roles/logging.logWriter",
+    "roles/monitoring.metricWriter",
+  ])
+
+  project = var.project_id
+  role    = each.value
+  member  = "serviceAccount:${google_service_account.queue_server.email}"
 }
 
 # ---------------------------------------------------------------------------

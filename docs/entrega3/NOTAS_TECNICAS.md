@@ -123,15 +123,23 @@ resuelve apuntando la caché al servicio compartido de B1.
 <a id="4"></a>
 ## 4. La cola vive dentro de la máquina que el autoscaler puede retirar
 
-`docker-compose.worker.yml` incluye el `redis` que hace de cola de asynq. En la
+> **Resuelta en B1 (#200)** en cuanto a la cola: vive en `mooc-queue-server`,
+> fuera de los dos grupos. **La advertencia del exportador sigue viva** y es de
+> C6; ver más abajo.
+
+`docker-compose.worker.yml` incluía el `redis` que hace de cola de asynq. En la
 Entrega 2 eso era aceptable porque la VM worker era fija. En la Entrega 3 esa
 máquina pertenece a un grupo elástico que puede destruirla, y el enunciado lo
-prohíbe explícitamente: la cola debe estar fuera de ambos grupos.
+prohíbe explícitamente: la cola debe estar fuera de ambos grupos. B1 la saca, y
+el `REDIS_URL` del worker pasa a ser obligatorio en vez de tener `redis:6379`
+por omisión.
 
-Ojo con el efecto colateral: la señal de autoscaling de workers (C6) se calcula
-sobre la cola. Si el exportador de esa métrica vive en una instancia del grupo,
-el autoscaler se queda ciego justo cuando reduce a una instancia. **Tiene que
-exportarse desde fuera de los grupos elásticos.**
+Ojo con el efecto colateral, que **B1 no resuelve**: la señal de autoscaling de
+workers (C6) se calcula sobre la cola. Si el exportador de esa métrica vive en
+una instancia del grupo, el autoscaler se queda ciego justo cuando reduce a una
+instancia. **Tiene que exportarse desde fuera de los grupos elásticos.**
+`sa-queue-server` ya lleva `monitoring.metricWriter` para que la VM de la cola
+pueda ser ese sitio, pero el exportador hay que escribirlo en C6.
 
 <a id="5"></a>
 ## 5. Con un MIG, tres réplicas pueden migrar la base a la vez
@@ -998,3 +1006,70 @@ Si dice otra cosa, el estado y la nube no coinciden.
 - **Un plan guardado lleva las variables en claro**, la contraseña de la base
   entre ellas, igual que el estado. `*.tfplan` está en `.gitignore` por eso;
   antes no lo estaba.
+
+<a id="30"></a>
+## 30. La cola es una VM propia, y eso trae un punto único de fallo que hay que mirar
+
+B1 (#200) comparó Memorystore con una VM dedicada y eligió la VM. Lo que decidió
+no fue el coste, aunque también: **Memorystore no soporta AOF**. Su única
+persistencia son instantáneas RDB con intervalo mínimo de una hora, y el nivel
+Basic se recupera precisamente de la última instantánea, así que una cola puede
+perder una hora de trabajos en un reinicio. El criterio de aceptación «los
+trabajos encolados sobreviven al reinicio del servicio de cola» no se cumple con
+la opción gestionada.
+
+| | Persistencia | Pérdida al reiniciar | USD/mes |
+| :--- | :--- | :--- | ---: |
+| Memorystore Basic M1 | solo RDB, mínimo 1 h | hasta 1 hora de cola | 35,77 |
+| Memorystore Standard M1 | RDB + réplica | reinicio completo | 46,72 |
+| VM con Redis (elegida) | AOF `appendfsync everysec` | ≤ 1 segundo | **13,23** |
+
+### Lo que esto obliga a los demás
+
+| Issue | Qué tiene que saber |
+| :--- | :--- |
+| **B3, B4, C5** | `REDIS_URL` sale de `terraform output queue_private_ip`, que es una **IP interna estática**. Está reservada a propósito: si la asignara el DHCP, recrear la cola obligaría a rotar los dos grupos |
+| **C6** | La VM de la cola es el sitio del exportador de la señal de autoscaling, y su cuenta ya tiene `monitoring.metricWriter`. El exportador hay que escribirlo |
+| **C7** | El drenaje de workers se apoya en que la cola sobreviva al retiro de la instancia. Ya es cierto por construcción |
+| **F1** | `mooc-allow-queue` acota el 6379 a la subred, pero **hoy no restringe nada**: `mooc-allow-internal` abre todos los puertos entre todo lo que esté en la subred. La regla empieza a servir cuando F1 acote aquella |
+| **F3** | 13,23 USD/mes de lista. El coste real, con el consumo observado, lo cierra F3 |
+| **G1** | **Falta la alerta de memoria.** Con `noeviction`, quedarse sin memoria no corrompe nada pero **detiene el encolado**. La nota 23 exigía elegir entre dimensionar con holgura o separar instancias: se eligió holgura, y esa elección está a medias sin la alerta |
+| **I6** | Al destruir, la cola es una VM más. El AOF vive en su disco de arranque: destruirla **sí** pierde los trabajos encolados, que es lo correcto al cerrar |
+
+### El punto único de fallo, dicho sin adornos
+
+`mooc-queue-server` es un punto único de fallo para los dos grupos elásticos: si
+cae, ni la API encola ni los workers consumen. Se mitiga con `automatic_restart`
+y `on_host_maintenance = MIGRATE`, y el AOF hace que un reinicio no sea pérdida
+de datos, pero **no es alta disponibilidad**. El enunciado pide la cola *fuera*
+de los grupos, no redundante; si la Entrega 3 quisiera redundancia hay que
+elegir entre Memorystore Standard --con su ventana de pérdida-- o un segundo
+nodo con replicación que habría que operar.
+
+### Un agujero que existía en el repositorio
+
+`scripts/seed.sh` hacía `FLUSHDB` contra `${REDIS_URL}`. Mientras cada máquina
+tenía su propio Redis era un problema de laboratorio; con una cola compartida se
+lleva la cola de producción y, peor, el registro `asynq:queues` de la nota 27.
+
+Corregido en dos sitios, porque uno no basta:
+
+- el guion solo vacía el Redis **local de Compose**, y avisa cuando `REDIS_URL`
+  no es local en vez de hacerlo en silencio;
+- el servidor desactiva `FLUSHDB` y `FLUSHALL` **por nombre**
+  (`rename-command ... ""`), para que la defensa no dependa de la buena memoria
+  de quien ejecuta el guion.
+
+### Lo que bloquea el primer `apply` de la Entrega 3
+
+El backend sigue en `prefix = "entrega2"` y el README de A7 §1 dejó anotado que
+la Entrega 3 estrena `entrega3`. Un prefijo nuevo arranca con **estado vacío** e
+intentaría crear de cero los recursos que A7 dejó vivos a propósito --los
+buckets, que tienen nombre único global, el Artifact Registry, la VPC, los
+secretos y las cuentas de servicio--, y fallaría en los buckets.
+
+Hay que decidirlo en **B2** o **I6**, y las salidas son dos: seguir en `entrega2`
+--que respeta el invariante de A7, una sola arquitectura viva a la vez, y deja el
+nombre del prefijo como algo cosmético-- o **migrar el estado** copiando el
+objeto de `entrega2/` a `entrega3/` en el bucket antes de cambiar el prefijo. Lo
+que no vale es cambiar el prefijo y aplicar.

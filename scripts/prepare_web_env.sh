@@ -44,14 +44,16 @@ done
   fail "SMTP_PORT must be 587, 465, or 2525"
 
 # The queue and the session, rate-limit and idempotency stores all live on the
-# Worker Server (E1), reached over the VPC. Pointing REDIS_URL at the Compose
+# shared queue server (B1, #200), reached over the VPC. Until B1 they lived on
+# the Worker Server; they moved out because a managed group may destroy that
+# instance. Pointing REDIS_URL at the Compose
 # file's own `redis` service instead leaves the API enqueueing media tasks into a
 # broker no worker reads, and nothing fails: uploads answer 202 and the resource
 # stays `pending` forever. G3 found exactly that, so the address is required here
 # rather than defaulted -- a missing value must stop the deployment, not pick the
 # wrong Redis silently.
 [[ "${QUEUE_PRIVATE_IP}" =~ ^[0-9]{1,3}(\.[0-9]{1,3}){3}$ ]] ||
-  fail "QUEUE_PRIVATE_IP must be the Worker Server's private IPv4 address"
+  fail "QUEUE_PRIVATE_IP must be the shared queue's private IPv4 address"
 
 for name in APP_DOMAIN SMTP_FROM SMTP_USERNAME; do
   value="${!name}"
