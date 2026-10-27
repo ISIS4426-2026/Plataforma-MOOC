@@ -33,6 +33,20 @@ SMTP_PORT="${SMTP_PORT:-587}"
 S3_BUCKET="${S3_BUCKET:-plataforma-mooc-entrega2-media}"
 GCS_SIGNER_ACCOUNT="${GCS_SIGNER_ACCOUNT:-sa-web-server@${GCP_PROJECT_ID}.iam.gserviceaccount.com}"
 
+# Which nginx profile this instance serves (C1, #204).
+#
+# The fixed VM keeps `nginx.conf`: it redirects 80 to HTTPS and terminates TLS
+# with a Let's Encrypt certificate. A managed-group instance cannot do either --
+# there is no certificate in /etc/letsencrypt on a fresh disk, and with no public
+# IP certbot could never obtain one -- so it serves plain HTTP on 80 and lets the
+# load balancer terminate TLS. A 301 on port 80 would also fail C1's health
+# check, and an unhealthy instance gets recreated, in a loop.
+NGINX_CONFIG_FILE="${NGINX_CONFIG_FILE:-./nginx.conf}"
+case "${NGINX_CONFIG_FILE}" in
+  ./nginx.conf | ./nginx.bootstrap.conf | ./nginx.mig.conf) ;;
+  *) fail "NGINX_CONFIG_FILE must be one of ./nginx.conf, ./nginx.bootstrap.conf or ./nginx.mig.conf" ;;
+esac
+
 required=(IMAGE_TAG APP_DOMAIN DB_PRIVATE_IP QUEUE_PRIVATE_IP SMTP_FROM SMTP_USERNAME)
 for name in "${required[@]}"; do
   [[ -n "${!name:-}" ]] || fail "${name} is empty in ${CONFIG_FILE}"
@@ -44,14 +58,16 @@ done
   fail "SMTP_PORT must be 587, 465, or 2525"
 
 # The queue and the session, rate-limit and idempotency stores all live on the
-# Worker Server (E1), reached over the VPC. Pointing REDIS_URL at the Compose
+# shared queue server (B1, #200), reached over the VPC. Until B1 they lived on
+# the Worker Server; they moved out because a managed group may destroy that
+# instance. Pointing REDIS_URL at the Compose
 # file's own `redis` service instead leaves the API enqueueing media tasks into a
 # broker no worker reads, and nothing fails: uploads answer 202 and the resource
 # stays `pending` forever. G3 found exactly that, so the address is required here
 # rather than defaulted -- a missing value must stop the deployment, not pick the
 # wrong Redis silently.
 [[ "${QUEUE_PRIVATE_IP}" =~ ^[0-9]{1,3}(\.[0-9]{1,3}){3}$ ]] ||
-  fail "QUEUE_PRIVATE_IP must be the Worker Server's private IPv4 address"
+  fail "QUEUE_PRIVATE_IP must be the shared queue's private IPv4 address"
 
 for name in APP_DOMAIN SMTP_FROM SMTP_USERNAME; do
   value="${!name}"
@@ -101,6 +117,7 @@ trap 'rm -f "${TMP_FILE:-}"' EXIT
 cat >"${TMP_FILE}" <<EOF
 IMAGE_TAG='${IMAGE_TAG}'
 APP_ENV='production'
+NGINX_CONFIG_FILE='${NGINX_CONFIG_FILE}'
 APP_DOMAIN='${APP_DOMAIN}'
 APP_BASE_URL='https://${APP_DOMAIN}'
 CSRF_ALLOWED_ORIGINS='https://${APP_DOMAIN}'

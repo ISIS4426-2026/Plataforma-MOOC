@@ -13,10 +13,11 @@ set -Eeuo pipefail
 #
 # Two differences from the web script, both deliberate:
 #
-#   - REDIS_URL is the Compose service on this very VM. Here `redis:6379` is
-#     correct: the queue lives on this machine and the worker is its neighbour
-#     in the same Compose network. It is the *web* VM that must reach it across
-#     the VPC.
+#   - REDIS_URL points at the shared queue over the VPC, exactly as the web
+#     script does. Until B1 (#200) the queue was a Compose service on this very
+#     VM and `redis:6379` was correct; now it lives on `mooc-queue-server`,
+#     outside both elastic groups, because a managed group may destroy this
+#     instance and the enqueued jobs with it.
 #   - No SMTP. The worker processes video and sends nothing, so it is not
 #     granted the mail credential -- that separation is in mail.tf, and reading
 #     a secret here that the worker has no access to would only fail.
@@ -59,7 +60,7 @@ WORKER_CONCURRENCY="${WORKER_CONCURRENCY:-2}"
 MEDIA_WORK_DIR="${MEDIA_WORK_DIR:-/tmp/mooc-media}"
 MEDIA_MAX_ORIGINAL_MB="${MEDIA_MAX_ORIGINAL_MB:-2048}"
 
-required=(IMAGE_TAG DB_PRIVATE_IP)
+required=(IMAGE_TAG DB_PRIVATE_IP QUEUE_PRIVATE_IP)
 for name in "${required[@]}"; do
   [[ -n "${!name:-}" ]] || fail "${name} is empty in ${CONFIG_FILE}"
 done
@@ -90,6 +91,12 @@ DB_PASSWORD="$(DB_PASSWORD="${DB_PASSWORD}" python3 -c 'import os; print(os.envi
 # A database password is part of a URI, so reserved characters must be encoded.
 ENCODED_DB_PASSWORD="$(DB_PASSWORD="${DB_PASSWORD}" python3 -c 'import os, urllib.parse; print(urllib.parse.quote(os.environ["DB_PASSWORD"], safe=""))')"
 
+# The queue is no longer on this machine (B1, #200): a wrong or empty value here
+# leaves the worker reading an empty queue nobody fills, with uploads answering
+# 202 and the resource stuck `pending`. Same shape check as the web script.
+[[ "${QUEUE_PRIVATE_IP}" =~ ^[0-9]{1,3}(\.[0-9]{1,3}){3}$ ]] ||
+  fail "QUEUE_PRIVATE_IP must be the shared queue's private IPv4 address"
+
 umask 077
 TMP_FILE="$(mktemp "${REPO_DIR}/.env.tmp.XXXXXX")"
 trap 'rm -f "${TMP_FILE:-}"' EXIT
@@ -98,7 +105,7 @@ cat >"${TMP_FILE}" <<EOF
 IMAGE_TAG='${IMAGE_TAG}'
 APP_ENV='production'
 DATABASE_URL='postgres://moocuser:${ENCODED_DB_PASSWORD}@${DB_PRIVATE_IP}:5432/moocdb?sslmode=require'
-REDIS_URL='redis:6379'
+REDIS_URL='${QUEUE_PRIVATE_IP}:6379'
 STORAGE_BACKEND='gcs'
 S3_BUCKET='${S3_BUCKET}'
 MEDIA_HLS_BUCKET='${MEDIA_HLS_BUCKET}'

@@ -38,6 +38,9 @@
 #   MAX_SEGMENTOS  segmentos por estudiante; 0 = todos. Acota el egreso.
 #   OUT_DIR   directorio de evidencia. Por omision el de H5, que es de la
 #             entrega anterior; A7 lo redirige al suyo.
+#   SALTAR_VERIFICACION  cualquier valor salta la verificacion de los perfiles,
+#             que necesita ffprobe (Docker en Windows). Solo si ya se
+#             verificaron en esta sesion y la prueba esta en la evidencia.
 # ==============================================================================
 
 set -euo pipefail
@@ -59,11 +62,29 @@ mkdir -p "${SCRATCH_DIR}" "${EVIDENCIAS_DIR}" "${ROOT_DIR}/bin"
 # 1. Los tres perfiles reales, generados y verificados por el guion de A5.
 #    Verificar es la parte que no existía: un archivo que no coincide con su
 #    perfil declarado hace fallar esto antes de medir nada.
-echo "==> Verificando los tres perfiles multimedia declarados..."
-bash "${SCRIPT_DIR}/generar_media_prueba.sh" --verificar || {
-    echo "    Faltan o no coinciden. Generándolos (el perfil largo tarda unos minutos)..."
-    bash "${SCRIPT_DIR}/generar_media_prueba.sh"
-}
+if [ -n "${SALTAR_VERIFICACION:-}" ]; then
+    # La verificación necesita ffprobe, y en Windows eso significa Docker. Si la
+    # campaña tiene que correr con Docker cerrado --por memoria, por ejemplo--
+    # se salta, pero NO en silencio: el motivo de que exista es que la Entrega 2
+    # midió clips de 8 segundos declarados como 2, 10 y 30 minutos.
+    echo "==> AVISO: verificación de perfiles SALTADA (SALTAR_VERIFICACION)."
+    echo "    Solo es admisible si se verificaron en esta misma sesión y nada ha"
+    echo "    escrito en scratch/ desde entonces. La prueba tiene que quedar en la"
+    echo "    evidencia; si no está, la campaña no es publicable (A6)."
+    for p in corto medio largo; do
+        [ -f "${SCRATCH_DIR}/video_${p}.mp4" ] || {
+            echo "    FALTA ${SCRATCH_DIR}/video_${p}.mp4; sin los archivos no hay nada que medir." >&2
+            exit 1
+        }
+    done
+    ls -l "${SCRATCH_DIR}"/video_*.mp4 | awk '{print "    " $5 " bytes  " $NF}'
+else
+    echo "==> Verificando los tres perfiles multimedia declarados..."
+    bash "${SCRIPT_DIR}/generar_media_prueba.sh" --verificar || {
+        echo "    Faltan o no coinciden. Generándolos (el perfil largo tarda unos minutos)..."
+        bash "${SCRIPT_DIR}/generar_media_prueba.sh"
+    }
+fi
 
 # 2. Compilar el binario del ejecutor de capacidad
 echo "==> Compilando ejecutable de capacidad Escenario 2..."

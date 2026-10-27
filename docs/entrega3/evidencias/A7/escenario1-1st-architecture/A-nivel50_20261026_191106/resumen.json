@@ -1,0 +1,224 @@
+{
+  "publicable": true,
+  "destino": {
+    "base_url": "https://34.24.52.111.sslip.io",
+    "entorno": "nube-entrega2-retrospectiva-corregida",
+    "plan": "escenario1.jmx",
+    "usuarios": 50,
+    "rampa_s": 30,
+    "pausa_ms": "4000+-2000",
+    "sesiones": 3,
+    "calentamiento_omitido_s": 45,
+    "commit": "3affa11",
+    "generador": "justb4/jmeter:latest en DESKTOP-NHAIFDB",
+    "inicio_utc": "2026-10-27T00:11:06Z",
+    "fin_utc": "2026-10-27T00:15:20Z",
+    "clase": "remoto"
+  },
+  "muestras": 1772,
+  "omitidas_calentamiento_s": 45.0,
+  "duracion_corrida_s": 241.5,
+  "ventana_agregacion_s": 196.4,
+  "hilos_max": 50,
+  "fallos_reales": 0,
+  "fallos_reales_pct": 0.0,
+  "fallos_validacion": 0,
+  "rechazos_negocio": 0,
+  "timeouts": 0,
+  "ms": {
+    "p50": 82,
+    "p95": 296,
+    "p99": 353,
+    "max": 426
+  },
+  "ms_publicables": {
+    "p50": 82,
+    "p95": 296,
+    "p99": 353
+  },
+  "rps": 9.02,
+  "pasos": {
+    "09 POST latido de progreso 1 (recurso completado)": {
+      "n": 143,
+      "p50": 89,
+      "p95": 307,
+      "p99": 350,
+      "max": 419,
+      "fallos": 0,
+      "publicables": {
+        "p50": 89,
+        "p95": 307,
+        "p99": 350
+      }
+    },
+    "09 POST latido de progreso 2 (recurso completado)": {
+      "n": 149,
+      "p50": 90,
+      "p95": 314,
+      "p99": 343,
+      "max": 364,
+      "fallos": 0,
+      "publicables": {
+        "p50": 90,
+        "p95": 314,
+        "p99": 343
+      }
+    },
+    "07 GET recursos de la unidad": {
+      "n": 124,
+      "p50": 82,
+      "p95": 127,
+      "p99": 172,
+      "max": 193,
+      "fallos": 0,
+      "publicables": {
+        "p50": 82,
+        "p95": 127,
+        "p99": 172
+      }
+    },
+    "05 GET modulos del curso": {
+      "n": 107,
+      "p50": 75,
+      "p95": 112,
+      "p99": 153,
+      "max": 165,
+      "fallos": 0,
+      "publicables": {
+        "p50": 75,
+        "p95": 112,
+        "p99": 153
+      }
+    },
+    "08 GET cuestionario (vista de estudiante)": {
+      "n": 132,
+      "p50": 83,
+      "p95": 116,
+      "p99": 128,
+      "max": 339,
+      "fallos": 0,
+      "publicables": {
+        "p50": 83,
+        "p95": 116,
+        "p99": 128
+      }
+    },
+    "06 GET unidades del modulo": {
+      "n": 117,
+      "p50": 76,
+      "p95": 114,
+      "p99": 136,
+      "max": 137,
+      "fallos": 0,
+      "publicables": {
+        "p50": 76,
+        "p95": 114,
+        "p99": 136
+      }
+    },
+    "10 POST envio del quiz": {
+      "n": 150,
+      "p50": 107,
+      "p95": 356,
+      "p99": 411,
+      "max": 426,
+      "fallos": 0,
+      "publicables": {
+        "p50": 107,
+        "p95": 356,
+        "p99": 411
+      }
+    },
+    "11 POST envio DUPLICADO del quiz (misma clave)": {
+      "n": 150,
+      "p50": 76,
+      "p95": 305,
+      "p99": 381,
+      "max": 390,
+      "fallos": 0,
+      "publicables": {
+        "p50": 76,
+        "p95": 305,
+        "p99": 381
+      }
+    },
+    "12 GET avance del curso tras el quiz (validacion)": {
+      "n": 150,
+      "p50": 85,
+      "p95": 327,
+      "p99": 369,
+      "max": 408,
+      "fallos": 0,
+      "publicables": {
+        "p50": 85,
+        "p95": 327,
+        "p99": 369
+      }
+    },
+    "13 GET mis envios (validacion de doble calificacion)": {
+      "n": 150,
+      "p50": 82,
+      "p95": 273,
+      "p99": 371,
+      "max": 376,
+      "fallos": 0,
+      "publicables": {
+        "p50": 82,
+        "p95": 273,
+        "p99": 371
+      }
+    },
+    "01 GET catalogo de cursos": {
+      "n": 100,
+      "p50": 72,
+      "p95": 99,
+      "p99": 102,
+      "max": 111,
+      "fallos": 0,
+      "publicables": {
+        "p50": 72,
+        "p95": 99,
+        "p99": 102
+      }
+    },
+    "02 GET detalle del curso": {
+      "n": 100,
+      "p50": 71,
+      "p95": 98,
+      "p99": 118,
+      "max": 173,
+      "fallos": 0,
+      "publicables": {
+        "p50": 71,
+        "p95": 98,
+        "p99": 118
+      }
+    },
+    "03 POST inscripcion": {
+      "n": 100,
+      "p50": 81,
+      "p95": 105,
+      "p99": 114,
+      "max": 120,
+      "fallos": 0,
+      "publicables": {
+        "p50": 81,
+        "p95": 105,
+        "p99": 114
+      }
+    },
+    "04 GET estado de mi inscripcion (validacion)": {
+      "n": 100,
+      "p50": 72,
+      "p95": 93,
+      "p99": 107,
+      "max": 137,
+      "fallos": 0,
+      "publicables": {
+        "p50": 72,
+        "p95": 93,
+        "p99": 107
+      }
+    }
+  }
+}

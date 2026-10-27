@@ -1,0 +1,69 @@
+==============================================================================
+ EVIDENCIA A7 - ANALISIS DEL ESCENARIO 1, CODIGO CORREGIDO, CONTRA LA NUBE
+==============================================================================
+Fecha UTC : 2026-10-27T01:34:47Z
+Destino   : https://34.24.52.111.sslip.io  [remoto]
+Entorno   : nube-entrega2-retrospectiva-corregida
+Imagen    : 3affa11394ea81c569b6eb111ec3e12b1df1bca8 (main)
+Esquema   : 8 migraciones, incluida 000008_quiz_attempt_drafts
+PITR      : activado, transaction_log_retention_days = 3
+Generador : justb4/jmeter:latest, la misma maquina que midio el tag
+Secretos  : SANITIZADO.
+==============================================================================
+
+== 0. Entorno medido en cada corrida
+A-nivel1                                 https://34.24.52.111.sslip.io  [remoto]  entorno=nube-entrega2-retrospectiva-corregida
+A-nivel10                                https://34.24.52.111.sslip.io  [remoto]  entorno=nube-entrega2-retrospectiva-corregida
+A-nivel25                                https://34.24.52.111.sslip.io  [remoto]  entorno=nube-entrega2-retrospectiva-corregida
+A-nivel50                                https://34.24.52.111.sslip.io  [remoto]  entorno=nube-entrega2-retrospectiva-corregida
+A-nivel100                               https://34.24.52.111.sslip.io  [remoto]  entorno=nube-entrega2-retrospectiva-corregida
+A-nivel200                               https://34.24.52.111.sslip.io  [remoto]  entorno=nube-entrega2-retrospectiva-corregida
+B-nivel100                               https://34.24.52.111.sslip.io  [remoto]  entorno=nube-entrega2-retrospectiva-corregida
+B-nivel200                               https://34.24.52.111.sslip.io  [remoto]  entorno=nube-entrega2-retrospectiva-corregida
+
+== 1. Resultados y utilizacion por corrida (ventana medida; metricas de Cloud Monitoring, muestras de 60 s)
+corrida                         usr    rps   p50   p95   p99 real t/o val |   webCPU% webMem%   sqlCPU% sqlConx   tps
+A-nivel1                          1    0.2    96   400 n/d (n=33)    0   0   0 | 3.74/8.37   30.14 12.28/12.7     4.0  4.65
+A-nivel10                        10    1.8    87   311   406    0   0   0 | 3.27/4.34   30.84 16.31/25.85     4.0 18.18
+A-nivel25                        25    4.5    86   311   386    0   0   0 | 5.09/9.74   30.73 15.42/19.39     5.0 46.43
+A-nivel50                        50    9.0    82   296   353    0   0   0 | 4.73/5.55    30.5 14.46/16.7     6.0  93.0
+A-nivel100                      100   16.5    83   300   378    0   0   0 | 7.13/8.58   30.45 16.67/19.89     7.0 176.17
+A-nivel200                      200   32.5    85   314   398    0   0   0 | 12.0/15.55   30.83 24.67/30.69    10.0 350.87
+B-nivel100                      100   54.0    86   148   365    0   0   0 | 10.07/15.81   30.76 18.97/25.21     8.0  3.98
+B-nivel200                      200  104.6    83   148   342    0   0   0 | None/None    None None/None    None  None
+
+== 2. Nivel de 200 usuarios: variacion entre las 3 corridas
+peticiones/s               media     32.5  desv.est.     0.0  min     32.5  max     32.5  CV   0.0%
+p50 (ms)                   media     85.0  desv.est.     0.0  min     85.0  max     85.0  CV   0.0%
+p95 (ms)                   media    314.0  desv.est.     0.0  min    314.0  max    314.0  CV   0.0%
+p99 (ms)                   media    398.0  desv.est.     0.0  min    398.0  max    398.0  CV   0.0%
+CPU web maxima (%)         media     15.6  desv.est.     0.0  min     15.6  max     15.6  CV   0.0%
+CPU Cloud SQL maxima (%)   media     30.7  desv.est.     0.0  min     30.7  max     30.7  CV   0.0%
+conexiones a la base max   media     10.0  desv.est.     0.0  min     10.0  max     10.0  CV   0.0%
+
+== 3. De donde viene la latencia de cola: conexiones nuevas (JMeter 'Connect' = TCP + TLS)
+A-nivel200                     peticiones 8400 | con conexion nueva 800 (9.5%) | Connect p50 228 ms p95 314 ms max 775 ms
+                               peticiones de 1,2-1,7 s: 0 | de ellas con Connect > 900 ms: 0 | CPU maxima del generador (docker stats, % de un nucleo): 170
+
+== 4. Latencia del servidor sin el costo de conectar (peticiones sobre conexion ya abierta)
+A-nivel200                     n=7600 p50 84 ms  p95 128 ms  p99 180 ms
+
+------------------------------------------------------------------------------
+ LA COMPARACION CON EL TAG, QUE ES LA RAZON DE ESTA CORRIDA
+------------------------------------------------------------------------------
+ Latencia del servidor sobre conexion caliente, nivel 200, n=7600 por lado:
+                       tag        corregido     coste
+   p50                 76 ms       84 ms        +8 ms   (+10,5%)
+   p95                111 ms      128 ms       +17 ms   (+15,3%)
+   p99                153 ms      180 ms       +27 ms   (+17,6%)
+
+ CPU de Cloud SQL al MISMO caudal de transacciones (354,5 -> 350,9 tps):
+   media/max       18,38/25,51   24,67/30,69   +34% de media
+
+ Dos medidas independientes del mismo coste: el generador por un lado y
+ Cloud Monitoring por el otro. Hallazgo para H3 y G7: NO se resta en la
+ comparacion de G3, porque la Entrega 3 elastica corre este mismo codigo y el
+ coste de las correcciones se cancela en los dos lados.
+==============================================================================
+ Este archivo no contiene credenciales, llaves ni secretos.
+==============================================================================

@@ -100,3 +100,56 @@ variable "storage_cors_origins" {
   type        = list(string)
   default     = ["*"]
 }
+
+# ---------------------------------------------------------------------------
+# Lo que el arranque de cada instancia necesita saber (B3 - issue #202)
+# ---------------------------------------------------------------------------
+# Estas cuatro viajan a la instancia por metadata y las lee
+# `infra/bootstrap/mooc-bootstrap.sh` en tiempo de ejecucion. Antes de B3 vivian
+# en `/etc/mooc/<rol>.conf`, escrito a mano dentro de cada VM: configuracion que
+# solo existe en un disco y que una recreacion borra (nota tecnica 19).
+
+variable "image_tag" {
+  description = <<-EOT
+    SHA completo del commit cuya imagen corre en las instancias.
+
+    Es el SHA y no una etiqueta movil a proposito: con `latest`, dos instancias
+    del mismo grupo pueden quedarse en imagenes distintas segun cuando
+    arrancaron. El mismo valor pin la imagen del contenedor Y el commit que el
+    arranque saca del repositorio, asi que el codigo y los ficheros de
+    despliegue son siempre del mismo commit.
+  EOT
+  type        = string
+
+  validation {
+    condition     = can(regex("^[0-9a-f]{40}$", var.image_tag))
+    error_message = "image_tag debe ser el SHA completo de 40 caracteres hexadecimales, no una etiqueta ni un SHA corto."
+  }
+}
+
+variable "app_domain" {
+  description = <<-EOT
+    Dominio con el que responde la aplicacion.
+
+    Vacio se calcula como `<ip-publica-de-la-vm-web>.sslip.io`, que es lo que la
+    Entrega 2 usaba escrito a mano. Cuando C3 ponga el balanceador delante, el
+    dominio sera el suyo y entonces hay que declararlo aqui.
+  EOT
+  type        = string
+  default     = ""
+}
+
+# Estas dos no son secretos --la contrasena de SMTP vive en Secret Manager-- pero
+# identifican la cuenta del equipo, y el repositorio es publico. Por eso no
+# tienen valor por omision: se pasan con TF_VAR_smtp_from y TF_VAR_smtp_username,
+# igual que TF_VAR_db_password. Un valor ausente para el `apply`, que es mejor
+# que una instancia que arranca sin poder enviar correo.
+variable "smtp_from" {
+  description = "Remitente verificado en el proveedor de correo. Se pasa con TF_VAR_smtp_from."
+  type        = string
+}
+
+variable "smtp_username" {
+  description = "Login SMTP del proveedor de correo. Se pasa con TF_VAR_smtp_username."
+  type        = string
+}
