@@ -51,11 +51,22 @@
 # si el trabajo ya esta hecho, y `docker compose up -d` reutiliza los
 # contenedores que ya existen en vez de crear otros.
 #
+# SI APLICA EL ESQUEMA, Y ESO LO DECIDIO A3
+#
+# A3 (#195) eligio «arranque protegido con el lock, no paso explicito de
+# despliegue», y su criterio de aceptacion lo dice: «el procedimiento vive en el
+# script de arranque, no en pasos manuales». Lo ejecuta la unidad de systemd
+# antes de levantar los contenedores, via `mooc-migrate.sh`.
+#
+# Es seguro que tres instancias lo hagan a la vez porque cada migracion toma un
+# advisory lock de transaccion antes de comprobar si ya esta aplicada, y la
+# comprobacion ocurre dentro del lock. Sin eso --y A3 lo reprodujo-- tres
+# instancias simultaneas daban dos arranques fallidos de tres, y el grupo
+# administrado las recreaba para que fallaran igual, en bucle. La nota tecnica 5
+# describe el defecto; A3 es su arreglo.
+#
 # LO QUE DELIBERADAMENTE NO HACE
 #
-#   * **No aplica migraciones.** Tres instancias arrancando a la vez lanzarian
-#     tres `migrate` en paralelo sobre la misma base (nota tecnica 5). Quien
-#     decide cuando migrar es A3, y es un paso del despliegue, no del arranque.
 #   * **No instala FFmpeg en el anfitrion.** Va dentro de la imagen del worker
 #     (`Dockerfile.worker`, `apk add ffmpeg`). Instalarlo tambien aqui seria una
 #     dependencia duplicada que nadie usa.
@@ -114,11 +125,17 @@ esperar_dpkg() {
     done
 }
 
-if ! command -v docker >/dev/null || ! command -v git >/dev/null; then
+if ! command -v docker >/dev/null || ! command -v git >/dev/null ||
+    ! command -v psql >/dev/null; then
     anotar "instalando dependencias del anfitrion"
     esperar_dpkg
     apt-get update -qq
-    apt-get install -y -qq ca-certificates curl gnupg lsb-release git jq
+    # `postgresql-client` no es opcional: `scripts/migrate.sh` necesita `psql`,
+    # y sin el la instancia arranca sin esquema. El guion de arranque anterior
+    # lo instalaba solo en la VM web; aqui lo necesitan los dos roles, porque
+    # los dos aplican el esquema (A3).
+    apt-get install -y -qq ca-certificates curl gnupg lsb-release git jq \
+        postgresql-client
 
     install -m 0755 -d /etc/apt/keyrings
     if [[ ! -f /etc/apt/keyrings/docker.gpg ]]; then
@@ -134,7 +151,7 @@ if ! command -v docker >/dev/null || ! command -v git >/dev/null; then
     apt-get install -y -qq docker-ce docker-ce-cli containerd.io \
         docker-buildx-plugin docker-compose-plugin
 else
-    anotar "docker y git ya estan instalados"
+    anotar "docker, git y psql ya estan instalados"
 fi
 
 systemctl enable --now docker

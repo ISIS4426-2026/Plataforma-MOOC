@@ -28,6 +28,7 @@ resto estaba descrito en `ADMINISTRACION.md` como pasos manuales por SSH.
 | `/etc/mooc/<rol>.conf` | **`sudo tee` a mano** | generado de la metadata |
 | Código de despliegue | clonado en `/home/dfortizr1/mooc` | clonado en `/opt/mooc` **en el commit de `IMAGE_TAG`** |
 | Unidad de systemd | **`sudo tee` a mano**, con esa ruta personal dentro | versionada en `infra/bootstrap/`, instalada desde el repositorio |
+| Aplicar el esquema | `bash scripts/migrate.sh` a mano | `ExecStartPre`, con el lock de A3 |
 | Levantar los contenedores | `docker compose up -d` a mano | `systemctl enable --now` |
 | Saber si quedó lista | mirar | sonda `/api/v1/ready` y medición en `/var/lib/mooc/arranque.json` |
 
@@ -136,11 +137,52 @@ idempotente y asynq reencola la tarea
 (`internal/worker/idempotency_test.go`). Lo que sí deja es basura en el
 directorio de trabajo, y de eso se encarga la unidad.
 
+### El esquema sí se aplica al arrancar, y eso lo decidió A3
+
+**A3 ([#195](https://github.com/ISIS4426-2026/Plataforma-MOOC/issues/195)) eligió
+«arranque protegido con el lock, no paso explícito de despliegue»**, y su criterio
+de aceptación lo dice: «el procedimiento vive en el script de arranque, no en
+pasos manuales». Así que las unidades ejecutan, **antes de levantar los
+contenedores**, exactamente lo que A3 §4 especifica:
+
+```bash
+bash ./scripts/migrate.sh            # aplica lo que falte, protegido por el lock
+bash ./scripts/migrate.sh --require  # y se niega a seguir si aun falta algo
+```
+
+Va en `infra/bootstrap/mooc-migrate.sh`, que lee `DATABASE_URL` de
+`/opt/mooc/.env` en vez de recibirla en la línea de órdenes: así la contraseña
+no aparece ni en el `ExecStartPre` ni en el registro de systemd.
+
+La segunda línea parece redundante y no lo es: cubre el caso en que la primera
+no llegue a ejecutarse, y convierte un esquema desfasado en un arranque que falla
+en vez de en una instancia que atiende contra una base que no corresponde.
+
+**Por qué es seguro que tres instancias lo hagan a la vez.** Porque A3 lo
+arregló: cada migración toma un advisory lock **de transacción** antes de
+comprobar si ya está aplicada, y la comprobación ocurre dentro del lock. A3
+reprodujo el defecto anterior --tres instancias simultáneas daban **dos
+arranques fallidos de tres**, y el grupo administrado las recreaba para que
+fallaran igual, en bucle-- y lo volvió a medir con el aplicador nuevo: tres
+códigos de salida 0. La **nota técnica 5** describe el defecto; A3 es su arreglo.
+
+Lo ejecutan **los dos roles**. Con el lock da igual quién llegue primero, y que
+el worker también exija el esquema con `--require` evita que procese contra una
+base que no corresponde.
+
+Va en la unidad y no en el guión de arranque para que también corra en un
+`systemctl restart`: un despliegue que solo cambia `IMAGE_TAG` pasa por la
+unidad, no por el arranque de la instancia, y el esquema nuevo tiene que entrar
+igual.
+
+> **Esto corrigió un error de la primera versión de B3**, que no migraba al
+> arrancar «dejándolo a A3». A3 ya había decidido lo contrario, así que un
+> entorno nuevo habría arrancado sin esquema. De paso aparecio el segundo fallo:
+> el guión no instalaba `postgresql-client`, que `migrate.sh` necesita, y el
+> arranque anterior solo lo ponía en la VM web.
+
 ### Lo que el arranque deliberadamente NO hace
 
-- **No aplica migraciones.** Tres instancias arrancando a la vez lanzarían tres
-  `migrate` en paralelo sobre la misma base (**nota técnica 5**). Cuándo migrar
-  lo decide **A3**, y es un paso del despliegue, no del arranque.
 - **No instala FFmpeg en el anfitrión.** Va dentro de la imagen del worker
   (`Dockerfile.worker`, `apk add ffmpeg`), así que la tarea del issue
   «dependencias multimedia disponibles en el arranque de los workers» se cumple

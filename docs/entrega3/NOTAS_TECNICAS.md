@@ -144,13 +144,19 @@ pueda ser ese sitio, pero el exportador hay que escribirlo en C6.
 <a id="5"></a>
 ## 5. Con un MIG, tres réplicas pueden migrar la base a la vez
 
+> **Resuelta en A3 (#195).** El aviso de abajo ya no aplica: arrancar una
+> instancia es seguro. Se conserva porque explica por qué hizo falta el arreglo.
+
 En la Entrega 2 daba igual quién aplicara el esquema: había una sola VM. Un grupo
 administrado que levanta hasta tres instancias a la vez puede lanzar tres
-`migrate` en paralelo sobre la misma base.
+`migrate` en paralelo sobre la misma base. A3 lo reprodujo: **dos de tres
+instancias no arrancaban**, y el grupo las recreaba para que fallaran igual.
 
-A3 decide entre un paso explícito del despliegue antes de rotar el grupo o un
-advisory lock de PostgreSQL. Hasta que A3 cierre, **no asumas que arrancar una
-instancia es seguro**: coordínalo con quien tenga A3 abierto.
+A3 eligió el **advisory lock de transacción** por migración, con la comprobación
+de «ya aplicada» **dentro** del lock, en lugar de un paso explícito de
+despliegue. Y decidió que el esquema se aplique **en el arranque**: B3 lo ejecuta
+en un `ExecStartPre` de las dos unidades, antes de levantar los contenedores
+(nota 32).
 
 <a id="6"></a>
 ## 6. Las capturas no se pueden rehacer después de I6
@@ -1184,7 +1190,7 @@ está leyendo.
 | **C3, C4** | La sonda de listo es **`/api/v1/ready`** (A2): prueba la base y la bandera de arranque. Es la que mide B3 y la que debe usar el health check, para que lo medido y lo decidido sean lo mismo |
 | **C6** | El periodo de inicialización del autoescalado se dimensiona con el número que escribe `/var/lib/mooc/arranque.json`, **más** el arranque del sistema operativo: B3 mide desde el inicio del guion, no desde la creación de la instancia |
 | **C7** | `--timeout 120` en la unidad del worker es un compromiso, **no una política de drenaje**. C7 tiene que apagar el consumo de tareas nuevas antes de parar el contenedor |
-| **A3** | El arranque **no aplica migraciones**, a propósito (nota 5). Cuándo migrar sigue siendo de A3, y es un paso del despliegue |
+| **A3** | El arranque **sí aplica el esquema**, que es lo que A3 §4 decidió: `migrate.sh` y `migrate.sh --require` en un `ExecStartPre`, antes de levantar los contenedores, y en los dos roles. Seguro con tres instancias a la vez por el advisory lock de transacción |
 | **cualquier `apply`** | Hacen falta tres variables nuevas: `TF_VAR_image_tag` (SHA de 40 hex, validado), `TF_VAR_smtp_from` y `TF_VAR_smtp_username`. Las dos de SMTP no son secretos pero identifican la cuenta del equipo y el repositorio es público, así que no tienen valor por omisión |
 
 ### La trampa: `metadata_startup_script` es ForceNew en los dos sentidos
@@ -1211,6 +1217,24 @@ recrear esas dos VMs.
   parada ordenada de asynq, pero una tarea real tarda minutos --el perfil largo
   midió 1 711 s en A7--. No es pérdida de datos, porque asynq la reencola y el
   worker es idempotente, pero es trabajo tirado. La unidad usa `--timeout 120`.
+
+### El arranque migra, y eso hay que leerlo junto con la nota 5
+
+La nota 5 avisaba de que tres réplicas pueden migrar la base a la vez y decía
+«hasta que A3 cierre, no asumas que arrancar una instancia es seguro». **A3
+cerró**, con un advisory lock de transacción por migración, y eligió
+explícitamente que el esquema se aplique en el arranque y no como paso de
+despliegue. Así que la nota 5 está resuelta y el aviso ya no aplica.
+
+La primera versión de B3 no migraba, «dejándoselo a A3». Era un error: un entorno
+nuevo habría arrancado sin esquema. Dos lecciones pequeñas de ahi:
+
+- **Un issue cerrado puede haber decidido lo contrario de lo que su nota de
+  advertencia decía**, porque la nota se escribio antes. Hay que leer la decision,
+  no solo la advertencia.
+- `migrate.sh` necesita **`psql`**, y el arranque anterior solo instalaba
+  `postgresql-client` en la VM web. Ahora lo instalan los dos roles, porque los
+  dos aplican el esquema.
 
 ### Y una que parecía trabajo y no lo era
 

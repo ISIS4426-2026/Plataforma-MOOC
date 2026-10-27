@@ -28,6 +28,17 @@ WorkingDirectory=/opt/mooc
 # Secret Manager.
 ExecStartPre=/bin/bash /opt/mooc/prepare_env.sh
 
+# El esquema, antes de levantar nada. Es la decision de A3 §4: «el
+# procedimiento vive en el script de arranque, no en pasos manuales», y es
+# seguro con tres instancias a la vez porque cada migracion toma un advisory
+# lock de transaccion antes de comprobar si ya esta aplicada.
+#
+# Va aqui y no en el guion de arranque para que tambien corra en un
+# `systemctl restart`: un despliegue que solo cambia IMAGE_TAG pasa por la
+# unidad, no por el arranque de la instancia, y el esquema nuevo tiene que
+# entrar igual.
+ExecStartPre=/bin/bash /opt/mooc/infra/bootstrap/mooc-migrate.sh /opt/mooc/.env /opt/mooc
+
 # La imagen se baja antes de levantar, para que un fallo de registro se vea como
 # lo que es y no como un contenedor que no arranca.
 ExecStartPre=/usr/bin/docker compose -p mooc -f /opt/mooc/docker-compose.prod.yml --env-file /opt/mooc/.env pull -q
