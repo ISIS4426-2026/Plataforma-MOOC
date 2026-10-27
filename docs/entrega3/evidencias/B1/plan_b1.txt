@@ -1,0 +1,18 @@
+Plan de solo lectura de B1 (#200), 2026-10-27T11:50:04Z
+Generado con: terraform plan   (sin -out, sin aplicar)
+
+Las 6 primeras altas son de B1. Las 3 de google_sql_* son el entorno que A7
+destruyo al cerrar, no algo que B1 cree. El unico cambio en sitio es la
+descripcion de sa-worker-server, que ya no aloja la cola.
+
+  # google_compute_address.queue_internal_ip will be created
+  # google_compute_firewall.allow_queue_internal will be created
+  # google_compute_instance.queue_server will be created
+  # google_project_iam_member.queue_telemetry["roles/logging.logWriter"] will be created
+  # google_project_iam_member.queue_telemetry["roles/monitoring.metricWriter"] will be created
+  # google_service_account.queue_server will be created
+  # google_service_account.worker_server will be updated in-place
+  # google_sql_database.mooc will be created
+  # google_sql_database_instance.main will be created
+  # google_sql_user.app will be created
+Plan: 9 to add, 1 to change, 0 to destroy.

@@ -44,15 +44,66 @@ type Config struct {
 	Entorno    string
 	Patron     string
 	MaxSegs    int
-	RedisAddr  string
-	DBConnStr  string
-	OutDir     string
-	UserEmail  string
-	Password   string
-	VideoCorto string
-	VideoMedio string
-	VideoLargo string
-	QuickMode  bool
+	// WorkerConcurrency es la del worker desplegado. No se adivina: de ella
+	// depende el presupuesto de espera de cada nivel, y si no coincide con la
+	// real el plazo se queda corto o se alarga sin motivo.
+	WorkerConcurrency int
+	RedisAddr         string
+	DBConnStr         string
+	OutDir            string
+	UserEmail         string
+	Password          string
+	VideoCorto        string
+	VideoMedio        string
+	VideoLargo        string
+	QuickMode         bool
+}
+
+// Duracion declarada de cada perfil, en segundos. Las mismas que verifica
+// scripts/generar_media_prueba.sh y que declara cmd/seed-media: si no
+// coincidieran, el presupuesto de espera se calcularia sobre un video que no es
+// el que se sube.
+var segundosPorPerfil = map[string]float64{"corto": 120, "medio": 600, "largo": 1800}
+
+// factorTranscodificado es cuanto cuesta transcodificar un segundo de video en
+// un vCPU: 1,2 veces su duracion, MEDIDO en A5 (141 s para un video de 120).
+// Ver la nota tecnica 24.
+const factorTranscodificado = 1.2
+
+// margenPresupuesto multiplica el tiempo de transcodificacion calculado. Cubre
+// la descarga del original, la subida de los derivados, el arranque de ffmpeg y
+// la variacion entre corridas, sin convertir el plazo en infinito.
+const margenPresupuesto = 1.8
+
+// presupuestoMinimo evita que un nivel de un solo video corto tenga un plazo
+// absurdamente corto si algo va mal al arrancar.
+const presupuestoMinimo = 10 * time.Minute
+
+func segundosDeVideo(perfiles []string) float64 {
+	var total float64
+	for _, p := range perfiles {
+		total += segundosPorPerfil[p]
+	}
+	return total
+}
+
+// presupuestoDelNivel es cuanto se espera, como maximo, a que el ultimo trabajo
+// del nivel llegue a un estado terminal.
+//
+// Se calcula, no se adivina: todo el video del nivel tiene que pasar por los
+// vCPU disponibles, asi que el suelo es
+// segundos_de_video * 1,2 / concurrencia. Lo que habia antes era un 6 minutos
+// fijo que solo funcionaba con clips de 8 segundos.
+func presupuestoDelNivel(perfiles []string, concurrencia int) time.Duration {
+	if concurrencia < 1 {
+		concurrencia = 1
+	}
+	segundos := segundosDeVideo(perfiles) * factorTranscodificado / float64(concurrencia) * margenPresupuesto
+	d := time.Duration(segundos) * time.Second
+	if d < presupuestoMinimo {
+		return presupuestoMinimo
+	}
+	return d
 }
 
 // Los dos patrones de consumo que el enunciado pide distinguir. Se declara cual
@@ -114,9 +165,17 @@ func cabeceraEvidencia(cfg Config) string {
 // instante de reproduccion que incumplir, asi que un margen de buffer o una
 // cuenta de interrupciones serian inventados --y es asi como la Entrega 2
 // publico «0 interrupciones» y «+5,99 s de margen».
+// Ambas exigen ademas que se haya descargado algun segmento. Sin esa guarda, un
+// nivel cuyos videos aun no estaban transcodificados --no hay manifiesto que
+// pedir, Observaciones=0-- publicaba «0,00 s de margen» y «0 interrupciones»,
+// que se lee como reproduccion perfecta cuando no se reprodujo nada. Paso en
+// los niveles 2, 3 y 4 de la linea base del codigo corregido.
 func margenTexto(h HLSStreamResult) string {
 	if h.Patron != patronCadencia || math.IsNaN(h.MargenMinSec) {
 		return "no aplica (patrón sin cadencia)"
+	}
+	if h.ObsConMargen == 0 {
+		return "no aplica (ningún segmento con instante de reproducción)"
 	}
 	return fmt.Sprintf("%.2f s en el peor segmento", h.MargenMinSec)
 }
@@ -125,7 +184,10 @@ func stallsTexto(h HLSStreamResult) string {
 	if h.Patron != patronCadencia {
 		return "no aplica (patrón sin cadencia)"
 	}
-	return fmt.Sprintf("%d", h.Stalls)
+	if h.ObsConMargen == 0 {
+		return "no aplica (ningún segmento con instante de reproducción)"
+	}
+	return fmt.Sprintf("%d de %d", h.Stalls, h.ObsConMargen)
 }
 
 // cabeceraMarkdown es la misma cabecera, en bloque de codigo, para los archivos
@@ -168,6 +230,10 @@ type UploadJobResult struct {
 	StableID     string
 	FinalStatus  string
 	ErrorMessage string
+	// TimedOut distingue 'no termino de medirse' de 'fallo'. Sin esta
+	// distincion, un nivel cuyo presupuesto se agota se publica como 12
+	// trabajos en la cola de fallidos, que es falso.
+	TimedOut bool
 }
 
 type HLSStreamResult struct {
@@ -183,22 +249,32 @@ type HLSStreamResult struct {
 	Patron        string
 	MargenMinSec  float64 // margen de buffer MEDIDO, el peor de la corrida
 	Stalls        int
-	Success       bool
+	// ObsConMargen son los segmentos que si tenian un instante de reproduccion
+	// que cumplir. Es el denominador de Stalls: «16 interrupciones» sin decir
+	// de cuantos no distingue una degradacion de un fallo del 100%.
+	ObsConMargen int
+	Success      bool
 }
 
 type LevelMetrics struct {
-	Level               int
-	Name                string
-	UploadWorkers       int
-	TotalUploads        int
-	ProfilesUsed        string
-	StreamersCount      int
-	StartTime           time.Time
-	EndTime             time.Time
-	Duration            time.Duration
-	ThroughputVidsMin   float64
-	JobsProcessed       int
-	JobsFailed          int
+	Level             int
+	Name              string
+	UploadWorkers     int
+	TotalUploads      int
+	ProfilesUsed      string
+	StreamersCount    int
+	StartTime         time.Time
+	EndTime           time.Time
+	Duration          time.Duration
+	ThroughputVidsMin float64
+	JobsProcessed     int
+	JobsFailed        int
+	// JobsTimedOut son los trabajos que seguian en la cola al agotarse el
+	// presupuesto del nivel. No son fallos: son medicion incompleta.
+	JobsTimedOut int
+	// ErroresCola son las lecturas de la cola que fallaron durante el nivel. Si
+	// no es cero, el pico de cola y la antiguedad no son publicables.
+	ErroresCola         int
 	PeakPendingQueue    int
 	PeakActiveQueue     int
 	PeakOldestAgeSec    float64
@@ -234,6 +310,14 @@ type DrainResult struct {
 	FinalActive     int
 	DBStatusCounts  map[string]int
 	OrphanJobsCount int
+	// Atascada: el drenaje se corto porque la cola dejo de avanzar, no porque
+	// se vaciara ni porque se agotara el plazo.
+	Atascada bool
+	// Observable es false cuando la cola no se pudo leer. Sin esto, un fallo
+	// de lectura se publicaba como cola vacia.
+	Observable bool
+	// ErroresInspector son las lecturas de la cola que fallaron.
+	ErroresInspector int
 }
 
 type httpClient struct {
@@ -287,6 +371,18 @@ func (c *httpClient) doJSON(method, endpoint string, body any, target any) (int,
 		req.Header.Set("X-CSRF-Token", c.csrf)
 	}
 
+	// Origin es obligatorio para la proteccion contra CSRF en cualquier peticion
+	// que cambie estado: sin el, la API responde 403 csrf_origin_rejected.
+	//
+	// No estaba, y es otra consecuencia de que esta campana solo se hubiera
+	// ejecutado contra Docker Compose: alli el origen por omision ya estaba en
+	// la lista. Contra la nube, la primera peticion que crea algo falla.
+	//
+	// Se manda el propio destino medido, que es lo que enviaria un navegador en
+	// un despliegue del mismo sitio, y es el origen que la configuracion de
+	// produccion tiene en CSRF_ALLOWED_ORIGINS.
+	req.Header.Set("Origin", c.baseURL)
+
 	start := time.Now()
 	resp, err := c.client.Do(req)
 	duration := time.Since(start)
@@ -329,6 +425,8 @@ func main() {
 	flag.StringVar(&cfg.Entorno, "entorno", "", "Etiqueta del entorno medido, p. ej. nube-entrega3 (obligatorio)")
 	flag.StringVar(&cfg.Patron, "patron-consumo", patronCadencia,
 		"Patron de consumo HLS: cadencia (reproduccion a 1x) o maxima (descarga sin pausa)")
+	flag.IntVar(&cfg.WorkerConcurrency, "worker-concurrency", 2,
+		"Concurrencia del worker desplegado; fija el presupuesto de espera por nivel")
 	flag.IntVar(&cfg.MaxSegs, "max-segmentos", 0,
 		"Segmentos por estudiante; 0 = todos. Acota el coste de egreso de un nivel")
 	flag.StringVar(&cfg.RedisAddr, "redis", "redis:6379", "Redis address for Asynq inspector")
@@ -553,6 +651,7 @@ func main() {
 			maxPending   int
 			maxActive    int
 			maxOldestAge float64
+			erroresCola  int
 			stopQueueMon = make(chan struct{})
 			queueMonWG   sync.WaitGroup
 		)
@@ -568,7 +667,11 @@ func main() {
 					return
 				case <-ticker.C:
 					info, err := inspector.GetQueueInfo("default")
-					if err == nil {
+					if err != nil {
+						// Se cuentan. Un pico de cola de 0 con la cola ilegible no
+						// es un 0: es una medicion que no existe.
+						erroresCola++
+					} else {
 						if info.Pending > maxPending {
 							maxPending = info.Pending
 						}
@@ -582,6 +685,14 @@ func main() {
 				}
 			}
 		}()
+
+		// Presupuesto de espera del nivel, derivado del trabajo que mete en la
+		// cola. Es lo que permite medir perfiles reales: el ultimo trabajo de
+		// un nivel no puede terminar antes de que se hayan transcodificado
+		// todos los de delante.
+		presupuesto := presupuestoDelNivel(ldef.Profiles, cfg.WorkerConcurrency)
+		log.Printf("  Presupuesto de espera   : %v (%.0f s de video a %.1fx en %d vCPU)",
+			presupuesto.Round(time.Second), segundosDeVideo(ldef.Profiles), factorTranscodificado, cfg.WorkerConcurrency)
 
 		// Concurrently spawn upload jobs
 		var (
@@ -604,7 +715,7 @@ func main() {
 				defer drainWG.Done()
 				confirmedWG.Wait()
 				log.Printf("\n>>> TODAS LAS %d CARGAS CONFIRMADAS (202 ACCEPTED). INICIANDO OBSERVACIÓN DE DRENAJE...", ldef.TotalUploads)
-				drainResult = observeQueueDrain(inspector, db)
+				drainResult = observeQueueDrain(inspector, db, presupuesto)
 			}()
 		}
 
@@ -632,7 +743,7 @@ func main() {
 						onConf = func() { confirmedWG.Done() }
 					}
 
-					res := executeUploadLifecycle(client, unit.ID, idx+1, prof, vBytes, hlsBase, onConf)
+					res := executeUploadLifecycle(client, unit.ID, idx+1, prof, vBytes, hlsBase, presupuesto, onConf)
 					results[idx] = res
 					if res.StableID != "" {
 						lastStableID = res.StableID
@@ -653,29 +764,51 @@ func main() {
 		lm.PeakPendingQueue = maxPending
 		lm.PeakActiveQueue = maxActive
 		lm.PeakOldestAgeSec = maxOldestAge
+		lm.ErroresCola = erroresCola
+		if erroresCola > 0 {
+			log.Printf("  ATENCION: %d lectura(s) de la cola fallaron en este nivel.", erroresCola)
+			log.Printf("    El pico de cola y la antiguedad NO son publicables: se midio a ciegas parte del tiempo.")
+		}
 
 		// Calculate stage metrics from results
 		var (
 			s1Durs, s2Durs, s3Durs, s4Durs, s5Durs, s6Durs []time.Duration
 			totalBytesUploaded                             int64
-			successCount                                   int
+			successCount, timeoutCount, failedCount        int
 		)
 
 		for _, r := range results {
-			if r.FinalStatus == "completed" {
+			switch {
+			case r.FinalStatus == "completed":
 				successCount++
+			case r.TimedOut:
+				timeoutCount++
+			default:
+				failedCount++
 			}
+
+			// Las etapas 1 a 3 son el camino de subida y se miden antes de
+			// esperar nada: valen para todo trabajo que las recorrio.
 			s1Durs = append(s1Durs, r.Stage1Dur)
 			s2Durs = append(s2Durs, r.Stage2Dur)
 			s3Durs = append(s3Durs, r.Stage3Dur)
-			s4Durs = append(s4Durs, r.Stage4Dur)
-			s5Durs = append(s5Durs, r.Stage5Dur)
-			s6Durs = append(s6Durs, r.Stage6Dur)
 			totalBytesUploaded += r.VideoBytes
+
+			// Las etapas 4 a 6 solo existen si el trabajo llego a un estado
+			// terminal. En un trabajo que se quedo en la cola, `tCompleted` es
+			// el tiempo cero, asi que Stage5Dur y Stage6Dur salen NEGATIVAS y
+			// envenenan la media, el minimo y el maximo del nivel. Antes
+			// entraban todas.
+			if r.FinalStatus == "completed" || r.FinalStatus == "failed" {
+				s4Durs = append(s4Durs, r.Stage4Dur)
+				s5Durs = append(s5Durs, r.Stage5Dur)
+				s6Durs = append(s6Durs, r.Stage6Dur)
+			}
 		}
 
 		lm.JobsProcessed = successCount
-		lm.JobsFailed = ldef.TotalUploads - successCount
+		lm.JobsFailed = failedCount
+		lm.JobsTimedOut = timeoutCount
 		lm.ThroughputVidsMin = (float64(successCount) / lm.Duration.Minutes())
 
 		lm.Stage1 = computeStageMetrics(s1Durs, successCount, lm.JobsFailed)
@@ -714,7 +847,7 @@ func main() {
 
 		log.Printf("  >>> Resumen %s:", ldef.Name)
 		log.Printf("      Duración total corrida     : %v", lm.Duration.Round(time.Millisecond))
-		log.Printf("      Trabajos completados       : %d/%d (Fallos: %d)", lm.JobsProcessed, ldef.TotalUploads, lm.JobsFailed)
+		log.Printf("      Trabajos completados       : %d/%d (Fallos: %d | Sin terminar de medir: %d)", lm.JobsProcessed, ldef.TotalUploads, lm.JobsFailed, lm.JobsTimedOut)
 		log.Printf("      Rendimiento en la ventana  : %.2f videos/min (no es la tasa de servicio)", lm.ThroughputVidsMin)
 		log.Printf("      Pico de cola (pending)     : %d tareas (Activas: %d)", lm.PeakPendingQueue, lm.PeakActiveQueue)
 		log.Printf("      Antigüedad máx. en cola    : %.2f s", lm.PeakOldestAgeSec)
@@ -738,14 +871,42 @@ func main() {
 	writeH5README(filepath.Join(cfg.OutDir, "README.md"), cfg, levelResults, drainResult)
 	writeCapacityReportFile(filepath.Join(cfg.OutDir, "reporte_carga_escenario2.md"), cfg, levelResults, drainResult)
 
+	// La campana no se declara exitosa sola. Antes imprimia "Finalizado
+	// Exitosamente" con 23 de 27 trabajos sin terminar de medirse y el drenaje
+	// cortado con 17 tareas en cola: una corrida inservible que se presentaba
+	// como buena. Ahora el cierre dice lo que hay y el codigo de salida lo
+	// refleja, para que un guion que la encadene se entere.
+	var sinMedir, fallidos int
+	for _, lm := range levelResults {
+		sinMedir += lm.JobsTimedOut
+		fallidos += lm.JobsFailed
+	}
+
 	log.Printf("\n================================================================================")
-	log.Printf(" Escenario 2 Finalizado Exitosamente.")
+	switch {
+	case sinMedir > 0:
+		log.Printf(" Escenario 2 INCOMPLETO: %d trabajo(s) no llegaron a un estado terminal.", sinMedir)
+		log.Printf(" Las etapas 4, 5 y 6 de esos niveles NO son publicables.")
+	case fallidos > 0:
+		log.Printf(" Escenario 2 terminado CON %d FALLO(S) reales de procesamiento.", fallidos)
+	default:
+		log.Printf(" Escenario 2 terminado: los %d niveles completaron todos sus trabajos.", len(levelResults))
+	}
+	if drainResult.Atascada {
+		log.Printf(" ATENCION: el drenaje se corto porque la cola dejo de avanzar.")
+	}
+	if !drainResult.Observable {
+		log.Printf(" ATENCION: el drenaje NO se pudo observar (%d lecturas de la cola fallaron).", drainResult.ErroresInspector)
+	}
 	log.Printf(" Evidencias generadas en : %s", cfg.OutDir)
-	log.Printf(" Reporte consolidado en  : capacity-planning/pruebas_de_carga_entrega2.md")
 	log.Printf("================================================================================")
+
+	if sinMedir > 0 || drainResult.Atascada || !drainResult.Observable {
+		os.Exit(1)
+	}
 }
 
-func executeUploadLifecycle(client *httpClient, unitID string, jobIdx int, profile string, videoBytes []byte, hlsBase string, onConfirmed func()) UploadJobResult {
+func executeUploadLifecycle(client *httpClient, unitID string, jobIdx int, profile string, videoBytes []byte, hlsBase string, presupuesto time.Duration, onConfirmed func()) UploadJobResult {
 	res := UploadJobResult{
 		JobIndex:   jobIdx,
 		Profile:    profile,
@@ -865,10 +1026,34 @@ func executeUploadLifecycle(client *httpClient, unitID string, jobIdx int, profi
 		tStarted   time.Time
 		tCompleted time.Time
 	)
-	deadline := time.Now().Add(6 * time.Minute)
+
+	// El plazo lo decide quien lanza el nivel, a partir de la duracion real de
+	// los videos que ha metido en la cola. Antes habia aqui `6 * time.Minute`
+	// fijos, y eso es lo que impidio medir los perfiles reales:
+	//
+	//   - un video de 2 min se transcodifica en ~2,4 min (1,2x, nota 24),
+	//   - uno de 10 min en ~12, y uno de 30 en ~36.
+	//
+	// Con clips de 8 segundos, 6 minutos eran 36 veces el trabajo y nunca se
+	// agotaban. Con perfiles reales, cualquier nivel con un perfil medio o largo
+	// agota el plazo y la campana contaba esos trabajos como fallidos / DLQ,
+	// cuando seguian en cola. El informe decia "0 fallos" porque nunca espero
+	// lo suficiente para que hubiera ninguno.
+	deadline := time.Now().Add(presupuesto)
+
+	// Detector de atasco: separa "lento" de "colgado". Mientras el estado del
+	// recurso avance, se sigue esperando aunque falte mucho; si no se mueve
+	// nada durante este tiempo, no hace falta gastar el presupuesto entero.
+	const limiteAtasco = 12 * time.Minute
+	ultimoAvance := time.Now()
+	estadoPrevio := ""
 
 	for time.Now().Before(deadline) {
-		time.Sleep(300 * time.Millisecond)
+		// Dos segundos, no 300 ms: con doce trabajos concurrentes el sondeo de
+		// 300 ms metia ~40 peticiones/s contra la API dentro de la ventana
+		// medida. Los trabajos tardan minutos; sondear mas fino no mide mejor,
+		// solo anade carga que no es del escenario.
+		time.Sleep(2 * time.Second)
 
 		var resourcesResp struct {
 			Items []struct {
@@ -894,8 +1079,28 @@ func executeUploadLifecycle(client *httpClient, unitID string, jobIdx int, profi
 			}
 		}
 
+		if res.FinalStatus != estadoPrevio {
+			estadoPrevio = res.FinalStatus
+			ultimoAvance = time.Now()
+		}
+
 		if res.FinalStatus == "completed" || res.FinalStatus == "failed" {
 			break
+		}
+
+		if time.Since(ultimoAvance) > limiteAtasco {
+			res.ErrorMessage = fmt.Sprintf("atascado en %q durante %v", res.FinalStatus, limiteAtasco)
+			break
+		}
+	}
+
+	// Un trabajo que no llego a un estado terminal NO es un fallo: es una
+	// medicion incompleta, y se marca como tal para que no se publique como
+	// fallo ni como exito.
+	if res.FinalStatus != "completed" && res.FinalStatus != "failed" {
+		res.TimedOut = true
+		if res.ErrorMessage == "" {
+			res.ErrorMessage = fmt.Sprintf("seguia en %q al agotarse el presupuesto de %v", res.FinalStatus, presupuesto)
 		}
 	}
 
@@ -1006,6 +1211,11 @@ func runHLSStreamingSimulation(client *httpClient, hlsBase, stableID string, pac
 		latencia time.Duration
 		margen   float64
 		stall    bool
+		// conMargen distingue un margen medido de un cero. Sin esta marca, los
+		// segmentos del buffer inicial --que no tienen instante que cumplir--
+		// entraban en el minimo con un deficit inventado, y ese era el numero
+		// que se publicaba como «margen de buffer medido».
+		conMargen bool
 	}
 
 	var mu sync.Mutex
@@ -1016,7 +1226,15 @@ func runHLSStreamingSimulation(client *httpClient, hlsBase, stableID string, pac
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			inicio := time.Now()
+			// La reproduccion no empieza con la sesion: empieza cuando el
+			// buffer inicial esta lleno. Tomar el origen del inicio de la
+			// sesion --y encima restarle el buffer-- hacia el margen negativo
+			// por construccion: con la cadencia a 1x el reloj de descarga y el
+			// de reproduccion avanzan igual, asi que el deficit inicial nunca
+			// se recuperaba y el 100% de los segmentos salia como interrupcion.
+			// Medido asi, el nivel 0 publicaba -15,10 s y 16 interrupciones de
+			// 16 segmentos, y el nivel 1, 80 de 80.
+			var inicioReproduccion time.Time
 			for i, seg := range segments {
 				segURL := fmt.Sprintf("%s/hls/%s/%s", strings.TrimRight(hlsBase, "/"), stableID, seg)
 				sStart := time.Now()
@@ -1028,13 +1246,23 @@ func runHLSStreamingSimulation(client *httpClient, hlsBase, stableID string, pac
 					}
 					sResp.Body.Close()
 				}
+				llegada := time.Now()
 
 				m := muestra{latencia: sDur}
 				if patron == patronCadencia {
-					// Instante en que la reproduccion necesita este segmento.
-					deadline := float64(i-buffferInicialSegmentos) * res.SegDurSec
-					m.margen = deadline - time.Since(inicio).Seconds()
-					m.stall = i >= buffferInicialSegmentos && m.margen < 0
+					if i == buffferInicialSegmentos-1 {
+						inicioReproduccion = llegada
+					}
+					// El segmento i se reproduce en inicioReproduccion + i*d,
+					// porque el segmento 0 es el primero que se renderiza. El
+					// margen es cuanto falta para ese instante cuando llega.
+					if i >= buffferInicialSegmentos && !inicioReproduccion.IsZero() {
+						deadline := inicioReproduccion.Add(
+							time.Duration(float64(i) * res.SegDurSec * float64(time.Second)))
+						m.margen = deadline.Sub(llegada).Seconds()
+						m.stall = m.margen < 0
+						m.conMargen = true
+					}
 				}
 
 				mu.Lock()
@@ -1067,11 +1295,14 @@ func runHLSStreamingSimulation(client *httpClient, hlsBase, stableID string, pac
 	for _, m := range muestras {
 		latencias = append(latencias, m.latencia)
 		cum += m.latencia
-		if m.stall {
-			res.Stalls++
-		}
-		if patron == patronCadencia && m.margen < res.MargenMinSec {
-			res.MargenMinSec = m.margen
+		if m.conMargen {
+			res.ObsConMargen++
+			if m.stall {
+				res.Stalls++
+			}
+			if m.margen < res.MargenMinSec {
+				res.MargenMinSec = m.margen
+			}
 		}
 	}
 	res.Observaciones = len(muestras)
@@ -1147,14 +1378,32 @@ func runGreedyBulkDownload(client *httpClient, hlsBase, stableID string) float64
 	return (float64(totalBytes) / (1024 * 1024)) / dur.Seconds()
 }
 
-func observeQueueDrain(inspector *asynq.Inspector, db *sql.DB) DrainResult {
+// atascoDrenaje es cuanto se tolera que la cola no complete ni una tarea
+// antes de declararla atascada. Con perfiles reales, el trabajo mas largo
+// --30 minutos de video-- ocupa un vCPU unos 36 minutos, asi que el limite
+// tiene que ser mayor que eso o se cortaria un drenaje que va bien.
+const atascoDrenaje = 45 * time.Minute
+
+// maxErroresInspector son las lecturas seguidas de la cola que pueden fallar
+// antes de declarar el drenaje no observable. Cuatro segundos de ceguera.
+const maxErroresInspector = 5
+
+func observeQueueDrain(inspector *asynq.Inspector, db *sql.DB, plazo time.Duration) DrainResult {
 	res := DrainResult{
 		StartTime:      time.Now(),
 		DBStatusCounts: make(map[string]int),
 	}
+	ultimoCompletado := -1
+	ultimoAvanceDrenaje := time.Now()
 
-	initialInfo, _ := inspector.GetQueueInfo("default")
-	if initialInfo != nil {
+	res.Observable = true
+	erroresSeguidos := 0
+
+	initialInfo, errIni := inspector.GetQueueInfo("default")
+	if errIni != nil || initialInfo == nil {
+		log.Printf("  [Drenaje] AVISO: no se pudo leer el estado inicial de la cola: %v", errIni)
+		res.ErroresInspector++
+	} else {
 		res.InitialPending = initialInfo.Pending
 		res.Snapshots = append(res.Snapshots, DrainSnapshot{
 			ElapsedSec: 0.0,
@@ -1174,16 +1423,35 @@ func observeQueueDrain(inspector *asynq.Inspector, db *sql.DB) DrainResult {
 		elapsed := time.Since(start).Seconds()
 
 		info, err := inspector.GetQueueInfo("default")
-		pending := 0
-		active := 0
-		oldest := 0.0
-		completed := 0
-		if err == nil && info != nil {
-			pending = info.Pending
-			active = info.Active
-			oldest = info.Latency.Seconds()
-			completed = info.Processed
+		if err != nil || info == nil {
+			// NO se asume cero. Antes, un error del inspector dejaba
+			// pending=0 y active=0, y dos lineas mas abajo eso se publicaba
+			// como «la cola se ha vaciado totalmente». Un «no puedo leer la
+			// cola» es indistinguible de «la cola esta vacia», y la segunda
+			// afirmacion es la que acababa en la evidencia.
+			//
+			// Paso de verdad: con el tunel de IAP caido, el nivel 4 registro
+			// pico de cola 0 habiendo confirmado 12 subidas, y el drenaje se
+			// declaro completo con 13 trabajos pendientes en la base.
+			erroresSeguidos++
+			res.ErroresInspector++
+			if erroresSeguidos >= maxErroresInspector {
+				log.Printf("  [Drenaje NO OBSERVABLE] %d lecturas seguidas de la cola fallaron: %v",
+					erroresSeguidos, err)
+				log.Printf("    No se publica drenaje: no se vio la cola, que no es lo mismo que verla vacia.")
+				res.Observable = false
+				res.FinalPending = -1
+				res.FinalActive = -1
+				break
+			}
+			continue
 		}
+		erroresSeguidos = 0
+
+		pending := info.Pending
+		active := info.Active
+		oldest := info.Latency.Seconds()
+		completed := info.Processed
 
 		if pending > res.InitialPending {
 			res.InitialPending = pending
@@ -1208,11 +1476,31 @@ func observeQueueDrain(inspector *asynq.Inspector, db *sql.DB) DrainResult {
 			break
 		}
 
-		// Safety timeout: 10 minutes
-		if elapsed > 600 {
-			log.Printf("  [Alerta Drenaje] Timeout alcanzado tras 10 minutos.")
+		// Plazo de seguridad. Antes eran 10 minutos fijos, y con perfiles
+		// reales el drenaje del nivel 4 no cabe ni de lejos: 21 tareas en cola
+		// con mezcla de perfiles son decenas de minutos de vCPU. La campana
+		// anterior corto aqui con pending=17 y lo publico como "drenaje
+		// observado", que es lo contrario de lo que el criterio pide.
+		//
+		// El plazo lo pasa quien observa, calculado con el mismo factor de
+		// transcodificacion que los niveles. El corte real es el detector de
+		// atasco: si la cola no avanza, no hay nada que esperar.
+		if elapsed > plazo.Seconds() {
+			log.Printf("  [Alerta Drenaje] Plazo de %v agotado con pending=%d, active=%d.", plazo, pending, active)
 			res.FinalPending = pending
 			res.FinalActive = active
+			break
+		}
+
+		if completed > ultimoCompletado {
+			ultimoCompletado = completed
+			ultimoAvanceDrenaje = time.Now()
+		} else if time.Since(ultimoAvanceDrenaje) > atascoDrenaje {
+			log.Printf("  [Alerta Drenaje] La cola no avanza desde hace %v (pending=%d, active=%d): se corta.",
+				atascoDrenaje, pending, active)
+			res.FinalPending = pending
+			res.FinalActive = active
+			res.Atascada = true
 			break
 		}
 	}
@@ -1350,7 +1638,8 @@ func writeCorridaLog(path string, cfg Config, levels []LevelMetrics) {
 			lm.UploadWorkers, lm.TotalUploads, lm.StreamersCount))
 		sb.WriteString(fmt.Sprintf("• Perfiles utilizados   : %s\n", lm.ProfilesUsed))
 		sb.WriteString(fmt.Sprintf("• Duración corrida      : %v | Tasa: %.2f videos/min\n", lm.Duration.Round(time.Millisecond), lm.ThroughputVidsMin))
-		sb.WriteString(fmt.Sprintf("• Trabajos completados  : %d exitosos, %d fallidos / DLQ\n", lm.JobsProcessed, lm.JobsFailed))
+		sb.WriteString(fmt.Sprintf("• Trabajos completados  : %d exitosos, %d fallidos / DLQ, %d sin terminar de medir\n",
+			lm.JobsProcessed, lm.JobsFailed, lm.JobsTimedOut))
 		sb.WriteString(fmt.Sprintf("• Métricas de Cola      : Pico pending=%d | Pico active=%d | Antigüedad máxima=%.2fs\n\n",
 			lm.PeakPendingQueue, lm.PeakActiveQueue, lm.PeakOldestAgeSec))
 
@@ -1390,7 +1679,29 @@ func writeDrainLog(path string, cfg Config, d DrainResult) {
 	sb.WriteString(fmt.Sprintf("Fin de observación    : %s\n", d.EndTime.UTC().Format(time.RFC3339)))
 	sb.WriteString(fmt.Sprintf("Tiempo total drenaje  : %v\n", d.TotalDuration.Round(time.Millisecond)))
 	sb.WriteString(fmt.Sprintf("Cola inicial al corte : %d en espera (pending)\n", d.InitialPending))
-	sb.WriteString(fmt.Sprintf("Cola final alcanzada  : %d en espera (pending), %d en proceso (active)\n\n", d.FinalPending, d.FinalActive))
+	sb.WriteString(fmt.Sprintf("Cola final alcanzada  : %d en espera (pending), %d en proceso (active)\n", d.FinalPending, d.FinalActive))
+
+	// El veredicto va arriba y en letra grande. Antes, un drenaje que no se
+	// pudo observar producia exactamente el mismo archivo que uno vacio.
+	switch {
+	case !d.Observable:
+		sb.WriteString("\n*** DRENAJE NO OBSERVADO ***\n")
+		sb.WriteString(fmt.Sprintf("    %d lectura(s) de la cola fallaron. La cronología de abajo está\n", d.ErroresInspector))
+		sb.WriteString("    incompleta y NO demuestra que la cola se vaciara: no se vio la cola,\n")
+		sb.WriteString("    que no es lo mismo que verla vacía. Esta corrida no cierra el criterio\n")
+		sb.WriteString("    de observación del drenaje.\n\n")
+	case d.Atascada:
+		sb.WriteString("\n*** DRENAJE INTERRUMPIDO: LA COLA DEJÓ DE AVANZAR ***\n")
+		sb.WriteString("    Se cortó por el detector de atasco, no porque la cola se vaciara.\n\n")
+	case d.FinalPending == 0 && d.FinalActive == 0:
+		sb.WriteString("\nDrenaje completo: la cola llegó a 0 en espera y 0 en proceso.\n\n")
+	default:
+		sb.WriteString(fmt.Sprintf("\n*** PLAZO AGOTADO con %d en espera y %d en proceso ***\n\n", d.FinalPending, d.FinalActive))
+	}
+
+	if d.ErroresInspector > 0 && d.Observable {
+		sb.WriteString(fmt.Sprintf("AVISO: %d lectura(s) de la cola fallaron durante la observación.\n\n", d.ErroresInspector))
+	}
 
 	sb.WriteString("--------------------------------------------------------------------------------\n")
 	sb.WriteString(" 1. CRONOLOGÍA DE VACIADO DE LA COLA ASYNQ (POST-NIVEL 4)\n")
@@ -1417,11 +1728,40 @@ func writeDrainLog(path string, cfg Config, d DrainResult) {
 		}
 	}
 	sb.WriteString(fmt.Sprintf("\n• Trabajos colgados / huérfanos (pending / processing): %d\n", d.OrphanJobsCount))
-	sb.WriteString("• Diagnóstico de integridad: 100% de los trabajos aceptados alcanzaron 'completed' o 'failed' diagnosticable.\n")
-	sb.WriteString("• Condición de aceptación: CUMPLE TOTALMENTE (cola drenada a 0, sin estados indeterminados).\n")
+
+	// El diagnostico y la condicion de aceptacion estaban escritos fijos, asi
+	// que esta misma corrida publico «100% de los trabajos alcanzaron
+	// 'completed'» y «sin estados indeterminados» en las dos lineas siguientes
+	// a «huerfanos: 2». Un veredicto que no puede fallar no es un veredicto.
+	switch {
+	case !d.Observable:
+		sb.WriteString(fmt.Sprintf("• Diagnóstico de integridad: NO CONCLUYENTE. %d lectura(s) de la cola fallaron: la cronología de arriba tiene huecos.\n", d.ErroresInspector))
+		sb.WriteString("• Condición de aceptación: NO EVALUABLE (el drenaje no se pudo observar).\n")
+	case d.Atascada:
+		sb.WriteString(fmt.Sprintf("• Diagnóstico de integridad: la cola DEJÓ DE AVANZAR con %d en espera y %d en proceso.\n", d.FinalPending, d.FinalActive))
+		sb.WriteString("• Condición de aceptación: NO CUMPLE (drenaje cortado por atasco).\n")
+	case d.OrphanJobsCount > 0:
+		sb.WriteString(fmt.Sprintf("• Diagnóstico de integridad: la cola se vació de pendientes, pero al cierre quedaban %d recurso(s) sin estado terminal y %d tarea(s) en proceso. No son trabajos perdidos: son trabajos que la ventana de observación no alcanzó a cubrir.\n", d.OrphanJobsCount, d.FinalActive))
+		sb.WriteString("• Condición de aceptación: CUMPLE PARCIALMENTE (cola drenada a 0 en espera; verificación terminal incompleta).\n")
+	default:
+		sb.WriteString("• Diagnóstico de integridad: todos los trabajos aceptados alcanzaron 'completed' o un 'failed' diagnosticable.\n")
+		sb.WriteString("• Condición de aceptación: CUMPLE TOTALMENTE (cola drenada a 0, sin estados indeterminados).\n")
+	}
 	sb.WriteString("================================================================================\n")
 
 	_ = os.WriteFile(path, []byte(sb.String()), 0644)
+}
+
+// maxUploads es el nivel mas cargado, para decir contra que minimo de
+// observaciones se queda corto el p95 por nivel.
+func maxUploads(levels []LevelMetrics) int {
+	n := 0
+	for _, lm := range levels {
+		if lm.TotalUploads > n {
+			n = lm.TotalUploads
+		}
+	}
+	return n
 }
 
 func writeExecutiveSummary(path string, cfg Config, levels []LevelMetrics, drain DrainResult) {
@@ -1472,101 +1812,314 @@ func writeExecutiveSummary(path string, cfg Config, levels []LevelMetrics, drain
 	sb.WriteString(fmt.Sprintf("| **Interrupciones observadas** | %s | %s | %s | %s | %s |\n\n",
 		stallsTexto(levels[0].HLSStreaming), stallsTexto(levels[1].HLSStreaming), stallsTexto(levels[2].HLSStreaming), stallsTexto(levels[3].HLSStreaming), stallsTexto(levels[4].HLSStreaming)))
 	sb.WriteString("> El **tiempo al primer cuadro** no aparece en esta tabla. Solo se publica si lo produce un reproductor; " +
-		"ver la sección 6 de [`capacity-planning/criterios_de_medicion.md`](../../../../capacity-planning/criterios_de_medicion.md). " +
+		"ver la sección 6 de `capacity-planning/criterios_de_medicion.md`. " +
 		"La Entrega 2 lo reportó como latencia HTTP más 45 ms fijos, que es una constante y no una medición.\n\n")
 
 	sb.WriteString("## 2. Hallazgos Principales por Etapa\n\n")
-	sb.WriteString("1. **Plano de Control (Etapas 1 y 3):** La emisión de URLs prefirmadas (`POST /api/v1/media/presigned-url`) y la confirmación (`POST /api/v1/media/uploads/{id}/complete`) mantuvieron latencias p95 inferiores a **20 ms** a lo largo de todos los niveles. Esto demuestra que desacoplar la carga mediante URLs firmadas protege completamente al servidor Web de la degradación por transferencia de archivos.\n")
-	sb.WriteString("2. **Plano de Datos (Etapa 2):** Las transferencias directas de videos al almacenamiento de objetos operaron a un rendimiento sostenido de entre **25 y 45 MB/s** con 100% de respuestas HTTP 200/204 y cero errores.\n")
-	sb.WriteString("3. **Plano de Mensajería (Etapa 4):** Concurrencia de workers fijada en 2 (`WORKER_CONCURRENCY=2`). En Niveles 0 y 1, el tiempo de espera en cola fue prácticamente nulo (< 1s). Al alcanzar el Nivel 3 y 4 (lambda > mu), la cola acumuló hasta **10 tareas en espera**, haciendo que el tiempo de residencia en cola aumentara hasta representar el 70–80% del tiempo total a `available`.\n")
-	sb.WriteString("4. **Plano de Cómputo (Etapa 5):** Cada transcodificación FFmpeg consumió el 100% de una vCPU física. Con 2 workers, el rendimiento estuvo estrictamente acotado por la capacidad de CPU de la máquina.\n")
-	sb.WriteString("5. **Drenaje de Cola:** Tras cesar la inyección en Nivel 4, la cola se drenó en su totalidad en **" + fmt.Sprintf("%v", drain.TotalDuration.Round(100*time.Millisecond)) + "** sin registrar ninguna tarea colgada en estado indeterminado.\n")
+
+	// Estos cinco hallazgos eran cinco frases escritas a mano en la Entrega 2.
+	// Sobrevivieron a un cambio de entorno, de codigo y de perfiles, y acabaron
+	// contradiciendo a la tabla de arriba en la misma pagina: afirmaban «p95
+	// inferior a 20 ms» donde la tabla dice n/d, «entre 25 y 45 MB/s» donde se
+	// midio 0,71, «hasta 10 tareas en espera» con un pico de 14, y un drenaje
+	// «sin ninguna tarea colgada» con 19 trabajos sin estado terminal.
+	//
+	// Es el defecto que A6 prohibe: una constante publicada como medicion. Ahora
+	// cada numero de esta seccion sale de la corrida, o no se escribe.
+	var (
+		peorFirma, peorConfirm         time.Duration
+		obsFirma, obsConfirm           int
+		fallosControl                  int
+		mbsMin, mbsMax                 = math.Inf(1), math.Inf(-1)
+		picoPending, picoActive        int
+		peorEdadCola                   float64
+		sinMedirTotal, fallidosTotal   int
+		erroresColaTotal, medidosTotal int
+	)
+	for _, lm := range levels {
+		if lm.Stage1.MaxDur > peorFirma {
+			peorFirma = lm.Stage1.MaxDur
+		}
+		if lm.Stage3.MaxDur > peorConfirm {
+			peorConfirm = lm.Stage3.MaxDur
+		}
+		obsFirma += lm.Stage1.Count
+		obsConfirm += lm.Stage3.Count
+		fallosControl += lm.Stage1.Failures + lm.Stage3.Failures
+		if lm.Stage2ThroughputMBs > 0 {
+			mbsMin = math.Min(mbsMin, lm.Stage2ThroughputMBs)
+			mbsMax = math.Max(mbsMax, lm.Stage2ThroughputMBs)
+		}
+		if lm.PeakPendingQueue > picoPending {
+			picoPending = lm.PeakPendingQueue
+		}
+		if lm.PeakActiveQueue > picoActive {
+			picoActive = lm.PeakActiveQueue
+		}
+		if lm.PeakOldestAgeSec > peorEdadCola {
+			peorEdadCola = lm.PeakOldestAgeSec
+		}
+		sinMedirTotal += lm.JobsTimedOut
+		fallidosTotal += lm.JobsFailed
+		erroresColaTotal += lm.ErroresCola
+		medidosTotal += lm.Stage6.Count
+	}
+
+	sb.WriteString(fmt.Sprintf("1. **Plano de control (etapas 1 y 3).** El p95 por nivel **no es publicable**: con %d subidas como máximo, ningún nivel alcanza las %d observaciones que un p95 necesita (A6). Lo que sí está medido: %d firmas y %d confirmaciones con **%d fallos**, y un peor caso de **%v** al firmar y **%v** al confirmar. Esos peores casos incluyen el ida y vuelta de red del generador, así que acotan el plano de control por arriba: menos de un segundo frente a etapas de minutos, que es la afirmación que el desacople por URL prefirmada necesita; el p95 exige un nivel de 20 subidas o más.\n",
+		maxUploads(levels), obsMinimas[95], obsFirma, obsConfirm, fallosControl,
+		peorFirma.Round(time.Millisecond), peorConfirm.Round(time.Millisecond)))
+
+	if math.IsInf(mbsMin, 1) {
+		sb.WriteString("2. **Plano de datos (etapa 2).** Sin medición de rendimiento de subida en esta corrida.\n")
+	} else {
+		sb.WriteString(fmt.Sprintf("2. **Plano de datos (etapa 2).** El PUT directo al almacenamiento de objetos rindió entre **%.2f y %.2f MB/s** por nivel. **Este número mide el enlace del generador, no la plataforma**: la subida va del portátil que ejecuta la campaña a Cloud Storage sin pasar por el servidor web, así que lo que acota es el ancho de banda de salida doméstico. Para calificar la plataforma hay que medirlo desde una máquina en la misma región.\n",
+			mbsMin, mbsMax))
+	}
+
+	if erroresColaTotal > 0 {
+		sb.WriteString(fmt.Sprintf("3. **Plano de mensajería (etapa 4).** No publicable: %d lecturas de la cola fallaron durante los niveles, así que el pico y la antigüedad no son fiables.\n", erroresColaTotal))
+	} else {
+		sb.WriteString(fmt.Sprintf("3. **Plano de mensajería (etapa 4).** Con `WORKER_CONCURRENCY=%d`, la cola llegó a un pico de **%d tareas en espera** (%d activas) y una antigüedad máxima de **%.0f s**. La espera en cola, no el transcodificado, es lo que domina el tiempo hasta `available`; el reparto exacto por etapa está en `etapas_reconstruidas.txt`, reconstruido de los registros del worker.\n",
+			cfg.WorkerConcurrency, picoPending, picoActive, peorEdadCola))
+	}
+
+	sb.WriteString("4. **Plano de cómputo (etapa 5).** La campaña **no mide CPU**: solo observa la cola y la API. El uso de CPU de las dos máquinas durante la ventana está en `metricas_gcp.json`, recogido de Cloud Monitoring, y es lo único que puede sostener una afirmación sobre saturación de vCPU.\n")
+
+	switch {
+	case !drain.Observable:
+		sb.WriteString(fmt.Sprintf("5. **Drenaje de cola.** **No observable**: %d lecturas de la cola fallaron. Nada de lo que sigue sobre el drenaje es publicable.\n", drain.ErroresInspector))
+	case drain.Atascada:
+		sb.WriteString(fmt.Sprintf("5. **Drenaje de cola.** **Cortado por atasco** tras %v: la cola dejó de completar tareas con %d pendientes y %d activas.\n",
+			drain.TotalDuration.Round(100*time.Millisecond), drain.FinalPending, drain.FinalActive))
+	case drain.FinalPending > 0 || drain.FinalActive > 0:
+		sb.WriteString(fmt.Sprintf("5. **Drenaje de cola.** El plazo de observación se agotó tras %v con **%d pendientes y %d activas**: la cola se vació de pendientes pero la corrida terminó con trabajo en vuelo, así que esa duración **no es el tiempo de drenaje**.\n",
+			drain.TotalDuration.Round(100*time.Millisecond), drain.FinalPending, drain.FinalActive))
+	default:
+		sb.WriteString(fmt.Sprintf("5. **Drenaje de cola.** Tras cesar la inyección, la cola se vació por completo en **%v**, sin tareas en vuelo al cierre.\n",
+			drain.TotalDuration.Round(100*time.Millisecond)))
+	}
+
+	if sinMedirTotal > 0 || fallidosTotal > 0 {
+		sb.WriteString(fmt.Sprintf("\n> **Medición incompleta.** %d trabajo(s) no alcanzaron un estado terminal dentro del presupuesto de su nivel y %d fallaron. Las etapas 4, 5 y 6 solo se registraron para los %d trabajos terminales, así que **esta tabla subestima el trabajo que la plataforma hizo**. Lo que la plataforma sí registró se reconstruye en `etapas_reconstruidas.txt`.\n",
+			sinMedirTotal, fallidosTotal, medidosTotal))
+	}
 
 	_ = os.WriteFile(path, []byte(sb.String()), 0644)
 }
 
+// hechos son los numeros que los documentos de conclusiones pueden citar. Existe
+// porque los tres --cuello de botella, informe y README-- se escribian con
+// cifras fijas, y una cifra fija sobrevive al cambio de entorno, de codigo y de
+// perfiles sin que nadie se entere. Si un dato no esta aqui, no se afirma.
+type hechos struct {
+	maxUploads          int
+	obsControl          int
+	fallosCtrl          int
+	peorFirma           time.Duration
+	peorConfirm         time.Duration
+	mbsMin              float64
+	mbsMax              float64
+	greedyMax           float64
+	picoPending         int
+	picoActive          int
+	peorEdadCola        float64
+	peorEtapa6          time.Duration
+	sinMedir            int
+	fallidos            int
+	medidos             int
+	erroresCola         int
+	obsSegmento         int
+	nivelesSinSegmentos int
+}
+
+func resumirHechos(levels []LevelMetrics) hechos {
+	h := hechos{mbsMin: math.Inf(1), mbsMax: math.Inf(-1)}
+	for _, lm := range levels {
+		if lm.TotalUploads > h.maxUploads {
+			h.maxUploads = lm.TotalUploads
+		}
+		h.obsControl += lm.Stage1.Count
+		h.fallosCtrl += lm.Stage1.Failures + lm.Stage3.Failures
+		if lm.Stage1.MaxDur > h.peorFirma {
+			h.peorFirma = lm.Stage1.MaxDur
+		}
+		if lm.Stage3.MaxDur > h.peorConfirm {
+			h.peorConfirm = lm.Stage3.MaxDur
+		}
+		if lm.Stage2ThroughputMBs > 0 {
+			h.mbsMin = math.Min(h.mbsMin, lm.Stage2ThroughputMBs)
+			h.mbsMax = math.Max(h.mbsMax, lm.Stage2ThroughputMBs)
+		}
+		if lm.GreedyDownloadMBps > h.greedyMax {
+			h.greedyMax = lm.GreedyDownloadMBps
+		}
+		if lm.PeakPendingQueue > h.picoPending {
+			h.picoPending = lm.PeakPendingQueue
+		}
+		if lm.PeakActiveQueue > h.picoActive {
+			h.picoActive = lm.PeakActiveQueue
+		}
+		if lm.PeakOldestAgeSec > h.peorEdadCola {
+			h.peorEdadCola = lm.PeakOldestAgeSec
+		}
+		if lm.Stage6.MaxDur > h.peorEtapa6 {
+			h.peorEtapa6 = lm.Stage6.MaxDur
+		}
+		h.sinMedir += lm.JobsTimedOut
+		h.fallidos += lm.JobsFailed
+		h.medidos += lm.Stage6.Count
+		h.erroresCola += lm.ErroresCola
+		h.obsSegmento += lm.HLSStreaming.Observaciones
+		if lm.HLSStreaming.Observaciones == 0 {
+			h.nivelesSinSegmentos++
+		}
+	}
+	if math.IsInf(h.mbsMin, 1) {
+		h.mbsMin, h.mbsMax = 0, 0
+	}
+	return h
+}
+
+// mbsTexto no inventa un rango cuando no hubo medicion.
+func mbsTexto(h hechos) string {
+	if h.mbsMax == 0 {
+		return "sin medición"
+	}
+	return fmt.Sprintf("%.2f–%.2f MB/s", h.mbsMin, h.mbsMax)
+}
+
+// ordenarClaves da un orden estable a los estados de la consulta terminal, para
+// que dos corridas iguales produzcan evidencia igual.
+func ordenarClaves(m map[string]int) []string {
+	claves := make([]string, 0, len(m))
+	for k := range m {
+		claves = append(claves, k)
+	}
+	sort.Strings(claves)
+	return claves
+}
+
 func writeBottleneckAnalysis(path string, cfg Config, levels []LevelMetrics, drain DrainResult) {
 	var sb strings.Builder
+	h := resumirHechos(levels)
+
 	sb.WriteString("# Análisis del Cuello de Botella y Propuesta de Evolución Arquitectural (H5)\n\n")
 	sb.WriteString(cabeceraMarkdown(cfg))
+
 	sb.WriteString("## 1. Identificación y Sustentación del Cuello de Botella Primario\n\n")
-	sb.WriteString("A partir de la instrumentación desacoplada en 6 etapas y los 5 niveles evaluados, el **cuello de botella primario** del flujo multimedia queda identificado de forma concluyente en la **capacidad de cómputo (vCPU) de los workers durante la transcodificación con FFmpeg (Etapa 5)**.\n\n")
+	sb.WriteString(fmt.Sprintf("El **cuello de botella primario** del flujo multimedia es la **capacidad de cómputo (vCPU) del worker durante la transcodificación con FFmpeg (etapa 5)**. Lo que esta campaña mide y sostiene esa conclusión es la **cola**: con `WORKER_CONCURRENCY=%d` llegó a un pico de **%d tareas en espera** (%d activas) y una antigüedad máxima de **%.0f s**. Una cola que crece mientras la tasa de llegada es constante no tiene otra causa que una tasa de servicio insuficiente.\n\n",
+		cfg.WorkerConcurrency, h.picoPending, h.picoActive, h.peorEdadCola))
 
-	sb.WriteString("### Evidencia Cuantitativa que lo Sustenta\n\n")
-	sb.WriteString("1. **Descarte del Servidor Web (Control Plane):**\n")
-	sb.WriteString("   - Latencia p95 de emisión de URL firmada: **< 15 ms** en todos los niveles.\n")
-	sb.WriteString("   - Latencia p95 de confirmación de carga: **< 18 ms** en todos los niveles.\n")
-	sb.WriteString("   - Tasa de error en la API: **0.00%** (cero errores 5xx).\n")
-	sb.WriteString("   - Cero bytes multimedia pasaron por la interfaz de red de la API.\n\n")
+	sb.WriteString("### Qué sostiene esta campaña, y qué no\n\n")
+	sb.WriteString("1. **Descarte del servidor web (plano de control).** ")
+	sb.WriteString(fmt.Sprintf("El p95 por nivel no es publicable: con %d subidas como máximo ningún nivel llega a las %d observaciones que un p95 necesita (A6). Lo medido son %d firmas y %d confirmaciones con **%d fallos**, con un peor caso de **%v** al firmar y **%v** al confirmar; esos peores casos incluyen el ida y vuelta de red del generador. Lo que sí queda demostrado sin percentiles: **cero bytes multimedia pasaron por la API**, porque el PUT va del cliente al almacenamiento con URL prefirmada.\n",
+		h.maxUploads, obsMinimas[95], h.obsControl, h.obsControl, h.fallosCtrl,
+		h.peorFirma.Round(time.Millisecond), h.peorConfirm.Round(time.Millisecond)))
 
-	sb.WriteString("2. **Descarte del Almacenamiento de Objetos (Data Plane):**\n")
-	sb.WriteString("   - Rendimiento sostenido de subida directa (PUT): **> 30 MB/s**.\n")
-	sb.WriteString("   - Rendimiento sostenido de descarga HLS (GET): **> 120 MB/s** en modo ráfaga greedy.\n")
-	sb.WriteString("   - Tasa de errores en el bucket: **0.00%** (cero respuestas 429, 403 o 503).\n\n")
+	sb.WriteString(fmt.Sprintf("2. **Plano de datos.** El PUT directo rindió **%s** y la descarga masiva **%.2f MB/s**. **Ninguno de los dos califica al almacenamiento**: los dos miden el enlace del generador, que es un portátil fuera de la región. Para descartar el almacenamiento como cuello de botella hay que medirlo desde una máquina en `us-east1`.\n",
+		mbsTexto(h), h.greedyMax))
 
-	sb.WriteString("3. **Saturación en Worker Server (Cómputo Asíncrono):**\n")
-	sb.WriteString("   - En la instancia `mooc-worker-server` (`e2-highcpu-2`), cada proceso FFmpeg transcodificando a 360p y 720p sin upscaling satura exactamente el 100% de una vCPU dedicada.\n")
-	sb.WriteString("   - Con `WORKER_CONCURRENCY=2`, la capacidad de servicio máxima del nodo es de **2 tareas simultáneas**.\n")
-	sb.WriteString("   - Cuando la tasa de llegada superó mu en los Niveles 3 y 4, la profundidad de la cola creció monótonamente hasta alcanzar tareas en espera y la antigüedad máxima de la cola superó los 35 segundos.\n")
-	sb.WriteString("   - En Nivel 4, el tiempo de espera en cola dominó el ciclo de vida, elevando el tiempo total hasta `available` a más de 18 segundos, a pesar de que el cómputo puro de transcodificación se mantuvo constante en ~2.8s por tarea.\n\n")
+	sb.WriteString("3. **Saturación del worker.** La campaña **no mide CPU**. La evidencia del 100% de vCPU está en `metricas_gcp.json`, recogido de Cloud Monitoring en la ventana de la corrida, y es lo único que puede sostenerla.\n")
+
+	sb.WriteString(fmt.Sprintf("4. **Reparto del ciclo de vida.** De %d trabajos, la campaña solo llegó a cronometrar las etapas 4, 5 y 6 de **%d**: %d no alcanzaron estado terminal dentro del presupuesto de su nivel. El reparto real entre espera en cola y transcodificado está en `etapas_reconstruidas.txt`, reconstruido de los registros del propio worker.\n\n",
+		h.medidos+h.sinMedir+h.fallidos, h.medidos, h.sinMedir))
 
 	sb.WriteString("## 2. Modelado de Mejoras Arquitecturales y Evolución\n\n")
-	sb.WriteString("### A. Red de Entrega de Contenidos (CDN) para Distribución HLS\n")
-	sb.WriteString("- **Situación actual:** Los reproductores solicitan manifiestos y segmentos `.ts` directamente al endpoint del bucket de almacenamiento. Aunque el almacenamiento tiene alta disponibilidad, cada petición consume operaciones GET facturadas y ancho de banda de egreso a internet.\n")
-	sb.WriteString("- **Impacto de CDN:**\n")
-	sb.WriteString("  * **Cache Hit Ratio esperado:** > 95% para segmentos de video estáticos.\n")
-	sb.WriteString("  * **Reducción de latencia:** El TTFB del manifiesto y segmentos baja de ~70–120 ms a **< 15 ms** desde nodos perimetrales (Edge).\n")
-	sb.WriteString("  * **Ahorro de costos y egreso:** Alivio total del ancho de banda de salida del bucket origin (Nota técnica 13).\n\n")
+	sb.WriteString("> Las cifras de esta sección son **objetivos de diseño a verificar**, no mediciones de esta corrida.\n\n")
 
-	sb.WriteString("### B. Escalamiento Dinámico de Workers (Auto-scaling / MIG)\n")
-	sb.WriteString("- **Métrica de escalamiento:** Se propone autoescalar el grupo de workers utilizando la métrica `worker.queue.pending` o `worker.queue.oldest_pending_age_seconds`.\n")
-	sb.WriteString("- **Regla de escalado:**\n")
-	sb.WriteString("  * Si `worker.queue.oldest_pending_age_seconds > 45s` durante 1 minuto -> Disparar escalamiento horizontal agregando 1 o 2 instancias `mooc-worker-server`.\n")
-	sb.WriteString("  * Cada nueva instancia duplica la tasa de servicio mu (+2 vCPUs), vaciando la cola en ráfagas sin incurrir en costos fijos durante periodos valle.\n\n")
+	sb.WriteString("### A. Red de entrega de contenidos (CDN) para la distribución HLS\n")
+	sb.WriteString("- **Situación actual.** Los reproductores piden manifiestos y segmentos directamente al bucket: cada peticion es una operación GET facturada más egreso a internet.\n")
+	sb.WriteString("- **Qué cambia.** Un CDN delante del prefijo público `/hls/` sirve los segmentos desde el borde. Los segmentos son inmutables, así que la tasa de acierto debería ser alta; el objetivo y la forma de comprobarlo quedan para C7, y el ahorro de egreso está en la nota técnica 13.\n\n")
 
-	sb.WriteString("### C. Ajuste de Concurrencia por Nodo\n")
-	sb.WriteString("- **Justificación de concurrencia actual:** En `e2-highcpu-2` (2 vCPU, 2 GiB RAM), `WORKER_CONCURRENCY=2` es óptimo. Intentar forzar concurrencia 4 en esta máquina provocaría contención severa de cambios de contexto en CPU y riesgo inminente de *Out Of Memory* (OOM), ya que cada transcodificación demanda ~500 MiB de RAM.\n")
-	sb.WriteString("- **Evolución de tipo de máquina:** Para mayor densidad sin aumentar el número de VMs, migrar a `c2-standard-4` (4 vCPUs dedicadas, 16 GiB RAM) permitiría elevar `WORKER_CONCURRENCY=4` de forma segura, duplicando el rendimiento por nodo.\n")
+	sb.WriteString("### B. Escalado dinámico de workers (MIG con autoescalado)\n")
+	sb.WriteString(fmt.Sprintf("- **Métrica de escalado.** `worker.queue.oldest_pending_age_seconds`, que esta corrida vio llegar a **%.0f s**: es la señal que distingue una ráfaga absorbida de una cola que no se recupera.\n", h.peorEdadCola))
+	sb.WriteString("- **Regla.** Umbral sobre esa antigüedad sostenida durante un minuto, añadiendo instancias de worker. Cada instancia añade 2 vCPU, es decir duplica la tasa de servicio actual, y se retira en el valle.\n")
+	sb.WriteString(fmt.Sprintf("- **Cuánto hace falta.** Con la antigüedad máxima en %.0f s y un pico de %d en espera, absorber el nivel más cargado de esta campaña sin acumular cola exige del orden de %d veces la capacidad de cómputo actual. El cálculo con los tiempos reales por perfil está en `etapas_reconstruidas.txt`.\n\n",
+		h.peorEdadCola, h.picoPending, (h.picoPending+cfg.WorkerConcurrency)/cfg.WorkerConcurrency))
+
+	sb.WriteString("### C. Ajuste de concurrencia por nodo\n")
+	sb.WriteString(fmt.Sprintf("- **Por qué %d.** En `e2-highcpu-2` (2 vCPU) hay un proceso de transcodificación por vCPU. Subir la concurrencia en esta misma máquina reparte las mismas vCPU entre más procesos: no añade capacidad, añade cambios de contexto.\n", cfg.WorkerConcurrency))
+	sb.WriteString("- **Evolución de tipo de máquina.** Más vCPU por nodo permite más concurrencia real. El tipo concreto y su coste se deciden en C6 con el factor de transcodificación medido por perfil, no con un supuesto.\n")
 
 	_ = os.WriteFile(path, []byte(sb.String()), 0644)
 }
 
 func writeH5README(path string, cfg Config, levels []LevelMetrics, drain DrainResult) {
 	var sb strings.Builder
-	sb.WriteString("# Evidencia H5 — Análisis de Capacidad: Escenario 2 (Carga, Procesamiento y Consumo Multimedia)\n\n")
-	sb.WriteString("Este directorio documenta el cumplimiento exhaustivo del entregable **H5**, correspondiente a la rúbrica **Análisis de capacidad — escenario 2 (10%)** de la Entrega 2.\n\n")
+	h := resumirHechos(levels)
 
+	// El estado de cada criterio se deriva. Antes eran diez palomas fijas, asi
+	// que esta corrida publico «vaciado total, 0 trabajos huerfanos ✅» con dos
+	// recursos en processing, y «latencia de segmentos ✅» con tres niveles que
+	// no descargaron ni un segmento.
+	estado := func(ok bool) string {
+		if ok {
+			return "✅"
+		}
+		return "⚠️"
+	}
+
+	sb.WriteString("# Evidencia — Análisis de Capacidad: Escenario 2 (Carga, Procesamiento y Consumo Multimedia)\n\n")
+	sb.WriteString("Este directorio documenta la rúbrica **Análisis de capacidad — escenario 2 (10%)**.\n\n")
 	sb.WriteString(cabeceraMarkdown(cfg))
-	sb.WriteString("## Estado y Verificación de Criterios de Aceptación\n\n")
-	sb.WriteString("| Criterio de la Rúbrica / Tarea | Evidencia Generada | Estado |\n")
+
+	if h.sinMedir > 0 || h.fallidos > 0 {
+		sb.WriteString(fmt.Sprintf("> **Medición incompleta.** De %d trabajos, la campaña cronometró las etapas 4, 5 y 6 de **%d**; %d no alcanzaron estado terminal dentro del presupuesto de su nivel y %d fallaron. Lo que la plataforma sí registró se reconstruye en [`etapas_reconstruidas.txt`](./etapas_reconstruidas.txt) desde el log del worker.\n\n",
+			h.medidos+h.sinMedir+h.fallidos, h.medidos, h.sinMedir, h.fallidos))
+	}
+
+	sb.WriteString("## Estado de los Criterios de Aceptación\n\n")
+	sb.WriteString("| Criterio de la rúbrica | Evidencia | Estado |\n")
 	sb.WriteString("| :--- | :--- | :---: |\n")
-	sb.WriteString("| **Línea base y al menos tres niveles crecientes** | 5 niveles ejecutados (Nivel 0 Base, Niveles 1 al 4) documentados en [`corrida_niveles_escenario2.txt`](./corrida_niveles_escenario2.txt) | ✅ |\n")
-	sb.WriteString("| **Métricas separadas por etapa (no agregado único)** | 6 etapas desacopladas medidas y cronometradas en [`resumen_ejecutivo_escenario2.md`](./resumen_ejecutivo_escenario2.md) | ✅ |\n")
-	sb.WriteString("| **Trabajos completados por unidad de tiempo, reintentos y fallos** | Throughput registrado (videos/min), cero fallos y cero retries en [`corrida_niveles_escenario2.txt`](./corrida_niveles_escenario2.txt) | ✅ |\n")
-	sb.WriteString("| **Evolución de profundidad y antigüedad de la cola** | Métricas `worker.queue.pending` y `oldest_pending_age_seconds` capturadas por nivel | ✅ |\n")
-	sb.WriteString("| **Latencia, throughput y errores en storage vs control API** | Tráfico de control (API REST) vs transferencia binaria (Object Storage) rigurosamente segregados | ✅ |\n")
-	sb.WriteString(fmt.Sprintf("| **Latencia y errores de manifiestos y segmentos HLS** | Patrón declarado `%s`, %d estudiantes concurrentes en el nivel máximo; descarga a máxima velocidad medida aparte | ✅ |\n",
-		cfg.Patron, levels[len(levels)-1].HLSStreaming.Streamers))
-	sb.WriteString("| **Decisión de reproductor real (TTFF y stalls)** | **Pendiente.** El tiempo al primer cuadro no se publica: esta campaña mide transporte, no reproducción. Criterio y forma de medirlo en [`criterios_de_medicion.md`](../../../../capacity-planning/criterios_de_medicion.md), sección 6 | ⏳ |\n")
-	sb.WriteString("| **Observación del drenaje y verificación de consistencia** | Vaciado total cronometrado en [`drenaje_cola_verificacion.txt`](./drenaje_cola_verificacion.txt), 0 trabajos huérfanos | ✅ |\n")
-	sb.WriteString("| **Cuello de botella identificado y evolución (CDN / escalado)** | Análisis cuantitativo sustentado en [`analisis_cuello_de_botella.md`](./analisis_cuello_de_botella.md) | ✅ |\n")
-	sb.WriteString("| **Seguridad de secretos estricta** | Cero credenciales, tokens o firmas V4 en repositorios ni logs (sanitización automática) | ✅ |\n\n")
 
-	sb.WriteString("## Archivos de Evidencia en este Directorio\n\n")
-	sb.WriteString("1. [`corrida_niveles_escenario2.txt`](./corrida_niveles_escenario2.txt): Registro crudo y estructurado de la ejecución de los 5 niveles.\n")
-	sb.WriteString("2. [`drenaje_cola_verificacion.txt`](./drenaje_cola_verificacion.txt): Traza de segundo a segundo del vaciado de la cola y verificación terminal en PostgreSQL.\n")
-	sb.WriteString("3. [`resumen_ejecutivo_escenario2.md`](./resumen_ejecutivo_escenario2.md): Tabla consolidada y comparativa de métricas por etapa a lo largo de los niveles.\n")
-	sb.WriteString("4. [`analisis_cuello_de_botella.md`](./analisis_cuello_de_botella.md): Demostración del cuello de botella en vCPU de FFmpeg y modelado de CDN y autoescalado.\n\n")
+	sb.WriteString(fmt.Sprintf("| Línea base y al menos tres niveles crecientes | %d niveles en [`corrida_niveles_escenario2.txt`](./corrida_niveles_escenario2.txt) | %s |\n",
+		len(levels), estado(len(levels) >= 4)))
+	sb.WriteString(fmt.Sprintf("| Métricas separadas por etapa, no un agregado único | 6 etapas en [`resumen_ejecutivo_escenario2.md`](./resumen_ejecutivo_escenario2.md); las etapas 4–6 completas en [`etapas_reconstruidas.txt`](./etapas_reconstruidas.txt) | %s |\n",
+		estado(h.medidos+h.sinMedir > 0)))
+	sb.WriteString(fmt.Sprintf("| Trabajos por unidad de tiempo, reintentos y fallos | %d fallos reales, %d sin estado terminal al cierre de su nivel | %s |\n",
+		h.fallidos, h.sinMedir, estado(h.sinMedir == 0 && h.fallidos == 0)))
+	sb.WriteString(fmt.Sprintf("| Evolución de profundidad y antigüedad de la cola | pico %d en espera, antigüedad máxima %.0f s, con %d errores de lectura | %s |\n",
+		h.picoPending, h.peorEdadCola, h.erroresCola, estado(h.erroresCola == 0)))
+	sb.WriteString(fmt.Sprintf("| Latencia y throughput de storage frente a la API de control | tráfico de control y transferencia binaria separados; PUT %s, **medido desde el generador, no desde la región** | ⚠️ |\n",
+		mbsTexto(h)))
+	sb.WriteString(fmt.Sprintf("| Latencia y errores de manifiestos y segmentos HLS | %d descargas de segmento medidas; %d de %d niveles sin ningún segmento porque sus vídeos aún no estaban transcodificados | %s |\n",
+		h.obsSegmento, h.nivelesSinSegmentos, len(levels), estado(h.nivelesSinSegmentos == 0)))
+	sb.WriteString("| Decisión de reproductor real (TTFF y stalls) | **Pendiente.** Esta campaña mide transporte, no reproducción. Criterio y forma de medirlo en `capacity-planning/criterios_de_medicion.md` §6 | ⏳ |\n")
 
-	sb.WriteString("## Cómo Reproducir las Pruebas\n\n")
+	switch {
+	case !drain.Observable:
+		sb.WriteString(fmt.Sprintf("| Observación del drenaje y consistencia | **no observable**: %d lecturas de la cola fallaron | ⚠️ |\n", drain.ErroresInspector))
+	case drain.OrphanJobsCount > 0 || drain.FinalActive > 0:
+		sb.WriteString(fmt.Sprintf("| Observación del drenaje y consistencia | [`drenaje_cola_verificacion.txt`](./drenaje_cola_verificacion.txt): %d → %d en espera en %v, con %d en proceso y %d recurso(s) sin estado terminal al cierre | ⚠️ |\n",
+			drain.InitialPending, drain.FinalPending, drain.TotalDuration.Round(time.Second), drain.FinalActive, drain.OrphanJobsCount))
+	default:
+		sb.WriteString(fmt.Sprintf("| Observación del drenaje y consistencia | [`drenaje_cola_verificacion.txt`](./drenaje_cola_verificacion.txt): cola vaciada en %v, sin trabajos huérfanos | ✅ |\n",
+			drain.TotalDuration.Round(time.Second)))
+	}
+
+	sb.WriteString("| Cuello de botella identificado y evolución (CDN / escalado) | [`analisis_cuello_de_botella.md`](./analisis_cuello_de_botella.md) | ✅ |\n")
+	sb.WriteString("| Seguridad de secretos | sin credenciales, tokens ni firmas V4 en la evidencia | ✅ |\n\n")
+
+	sb.WriteString("## Archivos\n\n")
+	sb.WriteString("| | |\n| :--- | :--- |\n")
+	sb.WriteString("| [`corrida_niveles_escenario2.txt`](./corrida_niveles_escenario2.txt) | Registro por nivel, con las seis etapas y la cola |\n")
+	sb.WriteString("| [`drenaje_cola_verificacion.txt`](./drenaje_cola_verificacion.txt) | Cronología del vaciado y verificación terminal en PostgreSQL |\n")
+	sb.WriteString("| [`resumen_ejecutivo_escenario2.md`](./resumen_ejecutivo_escenario2.md) | Tabla comparativa de los niveles |\n")
+	sb.WriteString("| [`analisis_cuello_de_botella.md`](./analisis_cuello_de_botella.md) | Qué sostiene la campaña y qué no, y la propuesta de evolución |\n")
+	sb.WriteString("| [`etapas_reconstruidas.txt`](./etapas_reconstruidas.txt) | Etapas 4, 5 y 6 de **todos** los trabajos, desde el log del worker |\n")
+	sb.WriteString("| [`metricas_gcp.json`](./metricas_gcp.json) | CPU, memoria y cola de Cloud Monitoring en la ventana |\n")
+	sb.WriteString("| [`worker_crudo.log`](./worker_crudo.log) | Log del contenedor del worker, origen de la reconstrucción |\n")
+	sb.WriteString("| [`tunel.log`](./tunel.log) | Reinicios del túnel IAP: dice si la ventana tuvo huecos de visibilidad |\n\n")
+
+	sb.WriteString("## Cómo se reprodujo\n\n")
 	sb.WriteString("```bash\n")
-	sb.WriteString("# 1. Levantar servicios locales\n")
-	sb.WriteString("docker compose up -d\n\n")
-	sb.WriteString("# 2. Ejecutar la suite completa de capacidad de Escenario 2\n")
-	sb.WriteString("bash ./scripts/run_capacity_escenario2.sh\n\n")
-	sb.WriteString("# 3. Opcional: Ejecutar contra despliegue en la nube\n")
-	sb.WriteString("bash ./scripts/run_capacity_escenario2.sh https://34.24.52.111.sslip.io\n")
-	sb.WriteString("```\n")
+	sb.WriteString(fmt.Sprintf("ENTORNO=%s HLS_BASE=%s \\\n", cfg.Entorno, cfg.HLSBaseURL))
+	sb.WriteString(fmt.Sprintf("PATRON=%s MAX_SEGMENTOS=%d \\\n", cfg.Patron, cfg.MaxSegs))
+	sb.WriteString(fmt.Sprintf("  bash ./scripts/run_capacity_escenario2.sh %s \\\n", cfg.BaseURL))
+	sb.WriteString(fmt.Sprintf("  -worker-concurrency %d -redis localhost:6379 -db \"postgres://...\"\n", cfg.WorkerConcurrency))
+	sb.WriteString("```\n\n")
+	sb.WriteString("La cola y la base se alcanzan por el túnel IAP (`scripts/a7_tunel.sh`), que usa el 22 y no abre ningún puerto de datos.\n\n")
+	sb.WriteString("---\n\nEste archivo no contiene credenciales, llaves ni secretos.\n")
 
 	_ = os.WriteFile(path, []byte(sb.String()), 0644)
 }
@@ -1575,19 +2128,21 @@ func writeCapacityReportFile(path string, cfg Config, levels []LevelMetrics, dra
 	_ = os.MkdirAll(filepath.Dir(path), 0755)
 
 	var sb strings.Builder
-	sb.WriteString("# Informe de Pruebas de Carga y Capacidad — Entrega 2\n\n")
+	h := resumirHechos(levels)
+
+	sb.WriteString("# Informe de Pruebas de Carga y Capacidad — Escenario 2\n\n")
 	sb.WriteString("**Curso:** ISIS4426 — Desarrollo de Soluciones Cloud\n")
 	sb.WriteString("**Semestre:** 2026-20\n")
 	sb.WriteString(fmt.Sprintf("**Fecha de consolidación:** %s\n\n", time.Now().UTC().Format(time.RFC3339)))
-
 	sb.WriteString("---\n\n")
 	sb.WriteString(cabeceraMarkdown(cfg))
+
 	sb.WriteString("## Escenario 2: Carga, Procesamiento y Consumo Multimedia (10%)\n\n")
 	sb.WriteString("### 1. Definición del Escenario y Condiciones de Prueba\n\n")
-	sb.WriteString("El escenario simula profesores subiendo contenido multimedia directamente al almacenamiento de objetos mientras estudiantes reproducen flujos de video HLS ya disponibles en el sistema.\n\n")
-	sb.WriteString("- **Concurrencia de Workers Fija:** Fijada en 2 (`WORKER_CONCURRENCY=2`), asignando exactamente 1 proceso de transcodificación por vCPU física de la instancia `mooc-worker-server` (`e2-highcpu-2`), manteniendo el uso de memoria acotado (~1.2 GiB) y previniendo caídas por *Out Of Memory*.\n")
-	sb.WriteString("- **Perfiles Multimedia y Escalera:** Perfiles corto (2 min), medio (10 min) y largo (30 min) a 1280×720 (720p). Escalera HLS estricta a 360p y 720p sin upscaling (`internal/transcode.DefaultLadder`).\n")
-	sb.WriteString(fmt.Sprintf("- **Patrón de Consumo Declarado:** `%s`. Con `cadencia`, cada estudiante concurrente reproduce a 1x: buffer inicial de 2 segmentos y una pausa por segmento igual a su duración real, leída del `#EXTINF` de la lista de variante y no supuesta. Con `maxima`, descarga sin pausa, y entonces no se reportan margen de buffer ni interrupciones porque no hay instante de reproducción que incumplir. La descarga masiva se mide siempre aparte como prueba de saturación de red.\n\n", cfg.Patron))
+	sb.WriteString("El escenario simula profesores subiendo contenido multimedia directamente al almacenamiento de objetos mientras estudiantes reproducen flujos HLS ya disponibles.\n\n")
+	sb.WriteString(fmt.Sprintf("- **Concurrencia de workers.** Fijada en %d (`WORKER_CONCURRENCY=%d`), un proceso de transcodificación por vCPU de `mooc-worker-server` (`e2-highcpu-2`).\n", cfg.WorkerConcurrency, cfg.WorkerConcurrency))
+	sb.WriteString("- **Perfiles multimedia y escalera.** Perfiles corto (2 min), medio (10 min) y largo (30 min) a 1280×720. Escalera HLS a 360p y 720p sin upscaling (`internal/transcode.DefaultLadder`).\n")
+	sb.WriteString(fmt.Sprintf("- **Patrón de consumo declarado:** `%s`. Con `cadencia`, cada estudiante reproduce a 1x: buffer inicial de 2 segmentos y una pausa por segmento igual a su duración real, leída del `#EXTINF` de la lista de variante. Con `maxima` no hay instante de reproducción que incumplir, así que no se reportan margen ni interrupciones. La descarga masiva se mide siempre aparte.\n\n", cfg.Patron))
 
 	sb.WriteString("### 2. Resultados Numéricos por Nivel y Variación de Métricas\n\n")
 	sb.WriteString("| Nivel | Subidas / Concurrencia | Estudiantes HLS | Rendimiento en la ventana (vid/min) | Pico Cola (pending) | Antigüedad Cola | Etapa 1 (Firma p95) | Etapa 2 (PUT p95) | Etapa 3 (Confirm p95) | Etapa 4 (Espera p95) | Etapa 5 (Proc p95) | Etapa 6 (Total p95) |\n")
@@ -1601,15 +2156,38 @@ func writeCapacityReportFile(path string, cfg Config, levels []LevelMetrics, dra
 	}
 
 	sb.WriteString("\n### 3. Observación del Drenaje de Cola y Verificación Terminal\n\n")
-	sb.WriteString(fmt.Sprintf("Tras cesar la inyección de carga en el Nivel 4, se monitoreó el vaciado de la cola Asynq hasta que `pending = 0` y `active = 0`. El tiempo de drenaje total observado fue de **%v**.\n\n", drain.TotalDuration.Round(time.Millisecond)))
-	sb.WriteString("La verificación directa sobre PostgreSQL (`SELECT processing_status, COUNT(*) FROM resources WHERE object_key LIKE 'originals/%' GROUP BY processing_status`) demostró:\n")
-	sb.WriteString("- Cero trabajos colgados en estado indeterminado (`pending = 0`, `processing = 0`).\n")
-	sb.WriteString("- El 100% de los trabajos confirmados (202 Accepted) terminaron en estado `completed` con todos sus derivados HLS (`master.m3u8`, listas de variantes y segmentos `.ts`) legibles y consistentes en el bucket.\n\n")
+	switch {
+	case !drain.Observable:
+		sb.WriteString(fmt.Sprintf("El drenaje **no se pudo observar**: %d lecturas de la cola fallaron. No hay resultado publicable en esta sección.\n\n", drain.ErroresInspector))
+	case drain.Atascada:
+		sb.WriteString(fmt.Sprintf("La observación del drenaje se **cortó por atasco** tras %v: la cola dejó de completar tareas con %d en espera y %d en proceso.\n\n",
+			drain.TotalDuration.Round(100*time.Millisecond), drain.FinalPending, drain.FinalActive))
+	default:
+		sb.WriteString(fmt.Sprintf("Tras cesar la inyección en el nivel más cargado se observó el vaciado de la cola Asynq durante **%v**, partiendo de %d tareas en espera y terminando con **%d en espera y %d en proceso**.\n\n",
+			drain.TotalDuration.Round(100*time.Millisecond), drain.InitialPending, drain.FinalPending, drain.FinalActive))
+		if drain.FinalActive > 0 {
+			sb.WriteString("> La ventana de observación terminó con trabajo en vuelo, así que **esa duración no es el tiempo de drenaje**: es cuánto se observó.\n\n")
+		}
+	}
 
-	sb.WriteString("### 4. Cuello de Botella Sustentado y Propuesta de Evolución\n\n")
-	sb.WriteString("1. **Cuello de Botella Primario:** Identificado en la **vCPU de los workers durante la transcodificación FFmpeg (Etapa 5)**. Mientras que la API Web mantuvo latencias p95 inferiores a 20 ms y el bucket manejó decenas de MB/s sin errores, los 2 workers alcanzaron el 100% de CPU por núcleo, provocando que la tasa de llegada superara la tasa de servicio y acumulando hasta 10 tareas en cola en Nivel 4.\n")
-	sb.WriteString("2. **Propuesta de Evolución — Red de Entrega de Contenidos (CDN):** Frontalizar el prefijo público `/hls/` con Cloud CDN / Cloudflare. Esto derivará más del 95% de las descargas de segmentos a caché perimetral, reduciendo el TTFB a < 15 ms y eliminando costos de egreso directo del bucket.\n")
-	sb.WriteString("3. **Propuesta de Evolución — Autoescalado Dinámico de Workers:** Implementar escalamiento elástico de instancias `mooc-worker-server` condicionado a `worker.queue.oldest_pending_age_seconds > 45s`, adaptando la capacidad de 2 vCPUs a $2 \\times N$ vCPUs durante ráfagas de subida.\n")
+	sb.WriteString("La verificación directa sobre PostgreSQL (`SELECT processing_status, COUNT(*) FROM resources WHERE object_key LIKE 'originals/%' GROUP BY processing_status`) dio:\n\n")
+	if len(drain.DBStatusCounts) == 0 {
+		sb.WriteString("- Sin resultados de la consulta terminal en esta corrida.\n")
+	} else {
+		for _, st := range ordenarClaves(drain.DBStatusCounts) {
+			sb.WriteString(fmt.Sprintf("- `processing_status = %s`: **%d** recursos\n", st, drain.DBStatusCounts[st]))
+		}
+	}
+	if drain.OrphanJobsCount > 0 {
+		sb.WriteString(fmt.Sprintf("\n**%d recurso(s) quedaron sin estado terminal** al cerrar la ventana. No son trabajos perdidos: son trabajos que la observación no alcanzó a cubrir. El cierre real de cada uno está en `worker_crudo.log` y reconstruido en `etapas_reconstruidas.txt`.\n", drain.OrphanJobsCount))
+	} else {
+		sb.WriteString("\nNingún recurso quedó en estado indeterminado.\n")
+	}
+
+	sb.WriteString("\n### 4. Cuello de Botella Sustentado y Propuesta de Evolución\n\n")
+	sb.WriteString(fmt.Sprintf("1. **Cuello de botella primario.** La **vCPU del worker durante la transcodificación (etapa 5)**. Lo que esta campaña mide y lo sostiene es la cola: pico de **%d en espera** y antigüedad máxima de **%.0f s** con una tasa de llegada constante. El uso de CPU que lo confirma está en `metricas_gcp.json`; la campaña no mide CPU.\n", h.picoPending, h.peorEdadCola))
+	sb.WriteString("2. **Evolución — CDN.** Frontalizar el prefijo público `/hls/` con un CDN, para servir los segmentos inmutables desde el borde y quitar el egreso del bucket de origen. Objetivos a verificar en C7.\n")
+	sb.WriteString(fmt.Sprintf("3. **Evolución — autoescalado de workers.** Escalar `mooc-worker-server` por `worker.queue.oldest_pending_age_seconds`, la señal que aquí llegó a %.0f s. El dimensionado sale del factor de transcodificación por perfil de `etapas_reconstruidas.txt`.\n", h.peorEdadCola))
 
 	_ = os.WriteFile(path, []byte(sb.String()), 0644)
 }

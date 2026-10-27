@@ -171,14 +171,30 @@ output "worker_server_name" {
   value       = google_compute_instance.worker_server.name
 }
 
-output "worker_server_public_ip" {
-  description = "Dirección IPv4 pública estática del Worker Server (E1)."
-  value       = google_compute_address.worker_server_ip.address
-}
+# La IP publica del worker se retiro en B2 (#201): la maquina no recibe trafico
+# de nadie, su salida va por el Cloud NAT y la administracion entra por IAP, asi
+# que una direccion externa era superficie sin funcion. No hay salida que
+# sustituya a esta: su IP privada se obtiene de `worker_server_private_ip`.
 
 output "worker_server_private_ip" {
   description = "Dirección IPv4 privada en mooc-subnet del Worker Server (E1)."
   value       = google_compute_instance.worker_server.network_interface[0].network_ip
 }
 
+# ---------------------------------------------------------------------------
+# Cola compartida (B1 - issue #200)
+# ---------------------------------------------------------------------------
 
+output "queue_server_name" {
+  description = "Nombre de la VM de la cola compartida, fuera de los dos grupos elasticos."
+  value       = google_compute_instance.queue_server.name
+}
+
+# La direccion es **estatica** y sobrevive a una recreacion de la VM, que es la
+# razon de reservarla: `REDIS_URL` se escribe en la configuracion de cada
+# instancia que arranca (B3) y en las plantillas de los grupos (B4, C5). Una IP
+# que cambia obliga a rotar los dos grupos cada vez que se toca la cola.
+output "queue_private_ip" {
+  description = "IP privada estable de la cola. Es el QUEUE_PRIVATE_IP de los guiones de preparacion."
+  value       = google_compute_address.queue_internal_ip.address
+}

@@ -1,0 +1,28 @@
+==============================================================================
+ EVIDENCIA A7 - VERIFICACION DE LOS TRES PERFILES ANTES DE MEDIR
+==============================================================================
+Fecha UTC : 2026-10-26T13:28:29Z
+Por que   : A6 exige que los perfiles se verifiquen campo por campo ANTES de
+            cada campana. La Entrega 2 midio clips de 8 s declarados como 2,
+            10 y 30 minutos porque nadie comparaba el archivo con lo declarado.
+==============================================================================
+
+==> ffmpeg desde Docker (jrottenberg/ffmpeg:6.1-alpine)
+==> Verificando contra el perfil declarado
+    ok  corto   120s  1280x720  h264/aac  2 MiB
+    ok  medio   600s  1280x720  h264/aac  12 MiB
+    ok  largo  1800s  1280x720  h264/aac  37 MiB
+
+==> Los 3 perfil(es) coinciden campo por campo.
+    Salidas de ffprobe en /d/Fredy/Uniandes/Materias/Cloud architecture/Proyecto1/Plataforma-MOOC/scratch/video_*.ffprobe.json
+
+--- video_corto.mp4 ---
+  duracion 120.0 s | 1280x720 | h264 | 2.48 MiB | 173 kbps
+--- video_medio.mp4 ---
+  duracion 600.0 s | 1280x720 | h264 | 12.41 MiB | 173 kbps
+--- video_largo.mp4 ---
+  duracion 1800.0 s | 1280x720 | h264 | 37.25 MiB | 173 kbps
+
+==============================================================================
+ Este archivo no contiene credenciales, llaves ni secretos.
+==============================================================================
