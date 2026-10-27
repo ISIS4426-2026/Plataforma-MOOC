@@ -1458,3 +1458,51 @@ servicio ya activo**: no es `restart`. Resultado: el fichero en disco decía
 | **C5, C6, C7** | Cualquier guion de arranque que instale un paquete con servicio y luego escriba su configuración necesita `restart`, no `enable --now`. Las unidades de B3 ya lo hacen bien |
 | **G1** | Las comprobaciones que publiquen métricas tienen que afirmar y salir con código, no imprimir. Es la misma regla que A6 §7 aplicada a los verificadores |
 | **I5** | Antes de etiquetar, los verificadores deben salir con 0 **por afirmación**, no por no haber mirado |
+
+<a id="37"></a>
+## 37. La CPU de la API no sirve como señal de autoscaling, y está medido
+
+C2 (#205) descartó `cpu_utilization` con los datos de A7, no por preferencia.
+
+| Corrida | pet/s | CPU web media/máx | CPU SQL máx | tps |
+| :--- | ---: | ---: | ---: | ---: |
+| A-nivel1 | 0,2 | 3,74 / 8,37 % | 12,7 % | 4,7 |
+| A-nivel200 | 32,5 | 12,00 / 15,55 % | 30,7 % | 350,9 |
+| B-nivel200 | **103,5** | **22,42 / 37,33 %** | 35,2 % | **1 039,7** |
+
+A **500 veces** el caudal, la CPU pasa del 3,7 % al 22,4 %: una pendiente de unos
+**0,18 puntos por petición/s**. Un objetivo del 60 % se alcanzaría sobre **310
+pet/s por instancia**, y a ese caudal tres instancias pedirían del orden de
+**9 000 tps a una base de 1 vCPU**.
+
+**Con un objetivo de CPU, el grupo se queda en una instancia mientras la base se
+funde.** Esta API no computa: traduce HTTP a SQL y espera.
+
+Y la memoria es peor señal todavía: `webMem%` se quedó entre **30,1 y 30,8 %** en
+las ocho corridas, de 0,2 a 103,5 pet/s. Es una constante, no una señal.
+
+### La señal elegida y lo que acopla
+
+`load_balancing_utilization.target = 0.8`, es decir peticiones por segundo y por
+instancia. Pero **es un cociente y su denominador no está en C2**.
+
+| Issue | Qué tiene que saber |
+| :--- | :--- |
+| **C3** | Tiene que declarar `balancing_mode = "RATE"` y `max_rate_per_instance = 100` en el backend service. **Sin eso el autoescalador no escala**, y con `balancing_mode = "UTILIZATION"` volvería a medir CPU por la puerta de atrás |
+| **C6** | La señal de los workers es otra —profundidad y antigüedad de cola— y por el mismo razonamiento: lo que hay que medir es lo que se agota, y allí sí es el cómputo |
+| **G5** | Tiene que medir si la base cede **antes** de las 3 instancias. Si lo hace, la conclusión no es «el autoescalado no funciona» sino «el siguiente cuello es la base» |
+| **C1** | `cooldown_period = 300` es el mismo valor que `initial_delay_sec`, y por la misma medida de B3: 62 s de arranque, 160 s hasta sana |
+
+### El techo de 3 instancias cae donde cae el techo de la base
+
+Con 80 pet/s por instancia, tres cubren 240 pet/s ≈ **2 400 tps**, que
+extrapolando la curva de A7 pondrían Cloud SQL cerca del **80 %** de CPU.
+
+**Escalar la API no escala PostgreSQL**: las tres réplicas comparten una
+instancia de 1 vCPU. El síntoma de ese techo es latencia creciente en todas las
+réplicas a la vez **con CPU de API baja** — el patrón que delata que el cuello no
+está donde se está mirando.
+
+Es una **extrapolación lineal, no una medición**: la curva de CPU de la base por
+encima de 1 040 tps no se ha medido. Subir `max_replicas` por encima de 3 no
+ayudaría: añade réplicas que esperan a la misma base.
