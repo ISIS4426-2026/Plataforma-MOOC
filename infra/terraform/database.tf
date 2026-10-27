@@ -97,6 +97,12 @@ resource "google_sql_database_instance" "main" {
   #
   # Para el cierre de la entrega (issue #133, I6) hay que ponerlo en false,
   # aplicar, y solo entonces destruir. El procedimiento esta en ADMINISTRACION.md.
+  # OJO al destruir: el proveedor lee este campo del ESTADO, no de este
+  # fichero. Ponerlo en false aqui no basta; hace falta un `apply` que lo
+  # persista ANTES del `destroy`, o el destroy falla con
+  # "failed to delete instance because deletion_protection is set to true"
+  # aunque el fichero diga false. Es el paso 1 del runbook de I6, y la razon
+  # de que ese paso diga "debe decir 1 change".
   deletion_protection = true
 
   settings {

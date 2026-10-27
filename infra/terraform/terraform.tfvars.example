@@ -1,19 +1,73 @@
-# Plantilla de terraform.tfvars  (issue #115)
+# Plantilla de terraform.tfvars  (issue #115, actualizada en B4 #203)
 #
 # NO HACE FALTA crear un terraform.tfvars para trabajar con normalidad: el
 # proyecto, la region y la zona ya vienen con valor por defecto en variables.tf,
-# y son precisamente las decisiones fijadas en B1. Eso es a proposito -- si cada
-# integrante tuviera que configurarlas en un archivo que no se versiona, podrian
-# divergir sin que nadie se entere.
+# y son precisamente las decisiones fijadas en B1 de la Entrega 2. Eso es a
+# proposito -- si cada integrante tuviera que configurarlas en un archivo que no
+# se versiona, podrian divergir sin que nadie se entere.
 #
-# La contrasena de la base NO va aqui. Va por entorno:
+# Lo que SI hace falta son tres valores sin valor por defecto, y van **por
+# entorno**, no en este archivo. Copialo a terraform.tfvars solo para el caso
+# excepcional de levantar un entorno aparte; terraform.tfvars esta en
+# .gitignore.
 #
-#     export TF_VAR_db_password='...'
+# ============================================================================
+# 1. OBLIGATORIAS, Y NUNCA EN UN ARCHIVO
+# ============================================================================
 #
-# Este archivo solo existe para el caso excepcional de levantar un entorno
-# aparte -- por ejemplo, probar contra un proyecto distinto sin tocar el de la
-# entrega. Copialo a terraform.tfvars, que esta en .gitignore.
+# Sin estas tres, `terraform plan` se para y pregunta. Es deliberado: un valor
+# ausente tiene que detener el despliegue, no elegir uno equivocado en silencio.
+#
+#     export TF_VAR_db_password='...'        # la contrasena de Cloud SQL
+#     export TF_VAR_image_tag='<40 hex>'     # el SHA del commit publicado
+#     export TF_VAR_smtp_from='...'          # remitente verificado
+#     export TF_VAR_smtp_username='...'      # login del proveedor SMTP
+#
+# db_password      es un SECRETO. Vive en Secret Manager (`db-password`) y se
+#                  pasa aqui solo porque Terraform tiene que crear el usuario de
+#                  la base con ella. Ojo: queda en claro en el estado remoto, y
+#                  por eso el estado vive en un bucket privado y versionado y no
+#                  se versiona en git.
+#
+# image_tag        no es sensible, pero no tiene valor por defecto a proposito:
+#                  es el SHA completo de 40 hexadecimales del commit cuya imagen
+#                  corre en las instancias, y de el sale tambien el commit que el
+#                  arranque saca del repositorio (B3). Una etiqueta movil como
+#                  `latest` dejaria dos instancias del mismo grupo en imagenes
+#                  distintas segun cuando arrancaron. Lo valida variables.tf.
+#
+# smtp_from        no son secretos -- la contrasena del proveedor si lo es y vive
+# smtp_username    en Secret Manager (`smtp-password`) --, pero identifican la
+#                  cuenta del equipo y este repositorio es publico. Tratarlos
+#                  como secretos seria teatro: en Brevo el usuario ES el correo
+#                  de la cuenta. Ver el comentario de mail.tf.
+#
+# ============================================================================
+# 2. CON VALOR POR DEFECTO, PUBLICAS
+# ============================================================================
+#
+# Estan en variables.tf con el valor que usa la entrega. Descomentar solo para
+# levantar un entorno distinto -- por ejemplo, probar contra otro proyecto sin
+# tocar el de la entrega.
 
-# project_id = "otro-proyecto-de-pruebas"
-# region     = "us-east1"
-# zone       = "us-east1-b"
+# project_id              = "otro-proyecto-de-pruebas"
+# region                  = "us-east1"
+# zone                    = "us-east1-b"
+# storage_bucket_name     = "otro-bucket-de-medios"
+# storage_hls_bucket_name = "otro-bucket-de-hls"
+# storage_cors_origins    = ["https://otro-dominio.example"]
+# labels                  = { entorno = "pruebas" }
+
+# app_domain: vacio se calcula como `<ip-publica-de-la-vm-web>.sslip.io`, que es
+# lo que la Entrega 2 usaba escrito a mano. Cuando C3 ponga el balanceador
+# delante, el dominio sera el suyo y entonces hay que declararlo.
+# app_domain = "mooc.example"
+
+# ============================================================================
+# 3. LO QUE NO ESTA AQUI, Y NO ES UN OLVIDO
+# ============================================================================
+#
+# Ninguna llave de cuenta de servicio. No existen: Terraform y las VMs usan
+# identidades adjuntas y obtienen credenciales del servidor de metadatos, asi
+# que no hay ningun archivo de llave que guardar, rotar ni filtrar. Es el
+# resultado que mas vale del inventario de B4.

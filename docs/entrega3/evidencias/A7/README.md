@@ -2,20 +2,61 @@
 
 | Criterio de aceptación | |
 | :--- | :---: |
-| La línea base de los dos escenarios está medida contra la nube | ⏳ §4 |
+| La línea base de los dos escenarios está medida contra la nube | ✅ [COMPARACION §1 y §3](./COMPARACION.md) |
 | Usa los archivos verificados de A5 y pasa las comprobaciones de A6 | ✅ §2 |
 | Queda marcada como medición retrospectiva, con commit, configuración y fecha | ✅ §2 |
 | Tabla de parámetros constantes y diferencias hacia la Entrega 3 | ✅ [RUNBOOK §12](./RUNBOOK.md) |
-| Dos corridas del escenario 1: código del tag y código corregido | ⏳ §4 |
-| El coste por petición de las correcciones queda cuantificado | ⏳ §4 |
-| El entorno queda destruido y el coste registrado | ⏳ §4 |
-| Anotado en `NOTAS_TECNICAS.md` | ✅ nota 26 y corrección de la nota 1 |
+| Dos corridas del escenario 1: código del tag y código corregido | ✅ ambas ejecutadas; la del tag solo sobrevive como resultado en [COMPARACION §1 y §2](./COMPARACION.md) |
+| El coste por petición de las correcciones queda cuantificado | ✅ [COMPARACION §2](./COMPARACION.md) |
+| El entorno queda destruido y el coste registrado | ✅ §4 |
+| Anotado en `NOTAS_TECNICAS.md` | ✅ notas 26 a 29 y corrección de la nota 1 |
 
-**Estado: preparado y verificado, pendiente de ejecutar.** Todo lo que se puede
-comprobar sin encender el entorno está comprobado, con su salida en
-[`prevuelo.txt`](./prevuelo.txt). El procedimiento está en
-[`RUNBOOK.md`](./RUNBOOK.md) y el pre-vuelo se repite con
-`bash ./scripts/a7_preparar.sh`.
+**Estado: ejecutado y cerrado.** Entorno recreado, medido y destruido entre el
+2026-10-26 y el 2026-10-27, en dos sesiones: la primera midió el escenario 1 con
+los dos códigos y el escenario 2 con el del tag; la segunda rehizo el escenario 2
+con el código corregido, para que los dos operandos de G3 compartan código. Las
+conclusiones están en [`COMPARACION.md`](./COMPARACION.md); el procedimiento, en
+[`RUNBOOK.md`](./RUNBOOK.md).
+
+## Qué de todo esto usa la Entrega 3
+
+Las dos corridas que se conservan son la línea base de la **primera
+arquitectura**: dos VMs fijas, sin grupos administrados, sin balanceador y sin
+autoescalado. Son los dos operandos de la comparación que publica G3, y **las dos
+llevan el mismo código corregido `3affa11`** que correrá la arquitectura elástica.
+Por construcción, su diferencia con la elástica es puramente arquitectónica: G3
+no tiene que descontar el coste de las correcciones.
+
+| Directorio | Qué contiene | Código medido |
+| :--- | :--- | :--- |
+| [`escenario1-1st-architecture/`](./escenario1-1st-architecture/) | Actividad académica concurrente, 6 niveles hasta 200 usuarios | `3affa11` — **corregido** |
+| [`escenario2-1st-architecture/`](./escenario2-1st-architecture/) | Carga, procesamiento y consumo multimedia con los perfiles reales | `3affa11` — **corregido** |
+
+### Dos corridas que se descartaron
+
+Hubo cuatro corridas en total. Las dos que no se conservan, para que no se las
+busque en el repositorio:
+
+- **El escenario 2 con el código del tag.** Mismo escenario y misma
+  infraestructura, pero con `1827cdc2`, lo que obligaba a declarar un confound al
+  compararla con una Entrega 3 que lleva el código corregido. Se repitió con
+  `3affa11` para quitarlo, y **sus datos se borraron**: el directorio
+  `escenario2-1st-architecture/` contiene ahora la corrida del código corregido.
+  Lo que destapó aquella corrida sigue reportado en
+  [`COMPARACION.md`](./COMPARACION.md) §5, que es la lista de defectos de la
+  campaña.
+- **El escenario 1 con el código del tag.** Servía para dos cosas: avalar el
+  método —reproducía las cifras publicadas de la Entrega 2— y medir el coste de
+  las correcciones de la Entrega 1. **Sus datos crudos tampoco se conservaron.**
+  Sus resultados siguen en [`COMPARACION.md`](./COMPARACION.md) §1 y §2, pero no
+  se pueden rederivar desde el repositorio.
+
+> **Los nombres de directorio dicen la arquitectura, no el código.** Las dos
+> corridas que quedan son de la primera arquitectura y las dos llevan `3affa11`.
+> El commit exacto de cada una está en su cabecera de evidencia.
+
+El pre-vuelo se puede repetir con `bash ./scripts/a7_preparar.sh`; su salida de
+antes de medir está en [`prevuelo.txt`](./prevuelo.txt).
 
 ---
 
@@ -136,19 +177,32 @@ acotar cuesta más que todas las horas de máquina juntas. `MAX_SEGMENTOS=10` lo
 baja a 0,43 USD dejando 8 segmentos con instante de reproducción que cumplir, que
 es el mínimo para que el margen de buffer y las interrupciones signifiquen algo.
 
-## 4. Lo que falta, y por qué
+## 4. Coste real y estado del entorno
 
-**Ejecutar la campaña.** Necesita tres cosas que no son mías:
+| | |
+| :--- | :--- |
+| `mooc-web-server` | apagada |
+| `mooc-worker-server` | apagada |
+| `mooc-db-1` | destruida |
+| Buckets, Artifact Registry, secretos, red | intactos (los conserva la Entrega 3) |
 
-1. La contraseña de la base, que sale de Secret Manager con las credenciales de
-   quien ejecuta.
-2. `terraform apply`, que crea infraestructura facturable.
-3. ~7,5 horas de entorno encendido y entre 1,69 y 3,92 USD del crédito.
+El coste se partió en dos sesiones:
 
-Cuando se ejecute, aquí entran: las dos corridas del escenario 1 con su
-`destino.json`, la del escenario 2, la comparación contra lo publicado en la
-Entrega 2, el coste por petición de las correcciones como número, la verificación
-del E2E pendiente, las capturas y el coste real medido.
+| | Horas de entorno | Coste |
+| :--- | ---: | ---: |
+| Sesión 1 (escenario 1 ×2 + escenario 2 del tag) | 22,5 h | **4,23 USD** |
+| Sesión 2 (escenario 2 con el código corregido) | ~4 h | **~0,65 USD** estimado de las horas medidas |
+
+**Lo que se disparó en la sesión 1 no fue la medición: fueron 15 h de entorno
+encendido sin medir**, frente a las 1,69 USD previstas. La sesión 2 se ajustó a
+lo estimado porque el entorno se apagó en cuanto se cosechó la evidencia.
+
+La cifra de la sesión 2 es una **estimación** de las horas medidas a las tarifas
+de `us-east1`, no un importe facturado; el facturado se consulta en la consola de
+facturación del proyecto.
+
+Lo que queda vivo no es de A7: los buckets tienen nombre único global y los
+conserva la Entrega 3, que estrena el prefijo `entrega3` del estado remoto (§1).
 
 ---
 

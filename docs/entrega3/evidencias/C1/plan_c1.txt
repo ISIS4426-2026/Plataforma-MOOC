@@ -1,0 +1,34 @@
+Plan de solo lectura tras C1 (#204), 2026-10-27T14:31:20Z
+Generado con: terraform plan   (sin -out, sin aplicar)
+
+C1 anade TRES recursos:
+  google_compute_health_check.api            /api/v1/ready en el 80
+  google_compute_instance_template.api       sin IP externa, nginx.mig.conf
+  google_compute_instance_group_manager.api  zonal, tamano 1, autohealing
+
+Ninguna VM se recrea. Las dos destrucciones y los dos cambios en sitio
+vienen de B1, B2 y del entorno que A7 destruyo al cerrar.
+
+Generado con marcadores en TF_VAR_smtp_from y TF_VAR_smtp_username: no
+afectan a que recursos cambian.
+
+  # google_compute_address.queue_internal_ip will be created
+  # google_compute_address.worker_server_ip will be destroyed
+  # google_compute_firewall.allow_internal will be destroyed
+  # google_compute_firewall.allow_internal_icmp will be created
+  # google_compute_firewall.allow_lb_and_health_checks will be created
+  # google_compute_firewall.allow_queue_internal will be created
+  # google_compute_firewall.allow_web_ingress will be updated in-place
+  # google_compute_health_check.api will be created
+  # google_compute_instance.queue_server will be created
+  # google_compute_instance.worker_server will be updated in-place
+  # google_compute_instance_group_manager.api will be created
+  # google_compute_instance_template.api will be created
+  # google_project_iam_member.queue_telemetry["roles/logging.logWriter"] will be created
+  # google_project_iam_member.queue_telemetry["roles/monitoring.metricWriter"] will be created
+  # google_service_account.queue_server will be created
+  # google_service_account.worker_server will be updated in-place
+  # google_sql_database.mooc will be created
+  # google_sql_database_instance.main will be created
+  # google_sql_user.app will be created
+Plan: 14 to add, 3 to change, 2 to destroy.
