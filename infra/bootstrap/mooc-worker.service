@@ -1,0 +1,75 @@
+# Unidad del worker (B3, #202).
+#
+# Versionada en el repositorio, igual que la de la API, y por el mismo motivo: la
+# anterior llevaba dentro la ruta de un directorio personal que no existe en una
+# instancia nueva.
+#
+# Dos diferencias con la unidad web, y las dos son del procesamiento multimedia.
+
+[Unit]
+Description=Plataforma MOOC - Worker de procesamiento multimedia
+After=docker.service network-online.target
+Wants=network-online.target
+Requires=docker.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+WorkingDirectory=/opt/mooc
+
+ExecStartPre=/bin/bash /opt/mooc/prepare_env.sh
+
+# El esquema, antes de levantar nada. Es la decision de A3 §4: «el
+# procedimiento vive en el script de arranque, no en pasos manuales», y es
+# seguro con tres instancias a la vez porque cada migracion toma un advisory
+# lock de transaccion antes de comprobar si ya esta aplicada.
+#
+# Va aqui y no en el guion de arranque para que tambien corra en un
+# `systemctl restart`: un despliegue que solo cambia IMAGE_TAG pasa por la
+# unidad, no por el arranque de la instancia, y el esquema nuevo tiene que
+# entrar igual.
+ExecStartPre=/bin/bash /opt/mooc/infra/bootstrap/mooc-migrate.sh /opt/mooc/.env /opt/mooc
+ExecStartPre=/usr/bin/docker compose -p mooc -f /opt/mooc/docker-compose.worker.yml --env-file /opt/mooc/.env pull -q
+
+# DIFERENCIA 1: limpieza del directorio de trabajo antes de arrancar.
+#
+# El worker escribe los originales y los segmentos intermedios en el volumen
+# `worker_scratch`, montado en /tmp/mooc-media. Cada tarea limpia lo suyo al
+# terminar, pero una tarea **interrumpida** --la instancia se reinicia, o el
+# autoescalado la retira a mitad de un transcodificado-- deja ahi un original de
+# hasta 2 GiB. Varios reinicios seguidos llenarian el disco.
+#
+# Se limpia al arrancar y no al parar a proposito: al arrancar no hay ninguna
+# tarea en curso, asi que no se puede borrar nada que se este usando. Al parar,
+# si.
+#
+# El `-` inicial dice a systemd que un fallo aqui no aborta el arranque: en el
+# primer arranque el volumen todavia no existe, y eso no es un error.
+ExecStartPre=-/usr/bin/docker run --rm -v mooc_worker_scratch:/scratch alpine:3.22 sh -c "rm -rf /scratch/* /scratch/.[!.]*"
+
+ExecStart=/usr/bin/docker compose -p mooc -f /opt/mooc/docker-compose.worker.yml --env-file /opt/mooc/.env up -d --remove-orphans
+
+# DIFERENCIA 2: el plazo para parar.
+#
+# `docker compose down` manda SIGTERM y mata a los 10 segundos por omision. El
+# worker atiende SIGTERM con una parada ordenada de asynq, que espera a que las
+# tareas en curso terminen, pero **una tarea de verdad tarda minutos**: el perfil
+# largo midio 1 711 s de transcodificado en A7. Con el plazo por omision, parar
+# el servicio mata un transcodificado a los diez segundos.
+#
+# Que eso no sea perdida de datos lo garantiza la idempotencia: asynq reencola la
+# tarea y el worker la vuelve a hacer sin duplicar derivados
+# (internal/worker/idempotency_test.go). Pero es trabajo tirado, y con el
+# autoescalado retirando instancias seria trabajo tirado a menudo.
+#
+# 120 segundos es un compromiso para el arranque y la operacion manual, no una
+# politica de drenaje. **La politica de verdad la decide C7**, que tiene que
+# apagar el consumo de tareas nuevas antes de parar el contenedor para que la
+# espera no dependa de cuanto quede de la tarea mas larga.
+ExecStop=/usr/bin/docker compose -p mooc -f /opt/mooc/docker-compose.worker.yml --env-file /opt/mooc/.env down --timeout 120
+
+TimeoutStartSec=600
+TimeoutStopSec=180
+
+[Install]
+WantedBy=multi-user.target
