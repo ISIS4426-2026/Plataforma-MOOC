@@ -6,7 +6,7 @@
 | Usa los archivos verificados de A5 y pasa las comprobaciones de A6 | ✅ §2 |
 | Queda marcada como medición retrospectiva, con commit, configuración y fecha | ✅ §2 |
 | Tabla de parámetros constantes y diferencias hacia la Entrega 3 | ✅ [RUNBOOK §12](./RUNBOOK.md) |
-| Dos corridas del escenario 1: código del tag y código corregido | ✅ §3 |
+| Dos corridas del escenario 1: código del tag y código corregido | ✅ ambas ejecutadas; la del tag solo sobrevive como resultado en [COMPARACION §1 y §2](./COMPARACION.md) |
 | El coste por petición de las correcciones queda cuantificado | ✅ [COMPARACION §2](./COMPARACION.md) |
 | El entorno queda destruido y el coste registrado | ✅ §4 |
 | Anotado en `NOTAS_TECNICAS.md` | ✅ notas 26 a 29 y corrección de la nota 1 |
@@ -30,20 +30,30 @@ no tiene que descontar el coste de las correcciones.
 | Directorio | Qué contiene | Código medido |
 | :--- | :--- | :--- |
 | [`escenario1-1st-architecture/`](./escenario1-1st-architecture/) | Actividad académica concurrente, 6 niveles hasta 200 usuarios | `3affa11` — **corregido** |
-| [`escenario2-1st-architecture-corregido/`](./escenario2-1st-architecture-corregido/) | Carga, procesamiento y consumo multimedia con los perfiles reales | `3affa11` — **corregido** |
+| [`escenario2-1st-architecture/`](./escenario2-1st-architecture/) | Carga, procesamiento y consumo multimedia con los perfiles reales | `3affa11` — **corregido** |
 
-### Dos corridas que ya no son la línea base
+### Dos corridas que se descartaron
 
-- **[`escenario2-1st-architecture/`](./escenario2-1st-architecture/) está
-  superada.** Es la misma campaña con el **código del tag**, y arrastraba un
-  confound que había que declarar al publicar. Se repitió con el código corregido
-  para quitarlo, así que **este directorio se puede borrar**: nada de la Entrega 3
-  depende de él. Se conserva mientras no se confirme.
-- **El escenario 1 con el código del tag** avalaba el método —reproducía las
-  cifras publicadas de la Entrega 2— y de ella sale el coste medido de las
-  correcciones de la Entrega 1. **Sus datos crudos no se conservaron.** Sus
-  resultados siguen en [`COMPARACION.md`](./COMPARACION.md) §1 y §2, pero no se
-  pueden rederivar desde el repositorio.
+Hubo cuatro corridas en total. Las dos que no se conservan, para que no se las
+busque en el repositorio:
+
+- **El escenario 2 con el código del tag.** Mismo escenario y misma
+  infraestructura, pero con `1827cdc2`, lo que obligaba a declarar un confound al
+  compararla con una Entrega 3 que lleva el código corregido. Se repitió con
+  `3affa11` para quitarlo, y **sus datos se borraron**: el directorio
+  `escenario2-1st-architecture/` contiene ahora la corrida del código corregido.
+  Lo que destapó aquella corrida sigue reportado en
+  [`COMPARACION.md`](./COMPARACION.md) §5, que es la lista de defectos de la
+  campaña.
+- **El escenario 1 con el código del tag.** Servía para dos cosas: avalar el
+  método —reproducía las cifras publicadas de la Entrega 2— y medir el coste de
+  las correcciones de la Entrega 1. **Sus datos crudos tampoco se conservaron.**
+  Sus resultados siguen en [`COMPARACION.md`](./COMPARACION.md) §1 y §2, pero no
+  se pueden rederivar desde el repositorio.
+
+> **Los nombres de directorio dicen la arquitectura, no el código.** Las dos
+> corridas que quedan son de la primera arquitectura y las dos llevan `3affa11`.
+> El commit exacto de cada una está en su cabecera de evidencia.
 
 El pre-vuelo se puede repetir con `bash ./scripts/a7_preparar.sh`; su salida de
 antes de medir está en [`prevuelo.txt`](./prevuelo.txt).

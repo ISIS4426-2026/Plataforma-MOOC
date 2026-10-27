@@ -241,7 +241,7 @@ se recupera en ningún nivel.
 Las etapas 4, 5 y 6 se reconstruyeron desde los registros del propio worker
 (`duración_ms` por trabajo) y la hora de creación del objeto en el bucket, no
 desde el sondeo de la campaña, que solo alcanzó a cronometrar 8 de los 27. Ver
-[`escenario2-1st-architecture-corregido/etapas_reconstruidas.txt`](./escenario2-1st-architecture-corregido/etapas_reconstruidas.txt).
+[`escenario2-1st-architecture/etapas_reconstruidas.txt`](./escenario2-1st-architecture/etapas_reconstruidas.txt).
 
 ### 3.2 El factor de transcodificación no es una constante
 

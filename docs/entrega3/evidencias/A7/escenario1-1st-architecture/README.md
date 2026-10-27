@@ -33,10 +33,28 @@ pero no se pueden rederivar desde aquí.
 
 ## Qué falta, y por qué
 
-La **serie B** (pausas de 1–2 s). El proceso generador fue detenido por falta de
-memoria en la máquina justo al empezarla. La serie A está completa en sus seis
-niveles en los dos lados, que es lo que la comparación necesita: restar exige
-niveles equivalentes, no todos los niveles posibles.
+**La serie B está incompleta: corrió en 100 y 200 usuarios, no en los seis
+niveles.** El proceso generador fue detenido por falta de memoria en la máquina
+antes de llegar a los niveles bajos. No invalida nada: la serie A está completa
+en sus seis niveles, que es lo que la comparación necesita —restar exige niveles
+equivalentes, no todos los niveles posibles— y los dos niveles de B que sí
+corrieron son justamente los que hacían falta, porque son los que demuestran que
+el techo de 32,8 pet/s que publicó la Entrega 2 era su propio tiempo de espera y
+no la plataforma ([`../COMPARACION.md`](../COMPARACION.md) §1.5).
+
+`B-nivel200` tiene solo **2 muestras** en `metricas_gcp.json`: su ventana son
+91 s y el agente de Cloud Monitoring muestrea cada 60. Sirve de orden de
+magnitud, no para un percentil.
+
+## La ráfaga de login, y qué decidió
+
+`login-rafaga_20261026_194054` no es un nivel de carga: son **20 inicios de
+sesión simultáneos** contra el límite de tasa. Diez recibieron **429**, que es el
+comportamiento correcto y la prueba de que el limitador funciona bajo ráfaga.
+
+De aquí salió una decisión de medición: la escalera **no puede acuñar tokens
+mientras mide**, porque 8,5 inicios de sesión por minuto dentro de la ventana
+contaminan la latencia con 429. Por eso `h3_nube.sh` tiene `REUSAR_TOKENS`.
 
 ## Qué hay en cada directorio de corrida
 
