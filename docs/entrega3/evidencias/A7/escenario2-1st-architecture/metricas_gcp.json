@@ -1,0 +1,195 @@
+{
+  "ventana": {
+    "inicio": "2026-10-27T02:08:12Z",
+    "fin": "2026-10-27T03:59:18Z"
+  },
+  "vm": {
+    "mooc-web-server": {
+      "cpu_ocupada_pct": {
+        "n": 112,
+        "min": 1.76,
+        "media": 2.67,
+        "p95": 5.18,
+        "max": 7.35
+      },
+      "memoria_usada_pct": {
+        "n": 112,
+        "min": 26.78,
+        "media": 28.04,
+        "p95": 28.61,
+        "max": 28.86
+      },
+      "conexiones_tcp": {
+        "n": 112,
+        "min": 30.5,
+        "media": 31.54,
+        "p95": 34.5,
+        "max": 37.0
+      },
+      "procesos_top_nucleos_usados": {
+        "kworker/0:1-events": {
+          "n": 224,
+          "min": 0.0,
+          "media": 615.97,
+          "p95": 333.36,
+          "max": 38166.62
+        },
+        "kworker/0:1-mm_percpu_wq": {
+          "n": 224,
+          "min": 0.0,
+          "media": 630.21,
+          "p95": 2800.02,
+          "max": 32621.79
+        },
+        "api": {
+          "n": 224,
+          "min": 0.0,
+          "media": 2638.39,
+          "p95": 10168.94,
+          "max": 13664.41
+        },
+        "otelopscol": {
+          "n": 224,
+          "min": 6336.42,
+          "media": 9013.42,
+          "p95": 11165.49,
+          "max": 11827.87
+        },
+        "kworker/0:1-events_power_efficient": {
+          "n": 202,
+          "min": 0.0,
+          "media": 685.01,
+          "p95": 3536.24,
+          "max": 8375.1
+        },
+        "exim4": {
+          "n": 224,
+          "min": 0.0,
+          "media": 27.53,
+          "p95": 0.0,
+          "max": 6000.0
+        }
+      }
+    },
+    "mooc-worker-server": {
+      "cpu_ocupada_pct": {
+        "n": 112,
+        "min": 2.9,
+        "media": 96.31,
+        "p95": 99.95,
+        "max": 99.97
+      },
+      "memoria_usada_pct": {
+        "n": 112,
+        "min": 27.21,
+        "media": 42.31,
+        "p95": 48.75,
+        "max": 49.58
+      },
+      "conexiones_tcp": {
+        "n": 112,
+        "min": 32.5,
+        "media": 35.33,
+        "p95": 40.0,
+        "max": 43.5
+      },
+      "procesos_top_nucleos_usados": {
+        "ffmpeg": {
+          "n": 498,
+          "min": 3287.83,
+          "media": 388801.91,
+          "p95": 986370.51,
+          "max": 1073780.25
+        },
+        "worker": {
+          "n": 224,
+          "min": 181.24,
+          "media": 3506.63,
+          "p95": 19252.42,
+          "max": 53333.39
+        },
+        "kworker/0:0-events_freezable": {
+          "n": 106,
+          "min": 0.0,
+          "media": 949.05,
+          "p95": 3421.53,
+          "max": 24666.67
+        },
+        "kworker/0:2-events_freezable": {
+          "n": 88,
+          "min": 0.0,
+          "media": 914.69,
+          "p95": 3916.43,
+          "max": 23300.15
+        },
+        "kworker/0:0-events": {
+          "n": 52,
+          "min": 0.0,
+          "media": 883.86,
+          "p95": 5517.96,
+          "max": 21810.18
+        },
+        "kworker/0:0-events_power_efficient": {
+          "n": 74,
+          "min": 0.0,
+          "media": 1172.41,
+          "p95": 1958.35,
+          "max": 21765.49
+        }
+      }
+    }
+  },
+  "cloudsql": {
+    "cpu_pct": {
+      "n": 112,
+      "min": 10.74,
+      "media": 12.25,
+      "p95": 13.77,
+      "max": 14.69
+    },
+    "memoria_pct": {
+      "n": 112,
+      "min": 25.83,
+      "media": 26.88,
+      "p95": 27.27,
+      "max": 47.37
+    },
+    "conexiones_abiertas": {
+      "n": 112,
+      "min": 2.0,
+      "media": 4.55,
+      "p95": 9.0,
+      "max": 13.0
+    },
+    "transacciones_por_segundo": {
+      "n": 896,
+      "min": 0.0,
+      "media": 2.13,
+      "p95": 9.93,
+      "max": 58.08
+    }
+  },
+  "cola_y_api": {
+    "cola_pending": {
+      "n": 336,
+      "min": 0.0,
+      "media": 1.73,
+      "p95": 11.0,
+      "max": 14.0
+    },
+    "cola_antiguedad_s": {
+      "n": 336,
+      "min": 0.0,
+      "media": 414.11,
+      "p95": 2746.36,
+      "max": 3703.89
+    },
+    "scrape_up": {
+      "n": 224,
+      "min": 1.0,
+      "media": 1.0,
+      "p95": 1.0,
+      "max": 1.0
+    }
+  }
+}

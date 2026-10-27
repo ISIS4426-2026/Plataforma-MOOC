@@ -1,0 +1,49 @@
+==> B-nivel200_20261026_193659 (escenario1.jmx): 200 usuarios contra https://34.24.52.111.sslip.io
+Oct 27, 2026 1:37:02 AM java.util.prefs.FileSystemPreferences$1 run
+INFO: Created user preferences directory.
+Creating summariser <summary>
+Created the tree successfully using /jmeter/escenario1.jmx
+Starting standalone test @ October 27, 2026 1:37:03 AM CET (1793061423417)
+Waiting for possible Shutdown/StopTestNow/HeapDump/ThreadDump message on port 4445
+summary +   2127 in 00:00:26 =   82.7/s Avg:   127 Min:    56 Max:  1757 Err:     0 (0.00%) Active: 200 Started: 200 Finished: 0
+summary +   3785 in 00:00:30 =  126.2/s Avg:    86 Min:    55 Max:   285 Err:     0 (0.00%) Active: 200 Started: 200 Finished: 0
+summary =   5912 in 00:00:56 =  106.1/s Avg:   101 Min:    55 Max:  1757 Err:     0 (0.00%)
+summary +   2488 in 00:00:29 =   84.7/s Avg:   105 Min:    57 Max:   488 Err:     0 (0.00%) Active: 0 Started: 200 Finished: 200
+summary =   8400 in 00:01:25 =   98.7/s Avg:   102 Min:    55 Max:  1757 Err:     0 (0.00%)
+Tidying up ...    @ October 27, 2026 1:38:29 AM CET (1793061509368)
+... end of run
+END Running Jmeter on Tue Oct 27 01:38:29 CET 2026
+Destino      : https://34.24.52.111.sslip.io  [remoto]
+Entorno      : nube-entrega2-retrospectiva-corregida
+Codigo       : 3affa11
+Generador    : justb4/jmeter:latest en DESKTOP-NHAIFDB
+Ventana UTC  : 2026-10-27T00:36:59Z -> 2026-10-27T00:38:30Z
+
+Muestras totales: 8400  | consideradas (tras omitir 25 s de calentamiento): 5925
+Duracion de la corrida: 82 s  | hilos maximos: 200
+
+Resultado de las peticiones medidas:
+     5925  100.00%  ok
+
+Fallos reales: 0 (0.00%)  | fallos de validacion funcional: 0 (0.00%)
+
+paso                                                    n          p50          p95          p99    max  fallos
+01 GET catalogo de cursos                             346           72          103          124    189       0
+02 GET detalle del curso                              379           72          108          197    213       0
+03 POST inscripcion                                   396           82          129          162    242       0
+04 GET estado de mi inscripcion (validacion)          400           76          110          138    207       0
+05 GET modulos del curso                              400           77          114          147    194       0
+06 GET unidades del modulo                            400           79          108          135    163       0
+07 GET recursos de la unidad                          400           81          112          155    180       0
+08 GET cuestionario (vista de estudiante)             404           86          118          162    175       0
+09 POST latido de progreso 1 (recurso completado)     413           91          170          334    399       0
+09 POST latido de progreso 2 (recurso completado)     438           91          312          392    488       0
+10 POST envio del quiz                                459          116          350          405    434       0
+11 POST envio DUPLICADO del quiz (misma clave)        475           76          303          356    367       0
+12 GET avance del curso tras el quiz (validacion)     495           81          145          357    379       0
+13 GET mis envios (validacion de doble calificacio    520           85          129          224    360       0
+
+Ventana de agregacion: 57 s (medidas, sin el calentamiento)  | corrida completa: 82 s
+Global ms: p50=83 p95=148 p99=342  | rendimiento: 104.6 peticiones/s
+Timeouts: 0
+==> Resultados originales: /d/Fredy/Uniandes/Materias/Cloud architecture/Proyecto1/Plataforma-MOOC/docs/entrega3/evidencias/A7/escenario1-corregido/B-nivel200_20261026_193659/resultados.jtl

@@ -161,7 +161,15 @@ rampa_para() { [ -n "${RAMPA_FIJA:-}" ] && { echo "${RAMPA_FIJA}"; return; }; [ 
 case "${1:-}" in
   escalera)
     maximo=1; for n in $NIVELES_A $NIVELES_B; do [ "$n" -gt "$maximo" ] && maximo="$n"; done
-    if [ "$MODO" = "nube" ]; then preparar_tokens "$maximo"
+    # REUSAR_TOKENS evita que el inicio de sesion corra EN PARALELO a las
+    # corridas. preparar_tokens mete ~8,5 logins/min dentro de la ventana
+    # medida, y el paso separado de tokens existe precisamente para que el
+    # limitador de login no entre en la medicion (escenario1.md, seccion 4).
+    # Solo se usa cuando los tokens son de este entorno y de hace menos de 24 h;
+    # si no, mas vale rehacerlos, que es lo que hace el camino por omision.
+    if [ "$MODO" = "nube" ]; then
+      if [ -n "${REUSAR_TOKENS:-}" ]; then tokens_o_reusar "$maximo"
+      else preparar_tokens "$maximo"; fi
     else log "MODO=local: se usan los tokens que ya existan en capacity-planning/datos/tokens.csv"; fi
     inicio="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
     for n in $NIVELES_A; do
