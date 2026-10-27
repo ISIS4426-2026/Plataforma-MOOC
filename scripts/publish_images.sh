@@ -29,10 +29,20 @@ docker buildx build \
   --push \
   .
 
+# Frontend (D1): nginx con el build de la interfaz. El contexto no lleva .git, asi que el commit entra por argumento.
+docker buildx build \
+  --platform linux/amd64 \
+  --file Dockerfile.web \
+  --build-arg APP_COMMIT="${COMMIT_SHA:0:12}" \
+  --tag "${REGISTRY}/web:${COMMIT_SHA}" \
+  --push \
+  .
+
 cat <<EOF
 Published immutable images for commit ${COMMIT_SHA}:
   ${REGISTRY}/api:${COMMIT_SHA}
   ${REGISTRY}/worker:${COMMIT_SHA}
+  ${REGISTRY}/web:${COMMIT_SHA}
 
 Deploy with:
   IMAGE_TAG=${COMMIT_SHA} docker compose -f docker-compose.prod.yml pull

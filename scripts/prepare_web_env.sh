@@ -43,8 +43,8 @@ GCS_SIGNER_ACCOUNT="${GCS_SIGNER_ACCOUNT:-sa-web-server@${GCP_PROJECT_ID}.iam.gs
 # check, and an unhealthy instance gets recreated, in a loop.
 NGINX_CONFIG_FILE="${NGINX_CONFIG_FILE:-./nginx.conf}"
 case "${NGINX_CONFIG_FILE}" in
-  ./nginx.conf | ./nginx.bootstrap.conf | ./nginx.mig.conf) ;;
-  *) fail "NGINX_CONFIG_FILE must be one of ./nginx.conf, ./nginx.bootstrap.conf or ./nginx.mig.conf" ;;
+  ./nginx.conf | ./nginx.bootstrap.conf | ./nginx.mig.conf | ./nginx.web.conf) ;;
+  *) fail "NGINX_CONFIG_FILE must be one of ./nginx.conf, ./nginx.bootstrap.conf, ./nginx.mig.conf or ./nginx.web.conf" ;;
 esac
 
 required=(IMAGE_TAG APP_DOMAIN DB_PRIVATE_IP QUEUE_PRIVATE_IP SMTP_FROM SMTP_USERNAME)
@@ -140,6 +140,12 @@ DB_MAX_OPEN_CONNS='25'
 DB_MAX_IDLE_CONNS='25'
 DB_CONN_MAX_LIFETIME='5m'
 EOF
+
+# Con el perfil del frontend (D1) el proxy es la imagen `web`, publicada junto a `api` y `worker` con el
+# mismo IMAGE_TAG: la version de la interfaz y la de la API no pueden separarse.
+if [[ "${NGINX_CONFIG_FILE}" == "./nginx.web.conf" ]]; then
+  echo "PROXY_IMAGE='${GCP_REGION:-us-east1}-docker.pkg.dev/${GCP_PROJECT_ID}/${GCP_ARTIFACT_REGISTRY_REPOSITORY:-mooc}/web:${IMAGE_TAG}'" >>"${TMP_FILE}"
+fi
 
 mv "${TMP_FILE}" "${ENV_FILE}"
 chmod 600 "${ENV_FILE}"

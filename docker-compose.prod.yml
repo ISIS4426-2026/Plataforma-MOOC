@@ -27,12 +27,19 @@
 
 services:
   proxy:
-    image: nginx:1.27-alpine
+    # Por omision, nginx pelado (VM fija de la Entrega 2). En una instancia de grupo, PROXY_IMAGE es la
+    # imagen del frontend (D1, `Dockerfile.web`): trae el build y sirve la API en el mismo origen. Con ella,
+    # NGINX_CONFIG_FILE debe ser ./nginx.web.conf.
+    image: ${PROXY_IMAGE:-nginx:1.27-alpine}
     ports:
       - "80:80"
       - "443:443"
     environment:
       - APP_DOMAIN=${APP_DOMAIN:?Set APP_DOMAIN to the public DNS hostname}
+      # Solo los lee nginx.web.conf (frontend); los demas perfiles los ignoran.
+      - API_UPSTREAM=api:8080
+      - STORAGE_ORIGINS=${STORAGE_ORIGINS:-https://storage.googleapis.com}
+      - HLS_BASE_URL=${HLS_BASE_URL:-https://storage.googleapis.com/${S3_BUCKET:-plataforma-mooc-entrega2-media}}
     volumes:
       - ${NGINX_CONFIG_FILE:-./nginx.conf}:/etc/nginx/templates/default.conf.template:ro
       - /etc/letsencrypt:/etc/letsencrypt:ro

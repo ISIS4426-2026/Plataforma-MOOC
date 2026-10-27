@@ -100,6 +100,24 @@ construye. Configuración pública solo por `VITE_*` (origen de la API opcional,
 
 Dos falsos positivos de la librería de rutas se resolvieron afinando la regla, no silenciándola (nota 36).
 
+
+## 6. El frontend dentro del grupo de instancias (B3 / C1)
+
+Hasta C1 el nginx de las instancias solo reenviaba a la API: **el frontend no estaba en ninguna instancia**.
+Cambios (rama `feat/211-d1-frontend-en-grupo`, para revisión de Fredy):
+
+| Archivo | Cambio |
+| :--- | :--- |
+| `nginx.web.conf` | Mismas cabeceras de reenvío que `nginx.mig.conf` (`X-Forwarded-Proto` con respaldo al esquema real y `X-Forwarded-For` con la cadena). Con `$scheme` fijo, detrás del balanceador la API vería `http` y marcaría mal las cookies |
+| `docker-compose.prod.yml` | `proxy.image` = `${PROXY_IMAGE:-nginx:1.27-alpine}`: por omisión no cambia nada (VM fija de la Entrega 2) |
+| `scripts/publish_images.sh` | Publica también `web:<commit>` junto a `api` y `worker` |
+| `scripts/prepare_web_env.sh` | Acepta `./nginx.web.conf` y escribe `PROXY_IMAGE` con el mismo `IMAGE_TAG`: la versión de la interfaz y la de la API no se separan |
+| `infra/terraform/api_group.tf` | `mooc-nginx-config = ./nginx.web.conf` en la plantilla del grupo (aún sin aplicar) |
+
+Comprobado: la plantilla de nginx se renderiza y `nginx -t` pasa; `docker compose config` resuelve el proxy con la imagen
+`web`; `terraform validate` pasa; la comprobación de salud (`/api/v1/ready`) sigue cayendo dentro de `/api/`.
+**Sin comprobar en la nube:** requiere publicar la imagen y aplicar C1.
+
 ## Pendiente, y quién lo cierra
 
 1. **Cuando C3 publique el balanceador:** poner `CSRF_ALLOWED_ORIGINS` con su URL HTTPS, desplegar la imagen
