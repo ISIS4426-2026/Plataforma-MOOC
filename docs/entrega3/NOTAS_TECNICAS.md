@@ -1242,3 +1242,84 @@ nuevo habría arrancado sin esquema. Dos lecciones pequeñas de ahi:
 (`Dockerfile.worker`, `apk add ffmpeg`), así que la tarea «dependencias
 multimedia disponibles en el arranque de los workers» se cumple por la imagen.
 Instalarlo también en la VM habría sido una dependencia duplicada que nadie usa.
+
+<a id="33"></a>
+## 33. Los secretos tienen tres niveles, y `cloudsql.client` no se usa
+
+B4 (#203) inventarió la configuración. Dos cajones —público y secreto— no
+alcanzan: forzarlos es lo que lleva a tratar como secreto algo que no lo es, o a
+publicar algo que no se debe.
+
+| Nivel | Dónde vive | Qué hay |
+| :--- | :--- | :--- |
+| **Secreto** | Secret Manager, leído por la identidad de la instancia | `db-password`, `smtp-password` |
+| **No secreto, no publicable** | metadata de la instancia y `/etc/mooc/web.conf` | `smtp_from`, `smtp_username` |
+| **Público** | el repositorio | todo lo demás |
+
+El nivel 2 existe porque `mail.tf` ya lo había razonado: el usuario del proveedor
+**no es un secreto** —en Brevo es el correo de la cuenta, en SendGrid la cadena
+literal `apikey`— y tratarlo como tal sería teatro. Lo que protege la cuenta es
+la contraseña, que sí está en el nivel 1.
+
+**Y no existe ninguna llave de cuenta de servicio.** Ni para Terraform ni para
+las VMs: identidades adjuntas y credenciales del servidor de metadatos. Un
+secreto que no existe no se filtra, no caduca y no hay que rotarlo.
+
+### El hallazgo: `roles/cloudsql.client` hoy no se usa
+
+Ese rol concede `cloudsql.instances.connect`, que es lo que consumen **el proxy
+de autenticación y los conectores** de Cloud SQL. Esta plataforma **no usa
+ninguno de los dos**: se conecta por TCP directo a la IP privada, y en ese camino
+**IAM no se consulta**. Lo que permite la conexión es la ruta de la VPC más la
+contraseña de PostgreSQL.
+
+El comentario de `service_accounts.tf` decía «permite abrir la conexión». La
+segunda mitad —«no administra la instancia»— es cierta; la primera no, con este
+método de conexión. Corregido.
+
+**Esto corrige la auditoría de B2**, que declaró un solo permiso sin uso. Son
+dos.
+
+| Issue | Qué le toca |
+| :--- | :--- |
+| **F2** | Retirar `cloudsql.client` de las dos cuentas, **comprobándolo contra un despliegue vivo**: si alguna ruta lo necesitara, el fallo sería «permiso denegado» y no «conexión rechazada», y a ciegas se distinguen mal |
+| **F2** | Decidir si la metadata debe ser publicable literalmente. Hoy lleva los dos valores del nivel 2; el arreglo es un secreto más y unas diez líneas, contra una decisión documentada |
+| **I5, I6** | `bash ./scripts/b4_barrido_secretos.sh` antes de etiquetar y al cerrar. Sale con 1 si encuentra algo |
+
+### Las dos capas de identidad no son la misma pregunta
+
+- **IAM** responde «¿puede esta máquina hablar con este servicio de Google?».
+  Quien es, es la VM; se prueba con un token del servidor de metadatos; se revoca
+  quitando un enlace de IAM.
+- **PostgreSQL** responde «¿qué rol de base es esta sesión?». Quien es, es
+  `moocuser`; se prueba con contraseña sobre `sslmode=require`; se revoca
+  cambiando la contraseña, **no desde IAM**.
+
+Son ortogonales. Quitar `cloudsql.client` no cerraría la base, y tener la
+contraseña sin la ruta privada no la abriría.
+
+### Un barrido que lista coincidencias no sirve de nada
+
+La primera versión de `b4_barrido_secretos.sh` imprimía 22 URIs con contraseña,
+todas de desarrollo local. Eso es **peor que no comprobar**: un informe con ruido
+no distingue «no hay secretos» de «nadie lo lee».
+
+Ahora **afirma**: toda contraseña en una URI de conexión tiene que ser una de las
+cuatro declaradas como de desarrollo (`moocpassword`, `postgres`,
+`UnaContrasena*`, `a?b&c=d`), y cualquier otra es un hallazgo. Los marcadores en
+mayúsculas y las referencias a variable se excluyen explícitamente.
+
+**Y la garantía real no es el barrido.** `moocpassword` y `minioadmin` están en el
+repositorio a propósito, porque son credenciales de contenedores que solo existen
+en la máquina de quien los levanta. Lo que las hace inofensivas es que
+`internal/config/validate.go` **rechaza el arranque** con `APP_ENV=production` si
+sobreviven a un despliegue — y el barrido comprueba que esa comprobación siga
+existiendo y pasando. Es la diferencia entre una convención, que se olvida, y una
+comprobación, que no.
+
+### `terraform.tfvars.example` estaba desfasado
+
+No mencionaba las cuatro variables que añadió B3, y **tres son obligatorias**:
+`TF_VAR_image_tag`, `TF_VAR_smtp_from` y `TF_VAR_smtp_username`, además de
+`TF_VAR_db_password`. Quien siguiera ese archivo veía el `apply` pararse a
+preguntar sin entender por qué.

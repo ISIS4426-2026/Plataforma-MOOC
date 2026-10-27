@@ -5,7 +5,7 @@
 | Un barrido desde internet no encuentra puertos de aplicación abiertos en las instancias de los grupos | ✅ §2 — por estructura; barrido en §6 |
 | El balanceador y las verificaciones de salud sí llegan, con evidencia | ⏳ §6 — requiere C1 y C3 |
 | La base de datos, la cola y los workers no tienen superficie pública | ✅ §3 |
-| Cada grupo usa su propia identidad y ninguna tiene permisos que no use | ✅ §4, con **una excepción declarada** |
+| Cada grupo usa su propia identidad y ninguna tiene permisos que no use | ⚠️ §4, con **dos excepciones declaradas**; la segunda la encontró B4 |
 | Anotado en `NOTAS_TECNICAS.md` | ✅ nota 31 |
 
 **Estado: escrito y validado estáticamente; sin desplegar.** `terraform validate`
@@ -191,7 +191,26 @@ incluye `cloudsql.client` y la cola no abre la base. Tampoco está en los mapas
 explícitos de `db_password_readers` ni de `runtime_readers`: no lee secretos y no
 baja imágenes, porque instala Redis desde el repositorio de Debian.
 
-### La excepción, declarada
+### Corrección posterior: `cloudsql.client` tampoco se usa
+
+**El inventario de B4 ([#203](https://github.com/ISIS4426-2026/Plataforma-MOOC/issues/203))
+encontró un segundo permiso sin uso que esta auditoría dio por bueno.**
+
+`roles/cloudsql.client` concede `cloudsql.instances.connect`, que es lo que
+consumen el proxy de autenticación y los conectores de Cloud SQL. Esta plataforma
+**no usa ninguno de los dos**: se conecta por TCP directo a la IP privada, y en
+ese camino IAM no se consulta. Lo que permite la conexión es la ruta de la VPC
+más la contraseña de PostgreSQL.
+
+La tabla de arriba lo justificaba con «abre la conexión, no administra la
+instancia». La segunda mitad es cierta; la primera no, con este método de
+conexión.
+
+Retirarlo es de **F2**, con una comprobación contra un despliegue vivo: si alguna
+ruta lo necesitara, el fallo sería «permiso denegado» y no «conexión rechazada»,
+y a ciegas esos dos se distinguen mal.
+
+### La otra excepción, declarada desde el principio
 
 **`monitoring.metricWriter` en `sa-queue-server` hoy no se usa.** Está concedido
 en previsión de **C6**: la señal de autoescalado se calcula sobre la cola, y el
