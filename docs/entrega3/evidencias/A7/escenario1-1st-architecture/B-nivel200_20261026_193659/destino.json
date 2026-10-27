@@ -1,0 +1,14 @@
+{
+  "base_url": "https://34.24.52.111.sslip.io",
+  "entorno": "nube-entrega2-retrospectiva-corregida",
+  "plan": "escenario1.jmx",
+  "usuarios": 200,
+  "rampa_s": 15,
+  "pausa_ms": "1000+-1000",
+  "sesiones": 3,
+  "calentamiento_omitido_s": 25,
+  "commit": "3affa11",
+  "generador": "justb4/jmeter:latest en DESKTOP-NHAIFDB",
+  "inicio_utc": "2026-10-27T00:36:59Z",
+  "fin_utc": "2026-10-27T00:38:30Z"
+}

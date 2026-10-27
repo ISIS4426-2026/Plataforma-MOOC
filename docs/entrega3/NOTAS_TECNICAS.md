@@ -40,6 +40,7 @@ lo reemplaza, lo continúa.
 | 24 | [Transcodificar un vídeo real cuesta 1,2× su duración, y eso cambia la campaña](#24) | **G4, G6**, A7, C5, C6, F3 |
 | 25 | [Antes de publicar una cifra hay once reglas, y están en código](#25) | **todos los que midan**: A7, G1, G3, G4, G5, G6, G7, H2, H3 |
 | 26 | [El entorno de la Entrega 2 está a medias, y ninguna imagen del tag está publicada](#26) | **A7, B1, B2**, C1, C3, C5, G3, I6 |
+| 27 | [Un `FLUSHDB` en el Redis de asynq mata la observabilidad y no se nota](#27) | **B1, C6, C7**, A7, G4, G6 |
 
 ---
 
@@ -443,8 +444,15 @@ resultados»*.
 **Medirlo, no solo declararlo.** En el mismo encendido de A7, después de la
 corrida de línea base, se despliega la imagen de `main` sobre la **misma
 infraestructura de dos VMs** y se repite el escenario 1. Eso aísla el coste de
-las correcciones sin mezclarlo con el cambio de arquitectura, y convierte una
-advertencia en un número que G3 descuenta.
+las correcciones sin mezclarlo con el cambio de arquitectura: **+8 ms de p50 y
++34 % de CPU en Cloud SQL al mismo caudal de transacciones** (medido, ver
+[`evidencias/A7/COMPARACION.md`](evidencias/A7/COMPARACION.md) §2).
+
+> **Corrección sobre cómo se usa ese número.** No se descuenta en la comparación
+> de G3. La línea base de G3 es la corrida **corregida**, y la Entrega 3 elástica
+> corre ese mismo código, así que el coste de las correcciones está en los dos
+> lados y se cancela por construcción. Esa diferencia es un hallazgo para **H3**
+> y para explicar el 6.67 en **G7**, no un término de una resta.
 
 Esa segunda corrida es además la primera oportunidad de ejecutar los pasos del
 E2E que no se han podido probar: documentos, imágenes y el intento de quiz
@@ -720,6 +728,88 @@ cómputo. `-max-segmentos` lo acota, y con 10 segmentos por estudiante quedan 8
 con instante de reproducción que cumplir, que es lo mínimo para que el margen de
 buffer y las interrupciones signifiquen algo.
 
+### Lo desplegado en la Entrega 2 no era el código del tag
+
+El `/etc/mooc/web.conf` de la VM traía `IMAGE_TAG=b393116bf172…`, **59 commits
+antes del commit del tag**. Así que los números publicados de la Entrega 2 salen
+de **tres estados de código distintos**: `b393116b` en la nube para el
+escenario 1, Docker Compose en local para el escenario 2, y el tag como lo que el
+repositorio dice que fue la entrega.
+
+La línea base de A7 se mide con **el código del tag**, que es lo comparable con la
+Entrega 3 porque también partirá de un estado etiquetado. Pero se declara como
+«el código del tag», no como «lo que estuvo vivo».
+
+### Lo que corre en las VMs son copias congeladas, no el repositorio
+
+La unidad de systemd apunta a `/home/dfortizr1/mooc/`:
+
+```
+ExecStartPre=/bin/bash /home/dfortizr1/mooc/prepare_env.sh
+ExecStart=/usr/bin/docker compose -f /home/dfortizr1/mooc/docker-compose.prod.yml up -d
+```
+
+`prepare_env.sh` y el compose son copias de la época del tag. **Cambiar
+`IMAGE_TAG` cambia la imagen y nada más.** Para desplegar `main` de verdad hay
+que copiar también esos dos archivos, porque `main` añade `REDIS_SESSION_DB=1`,
+`INSTANCE_ID` y `SESSION_COOKIE_SAMESITE`.
+
+Sin ellos, **las sesiones se quedan en la base lógica 0 junto a la cola de
+asynq**, que es el riesgo de la nota 23. Comprobado en vivo: con el código del
+tag, `redis-cli info keyspace` en el `mooc-queue` del worker muestra las sesiones
+en `db0`.
+
+Afecta a **cualquiera que despliegue sobre estas VMs**, y es un argumento más
+para que la Entrega 3 construya las imágenes y la configuración desde el
+repositorio en el arranque de la instancia, no a mano en un home.
+
+### `cmd/seed-media` solo puede correr en la VM worker
+
+Transcodifica **en proceso** (`mediaProcessor.Handle`, no encola), así que escribe
+los derivados con las credenciales de la máquina donde corre. Y el reparto de
+permisos le prohíbe al SA web escribir derivados a propósito:
+`api_creator_non_derivatives` frente a `hls_worker_writer`. En la VM web da un
+403 que es la política funcionando.
+
+Además escribe hacia `media/hls/` en vez del bucket público, porque el bucket de
+derivados solo está declarado en el `.env` del worker.
+
+**A7 no lo usa:** la campaña del escenario 2 sube los tres perfiles reales 27
+veces por el camino de producción y deja el bucket sembrado con evidencia de la
+propia medición. Si alguien lo ejecuta y falla a mitad, deja un recurso en
+`processing` y un original huérfano: hay que limpiarlos antes de medir, porque la
+verificación terminal cuenta estados bajo `originals/`.
+
+### Dos trampas de operar las VMs desde Windows
+
+- **El `.env` es de root.** `source` sin `sudo` falla con `Permission denied` y,
+  al quedarse sin `DATABASE_URL`, el binario busca Postgres en `localhost`. Se
+  resuelve con `sudo bash -c 'set -a; source …; set +a; exec …'`, que no deja
+  copia del secreto en disco.
+- **Las comillas no sobreviven a `plink`.** `gcloud compute ssh --command` con
+  comillas anidadas, `$(...)` o `$$…$$` llega destrozado y da un error de
+  sintaxis con un `^` que no señala nada. Escribe el script, cópialo y ejecútalo.
+  Y **`--quiet` siempre**: sin él `pscp`/`plink` pueden esperar una confirmación
+  que nadie teclea, sin emitir una sola línea.
+- El túnel IAP hacia el worker dio **14 kB/s con cortes** mientras hacia la web
+  daba 3,4 MB/s, con las dos máquinas ociosas. Para mover algo grande, pásalo por
+  el bucket: es dentro de la región, no cuesta egreso y no depende del túnel.
+
+### `h3_nube.sh escalera` metía el limitador de login en la medición
+
+Dos cosas que cuestan una corrida entera:
+
+- **`escalera` es un subcomando obligatorio.** Sin él, el script imprime su uso y
+  sale con 1.
+- En modo nube, `escalera` borraba `tokens.csv` y volvía a iniciar sesión **en
+  paralelo a las corridas**: ~8,5 logins/min dentro de la ventana medida, que es
+  justo lo que el paso separado de tokens existe para evitar (`escenario1.md` §4).
+  Ahora hay `REUSAR_TOKENS=1`, que usa el camino que `repetir` ya tenía. El valor
+  por omisión sigue siendo rehacerlos: reutilizar es una afirmación explícita de
+  que son de este entorno y de hace menos de 24 h.
+- `CAPACITY_PASSWORD` tiene que ir exportada, o el script la pide por teclado y
+  se cuelga sin terminal interactiva.
+
 ### `REDIS_URL` en la disposición de dos VMs
 
 `docker-compose.prod.yml` de `main` ya no levanta Redis y exige `REDIS_URL`
@@ -728,6 +818,183 @@ escribe `REDIS_URL='${QUEUE_PRIVATE_IP}:6379'`: la cola de la VM worker por la
 VPC, con las sesiones en la base lógica 1. No hace falta esperar a B1 para
 desplegar `main` sobre la Entrega 2.
 
+<a id="27"></a>
+## 27. Un `FLUSHDB` en el Redis de asynq mata la observabilidad y no se nota
+
+Costó **tres corridas del escenario 2**, y es la clase de fallo más peligrosa que
+ha salido en esta entrega: la plataforma sigue funcionando perfectamente y lo
+único que muere es la capacidad de verla.
+
+### Qué pasa exactamente
+
+Asynq mantiene un conjunto `asynq:queues` con los nombres de las colas que
+existen. `FLUSHDB` lo borra. A partir de ahí, el inspector responde:
+
+```
+NOT_FOUND: queue "default" does not exist
+```
+
+Y **no se recupera solo**, porque el cliente de asynq registra la cola *una vez
+por proceso*: un contenedor de la API que llevaba arriba desde antes de la purga
+cree que ya la registró y nunca vuelve a añadirla.
+
+Mientras tanto todo lo demás funciona: el worker consume porque tiene el nombre
+de la cola configurado, los trabajos se transcodifican, los recursos llegan a
+`completed`. Lo único roto es la vista.
+
+### Lo que produjo
+
+La campaña registró **«pico de cola: 0 tareas»** habiendo confirmado 12 subidas,
+y el archivo de drenaje escribió **«la cola se ha vaciado totalmente»** con 13
+trabajos pendientes en la base. Un informe indistinguible de una corrida buena.
+
+```
+$ redis-cli -n 0 smembers asynq:queues
+(vacío)
+$ redis-cli -n 0 --scan --pattern 'asynq*'
+asynq:{default}:active
+asynq:{default}:t:media-originals/...
+asynq:{default}:processed:2026-10-26
+```
+
+La cola estaba ahí; el registro no.
+
+### Cómo se purga bien
+
+[`scripts/a7_purgar.sh`](../../scripts/a7_purgar.sh) borra las estructuras una
+por una y **conserva el registro**. Si te toca hacerlo a mano:
+
+```bash
+redis-cli -n 0 del 'asynq:{default}:pending' 'asynq:{default}:active' ...
+redis-cli -n 0 --scan --pattern 'asynq:{default}:t:*' | xargs -r redis-cli -n 0 del
+redis-cli -n 0 sadd asynq:queues default     # restaura el registro
+```
+
+Y si alguien ya hizo el `FLUSHDB`, el arreglo es ese `sadd`, o reiniciar el
+contenedor de la API para que su cliente vuelva a registrarse.
+
+### Para B1, C6 y C7
+
+**La cola de la Entrega 3 es un servicio compartido**, así que un `FLUSHDB`
+—para limpiar sesiones, para liberar memoria, por costumbre— no afecta solo a
+quien lo ejecuta:
+
+- **C6** escala los workers por profundidad de cola. Con el registro borrado, la
+  métrica vale **0** para siempre y el autoescalador **nunca sube un worker**
+  mientras la cola crece. Eso no es una medición mala: es una política de
+  escalado que no se dispara, y en producción se vería como lentitud sin causa.
+- **C7** demuestra el drenaje de un worker que se retira. Con el inspector ciego,
+  la demostración sale vacía y parece correcta.
+- **B1** debería dejar escrito en el runbook de la cola que `FLUSHDB` y
+  `FLUSHALL` están prohibidos ahí, y por qué. La nota 23 ya avisa de que las
+  sesiones y la cola comparten instancia; esto es la otra cara: la herramienta
+  obvia para limpiar una rompe la otra en silencio.
+
+### Lo que salvó el diagnóstico
+
+Que la campaña dejara de publicar ceros. Tras el segundo intento cambié
+`if err == nil` por contar los fallos y declarar el drenaje **no observable**,
+y el cuarto intento dijo «3 667 lecturas de la cola fallaron en este nivel» y
+salió con código 1. Sin eso, la quinta corrida habría dado un informe
+aparentemente bueno.
+
+**Regla general, no solo para asynq:** una lectura que falla no es un cero. Si
+el código no distingue «no pude ver» de «vi que era cero», la evidencia acabará
+afirmando lo segundo.
+
 ---
 
 Este archivo no contiene credenciales, llaves ni secretos.
+
+## 28. Una conclusión escrita a mano es una constante que sobrevive a todo
+
+La campaña del escenario 2 genera seis archivos de evidencia. Las tablas por
+nivel siempre se derivaron de lo medido, pero **las conclusiones estaban
+escritas fijas**, redactadas durante la Entrega 2. Sobrevivieron al cambio de
+entorno (Compose a GCP), de código (tag a corregido) y de perfiles (clips de 8 s
+a vídeos de 30 min), y acabaron contradiciendo a la tabla que tenían encima en la
+misma página:
+
+| Afirmaba | Medido en la línea base del código corregido |
+| :--- | :--- |
+| «p95 inferior a 20 ms» en el plano de control | `n/d`: ningún nivel llega a 20 observaciones |
+| PUT «entre 25 y 45 MB/s» · «> 30 MB/s» | 0,71–2,14 MB/s |
+| Descarga HLS «> 120 MB/s» | 3,51 MB/s |
+| Antigüedad de cola «superó los 35 s» | 3 723 s |
+| Cómputo «~2,8 s por tarea» | 95–168 s |
+| «hasta 10 tareas en espera» | pico de 14 |
+| «pending = 0, processing = 0» | 2 recursos en `processing` |
+| «sin estados indeterminados» | dos líneas después de «huérfanos: 2» |
+| «0 trabajos huérfanos ✅» | 2 |
+
+Y un caso aparte, porque no era una constante sino un reloj mal puesto: **el
+margen de buffer del simulador HLS era negativo por construcción**. El instante
+de reproducción se tomaba del inicio de la sesión en vez de de cuando se llena el
+buffer inicial, y encima se le restaba el buffer. Con la cadencia a 1× el reloj
+de descarga y el de reproducción avanzan igual, así que el déficit inicial nunca
+se recuperaba: el margen salía fijo en −14,40 s y **el 100 % de los segmentos con
+plazo contaba como interrupción** —16 de 16 en el nivel 0, 80 de 80 en el nivel
+1—. Con el reloj correcto el margen es +14,30 s constante, que es exactamente la
+profundidad del buffer, y una interrupción vuelve a significar algo: que una
+descarga tardó más que la duración de un segmento.
+
+**Qué se cambió.** En `scripts/capacity_escenario2/main.go`, los tres documentos
+de conclusiones (`resumen_ejecutivo`, `analisis_cuello_de_botella`,
+`reporte_carga`) y el README se derivan ahora de un `resumirHechos()` común; el
+veredicto del drenaje y las palomas del README son `switch` sobre los datos; y
+`margenTexto`/`stallsTexto` dicen «no aplica» cuando no se descargó ningún
+segmento con instante de reproducción, en vez de publicar un cero.
+
+**La regla, para B, C, F y G.** Un veredicto que no puede fallar no es un
+veredicto. Si un documento de evidencia contiene una frase que seguiría siendo
+literalmente la misma con otros datos, esa frase no es evidencia: es decoración,
+y tarde o temprano contradice a la tabla de al lado. Es el mismo defecto que A6
+prohíbe en §7 para las métricas derivadas de constantes, aplicado a la prosa.
+
+**Lo que no se pudo arreglar.** El proceso que escribió esa evidencia ya no
+existía cuando se encontró el defecto, así que los cuatro documentos de la
+corrida del 2026-10-27 se rederivaron **a mano** de los artefactos medidos, y
+cada uno lo declara en su cabecera. A partir de la siguiente corrida se derivan
+solos. Para no repetirlo: conviene que la campaña vuelque `levels` y `drain` en
+JSON junto a la evidencia, para poder regenerar los documentos sin volver a medir.
+
+## 29. Destruir Cloud SQL con `-target` falla por el usuario, no por la instancia
+
+El runbook de A7 y el de I6 destruyen la base con `-target`, para no tocar el
+resto del entorno. Con los tres recursos apuntados a la vez, falla:
+
+```
+Error: failed to delete user moocuser in instance mooc-db-1:
+  role "moocuser" cannot be dropped because some objects depend on it
+  Details: 20 objects in database moocdb
+```
+
+Terraform intenta borrar `google_sql_user.app` **antes** que la instancia, y
+PostgreSQL se niega porque ese rol es dueño de las 19 tablas del esquema. No es
+un problema de permisos ni de protección de borrado: es que el orden de
+destrucción de un `-target` múltiple no respeta que el usuario vive dentro de la
+instancia. Y el fallo deja el destroy a medias, con el recurso de la base lógica
+ya fuera del estado.
+
+**Lo que funciona:** sacar el usuario del estado —no toca la nube, el usuario
+desaparece con la instancia— y destruir solo la instancia.
+
+```bash
+terraform state rm google_sql_user.app
+terraform plan -destroy -out=d.tfplan -target=google_sql_database_instance.main
+terraform apply d.tfplan
+```
+
+Después, `terraform plan` debe decir **3 to add, 0 to change, 0 to destroy**: los
+tres recursos vuelven a estar declarados y ausentes, que es la línea de partida.
+Si dice otra cosa, el estado y la nube no coinciden.
+
+**Dos trampas de alrededor, para no repetirlas:**
+
+- **Un plan guardado caduca enseguida.** Cualquier `terraform plan` refresca el
+  estado remoto y le cambia el serial, así que un `-out` de hace cinco minutos da
+  «Saved plan is stale». Hay que generar y aplicar el plan seguidos, sin ningún
+  `plan` en medio.
+- **Un plan guardado lleva las variables en claro**, la contraseña de la base
+  entre ellas, igual que el estado. `*.tfplan` está en `.gitignore` por eso;
+  antes no lo estaba.

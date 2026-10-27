@@ -1,0 +1,33 @@
+Destino      : https://34.24.52.111.sslip.io  [remoto]
+Entorno      : nube-entrega2-retrospectiva-corregida
+Codigo       : 3affa11
+Generador    : justb4/jmeter:latest en DESKTOP-NHAIFDB
+Ventana UTC  : 2026-10-27T00:04:13Z -> 2026-10-27T00:08:25Z
+
+Muestras totales: 1050  | consideradas (tras omitir 45 s de calentamiento): 888
+Duracion de la corrida: 240 s  | hilos maximos: 25
+
+Resultado de las peticiones medidas:
+      888  100.00%  ok
+
+Fallos reales: 0 (0.00%)  | fallos de validacion funcional: 0 (0.00%)
+
+paso                                                    n          p50          p95          p99    max  fallos
+01 GET catalogo de cursos                              50           75          111   n/d (n=50)    123       0
+02 GET detalle del curso                               50           75          110   n/d (n=50)    125       0
+03 POST inscripcion                                    50           85          124   n/d (n=50)    154       0
+04 GET estado de mi inscripcion (validacion)           50           81          111   n/d (n=50)    126       0
+05 GET modulos del curso                               54           82          127   n/d (n=54)    155       0
+06 GET unidades del modulo                             58           83          121   n/d (n=58)    150       0
+07 GET recursos de la unidad                           63           85          114   n/d (n=63)    150       0
+08 GET cuestionario (vista de estudiante)              67           88          121   n/d (n=67)    242       0
+09 POST latido de progreso 1 (recurso completado)      71           93          308   n/d (n=71)    334       0
+09 POST latido de progreso 2 (recurso completado)      75           94          359   n/d (n=75)    383       0
+10 POST envio del quiz                                 75          114          395   n/d (n=75)    435       0
+11 POST envio DUPLICADO del quiz (misma clave)         75           78          305   n/d (n=75)    351       0
+12 GET avance del curso tras el quiz (validacion)      75           89          374   n/d (n=75)    410       0
+13 GET mis envios (validacion de doble calificacio     75           86          317   n/d (n=75)    365       0
+
+Ventana de agregacion: 195 s (medidas, sin el calentamiento)  | corrida completa: 240 s
+Global ms: p50=86 p95=311 p99=386  | rendimiento: 4.5 peticiones/s
+Timeouts: 0
