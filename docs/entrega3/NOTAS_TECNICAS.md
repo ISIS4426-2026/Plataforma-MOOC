@@ -1323,3 +1323,96 @@ No mencionaba las cuatro variables que añadió B3, y **tres son obligatorias**:
 `TF_VAR_image_tag`, `TF_VAR_smtp_from` y `TF_VAR_smtp_username`, además de
 `TF_VAR_db_password`. Quien siguiera ese archivo veía el `apply` pararse a
 preguntar sin entender por qué.
+
+<a id="34"></a>
+## 34. Una instancia de grupo no puede servir con el nginx de la Entrega 2
+
+Lo encontró C1 (#204) al escribir el autohealing, y no estaba en la lista de
+tareas del issue. Son dos problemas independientes y cada uno basta para que la
+instancia no arranque.
+
+1. **El certificado no existe.** `nginx.conf` termina TLS con
+   `ssl_certificate /etc/letsencrypt/live/${APP_DOMAIN}/fullchain.pem`. Los
+   certificados viven en `/etc/letsencrypt` del anfitrión y **no hay contenedor
+   de certbot**: se obtuvieron a mano. En un disco nuevo ese directorio está
+   vacío y **nginx no arranca**.
+2. **Certbot nunca podría obtenerlo.** Una instancia de grupo no tiene IP pública
+   (B2), así que el desafío HTTP-01 no tiene por dónde llegar.
+
+Y el 80 de `nginx.conf` hace `return 301` para todo lo que no sea ACME. Una
+comprobación de salud de GCP **solo acepta 200**, así que: 301 → instancia no
+sana → el autohealer la recrea → la nueva hace lo mismo. **Un bucle de
+recreación que se lee como «la imagen está rota».**
+
+### El modelo que lo resuelve
+
+TLS en el **balanceador** (C3), con certificado administrado por Google; los
+backends sirven **HTTP plano en el 80** dentro de la VPC. Sin IP pública en las
+instancias, ese HTTP no viaja por internet en ningún tramo.
+
+El perfil nuevo es `nginx.mig.conf`, y se elige por metadata
+(`mooc-nginx-config`). No hubo que inventar el mecanismo:
+`docker-compose.prod.yml` ya tenía `${NGINX_CONFIG_FILE:-./nginx.conf}`, con
+`nginx.bootstrap.conf` como precedente. `prepare_web_env.sh` valida que el valor
+sea uno de los tres perfiles conocidos.
+
+**La VM fija no cambia**: su valor por omisión sigue siendo `./nginx.conf`.
+
+### Lo que esto obliga a los demás
+
+| Issue | Qué tiene que saber |
+| :--- | :--- |
+| **C3** | El balanceador **tiene** que terminar TLS: los backends no lo hacen y no pueden. Backend por el named port `http` → 80. Y tiene que ser **global**, por lo que B2 dejó dicho en la nota 31 |
+| **C3** | Lo que `nginx.mig.conf` conserva de `nginx.conf` es la denegación de `/api/v1/metrics` y las cabeceras de proxy. Si alguna vez se quita nginx del Compose, esas dos cosas hay que reponerlas en otro sitio |
+| **C4** | La sonda es `/api/v1/ready` en el 80, la de A2, la misma del autohealing de C1. Que la del backend sea otra sería decidir con un criterio distinto del medido |
+| **C2** | El grupo ignora `target_size` a propósito (`ignore_changes`), para que un `apply` no deshaga una decisión del autoescalador a mitad de una corrida |
+| **C2, C6** | `initial_delay_sec = 600` está puesto **alto a propósito** y hay que calibrarlo con `/var/lib/mooc/arranque.json` de B3. Por debajo del arranque real, el autohealer mata instancias que se están montando |
+| **G3** | La plantilla usa `e2-highcpu-2`, el mismo tipo que la VM fija de A7, para que la diferencia contra la línea base sea solo arquitectónica |
+
+### Por qué el grupo es zonal y no regional
+
+Un grupo regional sobrevive a la caída de una zona. **Aquí no sobreviviría:**
+Cloud SQL es `availability_type = "ZONAL"` en `us-east1-b` y la cola compartida
+es una VM en la misma zona. Si esa zona cae, la base se va con ella y las
+réplicas de las otras zonas fallarían su comprobación de salud, porque
+`/api/v1/ready` prueba la base. Lo único que sí cambiaría es el coste: el tráfico
+entre zonas se factura.
+
+**La alta disponibilidad empieza por Cloud SQL**, no por el grupo de la API:
+`REGIONAL` casi dobla el coste de la instancia de base. Mientras esa decisión no
+se tome, un grupo regional es teatro caro. La conversión sería cambiar a
+`google_compute_region_instance_group_manager` y añadir `distribution_policy`.
+
+### Y una trampa de operación
+
+Si `mooc-image-tag` nombra un commit cuya imagen **no está publicada** en
+Artifact Registry, el arranque falla al bajarla y el autohealer entra en bucle.
+`publish_images.sh` antes de `apply` no es opcional.
+
+<a id="35"></a>
+## 35. Las instancias del grupo heredan el dominio de la VM fija, y eso rompe CSRF
+
+`local.mooc_app_domain` vacío se calcula como
+`<ip-publica-de-la-vm-fija>.sslip.io`, y `prepare_web_env.sh` deriva de ese valor
+**dos** cosas:
+
+```
+APP_BASE_URL='https://${APP_DOMAIN}'
+CSRF_ALLOWED_ORIGINS='https://${APP_DOMAIN}'
+```
+
+En cuanto el balanceador de C3 sirva en otra dirección, **toda petición mutante
+que entre por él se rechaza como origen ajeno**. Es el mismo
+`csrf_origin_rejected` 403 que costó el primer intento del escenario 2 en A7, y
+se parece a un fallo de la aplicación, no a un valor de configuración.
+
+**No bloquea los criterios de C1**, y el motivo importa: la comprobación de salud
+es `/api/v1/ready`, que prueba la base y la bandera de arranque y **no mira el
+origen**. Una instancia con el dominio equivocado sale sana y el grupo la recrea
+igual, así que las capturas de B1, B3 y C1 se pueden tomar sin balanceador.
+
+| Issue | Qué le toca |
+| :--- | :--- |
+| **C3** | Fijar `var.app_domain` a la dirección del balanceador, calculada de su dirección reservada igual que hoy se calcula la de la VM fija. **Sin eso, la plataforma responde 403 a todo lo que mute estado** |
+| **D1** | Con el frontend detrás del **mismo** balanceador no hace falta CORS ni `SESSION_COOKIE_SAMESITE=none` (A4). En otro origen hacen falta las tres cosas a la vez |
+| **G3, G5** | Una corrida de carga que entre por el balanceador con el dominio sin fijar mediría 403, no latencia. Comprobar el origen antes de medir |
