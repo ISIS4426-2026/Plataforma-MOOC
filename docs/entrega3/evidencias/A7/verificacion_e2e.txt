@@ -1,0 +1,67 @@
+==============================================================================
+ EVIDENCIA A7 - VERIFICACION E2E DE LAS CORRECCIONES, CONTRA LA NUBE
+==============================================================================
+Fecha UTC : 2026-10-27T00:47:42Z
+Destino   : https://34.24.52.111.sslip.io  [remoto]
+Imagen    : 3affa11394ea81c569b6eb111ec3e12b1df1bca8 (main, codigo corregido)
+Esquema   : 8 migraciones, incluida 000008_quiz_attempt_drafts
+Por que   : tres correcciones de la Entrega 1 nunca se habian probado
+            contra un entorno real porque no habia entorno.
+Comando   : BASE_URL=... bash ./scripts/a7_verificar_e2e.sh
+Secretos  : SANITIZADO.
+==============================================================================
+
+
+== Preparando
+  ok     sesion de profesor
+  ok     curso, modulo y unidad
+
+== 1. Documentos e imagenes por el flujo normal (nota 16)
+  ok     pdf: llego a completed por el flujo normal
+  ok     image: llego a completed por el flujo normal
+
+== 2. El intento de quiz se califica contra el enunciado congelado (nota 17)
+  ok     quiz creado sobre su recurso
+  ok     pregunta creada con su enunciado original
+  ok     curso publicado (requisito para abrir un intento)
+  ok     el estudiante se inscribio (HTTP 200)
+  ok     el estudiante abrio el intento
+  ok     despublicado, pregunta anadida con el intento abierto
+  ok     curso vuelto a publicar (HTTP 200)
+  ok     el intento sigue con su pregunta original y NO ve la anadida: esta congelado
+
+== 3. Separacion de sesiones (A4, nota 23)
+  Se comprueba en la instancia de la cola, no por HTTP:
+    redis-cli -n 0 dbsize   -> solo la cola de asynq
+    redis-cli -n 1 dbsize   -> session:* y ratelimit:*
+  Ojo: la caida a PostgreSQL NO repuebla la cache, asi que un token
+  anterior al despliegue autentica sin escribir en la base 1. Hay que
+  hacer un login nuevo antes de mirar.
+
+== Limpieza
+  ok     curso de pruebas despublicado (la API no permite borrarlo)
+
+Todas las comprobaciones pasaron.
+
+------------------------------------------------------------------------------
+ LO QUE ESTO DEMUESTRA, Y LAS REGLAS DEL DOMINIO QUE SE DESCUBRIERON
+------------------------------------------------------------------------------
+ Nota 16: un PDF y una imagen llegan a 'completed' por el flujo normal.
+          Antes de la correccion de mediaproc.go acababan en 'failed',
+          porque el worker pasaba TODO recurso por ffprobe.
+
+ Nota 17: el intento abierto conserva su enunciado y NO ve una pregunta
+          anadida despues. Para provocar la mutacion hubo que despublicar
+          y volver a publicar, porque:
+            - la API solo permite ANADIR preguntas (no hay PUT ni DELETE);
+            - un curso publicado tiene su evaluacion inmutable (409);
+            - abrir un intento exige curso publicado (409) y un recurso
+              visible, disponible y OBLIGATORIO para poder publicarlo (422);
+            - la inscripcion es del propio estudiante, no la hace el
+              profesor por el (403).
+
+ Nota 23: las sesiones viven en la base logica 1, separadas de la cola.
+          Verificado tras un login nuevo: session:* y ratelimit:* en db1.
+==============================================================================
+ Este archivo no contiene credenciales, llaves ni secretos.
+==============================================================================

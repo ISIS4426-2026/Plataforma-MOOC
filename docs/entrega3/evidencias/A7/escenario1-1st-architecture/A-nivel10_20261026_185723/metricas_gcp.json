@@ -1,0 +1,195 @@
+{
+  "ventana": {
+    "inicio": "2026-10-26T23:57:23Z",
+    "fin": "2026-10-27T00:01:35Z"
+  },
+  "vm": {
+    "mooc-web-server": {
+      "cpu_ocupada_pct": {
+        "n": 5,
+        "min": 2.53,
+        "media": 3.27,
+        "p95": 4.34,
+        "max": 4.34
+      },
+      "memoria_usada_pct": {
+        "n": 5,
+        "min": 30.04,
+        "media": 30.36,
+        "p95": 30.84,
+        "max": 30.84
+      },
+      "conexiones_tcp": {
+        "n": 5,
+        "min": 31.5,
+        "media": 32.6,
+        "p95": 35.0,
+        "max": 35.0
+      },
+      "procesos_top_nucleos_usados": {
+        "otelopscol": {
+          "n": 10,
+          "min": 6409.11,
+          "media": 8824.29,
+          "p95": 12070.9,
+          "max": 12070.9
+        },
+        "api": {
+          "n": 10,
+          "min": 152.08,
+          "media": 3606.19,
+          "p95": 5876.57,
+          "max": 5876.57
+        },
+        "python3": {
+          "n": 4,
+          "min": 0.0,
+          "media": 1500.0,
+          "p95": 5166.67,
+          "max": 5166.67
+        },
+        "kworker/0:0-cgroup_release": {
+          "n": 10,
+          "min": 0.0,
+          "media": 1731.21,
+          "p95": 3462.41,
+          "max": 3462.41
+        },
+        "kworker/0:0-cgroup_free": {
+          "n": 10,
+          "min": 0.0,
+          "media": 1485.37,
+          "p95": 2970.74,
+          "max": 2970.74
+        },
+        "fluent-bit": {
+          "n": 10,
+          "min": 0.0,
+          "media": 1424.29,
+          "p95": 2831.93,
+          "max": 2831.93
+        }
+      }
+    },
+    "mooc-worker-server": {
+      "cpu_ocupada_pct": {
+        "n": 5,
+        "min": 2.21,
+        "media": 2.41,
+        "p95": 2.73,
+        "max": 2.73
+      },
+      "memoria_usada_pct": {
+        "n": 5,
+        "min": 29.06,
+        "media": 29.45,
+        "p95": 29.77,
+        "max": 29.77
+      },
+      "conexiones_tcp": {
+        "n": 5,
+        "min": 29.5,
+        "media": 30.3,
+        "p95": 32.0,
+        "max": 32.0
+      },
+      "procesos_top_nucleos_usados": {
+        "otelopscol": {
+          "n": 10,
+          "min": 6594.72,
+          "media": 8392.85,
+          "p95": 10234.6,
+          "max": 10234.6
+        },
+        "redis-server": {
+          "n": 10,
+          "min": 1121.97,
+          "media": 3873.91,
+          "p95": 6283.87,
+          "max": 6283.87
+        },
+        "fluent-bit": {
+          "n": 10,
+          "min": 333.35,
+          "media": 1423.89,
+          "p95": 2594.59,
+          "max": 2594.59
+        },
+        "dockerd": {
+          "n": 10,
+          "min": 333.33,
+          "media": 909.46,
+          "p95": 1499.96,
+          "max": 1499.96
+        },
+        "containerd": {
+          "n": 10,
+          "min": 427.93,
+          "media": 926.13,
+          "p95": 1450.29,
+          "max": 1450.29
+        },
+        "containerd-shim-runc-v2": {
+          "n": 20,
+          "min": 0.0,
+          "media": 378.61,
+          "p95": 1261.17,
+          "max": 1261.17
+        }
+      }
+    }
+  },
+  "cloudsql": {
+    "cpu_pct": {
+      "n": 5,
+      "min": 11.79,
+      "media": 16.31,
+      "p95": 25.85,
+      "max": 25.85
+    },
+    "memoria_pct": {
+      "n": 5,
+      "min": 59.92,
+      "media": 60.11,
+      "p95": 60.31,
+      "max": 60.31
+    },
+    "conexiones_abiertas": {
+      "n": 5,
+      "min": 3.0,
+      "media": 3.6,
+      "p95": 4.0,
+      "max": 4.0
+    },
+    "transacciones_por_segundo": {
+      "n": 40,
+      "min": 0.0,
+      "media": 1.96,
+      "p95": 17.68,
+      "max": 18.18
+    }
+  },
+  "cola_y_api": {
+    "cola_pending": {
+      "n": 15,
+      "min": 0.0,
+      "media": 0.0,
+      "p95": 0.0,
+      "max": 0.0
+    },
+    "cola_antiguedad_s": {
+      "n": 15,
+      "min": 0.0,
+      "media": 0.0,
+      "p95": 0.0,
+      "max": 0.0
+    },
+    "scrape_up": {
+      "n": 10,
+      "min": 1.0,
+      "media": 1.0,
+      "p95": 1.0,
+      "max": 1.0
+    }
+  }
+}

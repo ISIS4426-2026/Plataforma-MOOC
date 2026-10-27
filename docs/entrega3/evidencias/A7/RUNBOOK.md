@@ -137,6 +137,14 @@ gcloud compute instances start mooc-web-server mooc-worker-server \
     --zone=us-east1-b --project=plataforma-mooc-entrega2
 ```
 
+Conservan disco e IP, así que la URL publicada sigue siendo
+`https://34.24.52.111.sslip.io`.
+
+Al arrancar, los contenedores intentan levantar contra la base **vieja**, que ya
+no existe: verás `mooc-api-1` sin pasar su comprobación de salud y
+`mooc-proxy-1` sin llegar a arrancar. Es lo esperado y se resuelve en el paso 4;
+no hay nada que depurar ahí.
+
 ---
 
 ## 4. Apuntar las VMs a la base nueva y al código del tag · *dentro de cada VM*
@@ -159,11 +167,23 @@ sudo systemctl restart mooc-web.service
 sudo docker ps --format 'table {{.Names}}\t{{.Status}}'
 ```
 
-Lo mismo en `mooc-worker-server` con `/etc/mooc/worker.conf`. Confirma los
-nombres exactos de las variables en el `.conf` de cada máquina antes de editarlo:
-`prepare_web_env.sh` exige `IMAGE_TAG`, `APP_DOMAIN`, `DB_PRIVATE_IP`,
-`QUEUE_PRIVATE_IP`, `SMTP_FROM` y `SMTP_USERNAME`, y el de worker `IMAGE_TAG` y
+Lo mismo en `mooc-worker-server` con `/etc/mooc/worker.conf`. Haz `cp` de
+respaldo antes de editar: es lo que permite volver atrás sin adivinar.
+
+Las claves reales de cada `.conf`, comprobadas: el web tiene `IMAGE_TAG`,
+`APP_DOMAIN`, `DB_PRIVATE_IP`, `SMTP_HOST`, `SMTP_PORT`, `SMTP_FROM`,
+`SMTP_USERNAME` y `QUEUE_PRIVATE_IP` —esta última **duplicada**, con el mismo
+valor las dos veces, así que es inocua—; el worker, `IMAGE_TAG` y
 `DB_PRIVATE_IP`.
+
+> **Anota qué `IMAGE_TAG` había antes de sobrescribirlo.** En este entorno era
+> `b393116bf17234ec435f341fe816816420e5be6e`, **59 commits antes del tag**: lo
+> que estuvo vivo en la Entrega 2 no era el código del tag. Es un dato que la
+> comparación necesita declarar, no esconder.
+
+Después del reinicio, `grep -c` de la IP nueva en el `.env` debe dar 1: es lo que
+confirma que `prepare_env.sh` lo regeneró leyendo el `.conf`. Si da 0, el `sed`
+no se aplicó antes del reinicio.
 
 ---
 
@@ -182,18 +202,41 @@ corrida 2.
 
 ---
 
-## 6. Sembrar los perfiles multimedia · *dentro de la VPC*
+## 6. Los perfiles multimedia · *tu máquina*
 
 **Esto es lo que la Entrega 2 se saltó.** Sin este paso, la campaña mide lo que
 haya en `scratch/`, y lo que había eran clips de 8 segundos.
 
 ```bash
 bash ./scripts/generar_media_prueba.sh    # genera y verifica campo por campo
-go run ./cmd/seed-media
 ```
 
-`generar_media_prueba.sh` falla si un archivo no es lo que declara. Si falla, no
-sigas: la campaña entera quedaría invalidada igual que la anterior.
+Falla si un archivo no es lo que declara. Si falla, no sigas: la campaña entera
+quedaría invalidada igual que la anterior. Los archivos se quedan en `scratch/`
+de **tu máquina**: la campaña los sube por URL firmada, no hace falta copiarlos
+a ninguna VM.
+
+### `cmd/seed-media` no se usa, y por qué
+
+Parecía el paso natural para dejar el bucket «sembrado», pero no lo es:
+
+- **Transcodifica en proceso.** Llama a `mediaProcessor.Handle` directamente, no
+  encola; así que escribe los derivados con las credenciales de la máquina donde
+  corre.
+- **Por eso solo puede correr en la VM worker.** El reparto de permisos le
+  prohíbe al SA web escribir derivados *a propósito*
+  (`api_creator_non_derivatives` frente a `hls_worker_writer`). Ejecutarlo en la
+  VM web da un 403 que es la política funcionando, no un fallo de configuración.
+  Y escribe hacia `media/hls/` en vez del bucket público, porque el bucket de
+  derivados solo está declarado en el `.env` del worker.
+- **No aporta nada a la medición.** La campaña del escenario 2 sube los tres
+  perfiles reales **27 veces** por el camino de producción —URL firmada, asynq,
+  worker, HLS— y deja el bucket sembrado con evidencia de la propia medición.
+
+Si se ejecuta y falla a mitad, deja un recurso en `processing` y un original
+huérfano. **Hay que limpiarlos antes de medir**: la verificación terminal del
+escenario 2 cuenta estados de `resources` bajo `originals/` y contaría un trabajo
+colgado que no es suyo.
 
 ---
 
@@ -203,19 +246,92 @@ El generador va fuera de las máquinas medidas, como declara
 [`escenario1.md`](../../../../capacity-planning/escenario1.md), y mide la latencia
 de extremo a extremo incluida la red.
 
-```bash
-export BASE_URL=https://34.24.52.111.sslip.io
-export ENTORNO=nube-entrega2-retrospectiva-tag
-export EXIGIR_NUBE=1
-export RESULTS_ROOT="$PWD/docs/entrega3/evidencias/A7/escenario1-tag"
+Primero las cuentas de carga y los tokens, que **no** van dentro de la medición.
+La contraseña de prueba es la que documenta el encabezado de
+`scripts/seeds/capacity_data.sql`; se pasa por entorno y no se escribe aquí, por
+la misma razón que `capacity_login_tokens.sh` tampoco la lleva dentro:
 
-bash scripts/capacity_login_tokens.sh
-MODO=nube bash scripts/h3_nube.sh
+```bash
+export CAPACITY_PASSWORD='<la del encabezado de capacity_data.sql>'
 ```
 
-`EXIGIR_NUBE=1` hace que el resumen **falle** si el destino registrado es local.
-Cada corrida deja su `destino.json` con la URL efectiva, el commit, el generador
-y la ventana; sin él no se publican tablas (A6).
+
+```bash
+# Las 200 cuentas, una sola vez
+bash scripts/cargar_cuentas_carga_nube.sh scripts/seeds/capacity_data.sql
+
+# Los tokens: ~23 min, porque el login está limitado a 10/min por IP
+BASE_URL=https://34.24.52.111.sslip.io CAPACITY_PASSWORD="$CAPACITY_PASSWORD" \
+  bash scripts/capacity_login_tokens.sh 200 1
+```
+
+Y después la escalera:
+
+```bash
+MODO=nube REUSAR_TOKENS=1 CAPACITY_PASSWORD="$CAPACITY_PASSWORD" \
+BASE_URL=https://34.24.52.111.sslip.io \
+ENTORNO=nube-entrega2-retrospectiva-tag \
+RESULTS_ROOT="$PWD/docs/entrega3/evidencias/A7/escenario1-1st-architecture" \
+  bash scripts/h3_nube.sh escalera
+```
+
+Tres cosas que no son opcionales:
+
+- **`escalera`** es un subcomando obligatorio. Sin él el script solo imprime su
+  uso y sale con 1.
+- **`REUSAR_TOKENS=1`**, o `escalera` borra `tokens.csv` y vuelve a iniciar
+  sesión **en paralelo a las corridas**: 8,5 logins/min dentro de la ventana
+  medida, que es exactamente lo que el paso separado de tokens existe para
+  evitar (`escenario1.md` §4). Úsalo solo si los tokens son de este entorno y de
+  hace menos de 24 h.
+- **`CAPACITY_PASSWORD`** exportada, o el script la pide por teclado y se cuelga
+  cuando se ejecuta sin terminal interactiva.
+
+`EXIGIR_NUBE=1` lo activa `h3_nube.sh` solo en modo nube: hace que el resumen
+**falle** si el destino registrado es local. Cada corrida deja su `destino.json`
+con la URL efectiva, el commit, el generador y la ventana; sin él no se publican
+tablas (A6).
+
+---
+
+## 7 bis. Dos trampas al ejecutar cosas dentro de las VMs
+
+Cuestan media hora cada una si se descubren a mitad.
+
+### El `.env` de las VMs es de root
+
+`prepare_env.sh` corre como root desde systemd, así que `/home/dfortizr1/mooc/.env`
+no es legible por tu usuario. Un `source` normal falla con `Permission denied`
+y, al quedarse sin `DATABASE_URL`, el binario se va a buscar Postgres en
+`localhost` y falla con un error que no menciona el permiso.
+
+```bash
+sudo bash -c 'set -a; source /home/dfortizr1/mooc/.env; set +a; exec <binario> <args>'
+```
+
+Así se lee en el shell de root y **no queda ninguna copia del secreto en disco**.
+
+### Las comillas no sobreviven a `plink`
+
+En Windows, `gcloud compute ssh --command` con comillas anidadas —`psql -c "... '...' ..."`,
+`$(...)`, `$$...$$`— llega destrozado al otro lado y da un error de sintaxis con
+un `^` que no señala nada útil. La salida es no pelearse:
+
+```bash
+# escribe el script, cópialo, ejecútalo
+gcloud compute scp ./mi_script.sh mooc-web-server:/tmp/ --zone=us-east1-b \
+    --tunnel-through-iap --project=plataforma-mooc-entrega2 --quiet
+gcloud compute ssh mooc-web-server --zone=us-east1-b --tunnel-through-iap \
+    --project=plataforma-mooc-entrega2 --quiet --command "bash /tmp/mi_script.sh"
+```
+
+Y **`--quiet` siempre**: sin él, `pscp` y `plink` pueden quedarse esperando una
+confirmación que nadie va a teclear, sin escribir una sola línea de salida.
+
+> El túnel IAP hacia la VM worker dio 14 kB/s con cortes mientras hacia la web
+> daba 3,4 MB/s, con las dos máquinas ociosas. Si tienes que mover algo grande a
+> una VM, pásalo por el bucket (`gcloud storage cp`): es dentro de la región, no
+> cuesta egreso y no depende del túnel.
 
 ---
 
@@ -245,7 +361,7 @@ ENTORNO=nube-entrega2-retrospectiva-tag \
 HLS_BASE=https://storage.googleapis.com/plataforma-mooc-entrega2-hls \
 PATRON=cadencia \
 MAX_SEGMENTOS=10 \
-OUT_DIR="$PWD/docs/entrega3/evidencias/A7/escenario2-tag" \
+OUT_DIR="$PWD/docs/entrega3/evidencias/A7/escenario2-1st-architecture" \
 bash ./scripts/run_capacity_escenario2.sh https://34.24.52.111.sslip.io \
     -redis localhost:6379 \
     -db "postgres://moocuser:$TF_VAR_db_password@localhost:5432/moocdb?sslmode=require"
@@ -292,6 +408,53 @@ bash ./scripts/migrate.sh              # aplica 000008
 bash ./scripts/migrate.sh --require    # falla si falta algo que la imagen necesita
 ```
 
+### Cambiar `IMAGE_TAG` **no basta**
+
+La unidad de systemd no apunta a un checkout del repositorio:
+
+```
+WorkingDirectory=/home/dfortizr1/mooc
+ExecStartPre=/bin/bash /home/dfortizr1/mooc/prepare_env.sh
+ExecStart=/usr/bin/docker compose -f /home/dfortizr1/mooc/docker-compose.prod.yml up -d
+```
+
+`prepare_env.sh` y el compose son **copias congeladas de la época del tag** en el
+home del servicio. La imagen cambia; esos dos archivos no. Y `main` añade en
+`prepare_web_env.sh` tres variables que importan:
+
+```
+REDIS_SESSION_DB='1'
+INSTANCE_ID=...
+SESSION_COOKIE_SAMESITE='...'
+```
+
+Sin copiarlos, **las sesiones se quedan en la base lógica 0, mezcladas con la
+cola de asynq** —lo que advierte la nota 23— y la corrida 2 no mediría la
+configuración con la que correrá la Entrega 3. Se comprueba en el Redis del
+worker: con el código del tag, `info keyspace` muestra las sesiones en `db0`.
+
+```bash
+# desde tu máquina, para cada VM
+gcloud compute scp scripts/prepare_web_env.sh \
+    mooc-web-server:/tmp/prepare_env.sh --zone=us-east1-b --tunnel-through-iap \
+    --project=plataforma-mooc-entrega2 --quiet
+gcloud compute scp docker-compose.prod.yml \
+    mooc-web-server:/tmp/ --zone=us-east1-b --tunnel-through-iap \
+    --project=plataforma-mooc-entrega2 --quiet
+```
+
+Y dentro de la VM, con respaldo antes de sustituir:
+
+```bash
+sudo cp /home/dfortizr1/mooc/prepare_env.sh{,.tag-respaldo}
+sudo cp /home/dfortizr1/mooc/docker-compose.prod.yml{,.tag-respaldo}
+sudo cp /tmp/prepare_env.sh /tmp/docker-compose.prod.yml /home/dfortizr1/mooc/
+sudo systemctl restart mooc-web.service
+```
+
+Lo mismo en el worker con `prepare_worker_env.sh` y `docker-compose.worker.yml`.
+Los respaldos son lo que permite volver a la corrida 1 si hay que repetirla.
+
 ### Lo que hay que mirar: `REDIS_URL`
 
 `docker-compose.prod.yml` de `main` **ya no levanta un Redis propio** y exige
@@ -312,7 +475,7 @@ Idéntico al paso 7 cambiando la etiqueta:
 
 ```bash
 export ENTORNO=nube-entrega2-retrospectiva-corregida
-export RESULTS_ROOT="$PWD/docs/entrega3/evidencias/A7/escenario1-corregido"
+export RESULTS_ROOT="$PWD/docs/entrega3/evidencias/A7/escenario1-1st-architecture"
 MODO=nube bash scripts/h3_nube.sh
 ```
 
@@ -341,12 +504,25 @@ Aprovechando que hay entorno con el código corregido:
 
 | Comparación | Qué aísla | Para quién |
 | :--- | :--- | :--- |
-| Corrida 1 contra lo publicado en `pruebas_de_carga_entrega2.md` | El efecto de medir contra la nube con perfiles reales en vez de contra Compose con clips | G7 |
-| Corrida 2 contra corrida 1 | El coste por petición de las correcciones de la Entrega 1 | **G3** |
-| Entrega 3 contra corrida 2 | El efecto de la arquitectura elástica, ya sin la variable de las correcciones | G3, G4 |
+| Corrida 1 contra lo publicado en `pruebas_de_carga_entrega2.md` | Que la medición retrospectiva reproduce la Entrega 2: **avala el método** | G7 |
+| Corrida 2 contra corrida 1 | El coste por petición de las correcciones de la Entrega 1 | H3, G7 |
+| **Entrega 3 contra corrida 2** | **El efecto de la arquitectura elástica.** Es la que se publica | **G3, G4** |
 
-La segunda es la razón de ser de la doble corrida: deja el coste de las
-correcciones **como un número** que G3 resta, en vez de como una advertencia.
+**La tercera es la que importa, y su línea base es la corrida 2.** No hay nada
+que restar: la Entrega 3 elástica corre el mismo código corregido, así que el
+coste de las correcciones está en los dos lados y se cancela por construcción.
+La corrida 1 **no es operando** de esa comparación.
+
+Entonces, ¿para qué la corrida 1? Para dos cosas que la corrida 2 no puede dar
+sola:
+
+- **Avalar el método.** Reproduce las cifras publicadas de la Entrega 2 en
+  rendimiento, latencia de servidor sobre conexión caliente, transacciones por
+  segundo y utilización. Sin ese contraste, la línea base corregida es un número
+  que nadie puede verificar contra nada.
+- **Cuantificar lo que costaron las correcciones**, que es un hallazgo con valor
+  propio para H3 y para explicar en G7 por qué el criterio del escenario 2 se
+  calificó 6.67.
 
 ### Parámetros que se mantienen constantes hacia la Entrega 3
 

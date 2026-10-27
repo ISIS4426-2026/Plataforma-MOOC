@@ -1,0 +1,30 @@
+Destino      : https://34.24.52.111.sslip.io  [remoto]
+Entorno      : nube-entrega2-retrospectiva-corregida
+Codigo       : 3affa11
+Generador    : justb4/jmeter:latest en DESKTOP-NHAIFDB
+Ventana UTC  : 2026-10-27T00:40:54Z -> 2026-10-27T00:41:02Z
+
+Muestras totales: 20  | consideradas (tras omitir 0 s de calentamiento): 20
+Duracion de la corrida: 2 s  | hilos maximos: 20
+
+Resultado de las peticiones medidas:
+       10   50.00%  negocio: 429 limite de tasa
+       10   50.00%  ok
+
+Fallos reales: 0 (0.00%)  | fallos de validacion funcional: 0 (0.00%)
+
+paso                                                    n          p50          p95          p99    max  fallos
+L1 POST login (rafaga)                                 20         1159         1617   n/d (n=20)   1620      10
+
+Ventana de agregacion: 2 s (medidas, sin el calentamiento)  | corrida completa: 2 s
+Global ms: p50=1159 p95=1617 p99=n/d (n=20)  | rendimiento: 12.3 peticiones/s
+Timeouts: 0
+
+Mensajes de fallo mas frecuentes:
+     10  Test failed: code expected to equal /
+
+****** received  : [[[429]]]
+
+****** comparison: [[[200]]]
+
+/

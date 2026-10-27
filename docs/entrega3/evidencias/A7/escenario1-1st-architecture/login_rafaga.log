@@ -1,0 +1,46 @@
+==> login-rafaga_20261026_194054 (escenario1_login_rafaga.jmx): 20 usuarios contra https://34.24.52.111.sslip.io
+Oct 27, 2026 1:40:57 AM java.util.prefs.FileSystemPreferences$1 run
+INFO: Created user preferences directory.
+jmeter args=-n -t /jmeter/escenario1_login_rafaga.jmx -l /jmeter/resultados/login-rafaga_20261026_194054/resultados.jtl -j /jmeter/resultados/login-rafaga_20261026_194054/jmeter.log -Jusers=20 -Jramp=1 -Jsessions=3 -Jthink_ms=4000 -Jthink_range_ms=2000 -Jhost=34.24.52.111.sslip.io -Jport=443 -Jprotocol=https -Jorigin=https://34.24.52.111.sslip.io -JrunId=login-rafaga_20261026_194054 -Jtokens=/jmeter/capacity/tokens.csv -q /jmeter/capacity/login.properties
+jmeter ALL ARGS=-Dlog4j2.formatMsgNoLookups=true -n -t /jmeter/escenario1_login_rafaga.jmx -l /jmeter/resultados/login-rafaga_20261026_194054/resultados.jtl -j /jmeter/resultados/login-rafaga_20261026_194054/jmeter.log -Jusers=20 -Jramp=1 -Jsessions=3 -Jthink_ms=4000 -Jthink_range_ms=2000 -Jhost=34.24.52.111.sslip.io -Jport=443 -Jprotocol=https -Jorigin=https://34.24.52.111.sslip.io -JrunId=login-rafaga_20261026_194054 -Jtokens=/jmeter/capacity/tokens.csv -q /jmeter/capacity/login.properties
+Creating summariser <summary>
+Created the tree successfully using /jmeter/escenario1_login_rafaga.jmx
+Starting standalone test @ October 27, 2026 1:40:58 AM CET (1793061658803)
+Waiting for possible Shutdown/StopTestNow/HeapDump/ThreadDump message on port 4445
+summary +      1 in 00:00:02 =    0.6/s Avg:   995 Min:   995 Max:   995 Err:     1 (100.00%) Active: 20 Started: 20 Finished: 0
+summary +     19 in 00:00:00 =   96.9/s Avg:  1198 Min:   635 Max:  1620 Err:     9 (47.37%) Active: 0 Started: 20 Finished: 20
+summary =     20 in 00:00:02 =   10.0/s Avg:  1188 Min:   635 Max:  1620 Err:    10 (50.00%)
+Tidying up ...    @ October 27, 2026 1:41:01 AM CET (1793061661171)
+... end of run
+END Running Jmeter on Tue Oct 27 01:41:01 CET 2026
+Destino      : https://34.24.52.111.sslip.io  [remoto]
+Entorno      : nube-entrega2-retrospectiva-corregida
+Codigo       : 3affa11
+Generador    : justb4/jmeter:latest en DESKTOP-NHAIFDB
+Ventana UTC  : 2026-10-27T00:40:54Z -> 2026-10-27T00:41:02Z
+
+Muestras totales: 20  | consideradas (tras omitir 0 s de calentamiento): 20
+Duracion de la corrida: 2 s  | hilos maximos: 20
+
+Resultado de las peticiones medidas:
+       10   50.00%  negocio: 429 limite de tasa
+       10   50.00%  ok
+
+Fallos reales: 0 (0.00%)  | fallos de validacion funcional: 0 (0.00%)
+
+paso                                                    n          p50          p95          p99    max  fallos
+L1 POST login (rafaga)                                 20         1159         1617   n/d (n=20)   1620      10
+
+Ventana de agregacion: 2 s (medidas, sin el calentamiento)  | corrida completa: 2 s
+Global ms: p50=1159 p95=1617 p99=n/d (n=20)  | rendimiento: 12.3 peticiones/s
+Timeouts: 0
+
+Mensajes de fallo mas frecuentes:
+     10  Test failed: code expected to equal /
+
+****** received  : [[[429]]]
+
+****** comparison: [[[200]]]
+
+/
+==> Resultados originales: /d/Fredy/Uniandes/Materias/Cloud architecture/Proyecto1/Plataforma-MOOC/docs/entrega3/evidencias/A7/escenario1-corregido/login-rafaga_20261026_194054/resultados.jtl

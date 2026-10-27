@@ -47,6 +47,9 @@ scratch/
 .terraform.lock.hcl.bak
 *.tfstate
 *.tfstate.*
+# Un plan guardado lleva los valores de las variables en claro, la
+# contrasena de la base entre ellos, igual que el estado.
+*.tfplan
 crash.log
 crash.*.log
 terraform.tfvars

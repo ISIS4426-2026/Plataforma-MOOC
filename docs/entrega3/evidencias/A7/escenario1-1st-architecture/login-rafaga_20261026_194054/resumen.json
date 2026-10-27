@@ -1,0 +1,55 @@
+{
+  "publicable": true,
+  "destino": {
+    "base_url": "https://34.24.52.111.sslip.io",
+    "entorno": "nube-entrega2-retrospectiva-corregida",
+    "plan": "escenario1_login_rafaga.jmx",
+    "usuarios": 20,
+    "rampa_s": 1,
+    "pausa_ms": "4000+-2000",
+    "sesiones": 3,
+    "calentamiento_omitido_s": 0,
+    "commit": "3affa11",
+    "generador": "justb4/jmeter:latest en DESKTOP-NHAIFDB",
+    "inicio_utc": "2026-10-27T00:40:54Z",
+    "fin_utc": "2026-10-27T00:41:02Z",
+    "clase": "remoto"
+  },
+  "muestras": 20,
+  "omitidas_calentamiento_s": 0.0,
+  "duracion_corrida_s": 1.6,
+  "ventana_agregacion_s": 1.6,
+  "hilos_max": 20,
+  "fallos_reales": 0,
+  "fallos_reales_pct": 0.0,
+  "fallos_validacion": 0,
+  "rechazos_negocio": 10,
+  "timeouts": 0,
+  "ms": {
+    "p50": 1159,
+    "p95": 1617,
+    "p99": 1620,
+    "max": 1620
+  },
+  "ms_publicables": {
+    "p50": 1159,
+    "p95": 1617,
+    "p99": null
+  },
+  "rps": 12.35,
+  "pasos": {
+    "L1 POST login (rafaga)": {
+      "n": 20,
+      "p50": 1159,
+      "p95": 1617,
+      "p99": 1620,
+      "max": 1620,
+      "fallos": 10,
+      "publicables": {
+        "p50": 1159,
+        "p95": 1617,
+        "p99": null
+      }
+    }
+  }
+}

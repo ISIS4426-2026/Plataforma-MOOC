@@ -40,6 +40,7 @@ lo reemplaza, lo continúa.
 | 24 | [Transcodificar un vídeo real cuesta 1,2× su duración, y eso cambia la campaña](#24) | **G4, G6**, A7, C5, C6, F3 |
 | 25 | [Antes de publicar una cifra hay once reglas, y están en código](#25) | **todos los que midan**: A7, G1, G3, G4, G5, G6, G7, H2, H3 |
 | 26 | [El entorno de la Entrega 2 está a medias, y ninguna imagen del tag está publicada](#26) | **A7, B1, B2**, C1, C3, C5, G3, I6 |
+| 27 | [Un `FLUSHDB` en el Redis de asynq mata la observabilidad y no se nota](#27) | **B1, C6, C7**, A7, G4, G6 |
 
 ---
 
@@ -122,26 +123,40 @@ resuelve apuntando la caché al servicio compartido de B1.
 <a id="4"></a>
 ## 4. La cola vive dentro de la máquina que el autoscaler puede retirar
 
-`docker-compose.worker.yml` incluye el `redis` que hace de cola de asynq. En la
+> **Resuelta en B1 (#200)** en cuanto a la cola: vive en `mooc-queue-server`,
+> fuera de los dos grupos. **La advertencia del exportador sigue viva** y es de
+> C6; ver más abajo.
+
+`docker-compose.worker.yml` incluía el `redis` que hace de cola de asynq. En la
 Entrega 2 eso era aceptable porque la VM worker era fija. En la Entrega 3 esa
 máquina pertenece a un grupo elástico que puede destruirla, y el enunciado lo
-prohíbe explícitamente: la cola debe estar fuera de ambos grupos.
+prohíbe explícitamente: la cola debe estar fuera de ambos grupos. B1 la saca, y
+el `REDIS_URL` del worker pasa a ser obligatorio en vez de tener `redis:6379`
+por omisión.
 
-Ojo con el efecto colateral: la señal de autoscaling de workers (C6) se calcula
-sobre la cola. Si el exportador de esa métrica vive en una instancia del grupo,
-el autoscaler se queda ciego justo cuando reduce a una instancia. **Tiene que
-exportarse desde fuera de los grupos elásticos.**
+Ojo con el efecto colateral, que **B1 no resuelve**: la señal de autoscaling de
+workers (C6) se calcula sobre la cola. Si el exportador de esa métrica vive en
+una instancia del grupo, el autoscaler se queda ciego justo cuando reduce a una
+instancia. **Tiene que exportarse desde fuera de los grupos elásticos.**
+`sa-queue-server` ya lleva `monitoring.metricWriter` para que la VM de la cola
+pueda ser ese sitio, pero el exportador hay que escribirlo en C6.
 
 <a id="5"></a>
 ## 5. Con un MIG, tres réplicas pueden migrar la base a la vez
 
+> **Resuelta en A3 (#195).** El aviso de abajo ya no aplica: arrancar una
+> instancia es seguro. Se conserva porque explica por qué hizo falta el arreglo.
+
 En la Entrega 2 daba igual quién aplicara el esquema: había una sola VM. Un grupo
 administrado que levanta hasta tres instancias a la vez puede lanzar tres
-`migrate` en paralelo sobre la misma base.
+`migrate` en paralelo sobre la misma base. A3 lo reprodujo: **dos de tres
+instancias no arrancaban**, y el grupo las recreaba para que fallaran igual.
 
-A3 decide entre un paso explícito del despliegue antes de rotar el grupo o un
-advisory lock de PostgreSQL. Hasta que A3 cierre, **no asumas que arrancar una
-instancia es seguro**: coordínalo con quien tenga A3 abierto.
+A3 eligió el **advisory lock de transacción** por migración, con la comprobación
+de «ya aplicada» **dentro** del lock, en lugar de un paso explícito de
+despliegue. Y decidió que el esquema se aplique **en el arranque**: B3 lo ejecuta
+en un `ExecStartPre` de las dos unidades, antes de levantar los contenedores
+(nota 32).
 
 <a id="6"></a>
 ## 6. Las capturas no se pueden rehacer después de I6
@@ -443,8 +458,15 @@ resultados»*.
 **Medirlo, no solo declararlo.** En el mismo encendido de A7, después de la
 corrida de línea base, se despliega la imagen de `main` sobre la **misma
 infraestructura de dos VMs** y se repite el escenario 1. Eso aísla el coste de
-las correcciones sin mezclarlo con el cambio de arquitectura, y convierte una
-advertencia en un número que G3 descuenta.
+las correcciones sin mezclarlo con el cambio de arquitectura: **+8 ms de p50 y
++34 % de CPU en Cloud SQL al mismo caudal de transacciones** (medido, ver
+[`evidencias/A7/COMPARACION.md`](evidencias/A7/COMPARACION.md) §2).
+
+> **Corrección sobre cómo se usa ese número.** No se descuenta en la comparación
+> de G3. La línea base de G3 es la corrida **corregida**, y la Entrega 3 elástica
+> corre ese mismo código, así que el coste de las correcciones está en los dos
+> lados y se cancela por construcción. Esa diferencia es un hallazgo para **H3**
+> y para explicar el 6.67 en **G7**, no un término de una resta.
 
 Esa segunda corrida es además la primera oportunidad de ejecutar los pasos del
 E2E que no se han podido probar: documentos, imágenes y el intento de quiz
@@ -720,6 +742,88 @@ cómputo. `-max-segmentos` lo acota, y con 10 segmentos por estudiante quedan 8
 con instante de reproducción que cumplir, que es lo mínimo para que el margen de
 buffer y las interrupciones signifiquen algo.
 
+### Lo desplegado en la Entrega 2 no era el código del tag
+
+El `/etc/mooc/web.conf` de la VM traía `IMAGE_TAG=b393116bf172…`, **59 commits
+antes del commit del tag**. Así que los números publicados de la Entrega 2 salen
+de **tres estados de código distintos**: `b393116b` en la nube para el
+escenario 1, Docker Compose en local para el escenario 2, y el tag como lo que el
+repositorio dice que fue la entrega.
+
+La línea base de A7 se mide con **el código del tag**, que es lo comparable con la
+Entrega 3 porque también partirá de un estado etiquetado. Pero se declara como
+«el código del tag», no como «lo que estuvo vivo».
+
+### Lo que corre en las VMs son copias congeladas, no el repositorio
+
+La unidad de systemd apunta a `/home/dfortizr1/mooc/`:
+
+```
+ExecStartPre=/bin/bash /home/dfortizr1/mooc/prepare_env.sh
+ExecStart=/usr/bin/docker compose -f /home/dfortizr1/mooc/docker-compose.prod.yml up -d
+```
+
+`prepare_env.sh` y el compose son copias de la época del tag. **Cambiar
+`IMAGE_TAG` cambia la imagen y nada más.** Para desplegar `main` de verdad hay
+que copiar también esos dos archivos, porque `main` añade `REDIS_SESSION_DB=1`,
+`INSTANCE_ID` y `SESSION_COOKIE_SAMESITE`.
+
+Sin ellos, **las sesiones se quedan en la base lógica 0 junto a la cola de
+asynq**, que es el riesgo de la nota 23. Comprobado en vivo: con el código del
+tag, `redis-cli info keyspace` en el `mooc-queue` del worker muestra las sesiones
+en `db0`.
+
+Afecta a **cualquiera que despliegue sobre estas VMs**, y es un argumento más
+para que la Entrega 3 construya las imágenes y la configuración desde el
+repositorio en el arranque de la instancia, no a mano en un home.
+
+### `cmd/seed-media` solo puede correr en la VM worker
+
+Transcodifica **en proceso** (`mediaProcessor.Handle`, no encola), así que escribe
+los derivados con las credenciales de la máquina donde corre. Y el reparto de
+permisos le prohíbe al SA web escribir derivados a propósito:
+`api_creator_non_derivatives` frente a `hls_worker_writer`. En la VM web da un
+403 que es la política funcionando.
+
+Además escribe hacia `media/hls/` en vez del bucket público, porque el bucket de
+derivados solo está declarado en el `.env` del worker.
+
+**A7 no lo usa:** la campaña del escenario 2 sube los tres perfiles reales 27
+veces por el camino de producción y deja el bucket sembrado con evidencia de la
+propia medición. Si alguien lo ejecuta y falla a mitad, deja un recurso en
+`processing` y un original huérfano: hay que limpiarlos antes de medir, porque la
+verificación terminal cuenta estados bajo `originals/`.
+
+### Dos trampas de operar las VMs desde Windows
+
+- **El `.env` es de root.** `source` sin `sudo` falla con `Permission denied` y,
+  al quedarse sin `DATABASE_URL`, el binario busca Postgres en `localhost`. Se
+  resuelve con `sudo bash -c 'set -a; source …; set +a; exec …'`, que no deja
+  copia del secreto en disco.
+- **Las comillas no sobreviven a `plink`.** `gcloud compute ssh --command` con
+  comillas anidadas, `$(...)` o `$$…$$` llega destrozado y da un error de
+  sintaxis con un `^` que no señala nada. Escribe el script, cópialo y ejecútalo.
+  Y **`--quiet` siempre**: sin él `pscp`/`plink` pueden esperar una confirmación
+  que nadie teclea, sin emitir una sola línea.
+- El túnel IAP hacia el worker dio **14 kB/s con cortes** mientras hacia la web
+  daba 3,4 MB/s, con las dos máquinas ociosas. Para mover algo grande, pásalo por
+  el bucket: es dentro de la región, no cuesta egreso y no depende del túnel.
+
+### `h3_nube.sh escalera` metía el limitador de login en la medición
+
+Dos cosas que cuestan una corrida entera:
+
+- **`escalera` es un subcomando obligatorio.** Sin él, el script imprime su uso y
+  sale con 1.
+- En modo nube, `escalera` borraba `tokens.csv` y volvía a iniciar sesión **en
+  paralelo a las corridas**: ~8,5 logins/min dentro de la ventana medida, que es
+  justo lo que el paso separado de tokens existe para evitar (`escenario1.md` §4).
+  Ahora hay `REUSAR_TOKENS=1`, que usa el camino que `repetir` ya tenía. El valor
+  por omisión sigue siendo rehacerlos: reutilizar es una afirmación explícita de
+  que son de este entorno y de hace menos de 24 h.
+- `CAPACITY_PASSWORD` tiene que ir exportada, o el script la pide por teclado y
+  se cuelga sin terminal interactiva.
+
 ### `REDIS_URL` en la disposición de dos VMs
 
 `docker-compose.prod.yml` de `main` ya no levanta Redis y exige `REDIS_URL`
@@ -728,6 +832,587 @@ escribe `REDIS_URL='${QUEUE_PRIVATE_IP}:6379'`: la cola de la VM worker por la
 VPC, con las sesiones en la base lógica 1. No hace falta esperar a B1 para
 desplegar `main` sobre la Entrega 2.
 
+<a id="27"></a>
+## 27. Un `FLUSHDB` en el Redis de asynq mata la observabilidad y no se nota
+
+Costó **tres corridas del escenario 2**, y es la clase de fallo más peligrosa que
+ha salido en esta entrega: la plataforma sigue funcionando perfectamente y lo
+único que muere es la capacidad de verla.
+
+### Qué pasa exactamente
+
+Asynq mantiene un conjunto `asynq:queues` con los nombres de las colas que
+existen. `FLUSHDB` lo borra. A partir de ahí, el inspector responde:
+
+```
+NOT_FOUND: queue "default" does not exist
+```
+
+Y **no se recupera solo**, porque el cliente de asynq registra la cola *una vez
+por proceso*: un contenedor de la API que llevaba arriba desde antes de la purga
+cree que ya la registró y nunca vuelve a añadirla.
+
+Mientras tanto todo lo demás funciona: el worker consume porque tiene el nombre
+de la cola configurado, los trabajos se transcodifican, los recursos llegan a
+`completed`. Lo único roto es la vista.
+
+### Lo que produjo
+
+La campaña registró **«pico de cola: 0 tareas»** habiendo confirmado 12 subidas,
+y el archivo de drenaje escribió **«la cola se ha vaciado totalmente»** con 13
+trabajos pendientes en la base. Un informe indistinguible de una corrida buena.
+
+```
+$ redis-cli -n 0 smembers asynq:queues
+(vacío)
+$ redis-cli -n 0 --scan --pattern 'asynq*'
+asynq:{default}:active
+asynq:{default}:t:media-originals/...
+asynq:{default}:processed:2026-10-26
+```
+
+La cola estaba ahí; el registro no.
+
+### Cómo se purga bien
+
+[`scripts/a7_purgar.sh`](../../scripts/a7_purgar.sh) borra las estructuras una
+por una y **conserva el registro**. Si te toca hacerlo a mano:
+
+```bash
+redis-cli -n 0 del 'asynq:{default}:pending' 'asynq:{default}:active' ...
+redis-cli -n 0 --scan --pattern 'asynq:{default}:t:*' | xargs -r redis-cli -n 0 del
+redis-cli -n 0 sadd asynq:queues default     # restaura el registro
+```
+
+Y si alguien ya hizo el `FLUSHDB`, el arreglo es ese `sadd`, o reiniciar el
+contenedor de la API para que su cliente vuelva a registrarse.
+
+### Para B1, C6 y C7
+
+**La cola de la Entrega 3 es un servicio compartido**, así que un `FLUSHDB`
+—para limpiar sesiones, para liberar memoria, por costumbre— no afecta solo a
+quien lo ejecuta:
+
+- **C6** escala los workers por profundidad de cola. Con el registro borrado, la
+  métrica vale **0** para siempre y el autoescalador **nunca sube un worker**
+  mientras la cola crece. Eso no es una medición mala: es una política de
+  escalado que no se dispara, y en producción se vería como lentitud sin causa.
+- **C7** demuestra el drenaje de un worker que se retira. Con el inspector ciego,
+  la demostración sale vacía y parece correcta.
+- **B1** debería dejar escrito en el runbook de la cola que `FLUSHDB` y
+  `FLUSHALL` están prohibidos ahí, y por qué. La nota 23 ya avisa de que las
+  sesiones y la cola comparten instancia; esto es la otra cara: la herramienta
+  obvia para limpiar una rompe la otra en silencio.
+
+### Lo que salvó el diagnóstico
+
+Que la campaña dejara de publicar ceros. Tras el segundo intento cambié
+`if err == nil` por contar los fallos y declarar el drenaje **no observable**,
+y el cuarto intento dijo «3 667 lecturas de la cola fallaron en este nivel» y
+salió con código 1. Sin eso, la quinta corrida habría dado un informe
+aparentemente bueno.
+
+**Regla general, no solo para asynq:** una lectura que falla no es un cero. Si
+el código no distingue «no pude ver» de «vi que era cero», la evidencia acabará
+afirmando lo segundo.
+
 ---
 
 Este archivo no contiene credenciales, llaves ni secretos.
+
+## 28. Una conclusión escrita a mano es una constante que sobrevive a todo
+
+La campaña del escenario 2 genera seis archivos de evidencia. Las tablas por
+nivel siempre se derivaron de lo medido, pero **las conclusiones estaban
+escritas fijas**, redactadas durante la Entrega 2. Sobrevivieron al cambio de
+entorno (Compose a GCP), de código (tag a corregido) y de perfiles (clips de 8 s
+a vídeos de 30 min), y acabaron contradiciendo a la tabla que tenían encima en la
+misma página:
+
+| Afirmaba | Medido en la línea base del código corregido |
+| :--- | :--- |
+| «p95 inferior a 20 ms» en el plano de control | `n/d`: ningún nivel llega a 20 observaciones |
+| PUT «entre 25 y 45 MB/s» · «> 30 MB/s» | 0,71–2,14 MB/s |
+| Descarga HLS «> 120 MB/s» | 3,51 MB/s |
+| Antigüedad de cola «superó los 35 s» | 3 723 s |
+| Cómputo «~2,8 s por tarea» | 95–168 s |
+| «hasta 10 tareas en espera» | pico de 14 |
+| «pending = 0, processing = 0» | 2 recursos en `processing` |
+| «sin estados indeterminados» | dos líneas después de «huérfanos: 2» |
+| «0 trabajos huérfanos ✅» | 2 |
+
+Y un caso aparte, porque no era una constante sino un reloj mal puesto: **el
+margen de buffer del simulador HLS era negativo por construcción**. El instante
+de reproducción se tomaba del inicio de la sesión en vez de de cuando se llena el
+buffer inicial, y encima se le restaba el buffer. Con la cadencia a 1× el reloj
+de descarga y el de reproducción avanzan igual, así que el déficit inicial nunca
+se recuperaba: el margen salía fijo en −14,40 s y **el 100 % de los segmentos con
+plazo contaba como interrupción** —16 de 16 en el nivel 0, 80 de 80 en el nivel
+1—. Con el reloj correcto el margen es +14,30 s constante, que es exactamente la
+profundidad del buffer, y una interrupción vuelve a significar algo: que una
+descarga tardó más que la duración de un segmento.
+
+**Qué se cambió.** En `scripts/capacity_escenario2/main.go`, los tres documentos
+de conclusiones (`resumen_ejecutivo`, `analisis_cuello_de_botella`,
+`reporte_carga`) y el README se derivan ahora de un `resumirHechos()` común; el
+veredicto del drenaje y las palomas del README son `switch` sobre los datos; y
+`margenTexto`/`stallsTexto` dicen «no aplica» cuando no se descargó ningún
+segmento con instante de reproducción, en vez de publicar un cero.
+
+**La regla, para B, C, F y G.** Un veredicto que no puede fallar no es un
+veredicto. Si un documento de evidencia contiene una frase que seguiría siendo
+literalmente la misma con otros datos, esa frase no es evidencia: es decoración,
+y tarde o temprano contradice a la tabla de al lado. Es el mismo defecto que A6
+prohíbe en §7 para las métricas derivadas de constantes, aplicado a la prosa.
+
+**Lo que no se pudo arreglar.** El proceso que escribió esa evidencia ya no
+existía cuando se encontró el defecto, así que los cuatro documentos de la
+corrida del 2026-10-27 se rederivaron **a mano** de los artefactos medidos, y
+cada uno lo declara en su cabecera. A partir de la siguiente corrida se derivan
+solos. Para no repetirlo: conviene que la campaña vuelque `levels` y `drain` en
+JSON junto a la evidencia, para poder regenerar los documentos sin volver a medir.
+
+## 29. Destruir Cloud SQL con `-target` falla por el usuario, no por la instancia
+
+El runbook de A7 y el de I6 destruyen la base con `-target`, para no tocar el
+resto del entorno. Con los tres recursos apuntados a la vez, falla:
+
+```
+Error: failed to delete user moocuser in instance mooc-db-1:
+  role "moocuser" cannot be dropped because some objects depend on it
+  Details: 20 objects in database moocdb
+```
+
+Terraform intenta borrar `google_sql_user.app` **antes** que la instancia, y
+PostgreSQL se niega porque ese rol es dueño de las 19 tablas del esquema. No es
+un problema de permisos ni de protección de borrado: es que el orden de
+destrucción de un `-target` múltiple no respeta que el usuario vive dentro de la
+instancia. Y el fallo deja el destroy a medias, con el recurso de la base lógica
+ya fuera del estado.
+
+**Lo que funciona:** sacar el usuario del estado —no toca la nube, el usuario
+desaparece con la instancia— y destruir solo la instancia.
+
+```bash
+terraform state rm google_sql_user.app
+terraform plan -destroy -out=d.tfplan -target=google_sql_database_instance.main
+terraform apply d.tfplan
+```
+
+Después, `terraform plan` debe decir **3 to add, 0 to change, 0 to destroy**: los
+tres recursos vuelven a estar declarados y ausentes, que es la línea de partida.
+Si dice otra cosa, el estado y la nube no coinciden.
+
+**Dos trampas de alrededor, para no repetirlas:**
+
+- **Un plan guardado caduca enseguida.** Cualquier `terraform plan` refresca el
+  estado remoto y le cambia el serial, así que un `-out` de hace cinco minutos da
+  «Saved plan is stale». Hay que generar y aplicar el plan seguidos, sin ningún
+  `plan` en medio.
+- **Un plan guardado lleva las variables en claro**, la contraseña de la base
+  entre ellas, igual que el estado. `*.tfplan` está en `.gitignore` por eso;
+  antes no lo estaba.
+
+<a id="30"></a>
+## 30. La cola es una VM propia, y eso trae un punto único de fallo que hay que mirar
+
+B1 (#200) comparó Memorystore con una VM dedicada y eligió la VM. Lo que decidió
+no fue el coste, aunque también: **Memorystore no soporta AOF**. Su única
+persistencia son instantáneas RDB con intervalo mínimo de una hora, y el nivel
+Basic se recupera precisamente de la última instantánea, así que una cola puede
+perder una hora de trabajos en un reinicio. El criterio de aceptación «los
+trabajos encolados sobreviven al reinicio del servicio de cola» no se cumple con
+la opción gestionada.
+
+| | Persistencia | Pérdida al reiniciar | USD/mes |
+| :--- | :--- | :--- | ---: |
+| Memorystore Basic M1 | solo RDB, mínimo 1 h | hasta 1 hora de cola | 35,77 |
+| Memorystore Standard M1 | RDB + réplica | reinicio completo | 46,72 |
+| VM con Redis (elegida) | AOF `appendfsync everysec` | ≤ 1 segundo | **13,23** |
+
+### Lo que esto obliga a los demás
+
+| Issue | Qué tiene que saber |
+| :--- | :--- |
+| **B3, B4, C5** | `REDIS_URL` sale de `terraform output queue_private_ip`, que es una **IP interna estática**. Está reservada a propósito: si la asignara el DHCP, recrear la cola obligaría a rotar los dos grupos |
+| **C6** | La VM de la cola es el sitio del exportador de la señal de autoscaling, y su cuenta ya tiene `monitoring.metricWriter`. El exportador hay que escribirlo |
+| **C7** | El drenaje de workers se apoya en que la cola sobreviva al retiro de la instancia. Ya es cierto por construcción |
+| **F1** | `mooc-allow-queue` acota el 6379 a la subred, pero **hoy no restringe nada**: `mooc-allow-internal` abre todos los puertos entre todo lo que esté en la subred. La regla empieza a servir cuando F1 acote aquella |
+| **F3** | 13,23 USD/mes de lista. El coste real, con el consumo observado, lo cierra F3 |
+| **G1** | **Falta la alerta de memoria.** Con `noeviction`, quedarse sin memoria no corrompe nada pero **detiene el encolado**. La nota 23 exigía elegir entre dimensionar con holgura o separar instancias: se eligió holgura, y esa elección está a medias sin la alerta |
+| **I6** | Al destruir, la cola es una VM más. El AOF vive en su disco de arranque: destruirla **sí** pierde los trabajos encolados, que es lo correcto al cerrar |
+
+### El punto único de fallo, dicho sin adornos
+
+`mooc-queue-server` es un punto único de fallo para los dos grupos elásticos: si
+cae, ni la API encola ni los workers consumen. Se mitiga con `automatic_restart`
+y `on_host_maintenance = MIGRATE`, y el AOF hace que un reinicio no sea pérdida
+de datos, pero **no es alta disponibilidad**. El enunciado pide la cola *fuera*
+de los grupos, no redundante; si la Entrega 3 quisiera redundancia hay que
+elegir entre Memorystore Standard --con su ventana de pérdida-- o un segundo
+nodo con replicación que habría que operar.
+
+### Un agujero que existía en el repositorio
+
+`scripts/seed.sh` hacía `FLUSHDB` contra `${REDIS_URL}`. Mientras cada máquina
+tenía su propio Redis era un problema de laboratorio; con una cola compartida se
+lleva la cola de producción y, peor, el registro `asynq:queues` de la nota 27.
+
+Corregido en dos sitios, porque uno no basta:
+
+- el guion solo vacía el Redis **local de Compose**, y avisa cuando `REDIS_URL`
+  no es local en vez de hacerlo en silencio;
+- el servidor desactiva `FLUSHDB` y `FLUSHALL` **por nombre**
+  (`rename-command ... ""`), para que la defensa no dependa de la buena memoria
+  de quien ejecuta el guion.
+
+### Lo que bloquea el primer `apply` de la Entrega 3
+
+El backend sigue en `prefix = "entrega2"` y el README de A7 §1 dejó anotado que
+la Entrega 3 estrena `entrega3`. Un prefijo nuevo arranca con **estado vacío** e
+intentaría crear de cero los recursos que A7 dejó vivos a propósito --los
+buckets, que tienen nombre único global, el Artifact Registry, la VPC, los
+secretos y las cuentas de servicio--, y fallaría en los buckets.
+
+Hay que decidirlo en **B2** o **I6**, y las salidas son dos: seguir en `entrega2`
+--que respeta el invariante de A7, una sola arquitectura viva a la vez, y deja el
+nombre del prefijo como algo cosmético-- o **migrar el estado** copiando el
+objeto de `entrega2/` a `entrega3/` en el bucket antes de cambiar el prefijo. Lo
+que no vale es cambiar el prefijo y aplicar.
+
+<a id="31"></a>
+## 31. La regla que abría todos los puertos ya no existe, y eso cambia cuatro issues
+
+Hasta B2 (#201), `mooc-allow-internal` permitía **todos** los puertos TCP y UDP
+entre cualquier par de instancias de la subred. Con dos VMs fijas era una
+comodidad; con grupos administrados que levantan y retiran instancias es una
+superficie que crece sola. Y hacía **decorativa** cualquier regla más
+específica: la que B1 escribió para el 6379 de la cola no restringía nada
+mientras aquella existiera.
+
+En su lugar hay tres reglas con propósito, dos etiquetas de grupo y una
+ausencia deliberada.
+
+| Regla | Origen | Destino | Puerto |
+| :--- | :--- | :--- | :--- |
+| `mooc-allow-lb-health` | `130.211.0.0/22`, `35.191.0.0/16` | etiqueta `mooc-api-node` | 80/tcp |
+| `mooc-allow-queue` | cuentas de la API y de los workers | cuenta de la cola | 6379/tcp |
+| `mooc-allow-internal-icmp` | rango de la subred | la subred | ICMP |
+
+**No hay ninguna regla con destino `mooc-worker-node`**, y es a propósito: nadie
+le habla a un worker. Si alguien añade una, que explique qué flujo la necesita.
+
+### Lo que esto obliga a los demás
+
+| Issue | Qué tiene que hacer o saber |
+| :--- | :--- |
+| **C1** | La plantilla de la API lleva la etiqueta **`mooc-api-node`** y **no declara `access_config`**. Sin la etiqueta, las comprobaciones de salud no llegan y el grupo entero sale como no sano; con `access_config`, se rompe el criterio del barrido desde internet |
+| **C3** | `mooc-allow-lb-health` presupone un balanceador de aplicación **global**, que entrega desde esos dos rangos. Un balanceador **regional** se basa en Envoy y entrega desde una subred de solo proxy (`REGIONAL_MANAGED_PROXY`) que habría que crear: entonces el origen cambia y hay que volver a `network.tf`. El puerto del backend es el **80**, porque el balanceador termina TLS |
+| **C5** | La plantilla de los workers lleva **`mooc-worker-node`**, sin `access_config`, y su **cuenta de servicio tiene que ser `sa-worker-server`**: la regla de la cola va por identidad, así que una cuenta distinta deja al worker sin poder encolar ni leer |
+| **C6** | `sa-queue-server` ya tiene `monitoring.metricWriter` para alojar el exportador de la señal. **Si el exportador va a otro sitio, hay que retirar ese permiso**: hoy es el único permiso sin uso de las tres cuentas, y está declarado como tal |
+| **F1** | Su verificación ya tiene sentido. Antes de B2, comprobar que el 6379 solo se alcanza desde quien debe habría dado un falso positivo por `allow_internal` |
+
+### Por qué la regla de la cola va por cuenta y no por etiqueta
+
+Una etiqueta de red la puede poner cualquiera que sepa crear una instancia, y
+entonces la regla protege un nombre y no un componente. La cuenta de servicio la
+fija la plantilla del grupo y cambiarla es una operación de IAM.
+
+Trampa de la API de Compute: **`source_service_accounts` no se puede combinar con
+etiquetas en ninguno de los dos lados**, así que el destino también va por
+cuenta. Si alguien intenta añadir `target_tags` a esa regla, el proveedor la
+rechaza.
+
+### El barrido desde internet se cumple por estructura, no por cortafuegos
+
+Las instancias de los grupos **no llevan IP externa**, así que no hay dirección
+a la que llamar. El cortafuegos gobierna lo que llega por dentro de la VPC y lo
+que entrega Google --balanceador, salud, IAP--, que no son el camino público
+hacia la instancia. Es mejor garantía que una regla, porque una regla alguien la
+puede ampliar.
+
+En la misma línea, B2 retiró la **IP externa de `mooc-worker-server`**, que
+estaba descrita como «cerrada por firewall perimetral»: superficie sin función.
+Con ella se retiró la reserva `google_compute_address.worker_server_ip`, porque
+una IP estática reservada y sin adjuntar **se factura**, y la salida
+`worker_server_public_ip`. La administración entra por IAP y la salida va por el
+Cloud NAT, así que no se perdió ningún camino.
+
+La única dirección pública que queda es la de `mooc-web-server`, con su regla
+80/443 acotada a la etiqueta `web-server`, que solo lleva ella. **No alcanza a
+los grupos.** Se retira cuando el balanceador de C3 sea el único camino de
+entrada y C1 sustituya esa VM; quitarla antes dejaría la arquitectura de la
+Entrega 2 inalcanzable sin nada que la reemplace.
+
+### Lo que ya estaba y no hizo falta tocar
+
+`private_ip_google_access` en la subred y el Cloud NAT existían desde la Entrega
+2. Importan juntos: con acceso privado a Google **y** NAT, una instancia sin IP
+externa puede bajar su imagen del registro, leer su secreto y enviar registros y
+métricas. Es lo que hace viable que ninguna instancia de los grupos tenga
+dirección pública.
+
+<a id="32"></a>
+## 32. Una instancia nueva se levanta sola, y un solo valor pin el código entero
+
+B3 (#202) sustituyó el arranque que dejaba la máquina a medias --instalaba
+Docker y nada más-- por `infra/bootstrap/mooc-bootstrap.sh`, que la deja
+atendiendo peticiones o consumiendo trabajos sin que nadie entre por SSH. Las
+unidades de systemd también están ahora **en el repositorio**
+(`infra/bootstrap/mooc-{web,worker}.service`).
+
+Lo que se fue: `sudo tee /etc/mooc/<rol>.conf`, el clonado en
+`/home/dfortizr1/mooc` y la unidad escrita a mano con esa ruta dentro. Dos de
+esas cosas no sobreviven a un grupo administrado --el directorio personal no
+existe en una instancia nueva, y la configuración en un disco la borra una
+recreación (nota 19)--.
+
+### El guion no se parametriza con `templatefile`
+
+Lo lee todo del **servidor de metadatos en tiempo de ejecución**. Así sus bytes
+son idénticos para los dos roles y para todas las instancias, y lo único que
+distingue una de otra es su metadata. El criterio «todas las instancias de un
+grupo y una corrida ejecutan la misma versión de código y configuración» pasa a
+ser estructural en vez de algo que haya que vigilar en cada plantilla.
+
+**`mooc-image-tag` pin las dos mitades del despliegue**: la imagen del contenedor
+y el `git checkout --detach <SHA>` de `/opt/mooc`, de donde salen los Compose,
+los guiones de entorno y las unidades. Clonar `main` y correr la imagen de otro
+commit es cómo se acaba depurando una diferencia que no está en el código que se
+está leyendo.
+
+### Lo que esto obliga a los demás
+
+| Issue | Qué tiene que hacer o saber |
+| :--- | :--- |
+| **C1, C5** | La plantilla se escribe `metadata = merge(local.mooc_metadata_comun, local.mooc_metadata_web)` --o `_worker`--, de `infra/terraform/bootstrap.tf`. El contrato completo de claves está en la evidencia de B3 §2 |
+| **C1, C5** | El guion va en `metadata["startup-script"]`, **no** en `metadata_startup_script` |
+| **C3, C4** | La sonda de listo es **`/api/v1/ready`** (A2): prueba la base y la bandera de arranque. Es la que mide B3 y la que debe usar el health check, para que lo medido y lo decidido sean lo mismo |
+| **C6** | El periodo de inicialización del autoescalado se dimensiona con el número que escribe `/var/lib/mooc/arranque.json`, **más** el arranque del sistema operativo: B3 mide desde el inicio del guion, no desde la creación de la instancia |
+| **C7** | `--timeout 120` en la unidad del worker es un compromiso, **no una política de drenaje**. C7 tiene que apagar el consumo de tareas nuevas antes de parar el contenedor |
+| **A3** | El arranque **sí aplica el esquema**, que es lo que A3 §4 decidió: `migrate.sh` y `migrate.sh --require` en un `ExecStartPre`, antes de levantar los contenedores, y en los dos roles. Seguro con tres instancias a la vez por el advisory lock de transacción |
+| **cualquier `apply`** | Hacen falta tres variables nuevas: `TF_VAR_image_tag` (SHA de 40 hex, validado), `TF_VAR_smtp_from` y `TF_VAR_smtp_username`. Las dos de SMTP no son secretos pero identifican la cuenta del equipo y el repositorio es público, así que no tienen valor por omisión |
+
+### La trampa: `metadata_startup_script` es ForceNew en los dos sentidos
+
+Cambiar su contenido **recrea la VM**. Y quitarlo para mover el guion a
+`metadata["startup-script"]` --que sí se actualiza en sitio-- **también**. El
+plan lo dice con `# forces replacement`.
+
+Por eso B3 **no tocó las dos VMs fijas**: migrarlas al arranque nuevo las
+destruye, y B3 no lo necesita porque su comprobación bloqueante es una captura de
+la consola **del grupo**, que exige C1 y C5 de todos modos. Para una plantilla es
+irrelevante: una plantilla es inmutable y cambiarla ya es crear otra.
+
+Si alguien quiere ensayar el arranque antes de C1, se puede, y la consecuencia es
+recrear esas dos VMs.
+
+### Dos cosas pequeñas que cuestan una tarde
+
+- **`-p mooc` en todos los `docker compose`.** Sin nombre de proyecto explícito,
+  Compose lo deriva del directorio: si la ruta cambia, los contenedores de la
+  anterior quedan como otro proyecto en vez de reutilizarse, que es la
+  duplicación que el criterio prohíbe.
+- **`docker compose down` mata a los 10 segundos.** El worker atiende SIGTERM con
+  parada ordenada de asynq, pero una tarea real tarda minutos --el perfil largo
+  midió 1 711 s en A7--. No es pérdida de datos, porque asynq la reencola y el
+  worker es idempotente, pero es trabajo tirado. La unidad usa `--timeout 120`.
+
+### El arranque migra, y eso hay que leerlo junto con la nota 5
+
+La nota 5 avisaba de que tres réplicas pueden migrar la base a la vez y decía
+«hasta que A3 cierre, no asumas que arrancar una instancia es seguro». **A3
+cerró**, con un advisory lock de transacción por migración, y eligió
+explícitamente que el esquema se aplique en el arranque y no como paso de
+despliegue. Así que la nota 5 está resuelta y el aviso ya no aplica.
+
+La primera versión de B3 no migraba, «dejándoselo a A3». Era un error: un entorno
+nuevo habría arrancado sin esquema. Dos lecciones pequeñas de ahi:
+
+- **Un issue cerrado puede haber decidido lo contrario de lo que su nota de
+  advertencia decía**, porque la nota se escribio antes. Hay que leer la decision,
+  no solo la advertencia.
+- `migrate.sh` necesita **`psql`**, y el arranque anterior solo instalaba
+  `postgresql-client` en la VM web. Ahora lo instalan los dos roles, porque los
+  dos aplican el esquema.
+
+### Y una que parecía trabajo y no lo era
+
+**FFmpeg no se instala en el anfitrión.** Va dentro de la imagen del worker
+(`Dockerfile.worker`, `apk add ffmpeg`), así que la tarea «dependencias
+multimedia disponibles en el arranque de los workers» se cumple por la imagen.
+Instalarlo también en la VM habría sido una dependencia duplicada que nadie usa.
+
+<a id="33"></a>
+## 33. Los secretos tienen tres niveles, y `cloudsql.client` no se usa
+
+B4 (#203) inventarió la configuración. Dos cajones —público y secreto— no
+alcanzan: forzarlos es lo que lleva a tratar como secreto algo que no lo es, o a
+publicar algo que no se debe.
+
+| Nivel | Dónde vive | Qué hay |
+| :--- | :--- | :--- |
+| **Secreto** | Secret Manager, leído por la identidad de la instancia | `db-password`, `smtp-password` |
+| **No secreto, no publicable** | metadata de la instancia y `/etc/mooc/web.conf` | `smtp_from`, `smtp_username` |
+| **Público** | el repositorio | todo lo demás |
+
+El nivel 2 existe porque `mail.tf` ya lo había razonado: el usuario del proveedor
+**no es un secreto** —en Brevo es el correo de la cuenta, en SendGrid la cadena
+literal `apikey`— y tratarlo como tal sería teatro. Lo que protege la cuenta es
+la contraseña, que sí está en el nivel 1.
+
+**Y no existe ninguna llave de cuenta de servicio.** Ni para Terraform ni para
+las VMs: identidades adjuntas y credenciales del servidor de metadatos. Un
+secreto que no existe no se filtra, no caduca y no hay que rotarlo.
+
+### El hallazgo: `roles/cloudsql.client` hoy no se usa
+
+Ese rol concede `cloudsql.instances.connect`, que es lo que consumen **el proxy
+de autenticación y los conectores** de Cloud SQL. Esta plataforma **no usa
+ninguno de los dos**: se conecta por TCP directo a la IP privada, y en ese camino
+**IAM no se consulta**. Lo que permite la conexión es la ruta de la VPC más la
+contraseña de PostgreSQL.
+
+El comentario de `service_accounts.tf` decía «permite abrir la conexión». La
+segunda mitad —«no administra la instancia»— es cierta; la primera no, con este
+método de conexión. Corregido.
+
+**Esto corrige la auditoría de B2**, que declaró un solo permiso sin uso. Son
+dos.
+
+| Issue | Qué le toca |
+| :--- | :--- |
+| **F2** | Retirar `cloudsql.client` de las dos cuentas, **comprobándolo contra un despliegue vivo**: si alguna ruta lo necesitara, el fallo sería «permiso denegado» y no «conexión rechazada», y a ciegas se distinguen mal |
+| **F2** | Decidir si la metadata debe ser publicable literalmente. Hoy lleva los dos valores del nivel 2; el arreglo es un secreto más y unas diez líneas, contra una decisión documentada |
+| **I5, I6** | `bash ./scripts/b4_barrido_secretos.sh` antes de etiquetar y al cerrar. Sale con 1 si encuentra algo |
+
+### Las dos capas de identidad no son la misma pregunta
+
+- **IAM** responde «¿puede esta máquina hablar con este servicio de Google?».
+  Quien es, es la VM; se prueba con un token del servidor de metadatos; se revoca
+  quitando un enlace de IAM.
+- **PostgreSQL** responde «¿qué rol de base es esta sesión?». Quien es, es
+  `moocuser`; se prueba con contraseña sobre `sslmode=require`; se revoca
+  cambiando la contraseña, **no desde IAM**.
+
+Son ortogonales. Quitar `cloudsql.client` no cerraría la base, y tener la
+contraseña sin la ruta privada no la abriría.
+
+### Un barrido que lista coincidencias no sirve de nada
+
+La primera versión de `b4_barrido_secretos.sh` imprimía 22 URIs con contraseña,
+todas de desarrollo local. Eso es **peor que no comprobar**: un informe con ruido
+no distingue «no hay secretos» de «nadie lo lee».
+
+Ahora **afirma**: toda contraseña en una URI de conexión tiene que ser una de las
+cuatro declaradas como de desarrollo (`moocpassword`, `postgres`,
+`UnaContrasena*`, `a?b&c=d`), y cualquier otra es un hallazgo. Los marcadores en
+mayúsculas y las referencias a variable se excluyen explícitamente.
+
+**Y la garantía real no es el barrido.** `moocpassword` y `minioadmin` están en el
+repositorio a propósito, porque son credenciales de contenedores que solo existen
+en la máquina de quien los levanta. Lo que las hace inofensivas es que
+`internal/config/validate.go` **rechaza el arranque** con `APP_ENV=production` si
+sobreviven a un despliegue — y el barrido comprueba que esa comprobación siga
+existiendo y pasando. Es la diferencia entre una convención, que se olvida, y una
+comprobación, que no.
+
+### `terraform.tfvars.example` estaba desfasado
+
+No mencionaba las cuatro variables que añadió B3, y **tres son obligatorias**:
+`TF_VAR_image_tag`, `TF_VAR_smtp_from` y `TF_VAR_smtp_username`, además de
+`TF_VAR_db_password`. Quien siguiera ese archivo veía el `apply` pararse a
+preguntar sin entender por qué.
+
+<a id="34"></a>
+## 34. Una instancia de grupo no puede servir con el nginx de la Entrega 2
+
+Lo encontró C1 (#204) al escribir el autohealing, y no estaba en la lista de
+tareas del issue. Son dos problemas independientes y cada uno basta para que la
+instancia no arranque.
+
+1. **El certificado no existe.** `nginx.conf` termina TLS con
+   `ssl_certificate /etc/letsencrypt/live/${APP_DOMAIN}/fullchain.pem`. Los
+   certificados viven en `/etc/letsencrypt` del anfitrión y **no hay contenedor
+   de certbot**: se obtuvieron a mano. En un disco nuevo ese directorio está
+   vacío y **nginx no arranca**.
+2. **Certbot nunca podría obtenerlo.** Una instancia de grupo no tiene IP pública
+   (B2), así que el desafío HTTP-01 no tiene por dónde llegar.
+
+Y el 80 de `nginx.conf` hace `return 301` para todo lo que no sea ACME. Una
+comprobación de salud de GCP **solo acepta 200**, así que: 301 → instancia no
+sana → el autohealer la recrea → la nueva hace lo mismo. **Un bucle de
+recreación que se lee como «la imagen está rota».**
+
+### El modelo que lo resuelve
+
+TLS en el **balanceador** (C3), con certificado administrado por Google; los
+backends sirven **HTTP plano en el 80** dentro de la VPC. Sin IP pública en las
+instancias, ese HTTP no viaja por internet en ningún tramo.
+
+El perfil nuevo es `nginx.mig.conf`, y se elige por metadata
+(`mooc-nginx-config`). No hubo que inventar el mecanismo:
+`docker-compose.prod.yml` ya tenía `${NGINX_CONFIG_FILE:-./nginx.conf}`, con
+`nginx.bootstrap.conf` como precedente. `prepare_web_env.sh` valida que el valor
+sea uno de los tres perfiles conocidos.
+
+**La VM fija no cambia**: su valor por omisión sigue siendo `./nginx.conf`.
+
+### Lo que esto obliga a los demás
+
+| Issue | Qué tiene que saber |
+| :--- | :--- |
+| **C3** | El balanceador **tiene** que terminar TLS: los backends no lo hacen y no pueden. Backend por el named port `http` → 80. Y tiene que ser **global**, por lo que B2 dejó dicho en la nota 31 |
+| **C3** | Lo que `nginx.mig.conf` conserva de `nginx.conf` es la denegación de `/api/v1/metrics` y las cabeceras de proxy. Si alguna vez se quita nginx del Compose, esas dos cosas hay que reponerlas en otro sitio |
+| **C4** | La sonda es `/api/v1/ready` en el 80, la de A2, la misma del autohealing de C1. Que la del backend sea otra sería decidir con un criterio distinto del medido |
+| **C2** | El grupo ignora `target_size` a propósito (`ignore_changes`), para que un `apply` no deshaga una decisión del autoescalador a mitad de una corrida |
+| **C2, C6** | `initial_delay_sec = 600` está puesto **alto a propósito** y hay que calibrarlo con `/var/lib/mooc/arranque.json` de B3. Por debajo del arranque real, el autohealer mata instancias que se están montando |
+| **G3** | La plantilla usa `e2-highcpu-2`, el mismo tipo que la VM fija de A7, para que la diferencia contra la línea base sea solo arquitectónica |
+
+### Por qué el grupo es zonal y no regional
+
+Un grupo regional sobrevive a la caída de una zona. **Aquí no sobreviviría:**
+Cloud SQL es `availability_type = "ZONAL"` en `us-east1-b` y la cola compartida
+es una VM en la misma zona. Si esa zona cae, la base se va con ella y las
+réplicas de las otras zonas fallarían su comprobación de salud, porque
+`/api/v1/ready` prueba la base. Lo único que sí cambiaría es el coste: el tráfico
+entre zonas se factura.
+
+**La alta disponibilidad empieza por Cloud SQL**, no por el grupo de la API:
+`REGIONAL` casi dobla el coste de la instancia de base. Mientras esa decisión no
+se tome, un grupo regional es teatro caro. La conversión sería cambiar a
+`google_compute_region_instance_group_manager` y añadir `distribution_policy`.
+
+### Y una trampa de operación
+
+Si `mooc-image-tag` nombra un commit cuya imagen **no está publicada** en
+Artifact Registry, el arranque falla al bajarla y el autohealer entra en bucle.
+`publish_images.sh` antes de `apply` no es opcional.
+
+<a id="35"></a>
+## 35. Las instancias del grupo heredan el dominio de la VM fija, y eso rompe CSRF
+
+`local.mooc_app_domain` vacío se calcula como
+`<ip-publica-de-la-vm-fija>.sslip.io`, y `prepare_web_env.sh` deriva de ese valor
+**dos** cosas:
+
+```
+APP_BASE_URL='https://${APP_DOMAIN}'
+CSRF_ALLOWED_ORIGINS='https://${APP_DOMAIN}'
+```
+
+En cuanto el balanceador de C3 sirva en otra dirección, **toda petición mutante
+que entre por él se rechaza como origen ajeno**. Es el mismo
+`csrf_origin_rejected` 403 que costó el primer intento del escenario 2 en A7, y
+se parece a un fallo de la aplicación, no a un valor de configuración.
+
+**No bloquea los criterios de C1**, y el motivo importa: la comprobación de salud
+es `/api/v1/ready`, que prueba la base y la bandera de arranque y **no mira el
+origen**. Una instancia con el dominio equivocado sale sana y el grupo la recrea
+igual, así que las capturas de B1, B3 y C1 se pueden tomar sin balanceador.
+
+| Issue | Qué le toca |
+| :--- | :--- |
+| **C3** | Fijar `var.app_domain` a la dirección del balanceador, calculada de su dirección reservada igual que hoy se calcula la de la VM fija. **Sin eso, la plataforma responde 403 a todo lo que mute estado** |
+| **D1** | Con el frontend detrás del **mismo** balanceador no hace falta CORS ni `SESSION_COOKIE_SAMESITE=none` (A4). En otro origen hacen falta las tres cosas a la vez |
+| **G3, G5** | Una corrida de carga que entre por el balanceador con el dominio sin fijar mediría 403, no latencia. Comprobar el origen antes de medir |
