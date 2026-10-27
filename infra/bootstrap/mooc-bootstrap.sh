@@ -38,6 +38,7 @@
 #   mooc-region             region del Artifact Registry               (por omision us-east1)
 #   mooc-repo-url           repositorio publico a clonar               (por omision abajo)
 #   mooc-app-domain         dominio de la aplicacion            (rol web, obligatoria)
+#   mooc-nginx-config       perfil de nginx a servir            (rol web, por omision ./nginx.conf)
 #   mooc-smtp-from          remitente verificado                (rol web, obligatoria)
 #   mooc-smtp-username      login SMTP                          (rol web, obligatoria)
 #   mooc-hls-bucket         bucket de derivados              (rol worker, obligatoria)
@@ -199,6 +200,14 @@ if [[ "${ROL}" == "web" ]]; then
     APP_DOMAIN="$(meta mooc-app-domain)"
     SMTP_FROM="$(meta mooc-smtp-from)"
     SMTP_USERNAME="$(meta mooc-smtp-username)"
+
+    # Que perfil de nginx sirve esta instancia. La VM fija se queda con
+    # `nginx.conf`, que termina TLS con un certificado de Let's Encrypt; una
+    # instancia de grupo no puede --no hay certificado en un disco nuevo y sin IP
+    # publica certbot no podria obtenerlo-- asi que sirve HTTP plano en el 80 y
+    # el balanceador termina TLS. Un 301 en el 80 ademas tumbaria la
+    # comprobacion de salud de C1, y una instancia no sana se recrea, en bucle.
+    NGINX_CONFIG="$(meta mooc-nginx-config)"; NGINX_CONFIG="${NGINX_CONFIG:-./nginx.conf}"
     [[ -n "${APP_DOMAIN}" ]] || morir "falta mooc-app-domain"
     [[ -n "${SMTP_FROM}" ]] || morir "falta mooc-smtp-from"
     [[ -n "${SMTP_USERNAME}" ]] || morir "falta mooc-smtp-username"
@@ -212,6 +221,7 @@ QUEUE_PRIVATE_IP=${QUEUE_IP}
 GCP_PROJECT_ID=${PROJECT_ID}
 SMTP_FROM=${SMTP_FROM}
 SMTP_USERNAME=${SMTP_USERNAME}
+NGINX_CONFIG_FILE=${NGINX_CONFIG}
 CONFEOF
 else
     HLS_BUCKET="$(meta mooc-hls-bucket)"
