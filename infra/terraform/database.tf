@@ -103,7 +103,7 @@ resource "google_sql_database_instance" "main" {
   # "failed to delete instance because deletion_protection is set to true"
   # aunque el fichero diga false. Es el paso 1 del runbook de I6, y la razon
   # de que ese paso diga "debe decir 1 change".
-  deletion_protection = true
+  deletion_protection = false
 
   settings {
     # Las decisiones de B1, justificadas en

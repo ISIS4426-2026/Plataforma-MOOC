@@ -1,0 +1,20 @@
+=== /var/lib/mooc/arranque.json ===
+{
+  "rol": "web",
+  "commit": "15ae2f9c4bf78abd33c49c55ba769cf49f8c7b8b",
+  "listo": true,
+  "segundos_hasta_listo": 62,
+  "medido_desde": "inicio de mooc-bootstrap.sh, no desde la creacion de la instancia",
+  "sonda": "GET /api/v1/ready",
+  "instante_utc": "2026-10-27T15:40:19Z"
+}
+
+=== contenedores ===
+mooc-proxy-1	Up 36 minutes
+mooc-api-1	Up 36 minutes (healthy)
+
+=== perfil de nginx en uso ===
+NGINX_CONFIG_FILE=./nginx.mig.conf
+
+=== commit del arbol desplegado ===
+15ae2f9c4bf78abd33c49c55ba769cf49f8c7b8b

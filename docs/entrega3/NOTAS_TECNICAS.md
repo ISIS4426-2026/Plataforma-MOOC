@@ -1416,3 +1416,45 @@ igual, así que las capturas de B1, B3 y C1 se pueden tomar sin balanceador.
 | **C3** | Fijar `var.app_domain` a la dirección del balanceador, calculada de su dirección reservada igual que hoy se calcula la de la VM fija. **Sin eso, la plataforma responde 403 a todo lo que mute estado** |
 | **D1** | Con el frontend detrás del **mismo** balanceador no hace falta CORS ni `SESSION_COOKIE_SAMESITE=none` (A4). En otro origen hacen falta las tres cosas a la vez |
 | **G3, G5** | Una corrida de carga que entre por el balanceador con el dominio sin fijar mediría 403, no latencia. Comprobar el origen antes de medir |
+
+<a id="36"></a>
+## 36. Un comprobador que imprime no comprueba, y van cuatro
+
+No es casualidad: cuatro veces en la Entrega 3 un verificador dio por bueno algo
+que estaba mal, siempre por la misma razón.
+
+| Dónde | Qué hacía | Qué se le escapó |
+| :--- | :--- | :--- |
+| Escritores del escenario 2 (nota 28) | publicaban conclusiones fijas | contradecían a su propia tabla en la misma página |
+| Barrido de secretos (nota 33) | listaba 22 coincidencias | nadie lee un informe con ruido |
+| Arranque de la cola (B1) | `CONFIG GET appendonly` **impreso** | redis corría otra configuración y el guion salía con 0 |
+| Prueba de autohealing (C1) | esperaba un **nombre** de instancia distinto | un MIG reutiliza el nombre: sondeó 38 min sobre algo ya sano |
+
+**La regla.** Un comprobador tiene que **afirmar** y **salir con código distinto
+de cero** cuando la afirmación falla. Si imprime y sigue, no es un comprobador: es
+un registro, y nadie lo lee hasta que ya es tarde.
+
+Dos corolarios que los cuatro casos ilustran:
+
+- **Comprobar la clave que delata, no la que da la razón.** En la cola,
+  `maxmemory-policy` coincidía **por casualidad** —`noeviction` es también el
+  valor por omisión de Debian—, así que mirar solo esa clave no habría detectado
+  nada. La que delataba era `appendonly`, cuyo valor por omisión es `no`.
+- **Comprobar la identidad correcta.** Un MIG reutiliza el nombre de la
+  instancia; lo que distingue una instancia nueva es el **ID** y el
+  `creationTimestamp`. Afirmar sobre el atributo equivocado da un veredicto
+  equivocado con datos correctos.
+
+### Y la trampa de `systemctl` que lo destapó
+
+`apt-get install redis-server` **deja el servicio corriendo** con la
+configuración de Debian. `systemctl enable --now` **no hace nada sobre un
+servicio ya activo**: no es `restart`. Resultado: el fichero en disco decía
+`bind 10.0.1.8` y el proceso escuchaba en loopback, y la API moría en bucle con
+`connection refused`.
+
+| Issue | Qué tiene que saber |
+| :--- | :--- |
+| **C5, C6, C7** | Cualquier guion de arranque que instale un paquete con servicio y luego escriba su configuración necesita `restart`, no `enable --now`. Las unidades de B3 ya lo hacen bien |
+| **G1** | Las comprobaciones que publiquen métricas tienen que afirmar y salir con código, no imprimir. Es la misma regla que A6 §7 aplicada a los verificadores |
+| **I5** | Antes de etiquetar, los verificadores deben salir con 0 **por afirmación**, no por no haber mirado |

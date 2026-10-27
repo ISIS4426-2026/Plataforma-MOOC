@@ -2,12 +2,12 @@
 
 | Criterio de aceptación | |
 | :--- | :---: |
-| Borrar una instancia a mano hace que el grupo la recree y quede operativa sin intervención | ⏳ §7 — requiere `apply` |
+| Borrar una instancia a mano hace que el grupo la recree y quede operativa sin intervención | ✅ **medido: 160 s** §0 |
 | Todas las instancias del grupo responden la misma versión | ✅ §3 — estructural |
 | El grupo nunca baja de 1 ni sube de 3 | ✅ §4 — el techo lo impone C2 |
 | La ampliación manual queda descartada como evidencia | ✅ §4 — `target_size = 1` y `ignore_changes` |
-| **Bloquea el cierre:** la instancia borrada y el grupo recreándola, con tiempos | ⏳ §7 — requiere `apply` |
-| Todo en Terraform, **aplicado desde `main`** | ⏳ §7 — escrito; el `apply` va después del merge |
+| **Bloquea el cierre:** la instancia borrada y el grupo recreándola, con tiempos | ⚠️ §0 — registro cronometrado sí, **captura de consola no** |
+| Todo en Terraform, **aplicado desde `main`** | ✅ aplicado el 2026-10-27 desde `main`, 0 errores |
 | Anotado en `NOTAS_TECNICAS.md` | ✅ notas 34 y 35 |
 
 **Estado: escrito y validado; sin desplegar.** `terraform validate` pasa, `fmt`
@@ -15,6 +15,57 @@ limpio, y el plan está en [`plan_c1.txt`](./plan_c1.txt): **tres recursos nuevo
 ninguna VM recreada**.
 
 ---
+
+## 0. Resultado del despliegue del 2026-10-27
+
+Aplicado desde `main` con el commit `15ae2f9c`, **0 errores**. El grupo creó su
+instancia sola y el autohealing se comprobó borrándola a mano.
+
+| T+ | Qué pasó |
+| ---: | :--- |
+| 0 s | orden de borrado de `mooc-api-l7zr` |
+| 26 s | borrado aceptado |
+| 30 s | el grupo ya está en `STAGING` / `CREATING` |
+| 49 s | `RUNNING` / `VERIFYING` |
+| 67 s | salud `TIMEOUT` — la aplicación todavía arranca |
+| **160 s** | **`HEALTHY`.** Operativa sin ninguna intervención |
+
+Instancia nueva confirmada por **ID** y marca de creación, no por nombre:
+`3746978593596341138`, creada a las `15:38:37Z`, 27 s después de la orden de
+borrado. Registro completo en
+[`autohealing_02_recreacion.txt`](./autohealing_02_recreacion.txt).
+
+**Un MIG reutiliza el nombre de la instancia.** El guión de prueba esperaba un
+nombre distinto para darla por nueva, así que siguió sondeando 38 minutos sobre
+algo que llevaba ese tiempo sano y acabó imprimiendo
+`ERROR: no quedo sana en el plazo`. Los datos del registro son válidos —la tabla
+de arriba sale de ahí—; lo que estaba mal era el veredicto. Lo que distingue una
+instancia nueva es el **ID** y el `creationTimestamp`.
+
+### Lo que esto confirma del diseño de C1
+
+| | |
+| :--- | :--- |
+| `nginx.mig.conf` | `/api/v1/ready` devolvió **200 por el puerto 80**. Con `nginx.conf` habría dado 301, o nginx no habría arrancado por falta de certificado |
+| La comprobación de salud | el grupo marcó `HEALTHY` contra la instancia real |
+| La plantilla | `NGINX_CONFIG_FILE=./nginx.mig.conf` y el árbol en `15ae2f9c…` |
+| Sin IP externa | ninguna instancia del grupo tuvo dirección pública |
+
+### El retardo inicial, ahora calibrado
+
+`initial_delay_sec` pasó de **600 s a ciegas** a **300 s medidos**: 160 s del
+borrado a sana, de los cuales 62 son el arranque. 300 deja casi el doble de
+margen y reduce a la mitad lo que tarda en sustituirse una instancia muerta.
+
+### Lo que falta, y no se puede rehacer sin repetir la prueba
+
+El criterio pide la captura **mientras ocurre**. El registro cronometrado existe
+y es más preciso que una pantalla, pero **no se tomó la captura de la consola**, y
+el momento ya pasó.
+
+Repetir la prueba cuesta tres minutos **con el entorno encendido**, así que lo
+razonable es rehacerla en la sesión de C2 o C3 con la consola del grupo abierta.
+Queda como lo único pendiente de C1.
 
 ## 1. El bloqueo que había que resolver antes de poder escribir el autohealing
 

@@ -84,21 +84,71 @@ CONF
 chown redis:redis /etc/redis/redis.conf
 chmod 640 /etc/redis/redis.conf
 
-systemctl enable --now redis-server
+# `enable` y `restart`, NO `enable --now`.
+#
+# `apt-get install redis-server` **ya deja el servicio corriendo** con la
+# configuracion por omision de Debian, que escucha solo en 127.0.0.1. Y
+# `--now` no hace nada sobre un servicio que ya esta activo: no es `restart`.
+#
+# Con `--now`, redis seguia con la configuracion vieja aunque el fichero en
+# disco fuera el correcto, y la API moria en bucle con
+# `dial tcp 10.0.1.8:6379: connect: connection refused`. Es el mismo error que
+# las unidades de B3 evitan a proposito usando `restart`.
+systemctl enable redis-server
+systemctl restart redis-server
 
-# Comprobacion de arranque: si la configuracion es invalida, redis-server no
-# levanta y el fallo tiene que verse en el registro serie de la instancia, no
-# descubrirse cuando el primer worker no encuentra la cola.
+# Comprobacion de arranque. AFIRMA, no imprime.
+#
+# La version anterior hacia `CONFIG GET appendonly` y mostraba el resultado sin
+# comprobarlo, asi que el arranque salia con 0 aunque redis estuviera corriendo
+# otra configuracion. Y `maxmemory-policy` coincidia por casualidad --`noeviction`
+# es tambien el valor por omision de Debian--, asi que mirar solo esa clave no
+# habria detectado nada.
+fallos=0
+
 for _ in $(seq 1 30); do
-    if redis-cli -h 127.0.0.1 ping 2>/dev/null | grep -q PONG; then
-        echo "B1: redis responde PONG en 127.0.0.1:6379"
-        redis-cli -h 127.0.0.1 CONFIG GET appendonly
-        redis-cli -h 127.0.0.1 CONFIG GET maxmemory-policy
-        exit 0
-    fi
+    redis-cli -h 127.0.0.1 ping 2>/dev/null | grep -q PONG && break
     sleep 2
 done
 
-echo "B1: ERROR, redis-server no respondio en 60 s" >&2
-systemctl status redis-server --no-pager >&2 || true
-exit 1
+if ! redis-cli -h 127.0.0.1 ping 2>/dev/null | grep -q PONG; then
+    echo "B1: ERROR, redis-server no respondio en 60 s" >&2
+    systemctl status redis-server --no-pager >&2 || true
+    exit 1
+fi
+echo "B1: redis responde PONG en 127.0.0.1:6379"
+
+comprobar() {
+    local clave="$1" esperado="$2"
+    local efectivo
+    efectivo="$(redis-cli -h 127.0.0.1 --no-raw CONFIG GET "$clave" 2>/dev/null | sed -n '2p' | tr -d '"')"
+    if [ "$efectivo" = "$esperado" ]; then
+        echo "B1: ok     $clave = $efectivo"
+    else
+        echo "B1: ERROR  $clave = '$efectivo', se esperaba '$esperado'" >&2
+        fallos=$((fallos + 1))
+    fi
+}
+
+# `appendonly` es la que delata una configuracion sin recargar: es la razon de no
+# usar Memorystore y su valor por omision en Debian es `no`.
+comprobar appendonly yes
+comprobar maxmemory-policy noeviction
+
+# Y que escuche de verdad en la IP privada, que es lo unico que la API y los
+# workers pueden alcanzar. Escuchar solo en loopback era el sintoma del fallo.
+if ss -ltn 2>/dev/null | grep -q "${queue_ip}:6379"; then
+    echo "B1: ok     escucha en ${queue_ip}:6379"
+else
+    echo "B1: ERROR  no escucha en ${queue_ip}:6379" >&2
+    ss -ltn 2>/dev/null | grep 6379 >&2 || true
+    fallos=$((fallos + 1))
+fi
+
+if [ "$fallos" -gt 0 ]; then
+    echo "B1: ERROR, $fallos comprobacion(es) fallaron. La cola NO esta como se declaro." >&2
+    exit 1
+fi
+
+echo "B1: la cola esta en marcha y configurada como se declaro"
+exit 0

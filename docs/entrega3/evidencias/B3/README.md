@@ -2,11 +2,11 @@
 
 | Criterio de aceptación | |
 | :--- | :---: |
-| Una instancia creada por el grupo atiende peticiones o consume trabajos sin acceso manual | ⏳ §6 — requiere C1 y C5 |
+| Una instancia creada por el grupo atiende peticiones o consume trabajos sin acceso manual | ✅ **rol web medido**; el rol worker espera C5 |
 | Dos reinicios seguidos no duplican procesos, derivados ni recursos | ✅ §3 — por construcción; comprobación en §6 |
 | Todas las instancias de un grupo y una corrida ejecutan la misma versión de código y configuración | ✅ §2 — estructural |
-| Tiempo de arranque registrado para los dos grupos | ⏳ §4 — el mecanismo mide; el número necesita el despliegue |
-| **Bloquea el cierre:** captura de la consola del grupo creando una instancia y del log hasta lista | ⏳ §6 — **requiere C1 y C5** |
+| Tiempo de arranque registrado para los dos grupos | ✅ **web: 62 s**; worker espera C5 |
+| **Bloquea el cierre:** captura de la consola del grupo creando una instancia y del log hasta lista | ⚠️ §0 — log sí, **captura de consola no** |
 | Anotado en `NOTAS_TECNICAS.md` | ✅ nota 32 |
 
 **Estado: mecanismo escrito y validado; sin desplegar.** `terraform validate`
@@ -15,6 +15,57 @@ cambia ningún recurso**: el plan es idéntico al de B2
 ([`plan_b3.txt`](./plan_b3.txt)).
 
 ---
+
+## 0. Resultado del despliegue del 2026-10-27
+
+El arranque corrió por primera vez y **dejó la instancia atendiendo sin que nadie
+entrara por SSH**:
+
+```json
+{"rol":"web","commit":"15ae2f9c4bf78abd33c49c55ba769cf49f8c7b8b","listo":true,
+ "segundos_hasta_listo":62,"sonda":"GET /api/v1/ready"}
+```
+
+Las quince marcas del registro serie están en
+[`registro_serie_arranque.txt`](./registro_serie_arranque.txt). Lo que cada una
+confirma:
+
+| Marca | Qué demuestra |
+| :--- | :--- |
+| `rol=web commit=15ae2f9c4bf7` | la configuración viene de la metadata; nadie creó `/etc/mooc/web.conf` |
+| `autenticando contra us-east1-docker.pkg.dev` | con la identidad de la instancia, sin archivo de llave |
+| `repositorio en 15ae2f9c4bf78…` | el código y la imagen son del **mismo** commit |
+| `B3/migrar: esquema al dia` | **8 migraciones aplicadas y `--require` verificado**, con el lock de A3 |
+| `LISTO en 62s` | medido por la sonda, no estimado |
+
+**Dos arranques, y el segundo es el que cuenta.** El primero necesitó que se
+relanzara la unidad a mano, pero por un fallo de la cola —no del arranque— que se
+describe abajo. El segundo, la instancia que el grupo creó al recrearse, arrancó
+sola de principio a fin: es el que demuestra el criterio.
+
+### El fallo que solo se podía encontrar desplegando
+
+La API moría en bucle con
+`ping redis: dial tcp 10.0.1.8:6379: connect: connection refused`.
+
+`apt-get install redis-server` **ya deja el servicio corriendo** con la
+configuración por omisión de Debian, que escucha solo en `127.0.0.1`. El guión de
+B1 la sobrescribía y hacía `systemctl enable --now`, y **`--now` no hace nada
+sobre un servicio ya activo**: no es `restart`. El fichero en disco decía
+`bind 10.0.1.8`; el proceso escuchaba en loopback.
+
+Es el mismo error que las unidades de B3 evitan **a propósito** usando `restart`,
+con comentario incluido, y que el guión de la cola no aplicó. Corregido en
+`queue_startup.sh`, con la comprobación convertida en aserción: ver B1 §0.
+
+### Lo que falta
+
+El criterio pide la captura de **la consola del grupo** creando la instancia. El
+log serie existe y es más preciso, pero la captura de pantalla no se tomó. Se
+rehace en tres minutos con el entorno encendido; lo razonable es hacerlo en la
+sesión de C2 o C3.
+
+Y el **rol worker** sigue sin medir: necesita C5.
 
 ## 1. Qué sustituye
 
