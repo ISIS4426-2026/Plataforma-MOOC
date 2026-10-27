@@ -128,7 +128,13 @@ echo "B1: redis responde PONG en 127.0.0.1:6379"
 comprobar() {
     local clave="$1" esperado="$2"
     local efectivo
-    efectivo="$(redis-cli -h 127.0.0.1 --no-raw CONFIG GET "$clave" 2>/dev/null | sed -n '2p' | tr -d '"')"
+    # Sin `--no-raw`: esa opcion numera la salida --`2) "yes"`-- y entonces
+    # `sed -n 2p` devuelve el numero y los parentesis. La asercion fallaba sobre
+    # una cola correctamente configurada: `appendonly = '2) yes'`.
+    #
+    # Fallo del lado seguro --un falso negativo, ruidoso e inmediato-- y no del
+    # peligroso, que es dar por bueno lo que no se comprobo. Pero estaba mal.
+    efectivo="$(redis-cli -h 127.0.0.1 CONFIG GET "$clave" 2>/dev/null | sed -n '2p')"
     if [ "$efectivo" = "$esperado" ]; then
         echo "B1: ok     $clave = $efectivo"
     else
