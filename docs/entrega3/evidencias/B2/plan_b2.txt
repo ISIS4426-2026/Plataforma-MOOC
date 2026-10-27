@@ -1,0 +1,29 @@
+Plan de solo lectura tras B1 (#200) y B2 (#201), 2026-10-27T12:06:18Z
+Generado con: terraform plan   (sin -out, sin aplicar)
+
+LAS DOS DESTRUCCIONES SON EL OBJETO DE B2, no un accidente:
+  * allow_internal      la regla que abria TODOS los puertos TCP y UDP
+                        entre todo lo que estuviera en la subred.
+  * worker_server_ip    la IP externa estatica del worker, que no recibia
+                        trafico de nadie. Reservada y sin usar, ademas, se
+                        factura.
+
+worker_server se actualiza EN SITIO: quitar un access_config no recrea la VM.
+
+  # google_compute_address.queue_internal_ip will be created
+  # google_compute_address.worker_server_ip will be destroyed
+  # google_compute_firewall.allow_internal will be destroyed
+  # google_compute_firewall.allow_internal_icmp will be created
+  # google_compute_firewall.allow_lb_and_health_checks will be created
+  # google_compute_firewall.allow_queue_internal will be created
+  # google_compute_firewall.allow_web_ingress will be updated in-place
+  # google_compute_instance.queue_server will be created
+  # google_compute_instance.worker_server will be updated in-place
+  # google_project_iam_member.queue_telemetry["roles/logging.logWriter"] will be created
+  # google_project_iam_member.queue_telemetry["roles/monitoring.metricWriter"] will be created
+  # google_service_account.queue_server will be created
+  # google_service_account.worker_server will be updated in-place
+  # google_sql_database.mooc will be created
+  # google_sql_database_instance.main will be created
+  # google_sql_user.app will be created
+Plan: 11 to add, 3 to change, 2 to destroy.

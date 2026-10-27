@@ -189,7 +189,7 @@ error while interpolating services.worker.environment.[]: required variable
 REDIS_URL is missing a value: REDIS_URL debe apuntar a la cola compartida, no a
 este host
 
-$ IMAGE_TAG=x DATABASE_URL=y REDIS_URL=10.0.1.9:6379 \
+$ IMAGE_TAG=x DATABASE_URL=y REDIS_URL=<ip-de-la-cola>:6379 \
     docker compose -f docker-compose.worker.yml config --services
 worker
 ```

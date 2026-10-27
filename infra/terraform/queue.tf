@@ -127,25 +127,34 @@ resource "google_compute_instance" "queue_server" {
 # ------------------------------------------------------------------------------
 # Cortafuegos
 # ------------------------------------------------------------------------------
-# Esta regla declara la intención: al 6379 de la cola solo se llega desde dentro
-# de la subred.
+# B1 la escribió con origen en el rango de la subred, y entonces era declarativa:
+# `mooc-allow-internal` abría todos los puertos entre todo lo de la subred, así
+# que no restringía nada. **B2 (#201) retiró esa regla y acotó esta por
+# identidad.**
 #
-# **Hoy no restringe nada todavía**, y conviene decirlo en vez de aparentar lo
-# contrario: `mooc-allow-internal` abre todos los puertos entre todo lo que esté
-# en la subred, así que esta regla es redundante mientras aquella exista.
-# Empieza a servir cuando **F1** acote `mooc-allow-internal` a los puertos que
-# cada componente necesita de verdad. Lo que sí garantiza ya, junto con la
-# ausencia de IP pública, es que no hay camino desde internet.
+# Origen y destino son **cuentas de servicio**, no etiquetas, y es a propósito:
+# una etiqueta de red la puede poner cualquiera que sepa crear una instancia, y
+# entonces la regla protege un nombre y no un componente. La cuenta de servicio
+# la fija la plantilla del grupo (C5) y cambiarla es una operación de IAM, no de
+# red. Es la misma distinción que sostienen las tres cuentas separadas.
+#
+# Nota de la API de Compute: `source_service_accounts` no se puede combinar con
+# etiquetas en ninguno de los dos lados, así que el destino también va por
+# cuenta. Por eso esta regla no usa `target_tags = ["queue-server"]`.
 resource "google_compute_firewall" "allow_queue_internal" {
   name        = "mooc-allow-queue"
   network     = google_compute_network.vpc.id
-  description = "Acceso a la cola compartida (6379) solo desde la subred privada (B1)"
+  description = "Acceso al 6379 de la cola solo desde las cuentas de la API y de los workers (B1, acotado en B2)"
 
   allow {
     protocol = "tcp"
     ports    = ["6379"]
   }
 
-  source_ranges = [google_compute_subnetwork.subnet.ip_cidr_range]
-  target_tags   = ["queue-server"]
+  source_service_accounts = [
+    google_service_account.web_server.email,
+    google_service_account.worker_server.email,
+  ]
+
+  target_service_accounts = [google_service_account.queue_server.email]
 }
