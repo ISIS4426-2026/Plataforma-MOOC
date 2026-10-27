@@ -117,26 +117,27 @@ REPO_URL="${REPO_URL:-https://github.com/ISIS4426-2026/Plataforma-MOOC.git}"
 anotar "rol=${ROL} commit=${IMAGE_TAG:0:12} proyecto=${PROJECT_ID} region=${REGION}"
 
 # ------------------------------------------------------------- 2. dependencias
-esperar_dpkg() {
-    local i=0
-    while fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1; do
-        sleep 2
-        i=$((i + 1))
-        [[ ${i} -lt 150 ]] || morir "dpkg sigue bloqueado tras 5 minutos"
-    done
-}
+# `DPkg::Lock::Timeout` hace que apt **espere** por cualquiera de sus cerrojos en
+# vez de fallar. Esperar solo el de dpkg --como hacia la version anterior-- no
+# basta: en una VM recien creada, `unattended-upgrades` corre `apt-get update` en
+# paralelo y retiene `/var/lib/apt/lists/lock`, que es otro.
+#
+# Paso de verdad: la cola recreada murio con
+#   E: Could not get lock /var/lib/apt/lists/lock. It is held by process 736
+#   Script "startup-script" failed with error: exit status 100
+# y redis nunca se instalo. Con `set -e`, un apt que falla se lleva el arranque.
+APT="apt-get -o DPkg::Lock::Timeout=600 -qq"
+
 
 if ! command -v docker >/dev/null || ! command -v git >/dev/null ||
     ! command -v psql >/dev/null; then
     anotar "instalando dependencias del anfitrion"
-    esperar_dpkg
-    apt-get update -qq
+    $APT update
     # `postgresql-client` no es opcional: `scripts/migrate.sh` necesita `psql`,
     # y sin el la instancia arranca sin esquema. El guion de arranque anterior
     # lo instalaba solo en la VM web; aqui lo necesitan los dos roles, porque
     # los dos aplican el esquema (A3).
-    apt-get install -y -qq ca-certificates curl gnupg lsb-release git jq \
-        postgresql-client
+    $APT install -y ca-certificates curl gnupg lsb-release git jq postgresql-client
 
     install -m 0755 -d /etc/apt/keyrings
     if [[ ! -f /etc/apt/keyrings/docker.gpg ]]; then
@@ -147,9 +148,8 @@ if ! command -v docker >/dev/null || ! command -v git >/dev/null ||
     echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/debian $(lsb_release -cs) stable" \
         >/etc/apt/sources.list.d/docker.list
 
-    esperar_dpkg
-    apt-get update -qq
-    apt-get install -y -qq docker-ce docker-ce-cli containerd.io \
+    $APT update
+    $APT install -y docker-ce docker-ce-cli containerd.io \
         docker-buildx-plugin docker-compose-plugin
 else
     anotar "docker, git y psql ya estan instalados"

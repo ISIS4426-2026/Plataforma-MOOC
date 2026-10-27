@@ -9,12 +9,19 @@
 # IP pública a la que hay que entrar por IAP para averiguarlo.
 set -euo pipefail
 
-while fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1; do
-    sleep 2
-done
+# `DPkg::Lock::Timeout` hace que apt **espere** por cualquiera de sus cerrojos en
+# vez de fallar. Esperar solo el de dpkg --como hacia la version anterior-- no
+# basta: en una VM recien creada, `unattended-upgrades` corre `apt-get update` en
+# paralelo y retiene `/var/lib/apt/lists/lock`, que es otro.
+#
+# Paso de verdad: la cola recreada murio con
+#   E: Could not get lock /var/lib/apt/lists/lock. It is held by process 736
+#   Script "startup-script" failed with error: exit status 100
+# y redis nunca se instalo. Con `set -e`, un apt que falla se lleva el arranque.
+APT="apt-get -o DPkg::Lock::Timeout=600 -qq"
 
-apt-get update -qq
-apt-get install -y -qq redis-server
+$APT update
+$APT install -y redis-server
 
 # La configuración se escribe entera y no se parchea la de Debian, para que lo
 # que corre sea exactamente lo que este fichero declara.
