@@ -1,40 +1,33 @@
 # ==============================================================================
-# Plataforma MOOC - Docker Compose para Worker Server y Cola en la Nube (Issue E1)
+# Plataforma MOOC - Docker Compose del Worker Server
 # ==============================================================================
-# Despliega el procesamiento asíncrono y la cola en su propia máquina virtual:
-# - redis: Intermediario de mensajería (Asynq/Redis) publicado en el puerto 6379 del
-#   host, accesible exclusivamente desde la subred privada VPC (10.0.1.0/24) e
-#   inalcanzable desde Internet por reglas de firewall de Compute Engine.
-# - worker: Procesador asíncrono en Go con FFmpeg. Concurrencia fijada en 2
-#   (1 worker por vCPU en e2-highcpu-2) y almacenamiento temporal delimitado en
-#   un volumen con nombre montado en /tmp/mooc-media, con limpieza automática.
+# Despliega **solo** el procesamiento asíncrono. La cola ya no está aquí.
+#
+# Hasta B1 (#200) este fichero levantaba su propio `redis` y la cola vivía en la
+# misma máquina que los workers. Con un grupo administrado eso no se sostiene:
+# el autoescalado puede destruir esta instancia, y con ella se irían los trabajos
+# encolados. La cola vive ahora en `mooc-queue-server`, fuera de los dos grupos
+# elásticos (`infra/terraform/queue.tf`).
+#
+# Consecuencia directa: **`REDIS_URL` es obligatoria y tiene que apuntar a la
+# cola compartida**, no a este host. Sin valor, el despliegue se para. No hay
+# valor por omisión a propósito: con `redis:6379` por defecto, un worker mal
+# configurado leería de una cola vacía que nadie llena, las subidas
+# responderían 202 y el recurso se quedaría `pending` para siempre. Es
+# exactamente lo que encontró G3 en la Entrega 2.
+#
+# - worker: Procesador asíncrono en Go con FFmpeg. Almacenamiento temporal
+#   delimitado en un volumen con nombre montado en /tmp/mooc-media.
 # ==============================================================================
 
 services:
-  redis:
-    image: redis:7-alpine
-    container_name: mooc-queue
-    ports:
-      - "6379:6379"
-    volumes:
-      - redis_data:/data
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-    networks:
-      worker_backend:
-        ipv4_address: 172.31.0.2
-    restart: unless-stopped
-
   worker:
     image: ${GCP_REGION:-us-east1}-docker.pkg.dev/${GCP_PROJECT_ID:-plataforma-mooc-entrega2}/${GCP_ARTIFACT_REGISTRY_REPOSITORY:-mooc}/worker:${IMAGE_TAG:?Set IMAGE_TAG to the full commit SHA}
     container_name: mooc-worker
     environment:
       - APP_ENV=production
       - DATABASE_URL=${DATABASE_URL:?Set DATABASE_URL with Cloud SQL credentials}
-      - REDIS_URL=${REDIS_URL:-redis:6379}
+      - REDIS_URL=${REDIS_URL:?REDIS_URL debe apuntar a la cola compartida, no a este host}
       - STORAGE_BACKEND=gcs
       - S3_BUCKET=${S3_BUCKET:-plataforma-mooc-entrega2-media}
       - GCP_PROJECT_ID=${GCP_PROJECT_ID:-plataforma-mooc-entrega2}
@@ -65,16 +58,12 @@ services:
       - worker_scratch:/tmp/mooc-media
     ports:
       - "${WORKER_METRICS_PORT:-9090}:9090"
-    depends_on:
-      redis:
-        condition: service_healthy
     networks:
       worker_backend:
         ipv4_address: 172.31.0.3
     restart: unless-stopped
 
 volumes:
-  redis_data:
   worker_scratch:
 
 networks:

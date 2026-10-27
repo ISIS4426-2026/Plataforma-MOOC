@@ -69,12 +69,35 @@ run_psql_query() {
     fi
 }
 
+# Vaciar Redis al recargar el seed era inofensivo mientras cada maquina tenia su
+# propio Redis. Desde B1 (#200) la cola es **compartida y esta fuera de los
+# grupos elasticos**, asi que este FLUSHDB apuntado a un despliegue se llevaria
+# la cola real: los trabajos pendientes y, peor, el registro `asynq:queues`, que
+# deja al inspector respondiendo `NOT_FOUND` mientras los trabajos siguen
+# fluyendo (nota tecnica 27).
+#
+# Por eso solo se vacia el Redis **local de Compose**. El servidor de la cola
+# ademas desactiva FLUSHDB y FLUSHALL por nombre, asi que el candado esta en los
+# dos sitios y no en la buena memoria de quien ejecuta el guion.
 flush_redis() {
     if docker compose ps redis 2>/dev/null | grep -q "Up\|healthy\|running"; then
         docker compose exec -T redis redis-cli FLUSHDB >/dev/null 2>&1 || true
-    elif command -v redis-cli &> /dev/null; then
-        redis-cli -u "${REDIS_URL:-redis://127.0.0.1:6379}" FLUSHDB >/dev/null 2>&1 || true
+        return
     fi
+
+    local destino="${REDIS_URL:-redis://127.0.0.1:6379}"
+    case "${destino}" in
+        *localhost*|*127.0.0.1*|redis:*|*//redis:*)
+            if command -v redis-cli &> /dev/null; then
+                redis-cli -u "${destino}" FLUSHDB >/dev/null 2>&1 || true
+            fi
+            ;;
+        *)
+            echo -e "${YELLOW}[!] REDIS_URL no es local: no se vacia.${NC}" >&2
+            echo -e "${YELLOW}    Desde B1 la cola es compartida; un FLUSHDB aqui se llevaria${NC}" >&2
+            echo -e "${YELLOW}    los trabajos encolados y el registro asynq:queues.${NC}" >&2
+            ;;
+    esac
 }
 
 show_header() {
