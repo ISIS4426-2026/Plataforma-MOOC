@@ -149,21 +149,6 @@ output "database_url_template" {
 
 # --- Maquinas Virtuales de Computo (issue #123, D2) -------------------------
 
-output "web_server_name" {
-  description = "Nombre de la instancia de cómputo del Web Server (D2)."
-  value       = google_compute_instance.web_server.name
-}
-
-output "web_server_public_ip" {
-  description = "Dirección IPv4 pública estática del Web Server (D2)."
-  value       = google_compute_address.web_server_ip.address
-}
-
-output "web_server_private_ip" {
-  description = "Dirección IPv4 privada en mooc-subnet del Web Server (D2)."
-  value       = google_compute_instance.web_server.network_interface[0].network_ip
-}
-
 # --- Maquinas Virtuales de Computo - Worker Server (issue #124, E1) ---------
 
 output "worker_server_name" {
@@ -198,3 +183,6 @@ output "queue_private_ip" {
   description = "IP privada estable de la cola. Es el QUEUE_PRIVATE_IP de los guiones de preparacion."
   value       = google_compute_address.queue_internal_ip.address
 }
+
+# Las salidas de la VM web fija se retiraron en C3 (#206) junto con la propia VM.
+# La direccion publica de la plataforma es ahora `lb_url`, en load_balancer.tf.

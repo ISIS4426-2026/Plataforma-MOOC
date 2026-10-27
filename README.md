@@ -43,7 +43,7 @@ Desde la **Entrega 2** incluye además el despliegue en **Google Cloud Platform*
 | Informe de capacidad | `capacity-planning/pruebas_de_carga_entrega3.md` *(G7)* |
 | Deuda técnica | `docs/entrega3/deuda-tecnica.md` *(H3)* |
 | URL del frontend | *(pendiente, D1)* |
-| URL del balanceador de la API | *(pendiente, C3)* |
+| URL del balanceador de la API | *(pendiente de desplegar; sale de `terraform output lb_url` con `-var lb_enabled=true`)* |
 
 **Base de la entrega:** parte del tag [`entrega-2`](https://github.com/ISIS4426-2026/Plataforma-MOOC/releases/tag/entrega-2)
 (commit `1827cdc`); commit base `d7ac108`.
@@ -100,10 +100,21 @@ Por eso el documento de arquitectura se reparte entre dos archivos y no uno.
 | Análisis de capacidad · escenario 2 | [Informe](capacity-planning/pruebas_de_carga_entrega2.md) §2 · evidencias [`H4`](docs/entrega2/evidencias/H4/README.md) y [`H5`](docs/entrega2/evidencias/H5/) |
 | Documentación de arquitectura | Los dos documentos de la fila 3 de arriba |
 
-El dominio es `sslip.io` sobre la IPv4 estática reservada del Web Server, así que
-la URL **sobrevive a que se recree la máquina**. El equipo no compró dominio
+El dominio era `sslip.io` sobre la IPv4 estática reservada del Web Server, así
+que la URL sobrevivía a que se recreara la máquina. El equipo no compró dominio
 propio; la decisión y su efecto en el correo saliente están en el documento de
 configuración y costos.
+
+> [!WARNING]
+> **Esa URL ya no se puede recuperar.** C3 de la Entrega 3
+> ([#206](https://github.com/ISIS4426-2026/Plataforma-MOOC/issues/206)) retiró el
+> Web Server y **liberó su dirección estática**, porque el criterio de la entrega
+> nueva es que la API solo sea alcanzable a través del balanceador. Recrear el
+> entorno de la Entrega 2 daría **otra IP y por tanto otra URL**, ya que el
+> dominio lleva la dirección dentro.
+>
+> Lo que sigue siendo verificable de la Entrega 2 son sus evidencias, que
+> registran lo medido contra la URL que entonces existía.
 
 > [!IMPORTANT]
 > **Recrear no es solo encender.** La instancia de base de datos se eliminó, así

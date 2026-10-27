@@ -1524,3 +1524,84 @@ está donde se está mirando.
 Es una **extrapolación lineal, no una medición**: la curva de CPU de la base por
 encima de 1 040 tps no se ha medido. Subir `max_replicas` por encima de 3 no
 ayudaría: añade réplicas que esperan a la misma base.
+
+<a id="38"></a>
+## 38. El balanceador es la única entrada, y encender el entorno pasa a ser explícito
+
+C3 (#206) puso el balanceador de aplicación **global** con certificado
+administrado por Google sobre `<IP-del-balanceador>.sslip.io`, y con él se fue
+todo el TLS de las instancias.
+
+### El certificado: tres cosas comprobadas antes de elegirlo
+
+| Comprobación | Resultado |
+| :--- | :--- |
+| El nombre resuelve a la IP que lleva dentro | **A = la IP** ✅ |
+| Registro AAAA parásito, causa habitual de `FAILED_NOT_VISIBLE` | **no hay** ✅ |
+| CAA que limite quién emite | **no hay**, así que Google Trust Services puede ✅ |
+
+El tercero importa más de lo que parece: un CAA que solo autorizara a Let's
+Encrypt habría dejado el certificado en provisión **sin un error que lo
+explicara**.
+
+**Riesgos aceptados:** aprovisionar tarda hasta una hora y el 443 no sirve hasta
+que está `ACTIVE`; `sslip.io` es un tercero y su caída impediría la **renovación**,
+que revalida el DNS; y la IP no puede cambiar, porque el dominio la lleva dentro.
+
+### Lo que se retiró, y por qué no era opcional
+
+El criterio es que la API solo sea alcanzable por el balanceador. La VM web fija
+tenía IP pública con 80 y 443 sirviendo la misma aplicación: un segundo camino.
+
+Con ella se fueron su dirección, la regla `mooc-allow-web-ingress`, `nginx.conf`,
+`nginx.bootstrap.conf`, `certbot/`, los montajes de `/etc/letsencrypt` y el
+puerto 443 del Compose. **Ya no queda ninguna regla de cortafuegos con origen
+`0.0.0.0/0` en la VPC.**
+
+La VM del worker sigue: sin superficie pública desde B2, la sustituye C5.
+
+> Su disco era la única copia legible de `SMTP_FROM` y `SMTP_USERNAME` sin
+> conocerlos de memoria. Siguen en la metadata de la plantilla, que persiste.
+
+### La nota 35 queda resuelta
+
+`mooc_app_domain` pasa a ser el dominio del balanceador. Antes salía de la IP de
+la VM fija, y de ese valor sale `CSRF_ALLOWED_ORIGINS`: **toda petición que
+mutara estado entrando por el balanceador habría dado 403**.
+
+### Encender el entorno es ahora un acto explícito
+
+| Variable | Omisión | Qué hace |
+| :--- | :--- | :--- |
+| `lb_enabled` | `false` | crea las dos reglas de reenvío, que son la entrada pública |
+| `api_autoscaling_enabled` | `false` | crea el autoescalador, cuyo `min_replicas = 1` levanta una instancia |
+| `db_activation_policy` | **`ALWAYS`** | **no se pudo invertir**: la instancia tiene que existir antes de poder detenerse |
+
+El valor por omisión de los dos primeros se invirtió a propósito: con `true`,
+**cualquier `apply` desaparcaba el entorno**, y en este proyecto eso ya costó
+dinero — A7 gastó 15 h de entorno encendido sin medir, la mayor parte de sus
+4,88 USD.
+
+**La tercera es la que cuesta si se olvida:** un `apply` sin
+`-var db_activation_policy=NEVER` vuelve a encender la base a 0,0855 USD/h. El
+plan lo dice con `will be updated in-place`.
+
+### Por qué las reglas de reenvío se apagan pero el certificado se conserva
+
+Una regla de reenvío se factura **por hora, sirva o no tráfico**: 0,025 USD/h, y
+hay dos. Son 1,20 USD/día aparcado, veinte veces la base detenida. Pero destruir
+el balanceador entero obligaría a reaprovisionar el certificado —hasta una hora—
+en cada sesión.
+
+Así que se apagan solo las reglas y se conservan dirección, certificado, backend,
+mapas y proxies, que **no tienen coste por hora**. Aparcado: ~0,30 USD/día.
+
+| Issue | Qué tiene que saber |
+| :--- | :--- |
+| **C4** | La sonda del backend es `/api/v1/ready`, la misma del autohealing de C1. Dos sondas distintas serían dos opiniones sobre si una réplica sirve |
+| **C5** | La VM fija del worker sigue en pie; retirarla es de C5, como C3 hizo con la web |
+| **C7** | `connection_draining_timeout_sec = 60` es para **peticiones**. Un worker no recibe peticiones, así que su drenaje es otro problema |
+| **D1** | Con el frontend detrás del **mismo** balanceador no hace falta CORS ni `SESSION_COOKIE_SAMESITE=none` (A4); en otro origen, las tres cosas |
+| **G3, G5** | La URL de medición es la del balanceador, y `lb_enabled=true` es obligatorio para que exista |
+| **I3** | La URL HTTPS va enlazada desde el README, y sale de `terraform output lb_url` |
+| **I6** | Al destruir, el certificado y la dirección se van con el resto. Si se recrean, el dominio cambia porque lleva la IP dentro |

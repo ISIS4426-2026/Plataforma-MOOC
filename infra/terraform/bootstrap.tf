@@ -71,11 +71,15 @@ locals {
     mooc-worker-concurrency = "2"
   }
 
-  # El dominio por omision es el que la Entrega 2 escribia a mano en web.conf.
-  # Calcularlo de la direccion reservada quita un valor que se podia quedar
-  # desfasado al recrearla. Cuando C3 ponga el balanceador delante, el dominio
-  # sera el suyo y hay que declararlo en `var.app_domain`.
-  mooc_app_domain = var.app_domain != "" ? var.app_domain : "${google_compute_address.web_server_ip.address}.sslip.io"
+  # El dominio de la plataforma es el del **balanceador**, que es la unica
+  # entrada publica desde C3. Lo calcula `local.lb_domain` en load_balancer.tf de
+  # la direccion global reservada, via sslip.io.
+  #
+  # Hasta C3 se calculaba de la IP de la VM fija, y eso era la nota tecnica 35:
+  # `CSRF_ALLOWED_ORIGINS` sale de este valor, asi que con el dominio de la VM
+  # vieja **toda peticion que mutara estado entrando por el balanceador habria
+  # dado 403**. Resuelto aqui.
+  mooc_app_domain = local.lb_domain
 }
 
 output "mooc_bootstrap_image_tag" {

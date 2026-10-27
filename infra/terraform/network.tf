@@ -77,29 +77,15 @@ resource "google_compute_router_nat" "nat" {
 
 # 6. Reglas de Firewall
 
-# A. HTTP y HTTPS públicos hacia la VM fija heredada de la Entrega 2
+# A. La regla de entrada publica 80/443 se retiro en C3 (issue #206)
 #
-# **Esta regla no alcanza a los grupos elásticos**, y es la razón de que siga
-# existiendo sin romper los criterios de B2: su destino es la etiqueta
-# `web-server`, que solo lleva `mooc-web-server`, la VM fija de la Entrega 2. Las
-# instancias de los grupos llevan `mooc-api-node` y entran por la regla C.
+# Abria 80 y 443 desde internet hacia la etiqueta `web-server`, que solo llevaba
+# la VM fija de la Entrega 2. Esa VM se retiro con C3, porque el criterio es que
+# la API solo sea alcanzable por el balanceador.
 #
-# Se retira cuando el balanceador de C3 sea el único camino de entrada y C1
-# sustituya esa VM. Hasta entonces quitarla dejaría la arquitectura de la
-# Entrega 2 inalcanzable sin que nada la reemplace.
-resource "google_compute_firewall" "allow_web_ingress" {
-  name        = "mooc-allow-web-ingress"
-  network     = google_compute_network.vpc.name
-  description = "HTTP (80) y HTTPS (443) desde internet hacia la VM fija heredada. No alcanza a los grupos elasticos"
-
-  allow {
-    protocol = "tcp"
-    ports    = ["80", "443"]
-  }
-
-  source_ranges = ["0.0.0.0/0"]
-  target_tags   = ["web-server"]
-}
+# Los backends del grupo entran por `mooc-allow-lb-health`, acotada a los rangos
+# del balanceador y de las comprobaciones de salud. **Ya no hay ninguna regla con
+# origen 0.0.0.0/0 en esta VPC.**
 
 # B. Acceso de administración SSH mediante Google Cloud IAP (Identity-Aware Proxy)
 resource "google_compute_firewall" "allow_ssh_iap" {
