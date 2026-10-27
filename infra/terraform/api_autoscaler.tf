@@ -38,7 +38,35 @@
 # comparar y el autoescalador no escala. Esta anotado en la nota tecnica 37.
 # ==============================================================================
 
+# ------------------------------------------------------------------------------
+# Interruptor para aparcar el grupo
+# ------------------------------------------------------------------------------
+# `min_replicas = 1` manda sobre cualquier `resize`: mientras el autoescalador
+# exista, el grupo vuelve a una instancia. Eso es lo correcto en marcha y un
+# problema al aparcar el entorno, que en este proyecto se apaga cada vez que no
+# se esta midiendo.
+#
+# Paso de verdad: al detener la base con `db_activation_policy = NEVER`, el
+# autoescalador levanto una instancia que no podia arrancar --sin base no hay
+# migraciones ni `/api/v1/ready`-- y el autohealer la recreaba en bucle.
+#
+# Es el mismo patron que `db_activation_policy`, aplicado al grupo. Sin el
+# autoescalador, `target_size` gobierna, y Terraform lo ignora a proposito
+# (`ignore_changes`), asi que aparcar es:
+#
+#   terraform apply -var api_autoscaling_enabled=false
+#   gcloud compute instance-groups managed resize mooc-api-group --size=0 --zone=...
+#
+# y el resize no cuenta como deriva.
+variable "api_autoscaling_enabled" {
+  description = "false aparca el grupo: no crea el autoescalador y deja que target_size gobierne."
+  type        = bool
+  default     = true
+}
+
 resource "google_compute_autoscaler" "api" {
+  count = var.api_autoscaling_enabled ? 1 : 0
+
   name        = "mooc-api-autoscaler"
   zone        = var.zone
   target      = google_compute_instance_group_manager.api.self_link
@@ -107,6 +135,6 @@ resource "google_compute_autoscaler" "api" {
 }
 
 output "api_autoscaler_name" {
-  description = "Autoescalador de la API (C2). G5 mide su ciclo completo."
-  value       = google_compute_autoscaler.api.name
+  description = "Autoescalador de la API (C2), o la cadena vacia si el grupo esta aparcado."
+  value       = var.api_autoscaling_enabled ? google_compute_autoscaler.api[0].name : ""
 }

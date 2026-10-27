@@ -87,3 +87,29 @@ output "mooc_bootstrap_app_domain" {
   description = "Dominio efectivo que recibe la instancia web por metadata (B3)."
   value       = local.mooc_app_domain
 }
+
+# ------------------------------------------------------------------------------
+# La imagen de `var.image_tag` tiene que existir ANTES del apply
+# ------------------------------------------------------------------------------
+# Si `mooc-image-tag` nombra un commit cuya imagen no esta publicada, el arranque
+# falla al bajarla, la instancia no queda sana y el autohealer la recrea: un
+# bucle que se lee como «la imagen esta rota» cuando en realidad no existe.
+#
+# La nota tecnica 34 lo documentaba como trampa de operacion --«publicar antes de
+# aplicar no es opcional»-- y aun asi mordio: un `apply` con el `main` recien
+# mergeado creo una plantilla que apuntaba a un commit sin publicar.
+#
+# Estos dos `data` convierten ese fallo en un error del **plan**. Es la diferencia
+# entre enterarse en diez segundos y enterarse cuando el grupo lleva media hora
+# recreando instancias.
+data "google_artifact_registry_docker_image" "api" {
+  location      = google_artifact_registry_repository.images.location
+  repository_id = google_artifact_registry_repository.images.name
+  image_name    = "api:${var.image_tag}"
+}
+
+data "google_artifact_registry_docker_image" "worker" {
+  location      = google_artifact_registry_repository.images.location
+  repository_id = google_artifact_registry_repository.images.name
+  image_name    = "worker:${var.image_tag}"
+}
