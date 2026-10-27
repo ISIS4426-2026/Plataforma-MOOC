@@ -58,10 +58,23 @@
 #   gcloud compute instance-groups managed resize mooc-api-group --size=0 --zone=...
 #
 # y el resize no cuenta como deriva.
+# EL VALOR POR OMISION ES `false`, Y ES DELIBERADO.
+#
+# Con `true` por omision, **cualquier `apply` desaparca el entorno**: crea el
+# autoescalador, su `min_replicas = 1` levanta una instancia y nadie lo pidio. En
+# este proyecto eso ya costo dinero --A7 gasto 15 horas de entorno encendido sin
+# medir, que fueron la mayor parte de sus 4,88 USD-- y la politica de costes dice
+# que el entorno esta apagado cuando no se esta midiendo.
+#
+# Asi que encender es el acto explicito:
+#
+#   terraform apply -var api_autoscaling_enabled=true -var db_activation_policy=ALWAYS
+#
+# y un `apply` sin banderas deja el entorno como estaba: aparcado.
 variable "api_autoscaling_enabled" {
-  description = "false aparca el grupo: no crea el autoescalador y deja que target_size gobierne."
+  description = "true crea el autoescalador y enciende el grupo. Por omision false: el entorno se queda aparcado."
   type        = bool
-  default     = true
+  default     = false
 }
 
 resource "google_compute_autoscaler" "api" {
