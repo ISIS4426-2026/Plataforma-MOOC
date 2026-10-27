@@ -1431,7 +1431,25 @@ que estaba mal, siempre por la misma razón.
 | Prueba de autohealing (C1) | esperaba un **nombre** de instancia distinto | un MIG reutiliza el nombre: sondeó 38 min sobre algo ya sano |
 
 **La regla.** Un comprobador tiene que **afirmar** y **salir con código distinto
-de cero** cuando la afirmación falla. Si imprime y sigue, no es un comprobador: es
+de cero** cuando la afirmación falla.
+
+**Y hay un quinto caso que conviene distinguir de los cuatro de arriba.** Al
+convertir la comprobación de la cola en asercion, el parseo quedó mal:
+`redis-cli --no-raw CONFIG GET` numera la salida, así que `sed -n 2p` devolvía
+`2) "yes"` y la asercion fallaba **sobre una cola correctamente configurada**.
+
+Eso es un **falso negativo**, y no es lo mismo que los otros cuatro:
+
+| | Falso positivo | Falso negativo |
+| :--- | :--- | :--- |
+| Qué dice | «esta bien» cuando no lo esta | «esta mal» cuando esta bien |
+| Cuando se descubre | cuando ya fallo algo en produccion | de inmediato, el propio arranque se para |
+| Coste | el que tenga el fallo que tapo | unos minutos de diagnostico |
+
+Los dos son errores y los dos hay que arreglarlos, pero **si un comprobador va a
+equivocarse, que sea por este lado**. Es la misma asimetria que
+`initial_delay_sec`: errar por arriba retrasa una sustitucion, errar por abajo
+mata instancias sanas en bucle. Si imprime y sigue, no es un comprobador: es
 un registro, y nadie lo lee hasta que ya es tarde.
 
 Dos corolarios que los cuatro casos ilustran:
