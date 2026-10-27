@@ -99,17 +99,13 @@ resource "google_compute_instance" "web_server" {
 # - Tipo de máquina: e2-highcpu-2 (2 vCPU dedicadas, 2 GiB de RAM)
 # - Zona: us-east1-b (misma zona de Cloud SQL y Web Server para latencia mínima)
 # - Disco de arranque: 30 GiB balanced (pd-balanced) con Debian 12
-# - IP pública estática IPv4 (cerrada por firewall perimetral para aislar la cola)
+# - **Sin IP pública** (B2, #201): la tenía estática y cerrada por cortafuegos,
+#   es decir, superficie sin función. Esta máquina no recibe tráfico de nadie
+#   --saca trabajos de la cola-- y su salida va por el Cloud NAT, que ya existía.
+#   La administración entra por IAP, que no necesita IP externa.
 # - Reglas de firewall: etiquetas 'worker-server' y 'allow-iap-ssh' (sin 'web-server')
 # - Cuenta de servicio adjunta: sa-worker-server (lectura de originales, escritura hls/*)
 # ==============================================================================
-
-resource "google_compute_address" "worker_server_ip" {
-  name        = "mooc-worker-server-ip"
-  region      = var.region
-  description = "Direccion IPv4 estatica externa para el Worker Server (E1)"
-  labels      = var.labels
-}
 
 resource "google_compute_instance" "worker_server" {
   name         = "mooc-worker-server"
@@ -130,11 +126,12 @@ resource "google_compute_instance" "worker_server" {
     }
   }
 
+  # Sin `access_config`: ninguna IP externa. El criterio de B2 «la base de datos,
+  # la cola y los workers no tienen superficie publica» se cumple por estructura
+  # y no por cortafuegos: sin direccion externa no hay a que llamar desde
+  # internet.
   network_interface {
     subnetwork = google_compute_subnetwork.subnet.id
-    access_config {
-      nat_ip = google_compute_address.worker_server_ip.address
-    }
   }
 
   service_account {

@@ -1073,3 +1073,75 @@ Hay que decidirlo en **B2** o **I6**, y las salidas son dos: seguir en `entrega2
 nombre del prefijo como algo cosmético-- o **migrar el estado** copiando el
 objeto de `entrega2/` a `entrega3/` en el bucket antes de cambiar el prefijo. Lo
 que no vale es cambiar el prefijo y aplicar.
+
+<a id="31"></a>
+## 31. La regla que abría todos los puertos ya no existe, y eso cambia cuatro issues
+
+Hasta B2 (#201), `mooc-allow-internal` permitía **todos** los puertos TCP y UDP
+entre cualquier par de instancias de la subred. Con dos VMs fijas era una
+comodidad; con grupos administrados que levantan y retiran instancias es una
+superficie que crece sola. Y hacía **decorativa** cualquier regla más
+específica: la que B1 escribió para el 6379 de la cola no restringía nada
+mientras aquella existiera.
+
+En su lugar hay tres reglas con propósito, dos etiquetas de grupo y una
+ausencia deliberada.
+
+| Regla | Origen | Destino | Puerto |
+| :--- | :--- | :--- | :--- |
+| `mooc-allow-lb-health` | `130.211.0.0/22`, `35.191.0.0/16` | etiqueta `mooc-api-node` | 80/tcp |
+| `mooc-allow-queue` | cuentas de la API y de los workers | cuenta de la cola | 6379/tcp |
+| `mooc-allow-internal-icmp` | rango de la subred | la subred | ICMP |
+
+**No hay ninguna regla con destino `mooc-worker-node`**, y es a propósito: nadie
+le habla a un worker. Si alguien añade una, que explique qué flujo la necesita.
+
+### Lo que esto obliga a los demás
+
+| Issue | Qué tiene que hacer o saber |
+| :--- | :--- |
+| **C1** | La plantilla de la API lleva la etiqueta **`mooc-api-node`** y **no declara `access_config`**. Sin la etiqueta, las comprobaciones de salud no llegan y el grupo entero sale como no sano; con `access_config`, se rompe el criterio del barrido desde internet |
+| **C3** | `mooc-allow-lb-health` presupone un balanceador de aplicación **global**, que entrega desde esos dos rangos. Un balanceador **regional** se basa en Envoy y entrega desde una subred de solo proxy (`REGIONAL_MANAGED_PROXY`) que habría que crear: entonces el origen cambia y hay que volver a `network.tf`. El puerto del backend es el **80**, porque el balanceador termina TLS |
+| **C5** | La plantilla de los workers lleva **`mooc-worker-node`**, sin `access_config`, y su **cuenta de servicio tiene que ser `sa-worker-server`**: la regla de la cola va por identidad, así que una cuenta distinta deja al worker sin poder encolar ni leer |
+| **C6** | `sa-queue-server` ya tiene `monitoring.metricWriter` para alojar el exportador de la señal. **Si el exportador va a otro sitio, hay que retirar ese permiso**: hoy es el único permiso sin uso de las tres cuentas, y está declarado como tal |
+| **F1** | Su verificación ya tiene sentido. Antes de B2, comprobar que el 6379 solo se alcanza desde quien debe habría dado un falso positivo por `allow_internal` |
+
+### Por qué la regla de la cola va por cuenta y no por etiqueta
+
+Una etiqueta de red la puede poner cualquiera que sepa crear una instancia, y
+entonces la regla protege un nombre y no un componente. La cuenta de servicio la
+fija la plantilla del grupo y cambiarla es una operación de IAM.
+
+Trampa de la API de Compute: **`source_service_accounts` no se puede combinar con
+etiquetas en ninguno de los dos lados**, así que el destino también va por
+cuenta. Si alguien intenta añadir `target_tags` a esa regla, el proveedor la
+rechaza.
+
+### El barrido desde internet se cumple por estructura, no por cortafuegos
+
+Las instancias de los grupos **no llevan IP externa**, así que no hay dirección
+a la que llamar. El cortafuegos gobierna lo que llega por dentro de la VPC y lo
+que entrega Google --balanceador, salud, IAP--, que no son el camino público
+hacia la instancia. Es mejor garantía que una regla, porque una regla alguien la
+puede ampliar.
+
+En la misma línea, B2 retiró la **IP externa de `mooc-worker-server`**, que
+estaba descrita como «cerrada por firewall perimetral»: superficie sin función.
+Con ella se retiró la reserva `google_compute_address.worker_server_ip`, porque
+una IP estática reservada y sin adjuntar **se factura**, y la salida
+`worker_server_public_ip`. La administración entra por IAP y la salida va por el
+Cloud NAT, así que no se perdió ningún camino.
+
+La única dirección pública que queda es la de `mooc-web-server`, con su regla
+80/443 acotada a la etiqueta `web-server`, que solo lleva ella. **No alcanza a
+los grupos.** Se retira cuando el balanceador de C3 sea el único camino de
+entrada y C1 sustituya esa VM; quitarla antes dejaría la arquitectura de la
+Entrega 2 inalcanzable sin nada que la reemplace.
+
+### Lo que ya estaba y no hizo falta tocar
+
+`private_ip_google_access` en la subred y el Cloud NAT existían desde la Entrega
+2. Importan juntos: con acceso privado a Google **y** NAT, una instancia sin IP
+externa puede bajar su imagen del registro, leer su secreto y enviar registros y
+métricas. Es lo que hace viable que ninguna instancia de los grupos tenga
+dirección pública.

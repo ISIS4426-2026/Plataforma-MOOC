@@ -171,10 +171,10 @@ output "worker_server_name" {
   value       = google_compute_instance.worker_server.name
 }
 
-output "worker_server_public_ip" {
-  description = "Dirección IPv4 pública estática del Worker Server (E1)."
-  value       = google_compute_address.worker_server_ip.address
-}
+# La IP publica del worker se retiro en B2 (#201): la maquina no recibe trafico
+# de nadie, su salida va por el Cloud NAT y la administracion entra por IAP, asi
+# que una direccion externa era superficie sin funcion. No hay salida que
+# sustituya a esta: su IP privada se obtiene de `worker_server_private_ip`.
 
 output "worker_server_private_ip" {
   description = "Dirección IPv4 privada en mooc-subnet del Worker Server (E1)."
