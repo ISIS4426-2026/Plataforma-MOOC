@@ -1694,3 +1694,60 @@ hay nada que recuperar.
   diff de la metadata. Son del nivel 2 de B4 —no secretos, pero no publicables—
   así que **la salida de un `plan` que toque esas claves no se pega en una
   evidencia ni en un informe sin redactar**.
+
+<a id="40"></a>
+## 40. Una sola comprobación de salud para el balanceador y el autohealing tiene precio
+
+C4 (#207) lo midió. `google_compute_health_check.api` alimenta a **dos**
+consumidores: el backend service del balanceador (C3) y el autohealing del grupo
+(C1). Es más simple y garantiza que lo que decide el tráfico y lo que decide la
+reparación sean lo mismo. Pero:
+
+> **Un parpadeo de 30 segundos de la aplicación no solo saca la réplica de la
+> rotación: dispara una reparación de la máquina.**
+
+Medido degradando una réplica a propósito —parando su contenedor `api`, de modo
+que nginx devuelva 502 a `/api/v1/ready`:
+
+| T+ | Salud | Acción del grupo | Tráfico |
+| ---: | :--- | :--- | :--- |
+| 45 s | `HEALTHY` | `NONE` | 25 de 40 peticiones |
+| **98 s** | `TIMEOUT` | **`RECREATING`** | **0** |
+| 292 s | `TIMEOUT` | `VERIFYING` | 0 |
+| **387 s** | `HEALTHY` | `NONE` | vuelve al reparto |
+
+- **Exclusión del balanceador: 43 s.** Cuadra con los parámetros —tres sondeos
+  fallidos a diez segundos— más la propagación.
+- **Reincorporación: 278 s**, cuando con `healthy_threshold = 2` deberían ser
+  ~20 s.
+
+La diferencia no es del balanceador: al restaurar el contenedor, el grupo **ya
+había empezado su reparación**, y una instancia con una acción en curso no vuelve
+a la rotación aunque su salud se recupere. Hay que esperar a que la acción se
+despeje.
+
+**La instancia no llegó a sustituirse**: conservó su id. La reparación se inició y
+se resolvió sin crear una máquina nueva.
+
+### Los dos mecanismos, que no son el mismo
+
+| | Exclusión por el balanceador | Reparación por el grupo |
+| :--- | :--- | :--- |
+| Qué hace | deja de enviarle peticiones nuevas | repara o reemplaza la instancia |
+| Escala | **decenas de segundos** | **minutos** (160–273 s en C1) |
+| Reversible | sí, en ~20 s | no: una vez recreada, es otra máquina |
+
+| Issue | Qué tiene que saber |
+| :--- | :--- |
+| **C6, C7** | Tienen la misma decisión del lado de los workers. Si se quiere que el autohealing **no** reaccione a fallos de aplicación transitorios, hacen falta **dos** comprobaciones: una ágil para el reparto y otra tolerante —intervalo mayor, umbral más alto— para la reparación |
+| **G5** | Una réplica con `currentAction` distinto de `NONE` **no recibe tráfico aunque esté sana**. Medir reparto sin mirar esa columna da números que no se explican |
+| **G7** | Los dos tiempos se publican por separado: 43 s de exclusión y 160–273 s de reparación. Promediarlos no significa nada |
+
+### Y un detalle del reparto que conviene no malinterpretar
+
+Con `balancing_mode = "RATE"`, el balanceador reparte **hasta la capacidad
+declarada por instancia**, no a turnos. En reposo el reparto no es mitad y mitad
+—se midió 25/15 de 40— y eso no es un defecto: las dos réplicas están muy por
+debajo de `max_rate_per_instance = 100`, así que lo que decide es la proximidad
+del proxy de Google que atiende cada conexión. Un reparto uniforme solo aparece
+sosteniendo carga por encima de la capacidad de una réplica, que es G5.
