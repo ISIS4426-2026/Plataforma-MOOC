@@ -1102,6 +1102,14 @@ ausencia deliberada.
 **No hay ninguna regla con destino `mooc-worker-node`**, y es a propósito: nadie
 le habla a un worker. Si alguien añade una, que explique qué flujo la necesita.
 
+> **Corregido en C5 (#208).** Sí hay una, y el flujo que la necesita es el
+> autohealing: `mooc-allow-worker-health` deja entrar al **9090** desde
+> `130.211.0.0/22` y `35.191.0.0/16` para que la comprobación de salud alcance
+> la sonda `/readyz` del worker. Sigue sin entrar nadie más: ni el balanceador
+> ni el resto de la subred. Y lo que B2 decía de las **métricas** sigue siendo
+> cierto --el agente las raspa en `localhost`--; lo que se abre es la sonda, que
+> comparte puerto porque el worker no tiene otro servidor HTTP.
+
 ### Lo que esto obliga a los demás
 
 | Issue | Qué tiene que hacer o saber |
@@ -1412,9 +1420,24 @@ un commit viejo con una imagen nueva, o al revés.
 Para decidirlo sin suponer, basta comparar contra lo que corre:
 
 ```bash
-git diff --name-only <sha-desplegado>..HEAD | grep -E \
-  '^(cmd/|internal/|Dockerfile|go[.](mod|sum)|docker-compose[.](prod|worker)[.]yml|nginx[.]mig[.]conf|scripts/prepare_|infra/bootstrap/)'
+{ git diff --name-only <sha-desplegado>; git ls-files --others --exclude-standard; } |
+  grep -E '^(cmd/|internal/|Dockerfile|go[.](mod|sum)|docker-compose[.](prod|worker)[.]yml|nginx[.]mig[.]conf|scripts/prepare_|infra/bootstrap/)'
 ```
+
+**Las dos mitades de esa orden existen por un motivo**, y la primera version de
+esta receta no las tenía:
+
+- `git diff --name-only <sha>` **sin `..HEAD`**. Con el sufijo compara commit
+  contra commit y **no ve el trabajo sin commitear**, así que responde «no hace
+  falta publicar» con el cambio delante. Sin él compara contra el árbol de
+  trabajo, que es lo que se va a construir.
+- `git ls-files --others --exclude-standard`, porque **`git diff` no muestra
+  ficheros nuevos sin seguir**. Un fichero recien creado en `internal/` cambia la
+  imagen y la receta anterior lo ignoraba.
+
+Las dos fallaron de verdad al preparar C5: el cambio en `cmd/worker/main.go`
+quedó invisible por lo primero y `internal/worker/readiness.go` por lo segundo,
+y la comprobación dio «0 coincidencias» con dos ficheros desplegables tocados.
 
 Sin coincidencias, el `apply` puede reutilizar el `image_tag` que ya está
 desplegado. Es lo que se hizo para C4: entre el commit desplegado y `main` solo
@@ -1751,3 +1774,55 @@ declarada por instancia**, no a turnos. En reposo el reparto no es mitad y mitad
 debajo de `max_rate_per_instance = 100`, así que lo que decide es la proximidad
 del proxy de Google que atiende cada conexión. Un reparto uniforme solo aparece
 sosteniendo carga por encima de la capacidad de una réplica, que es G5.
+
+<a id="41"></a>
+## 41. Un worker no se comprueba como una réplica de la API
+
+C5 (#208) tuvo que añadir una sonda al worker, porque el criterio del issue es
+«proceso vivo **y conectado a la cola compartida**» y un worker no atiende
+peticiones.
+
+| Sonda | Por qué no basta |
+| :--- | :--- |
+| TCP al 9090 | el puerto acepta conexiones con el proceso vivo y la cola caída |
+| HTTP a `/metrics` | responde 200 sin saber nada de la cola |
+
+Las dos dan por **sana una instancia que vive y no consume**: ocupa una máquina
+sin hacer trabajo, que es justo lo que el grupo debería reparar.
+
+`internal/worker/readiness.go` añade las dos sondas que la API tenía desde A2:
+`/healthz` dice que el proceso vive, y **`/readyz` hace PING sobre la misma
+conexión con la que consume**. Comprobar una conexión distinta de la que trabaja
+puede dar sano con el consumo roto.
+
+**El autohealing mira `/readyz`.**
+
+### La contrapartida, que hay que saber antes de que pase
+
+Si la cola cae, **todas las instancias del grupo se declaran no sanas a la vez** y
+el grupo intentará recrearlas. No arregla nada --el problema está fuera-- pero
+tampoco empeora el servicio, porque sin cola no hay trabajo.
+
+Es una consecuencia más del punto único de fallo de la nota 30. Quien quiera
+evitarlo tiene que hacer la cola redundante, **no** cambiar la sonda: una sonda
+que ignore la cola devuelve el problema del principio.
+
+### Lo que esto obliga a los demás
+
+| Issue | Qué tiene que saber |
+| :--- | :--- |
+| **C6** | La señal de escalado es la cola, pero la de **salud** es `/readyz`. Son dos cosas distintas sobre el mismo Redis, y confundirlas haría que una cola vacía pareciera un worker enfermo |
+| **C7** | `max_unavailable_fixed = 0` levanta la nueva antes de retirar la vieja, pero **no espera a que termine su tarea** --A7 midió 1 711 s en el perfil largo--. El drenaje ordenado es de C7; hasta entonces una rotación tira como mucho una tarea en vuelo por instancia |
+| **G4, G6** | La VM fija del worker se retiró: un consumidor fuera del grupo también saca tareas, y entonces no se puede atribuir el trabajo al grupo |
+| **C6** | `initial_delay_sec = 420`, mayor que los 300 de la API porque la imagen del worker lleva FFmpeg. **Hay que calibrarlo** con `/var/lib/mooc/arranque.json` del rol worker |
+
+### Y cómo se prueba un worker sin inventarse el trabajo
+
+No vale encolar una tarea a mano con `redis-cli`: asynq las codifica, y una hecha
+a mano fallaría al decodificar --probaría el decodificador, no el consumo--.
+
+El camino corto ya existe: `scripts/a7_verificar_e2e.sh` hace el flujo normal de
+subida --login, URL prefirmada, PUT, `complete`-- y espera a `completed`. Sube un
+PDF y una imagen, que **también pasan por el worker** como trabajos de cola
+(nota 16) y son mucho más baratos que un vídeo. Necesita cuentas, así que antes
+hay que sembrar la base.

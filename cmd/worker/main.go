@@ -162,6 +162,17 @@ func main() {
 	// scale and fail independently of it.
 	metricsMux := http.NewServeMux()
 	metricsMux.Handle("GET /metrics", obs.MetricsHandler)
+
+	// Las dos sondas del worker, en el mismo servidor que las metricas porque
+	// no hay otro. `/readyz` es la que mira el autohealing de C5: comprueba que
+	// este worker alcanza la cola compartida, que es lo que distingue un proceso
+	// que trabaja de uno que solo respira. Ver internal/worker/readiness.go.
+	metricsMux.Handle("GET /healthz", worker.NewLivenessHandler())
+	if redisOpt, err := worker.ParseRedisOpt(cfg.RedisURL); err == nil {
+		metricsMux.Handle("GET /readyz", worker.NewReadinessHandler(redisOpt))
+	} else {
+		log.Printf("readiness deshabilitada: %v\n", err)
+	}
 	metricsServer := &http.Server{Addr: ":" + cfg.MetricsPort, Handler: metricsMux}
 	go func() {
 		if err := metricsServer.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
