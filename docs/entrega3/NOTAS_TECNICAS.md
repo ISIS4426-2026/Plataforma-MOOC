@@ -1387,7 +1387,38 @@ se tome, un grupo regional es teatro caro. La conversión sería cambiar a
 
 Si `mooc-image-tag` nombra un commit cuya imagen **no está publicada** en
 Artifact Registry, el arranque falla al bajarla y el autohealer entra en bucle.
-`publish_images.sh` antes de `apply` no es opcional.
+Desde C3 eso es un error del **plan** y no del arranque: dos `data` de Artifact
+Registry en `bootstrap.tf` lo comprueban antes de aplicar.
+
+### Cuándo hay que publicar, con precisión
+
+«Publicar antes de aplicar no es opcional» se generalizó de más en la primera
+versión de esta nota. **`image_tag` es una variable que se elige: no tiene que
+ser el `main` del momento**, y el plan solo exige que la imagen de *ese* tag
+exista. Son dos cosas distintas.
+
+| Qué cambió | ¿Hay que publicar? |
+| :--- | :--- |
+| `cmd/`, `internal/`, `Dockerfile*`, `go.mod` | **Sí**: cambia la imagen |
+| `docker-compose.*.yml`, `nginx.mig.conf`, `scripts/prepare_*_env.sh`, `infra/bootstrap/` | **Sí**, aunque la imagen salga idéntica |
+| Documentación, evidencias, capturas, guiones de prueba | **No** |
+
+Lo que hace que la segunda fila también exija publicar no es obvio: **el arranque
+clona el repositorio en el commit que nombra `IMAGE_TAG`** (B3), así que ese tag
+selecciona dos cosas a la vez —la imagen del contenedor **y** el árbol de ficheros
+de despliegue—. Cambiar solo un compose sin publicar deja a la instancia clonando
+un commit viejo con una imagen nueva, o al revés.
+
+Para decidirlo sin suponer, basta comparar contra lo que corre:
+
+```bash
+git diff --name-only <sha-desplegado>..HEAD | grep -E \
+  '^(cmd/|internal/|Dockerfile|go[.](mod|sum)|docker-compose[.](prod|worker)[.]yml|nginx[.]mig[.]conf|scripts/prepare_|infra/bootstrap/)'
+```
+
+Sin coincidencias, el `apply` puede reutilizar el `image_tag` que ya está
+desplegado. Es lo que se hizo para C4: entre el commit desplegado y `main` solo
+había evidencias y notas.
 
 <a id="35"></a>
 ## 35. Las instancias del grupo heredan el dominio de la VM fija, y eso rompe CSRF

@@ -77,6 +77,17 @@ variable "api_autoscaling_enabled" {
   default     = false
 }
 
+variable "api_min_replicas" {
+  description = "Minimo de replicas del grupo. 1 en operacion normal; 2 para la demostracion de reparto de C4."
+  type        = number
+  default     = 1
+
+  validation {
+    condition     = var.api_min_replicas >= 1 && var.api_min_replicas <= 3
+    error_message = "El enunciado fija el grupo entre 1 y 3 instancias."
+  }
+}
+
 resource "google_compute_autoscaler" "api" {
   count = var.api_autoscaling_enabled ? 1 : 0
 
@@ -88,7 +99,21 @@ resource "google_compute_autoscaler" "api" {
   autoscaling_policy {
     # Los limites del enunciado. El minimo es 1 y no 0: con 0 no hay nadie que
     # responda la primera peticion, y el arranque son minutos.
-    min_replicas = 1
+    #
+    # `var.api_min_replicas` existe para **C4**, que tiene que demostrar el
+    # reparto de peticiones entre al menos dos replicas sanas. El autoescalador
+    # manda sobre cualquier `resize`, asi que con el encendido no hay forma de
+    # tener dos instancias sin subir este minimo o sin generar carga real.
+    #
+    # Subirlo es **configuracion declarada**, no una ampliacion manual desde la
+    # consola: lo que C1 descarta como evidencia es decidir el tamano a mano para
+    # justificar su propio criterio de tamano. Aqui el tamano no es la
+    # afirmacion, es la condicion previa; la afirmacion es como se reparte el
+    # trafico y como se excluye una replica enferma.
+    #
+    # El ciclo de escalado por carga --que el grupo llegue a dos **solo**-- es de
+    # C2 y lo mide G5.
+    min_replicas = var.api_min_replicas
     max_replicas = 3
 
     # `cooldown_period` es el nombre real del proveedor para el **periodo de
