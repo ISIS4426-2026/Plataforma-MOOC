@@ -5,8 +5,8 @@
 | Una instancia creada por el grupo atiende peticiones o consume trabajos sin acceso manual | ✅ **rol web medido**; el rol worker espera C5 |
 | Dos reinicios seguidos no duplican procesos, derivados ni recursos | ✅ §3 — por construcción; comprobación en §6 |
 | Todas las instancias de un grupo y una corrida ejecutan la misma versión de código y configuración | ✅ §2 — estructural |
-| Tiempo de arranque registrado para los dos grupos | ✅ **web: 62 s**; worker espera C5 |
-| **Bloquea el cierre:** captura de la consola del grupo creando una instancia y del log hasta lista | ⚠️ §0 — log sí, **captura de consola no** |
+| Tiempo de arranque registrado para los dos grupos | ✅ **web: 62–66 s en tres arranques**; worker espera C5 |
+| **Bloquea el cierre:** captura de la consola del grupo creando una instancia y del log hasta lista | ✅ §0 — log capturado; la consola, en [C1](../C1/capturas/) |
 | Anotado en `NOTAS_TECNICAS.md` | ✅ nota 32 |
 
 **Estado: mecanismo escrito y validado; sin desplegar.** `terraform validate`
@@ -58,14 +58,32 @@ Es el mismo error que las unidades de B3 evitan **a propósito** usando `restart
 con comentario incluido, y que el guión de la cola no aplicó. Corregido en
 `queue_startup.sh`, con la comprobación convertida en aserción: ver B1 §0.
 
+### Las capturas, y por qué la de la consola está en C1
+
+| Captura | Dónde |
+| :--- | :--- |
+| El log de arranque hasta `LISTO`, con marca de tiempo en cada línea | `B3/capturas/` |
+| La consola del grupo creando la instancia | [`C1/capturas/2026-10-27_grupo-recreando.png`](../C1/capturas/) |
+
+La segunda no se duplica a propósito: es **el mismo evento** visto desde el otro
+lado. El borrado a mano de C1 provoca que el grupo cree una instancia, y esa
+instancia es la que arranca sola en el log de aquí.
+
+### Tres arranques medidos, y el arranque propio es estable
+
+| Arranque | Segundos hasta `/api/v1/ready` |
+| :--- | ---: |
+| Primero, tras el `apply` inicial | 62 s |
+| Segundo, rotación de plantilla | 66 s |
+| Tercero, recreación por borrado a mano | **65 s** |
+
+**62–66 s**, incluyendo instalar dependencias, clonar, leer dos secretos,
+aplicar migraciones y levantar los contenedores. Lo que varía entre corridas no
+es esto, sino el tramo del proveedor antes de que el guión empiece (ver C1).
+
 ### Lo que falta
 
-El criterio pide la captura de **la consola del grupo** creando la instancia. El
-log serie existe y es más preciso, pero la captura de pantalla no se tomó. Se
-rehace en tres minutos con el entorno encendido; lo razonable es hacerlo en la
-sesión de C2 o C3.
-
-Y el **rol worker** sigue sin medir: necesita C5.
+El **rol worker** sigue sin medir: necesita C5.
 
 ## 1. Qué sustituye
 

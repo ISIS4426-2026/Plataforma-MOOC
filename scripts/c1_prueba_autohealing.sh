@@ -41,10 +41,17 @@ emitir() {
 T0=$(date +%s)
 marca() { emitir "$(printf '[%s] T+%-6s %s' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$(($(date +%s) - T0))s" "$*")"; }
 
+# `value(name)`, NO `value(instance)`.
+#
+# `instance` suena a lo que uno quiere y devuelve **la zona**: `us-east1-b`. La
+# primera version de este guion lo uso, intento borrar una instancia llamada
+# `us-east1-b` --que no existe--, el borrado fallo, y como el guion no miraba el
+# codigo de salida declaro «el grupo se recupero sin intervencion» sin haber
+# tocado nada. Un falso positivo, que es el lado peligroso del error (nota 36).
 instancia_del_grupo() {
     gcloud compute instance-groups managed list-instances "${GRUPO}" \
         --zone="${ZONA}" --project="${PROYECTO}" \
-        --format="value(instance)" 2>/dev/null | tr -d '\r' | head -1 | sed 's#.*/##'
+        --format="value(name)" 2>/dev/null | tr -d '\r' | head -1
 }
 
 # El id y la hora de creacion, que es lo que de verdad distingue una instancia.
@@ -68,7 +75,17 @@ emitir ""
 VIEJA="$(instancia_del_grupo)"
 [ -n "${VIEJA}" ] || { emitir "ERROR: el grupo no tiene ninguna instancia. Hace falta lb_enabled/api_autoscaling_enabled."; exit 1; }
 
+# El nombre tiene que parecer uno de instancia del grupo. Sin esta comprobacion,
+# un campo mal leido pasa como nombre y lo siguiente que falla es el borrado.
+case "${VIEJA}" in
+    mooc-api-*) ;;
+    *) emitir "ERROR: '${VIEJA}' no parece una instancia de ${GRUPO}. Revisa el formato de gcloud."; exit 1 ;;
+esac
+
 ID_VIEJO="$(identidad "${VIEJA}" | awk '{print $1}')"
+# Sin id no se puede distinguir la instancia nueva de la vieja, y seguir seria
+# garantizar un veredicto sin fundamento.
+[ -n "${ID_VIEJO}" ] || { emitir "ERROR: no se pudo leer el id de ${VIEJA}."; exit 1; }
 marca "instancia actual: ${VIEJA}  id=${ID_VIEJO}"
 marca ">>> TOMA LA CAPTURA DE 'ANTES' AHORA, con el grupo en NONE / HEALTHY <<<"
 emitir ""
@@ -76,7 +93,14 @@ emitir "$(estado_del_grupo | sed 's/^/    /')"
 emitir ""
 
 marca "borrando a mano ${VIEJA}"
-gcloud compute instances delete "${VIEJA}" --zone="${ZONA}" --project="${PROYECTO}" --quiet >/dev/null 2>&1
+# El codigo de salida se mira. Ignorarlo es lo que convirtio un borrado fallido
+# en un «el grupo se recupero».
+if ! salida_borrado="$(gcloud compute instances delete "${VIEJA}" \
+    --zone="${ZONA}" --project="${PROYECTO}" --quiet 2>&1)"; then
+    emitir "ERROR: el borrado de ${VIEJA} fallo:"
+    emitir "$(printf '%s' "${salida_borrado}" | tr -d '\r' | tail -n 5 | sed 's/^/    /')"
+    exit 1
+fi
 marca "orden de borrado aceptada"
 marca ">>> LA CONSOLA YA MUESTRA LA RECREACION. CAPTURA AHORA Y EN LOS PROXIMOS 2 MIN <<<"
 emitir ""
@@ -93,7 +117,9 @@ for _ in $(seq 1 "${PLAZO_SONDEOS}"); do
         id_actual="$(printf '%s' "${ident}" | awk '{print $1}')"
         [ -n "${id_actual}" ] || continue
 
-        if [ "${id_actual}" != "${ID_VIEJO}" ] && [ -z "${VISTA_NUEVA}" ]; then
+        # `ID_VIEJO` no puede estar vacio aqui --se comprobo arriba-- asi que
+        # esta comparacion significa algo.
+        if [ -n "${id_actual}" ] && [ "${id_actual}" != "${ID_VIEJO}" ] && [ -z "${VISTA_NUEVA}" ]; then
             VISTA_NUEVA="${id_actual}"
             marca ">>> el grupo creo una instancia NUEVA: id=${id_actual} creada=$(printf '%s' "${ident}" | awk '{print $2}') <<<"
         fi

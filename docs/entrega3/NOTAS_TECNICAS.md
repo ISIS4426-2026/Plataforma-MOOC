@@ -1605,3 +1605,61 @@ mapas y proxies, que **no tienen coste por hora**. Aparcado: ~0,30 USD/día.
 | **G3, G5** | La URL de medición es la del balanceador, y `lb_enabled=true` es obligatorio para que exista |
 | **I3** | La URL HTTPS va enlazada desde el README, y sale de `terraform output lb_url` |
 | **I6** | Al destruir, el certificado y la dirección se van con el resto. Si se recrean, el dominio cambia porque lleva la IP dentro |
+
+<a id="39"></a>
+## 39. La metadata es una copia derivada, y recuperar valores de ella los corrompe
+
+Durante el despliegue de C3, la instancia del grupo no arrancaba:
+
+```
+/etc/mooc/web.conf: line 9: unexpected EOF while looking for matching `"'
+```
+
+La línea 9 es `SMTP_USERNAME`, y su valor tenía esta forma, con el valor real
+sustituido aquí por `VALOR`:
+
+```
+SMTP_USERNAME=['["[\'VALOR\']"]']
+```
+
+**Triple envoltura.** La causa, en dos pasos:
+
+1. `gcloud ... --format="value[](...extract(value))"` **no devuelve el valor:
+   devuelve una lista literal**, `['valor']`. El `[]` del `value[]` lo provoca.
+2. Esa salida se usó como **fuente de recuperación** para el siguiente `apply`,
+   dos veces. Cada vuelta añadió una capa, y la comilla sin cerrar de la tercera
+   rompió el `source` del fichero de configuración.
+
+El síntoma estuvo a la vista antes de romper nada: una consulta de
+`mooc-app-domain` devolvió `['136.68.55.254.sslip.io']`, con corchetes, y no se
+leyó.
+
+### El error de fondo no es la fórmula
+
+Es **tratar la metadata de una instancia como fuente de verdad cuando es una
+copia derivada**. El valor viaja `tfvars → Terraform → metadata → /etc/mooc`, y
+leer del final de esa cadena para alimentar el principio es un bucle que acumula
+transformaciones.
+
+**Arreglado donde corresponde:** `smtp_from` y `smtp_username` viven en
+`infra/terraform/terraform.tfvars`, que está en `.gitignore` desde la Entrega 2 y
+es exactamente para lo que `terraform.tfvars.example` dice que sirve. Terraform lo
+lee solo, así que el `apply` ya no necesita variables de entorno para ellos y no
+hay nada que recuperar.
+
+| Issue | Qué tiene que saber |
+| :--- | :--- |
+| **C5, C6, C7** | Los valores del nivel 2 de B4 salen de `terraform.tfvars`, **no** de la metadata de una instancia |
+| **I5, I6** | Antes de destruir, comprobar que `terraform.tfvars` existe en la máquina de quien vaya a recrear: es la única copia fuera del estado |
+| **cualquiera** | Si hace falta leer metadata, `--format="json(metadata.items)"` y parsear. `value[]` con `extract()` miente |
+
+### Dos comprobaciones que llegaron tarde
+
+- `prepare_web_env.sh` valida que `SMTP_FROM` y `SMTP_USERNAME` no lleven saltos
+  de línea ni comillas, **pero esa validación corre después del `source`**, y el
+  `source` es lo que fallaba. Una comprobación que se ejecuta después del fallo
+  que debía detectar no sirve: es la nota 36 con otro disfraz.
+- Al diagnosticarlo, un `terraform plan` imprimió los dos valores en claro en el
+  diff de la metadata. Son del nivel 2 de B4 —no secretos, pero no publicables—
+  así que **la salida de un `plan` que toque esas claves no se pega en una
+  evidencia ni en un informe sin redactar**.

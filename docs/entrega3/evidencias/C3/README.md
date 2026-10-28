@@ -3,16 +3,45 @@
 | Criterio de aceptación | |
 | :--- | :---: |
 | La API solo es alcanzable públicamente a través del balanceador y por HTTPS | ✅ §4 — la VM fija se retira; **ya no hay ninguna regla con origen `0.0.0.0/0`** |
-| Certificado válido, sin advertencias del navegador | ⏳ §6 — requiere `apply` y hasta 1 h de aprovisionamiento |
-| La URL HTTPS del balanceador queda registrada y enlazada desde el README | ⏳ §6 — la URL se conoce al reservar la IP |
+| Certificado válido, sin advertencias del navegador | ✅ `ACTIVE` hasta **2027-01-25** §0 |
+| La URL HTTPS del balanceador queda registrada y enlazada desde el README | ✅ <https://136.68.55.254.sslip.io> §0 |
 | El manejo de las peticiones en curso al retirar una instancia está documentado | ✅ §3 |
-| **Bloquea el cierre:** el navegador en la URL del balanceador, certificado válido sin advertencias | ⏳ §6 |
+| **Bloquea el cierre:** el navegador en la URL del balanceador, certificado válido sin advertencias | ✅ siete capturas §0 |
 | Anotado en `NOTAS_TECNICAS.md` | ✅ nota 38 |
 
 **Estado: escrito y validado; sin desplegar.** `terraform validate` pasa y `fmt`
 no propone cambios.
 
 ---
+
+## 0. Resultado del despliegue del 2026-10-27
+
+**URL pública: <https://136.68.55.254.sslip.io>**
+
+Certificado administrado `ACTIVE`, válido hasta **2027-01-25**, sin advertencias
+del navegador. La cadena completa verificada a través del balanceador:
+
+| Ruta | |
+| :--- | :--- |
+| `/api/v1/health` | **200** · `{"status":"pass","services":{"database":"up"}}` |
+| `/api/v1/ready` | **200** — la sonda del autohealing y del backend |
+| `/api/docs` | **200** — la documentación de la API |
+| `/api/v1/metrics` | **403** ✅ — `nginx.mig.conf` conserva la denegación |
+| `http://…` | **301 → https://…** ✅ — la regla del 80 |
+
+Eso prueba el camino entero: balanceador → backend → nginx → API → **base de
+datos arriba**, y que el 443 es el único camino de entrada.
+
+> **El `/` devuelve 404, y es correcto.** La API no tiene ruta para la raíz; el
+> frontend es **D1** y todavía no existe. Por eso la captura principal es
+> `/api/docs`, que devuelve contenido real con el candado en la misma pantalla.
+
+### El tiempo de aprovisionamiento, medido
+
+El certificado pasó de `PROVISIONING` a `ACTIVE` mientras se tomaban las capturas
+de C1, es decir **en menos de los 60 minutos** que la documentación da como
+límite. Aun así, el riesgo registrado en §1 se mantiene: el `apply` termina antes
+que el certificado y conviene lanzarlo primero y hacer otra cosa mientras.
 
 ## 1. El certificado: administrado por Google, y los riesgos que eso acepta
 

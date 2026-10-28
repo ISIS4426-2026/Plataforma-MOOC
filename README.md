@@ -43,7 +43,7 @@ Desde la **Entrega 2** incluye además el despliegue en **Google Cloud Platform*
 | Informe de capacidad | `capacity-planning/pruebas_de_carga_entrega3.md` *(G7)* |
 | Deuda técnica | `docs/entrega3/deuda-tecnica.md` *(H3)* |
 | URL del frontend | *(pendiente, D1)* |
-| URL del balanceador de la API | *(pendiente de desplegar; sale de `terraform output lb_url` con `-var lb_enabled=true`)* |
+| URL del balanceador de la API | <https://136.68.55.254.sslip.io> · [documentación de la API](https://136.68.55.254.sslip.io/api/docs) · certificado administrado, válido hasta 2027-01-25 |
 
 **Base de la entrega:** parte del tag [`entrega-2`](https://github.com/ISIS4426-2026/Plataforma-MOOC/releases/tag/entrega-2)
 (commit `1827cdc`); commit base `d7ac108`.
