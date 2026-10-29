@@ -7,6 +7,12 @@ se redescubra a mitad de una corrida.
 dejó nada aquí, dilo explícitamente al cerrarlo: así se distingue «no había nada
 que anotar» de «no lo revisé». Es criterio de aceptación de los 44 issues.
 
+La numeración tiene huecos a propósito: las notas **7** y **26** se retiraron el
+29 de octubre de 2026 porque describían un estado del mundo que ya no existe —el
+frontend esperando a la infraestructura, y el entorno de la Entrega 2 a medias—.
+Los números no se reutilizan ni se corren: se citan por todo el repositorio y en
+los READMEs de evidencia, y renumerar dejaría cada cita apuntando a otra cosa.
+
 El equivalente de la entrega anterior, [`docs/entrega2/NOTAS_TECNICAS.md`](../entrega2/NOTAS_TECNICAS.md),
 acumuló 41 hallazgos y dice de sí mismo que la mitad salieron de errores que
 costaron una tarde y se habrían evitado leyéndolos. Sigue vigente: lo de aquí no
@@ -20,7 +26,6 @@ lo reemplaza, lo continúa.
 | 4 | [La cola vive dentro de la máquina que el autoscaler puede retirar](#4) | B1, C5, C6, C7, G1, G6 |
 | 5 | [Con un MIG, tres réplicas pueden migrar la base a la vez](#5) | A3, B3, C1, C5 |
 | 6 | [Las capturas no se pueden rehacer después de I6](#6) | los 18 issues con criterio de captura, I4 |
-| 7 | [El contrato de la API ya existe: el frontend no tiene que esperar a la infraestructura](#7) | D1, D2, D3, H1 |
 | 8 | [El estado `available` del enunciado es `completed` en el código](#8) | D2, D3, G4, I1 |
 | 9 | [Reproducir vídeos completos en las pruebas cuesta más que las propias VMs](#9) | A5, F3, G4, G6 |
 | 10 | [Las métricas de Cloud Monitoring caducan](#10) | C6, G1, G5, G6, G7 |
@@ -39,7 +44,6 @@ lo reemplaza, lo continúa.
 | 23 | [La cola y las sesiones comparten política de expulsión](#23) | B1, C6, F3 |
 | 24 | [Transcodificar un vídeo real cuesta 1,2× su duración, y eso cambia la campaña](#24) | **G4, G6**, A7, C5, C6, F3 |
 | 25 | [Antes de publicar una cifra hay once reglas, y están en código](#25) | **todos los que midan**: A7, G1, G3, G4, G5, G6, G7, H2, H3 |
-| 26 | [El entorno de la Entrega 2 está a medias, y ninguna imagen del tag está publicada](#26) | **A7, B1, B2**, C1, C3, C5, G3, I6 |
 | 27 | [Un `FLUSHDB` en el Redis de asynq mata la observabilidad y no se nota](#27) | **B1, C6, C7**, A7, G4, G6 |
 
 ---
@@ -184,20 +188,6 @@ consola y gráficas, vídeo corto solo cuando el movimiento es la prueba, nombre
 `AAAA-MM-DD_descripcion.png`. Sin credenciales, tokens ni IPs privadas a la
 vista. Lo que pase de ~10 MB va a la plataforma del vídeo y se enlaza, no al
 repositorio.
-
-<a id="7"></a>
-## 7. El contrato de la API ya existe: el frontend no tiene que esperar a la infraestructura
-
-`api/openapi.yaml` fija el contrato completo. D1 puede desarrollarse contra
-Docker Compose local o contra la URL de la Entrega 2 y cambiar **solo la URL
-base** cuando C3 publique el balanceador. Lo mismo vale para H1: el análisis
-estático arranca con alcance Go y añade el frontend cuando D1 publique su primer
-build.
-
-Lo único que sí hay que coordinar pronto es el **origen** del frontend, porque
-`CSRF_ALLOWED_ORIGINS` y la configuración de CORS dependen de dónde se aloje
-(bucket detrás del mismo balanceador, o servido por las instancias de API). Esa
-decisión es de D1 y la consume A4.
 
 <a id="8"></a>
 ## 8. El estado `available` del enunciado es `completed` en el código
@@ -667,172 +657,6 @@ sobrevive entero; del escenario 2 solo el planteamiento.
 
 **Para H3**, de paso: el 6,0 supuesto se equivocaba un 18 %. La duración de
 segmento ahora se lee del `#EXTINF`, que es ~7,06 s por lo de la nota 24.
-
-<a id="26"></a>
-## 26. El entorno de la Entrega 2 está a medias, y ninguna imagen del tag está publicada
-
-Estado real, comprobado el 2026-10-25 con `bash ./scripts/a7_preparar.sh`:
-
-| | |
-| :--- | :--- |
-| Las dos VMs | **existen, apagadas** (`TERMINATED`). Conservan disco e IP |
-| Cloud SQL | **borrada el 2026-09-28**, y también fuera del estado de Terraform |
-| VPC, NAT, buckets, Artifact Registry, cuentas de servicio | existen: 50 recursos en el estado |
-| Plan de Terraform desde el tag | **3 a crear, 0 a cambiar, 0 a destruir** |
-
-Consecuencias que ahorran tiempo:
-
-- **Encender no basta.** Falta la base, así que hace falta `terraform apply`. Y
-  **Terraform no gestiona el encendido**: `desired_status` no está declarado, por
-  eso el plan dice «0 a cambiar» con las dos máquinas apagadas. Se encienden con
-  `gcloud compute instances start`.
-- **La IP privada de la base será distinta** de la que las VMs tienen escrita.
-  Hay que editar `/etc/mooc/web.conf` y `/etc/mooc/worker.conf` y reiniciar los
-  servicios, como en el paso 4 de I6.
-- El nombre `mooc-db-1` ya está libre (Google reserva una semana; se borró hace
-  27 días). Si volviera a estarlo, se aplica con `-var db_instance_generation=2`,
-  **y eso cambia el nombre de conexión y la IP otra vez**.
-
-### Ninguna de las imágenes publicadas es el código del tag
-
-En Artifact Registry hay cinco imágenes, todas del 2026-09-27. **Ninguna
-corresponde al commit del tag `entrega-2` ni a `main`.** La más reciente está
-**59 commits antes del tag**, y la diferencia incluye `internal/worker/` con
-`queue_metrics.go`, que es justo lo que el escenario 2 instrumenta.
-
-Así que medir la línea base exige **construir y publicar** la imagen del tag, y
-la corrida corregida la de `main`. Dos cosas que conviene saber antes:
-
-- `publish_images.sh` usa `git rev-parse HEAD` y `.` como contexto, **ambos
-  relativos al directorio actual**. Hay que hacer `cd` al árbol del tag; llamarlo
-  por ruta absoluta desde el repositorio etiquetaría el código de `main` con el
-  SHA del tag.
-- `entrega-2` es un **tag anotado**: `git rev-parse entrega-2` devuelve el objeto
-  de tag (`e81fa4ef…`), no el commit. El SHA que vale como `IMAGE_TAG` es
-  `git rev-parse entrega-2^{commit}` → `1827cdc2…`. `prepare_web_env.sh` solo
-  valida que sean 40 caracteres hexadecimales, así que el objeto de tag pasaría la
-  validación y luego no existiría como imagen.
-
-### Por qué la Entrega 2 midió el escenario 2 contra Docker Compose
-
-No fue descuido. La campaña necesita el inspector de la cola (Redis), y el
-cortafuegos solo abre el 6379 dentro de `10.0.1.0/24`; Cloud SQL no tiene IP
-pública. Desde un portátil no hay a dónde conectarse, y `-base http://api:8080`
-estaba como valor por omisión.
-
-La salida no es medir Compose, es llevar los dos puertos por el **túnel SSH de
-IAP**, que usa el 22 y no abre nada nuevo —**F1** sigue pudiendo demostrar que no
-hay puertos de aplicación ni de datos expuestos—:
-
-```bash
-gcloud compute ssh mooc-worker-server --zone=us-east1-b --tunnel-through-iap \
-    --project=plataforma-mooc-entrega2 \
-    -- -N -L 6379:localhost:6379 -L 5432:<ip privada de la base>:5432
-```
-
-### Lo que cuesta, para que nadie se lo encuentre a mitad
-
-| | |
-| :--- | :--- |
-| Entorno completo encendido | 0,169 USD/h · **4,05 USD/día** |
-| Campaña de A7 completa | ~7,5 h → **1,69 USD** acotando el consumo HLS |
-| Consumo HLS **sin acotar**, desde el portátil | 22,1 GB de egreso → **2,65 USD**, más que todo el cómputo |
-| Escenario 2 con perfiles reales | 162 min de vídeo a 1,2× en 2 vCPU → **97 min de pared** irreducibles |
-
-Para **G4 y G6**: el egreso del consumo HLS es la partida que se dispara, no el
-cómputo. `-max-segmentos` lo acota, y con 10 segmentos por estudiante quedan 8
-con instante de reproducción que cumplir, que es lo mínimo para que el margen de
-buffer y las interrupciones signifiquen algo.
-
-### Lo desplegado en la Entrega 2 no era el código del tag
-
-El `/etc/mooc/web.conf` de la VM traía `IMAGE_TAG=b393116bf172…`, **59 commits
-antes del commit del tag**. Así que los números publicados de la Entrega 2 salen
-de **tres estados de código distintos**: `b393116b` en la nube para el
-escenario 1, Docker Compose en local para el escenario 2, y el tag como lo que el
-repositorio dice que fue la entrega.
-
-La línea base de A7 se mide con **el código del tag**, que es lo comparable con la
-Entrega 3 porque también partirá de un estado etiquetado. Pero se declara como
-«el código del tag», no como «lo que estuvo vivo».
-
-### Lo que corre en las VMs son copias congeladas, no el repositorio
-
-La unidad de systemd apunta a `/home/dfortizr1/mooc/`:
-
-```
-ExecStartPre=/bin/bash /home/dfortizr1/mooc/prepare_env.sh
-ExecStart=/usr/bin/docker compose -f /home/dfortizr1/mooc/docker-compose.prod.yml up -d
-```
-
-`prepare_env.sh` y el compose son copias de la época del tag. **Cambiar
-`IMAGE_TAG` cambia la imagen y nada más.** Para desplegar `main` de verdad hay
-que copiar también esos dos archivos, porque `main` añade `REDIS_SESSION_DB=1`,
-`INSTANCE_ID` y `SESSION_COOKIE_SAMESITE`.
-
-Sin ellos, **las sesiones se quedan en la base lógica 0 junto a la cola de
-asynq**, que es el riesgo de la nota 23. Comprobado en vivo: con el código del
-tag, `redis-cli info keyspace` en el `mooc-queue` del worker muestra las sesiones
-en `db0`.
-
-Afecta a **cualquiera que despliegue sobre estas VMs**, y es un argumento más
-para que la Entrega 3 construya las imágenes y la configuración desde el
-repositorio en el arranque de la instancia, no a mano en un home.
-
-### `cmd/seed-media` solo puede correr en la VM worker
-
-Transcodifica **en proceso** (`mediaProcessor.Handle`, no encola), así que escribe
-los derivados con las credenciales de la máquina donde corre. Y el reparto de
-permisos le prohíbe al SA web escribir derivados a propósito:
-`api_creator_non_derivatives` frente a `hls_worker_writer`. En la VM web da un
-403 que es la política funcionando.
-
-Además escribe hacia `media/hls/` en vez del bucket público, porque el bucket de
-derivados solo está declarado en el `.env` del worker.
-
-**A7 no lo usa:** la campaña del escenario 2 sube los tres perfiles reales 27
-veces por el camino de producción y deja el bucket sembrado con evidencia de la
-propia medición. Si alguien lo ejecuta y falla a mitad, deja un recurso en
-`processing` y un original huérfano: hay que limpiarlos antes de medir, porque la
-verificación terminal cuenta estados bajo `originals/`.
-
-### Dos trampas de operar las VMs desde Windows
-
-- **El `.env` es de root.** `source` sin `sudo` falla con `Permission denied` y,
-  al quedarse sin `DATABASE_URL`, el binario busca Postgres en `localhost`. Se
-  resuelve con `sudo bash -c 'set -a; source …; set +a; exec …'`, que no deja
-  copia del secreto en disco.
-- **Las comillas no sobreviven a `plink`.** `gcloud compute ssh --command` con
-  comillas anidadas, `$(...)` o `$$…$$` llega destrozado y da un error de
-  sintaxis con un `^` que no señala nada. Escribe el script, cópialo y ejecútalo.
-  Y **`--quiet` siempre**: sin él `pscp`/`plink` pueden esperar una confirmación
-  que nadie teclea, sin emitir una sola línea.
-- El túnel IAP hacia el worker dio **14 kB/s con cortes** mientras hacia la web
-  daba 3,4 MB/s, con las dos máquinas ociosas. Para mover algo grande, pásalo por
-  el bucket: es dentro de la región, no cuesta egreso y no depende del túnel.
-
-### `h3_nube.sh escalera` metía el limitador de login en la medición
-
-Dos cosas que cuestan una corrida entera:
-
-- **`escalera` es un subcomando obligatorio.** Sin él, el script imprime su uso y
-  sale con 1.
-- En modo nube, `escalera` borraba `tokens.csv` y volvía a iniciar sesión **en
-  paralelo a las corridas**: ~8,5 logins/min dentro de la ventana medida, que es
-  justo lo que el paso separado de tokens existe para evitar (`escenario1.md` §4).
-  Ahora hay `REUSAR_TOKENS=1`, que usa el camino que `repetir` ya tenía. El valor
-  por omisión sigue siendo rehacerlos: reutilizar es una afirmación explícita de
-  que son de este entorno y de hace menos de 24 h.
-- `CAPACITY_PASSWORD` tiene que ir exportada, o el script la pide por teclado y
-  se cuelga sin terminal interactiva.
-
-### `REDIS_URL` en la disposición de dos VMs
-
-`docker-compose.prod.yml` de `main` ya no levanta Redis y exige `REDIS_URL`
-(A4). **Funciona sin cambios sobre las dos VMs**, porque `prepare_web_env.sh` ya
-escribe `REDIS_URL='${QUEUE_PRIVATE_IP}:6379'`: la cola de la VM worker por la
-VPC, con las sesiones en la base lógica 1. No hace falta esperar a B1 para
-desplegar `main` sobre la Entrega 2.
 
 <a id="27"></a>
 ## 27. Un `FLUSHDB` en el Redis de asynq mata la observabilidad y no se nota
@@ -2095,3 +1919,27 @@ mayor efecto por menos codigo de todo el bloque C.
 | **C6** | `single_instance_assignment = 2` y `WORKER_CONCURRENCY=2` son el mismo numero. Si alguien cambia uno, cambia el otro |
 | **F2** | El worker usa ahora el Redis de la cola tambien para las claves `idempotency:worker:`. No es una cuenta ni un permiso nuevo: es la misma conexion |
 | **G1, G5** | Redis en una sola VM sigue siendo el punto unico de falla del procesamiento: sin el no hay cola, no hay consumo, y el autoescalador de C6 se queda sin señal y **congela** el tamaño del grupo |
+
+---
+
+## 45. El punto de acceso de la arquitectura desplegada
+
+**Punto de acceso:** https://136.68.55.254.sslip.io
+
+**Documentacion navegable:** https://136.68.55.254.sslip.io/api/docs
+
+Es la unica entrada publica (nota 38): todo pasa por el balanceador. La
+direccion global esta reservada, asi que el dominio **no cambia** aunque el
+entorno se apague y se vuelva a encender; lo que se va al aparcar son las reglas
+de reenvio, y mientras no esten la URL no responde.
+
+Las 57 rutas estan verificadas contra este entorno. El detalle, con lo que el
+frontend necesita saber antes de escribir el cliente, esta en
+[`VERIFICACION_ENDPOINTS.md`](VERIFICACION_ENDPOINTS.md).
+
+| Issue | Que tiene que saber |
+| :--- | :--- |
+| **D1-D5** | Este es el origen contra el que se construye. El frontend solo puede llamar desde un origen que este en `CSRF_ALLOWED_ORIGINS`, que hoy es unicamente el del balanceador |
+| **I3** | Es la URL que va al README de la entrega |
+| **G1, G3-G7** | Es el destino de las corridas de carga |
+
