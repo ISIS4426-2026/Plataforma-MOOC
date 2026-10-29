@@ -103,12 +103,20 @@ Lee el plan antes de aplicar. Lo que tiene que aparecer:
 | | |
 | :--- | :--- |
 | `mooc-queue-server` | **destroy + create** — es el §0, no un error |
+| `mooc-worker-server` | **destroy** — la VM suelta que el grupo de C5 sustituye. Es apátrida: no se lleva nada |
+| plantilla de la API | **destroy + create** — lleva `image_tag` dentro; `create_before_destroy`, así que es segura |
 | `mooc-worker-autoscaler` | create |
 | `mooc-api-autoscaler` | create |
 | reglas de reenvío del balanceador | create |
 | `artifactregistry.reader` de la cola | create |
 
-Si propone destruir algo más, **para**: alguien aplicó desde una rama (nota 1).
+En total: **11 añadidos, 2 cambiados, 3 destruidos**. Si propone destruir algo
+que no esté en la tabla, **para**: alguien aplicó desde una rama (nota 1).
+
+> Y si falta `-var lb_enabled=true`, el plan sale **9 añadidos** en vez de 11 y el
+> `apply` deja el entorno sin reglas de reenvío: `terraform output -raw lb_url`
+> devuelve la cadena vacía y ni la siembra del §4 ni las subidas del §6 tienen a
+> dónde ir. Los cinco interruptores van juntos.
 
 ```bash
 terraform apply encender.tfplan

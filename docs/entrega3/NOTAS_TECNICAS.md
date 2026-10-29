@@ -1931,3 +1931,82 @@ no sirve porque **está siempre arriba**. Misma conclusión, causas opuestas.
 | **G6** | `cooldown_period = 420` es una **estimación**, el mismo número que `initial_delay_sec` de C5 porque contestan la misma pregunta. Hay que calibrarlo con `/var/lib/mooc/arranque.json` del rol worker |
 | **G1, G5, G6** | La nota 10 aplica entera: esta métrica personalizada **caduca**. Hay que exportar los puntos crudos de cada corrida al repositorio en el momento |
 | **F2** | `monitoring.metricWriter` de `sa-queue-server` **deja de ser un permiso sin uso**: lo consume el exportador. La nota 31 lo tenía marcado como el único sin uso de las tres cuentas |
+
+---
+
+## 43. El estado del autoescalador miente dos veces al encenderlo
+
+**Contexto:** sesión de despliegue de C5 y C6 (#208, #209), 29 de octubre de
+2026. `terraform apply` salió limpio —11 añadidos, 2 cambiados, 3 destruidos— y
+las tres cosas que siguen habrían pasado por fallos del diseño cuando no lo son.
+
+### `gcloud compute autoscalers` no existe
+
+```
+$ gcloud compute autoscalers describe mooc-worker-autoscaler --zone=us-east1-b
+ERROR: (gcloud.compute) Invalid choice: 'autoscalers'.
+```
+
+No es una ruta mal escrita ni un permiso: el SDK instalado —**586.0.0**, core
+2026.09.20— no trae ese grupo de comandos. El único sitio donde este gcloud
+expone el estado es el campo `autoscaler` del grupo gestionado, y trae lo mismo:
+
+```bash
+gcloud compute instance-groups managed describe mooc-worker-group \
+  --zone=us-east1-b --project=plataforma-mooc-entrega2 \
+  --format="value(autoscaler.status,autoscaler.recommendedSize,autoscaler.statusDetails[0].message)"
+```
+
+Importa porque `scripts/c6_prueba_autoescalado.sh` leía el estado por el camino
+que no existe, y su comprobación «¿existe el autoescalador?» se cumplía siempre:
+el guion abortaba **antes** de generar carga, diciendo que faltaba un recurso que
+estaba creado. Corregido.
+
+Y un detalle del formato, que es el que hacía falsa la comprobación: si el grupo
+existe y **no tiene** autoescalador, `--format=value(...)` no imprime una línea
+vacía sino **una línea de tabuladores**, que para `[ -z ]` no está vacía. De ahí
+el `sed 's/^[[:space:]]*$//'` del guion.
+
+### `CUSTOM_METRIC_INVALID` recién creado es transitorio
+
+Durante los primeros minutos tras el `apply`:
+
+```
+status        : ERROR
+statusDetails : The monitoring metric that was specified does not exist
+                or does not have the required labels. Check the metric.
+```
+
+Y a la vez la serie **sí existía**: 18 puntos, el filtro del autoescalador
+devolviéndola, el descriptor como `GAUGE`/`INT64` con `generic_node` entre sus
+`monitoredResourceTypes`. GCE valida la métrica al crear el recurso y deja ese
+veredicto pegado en `statusDetails` hasta el primer sondeo que la lee bien.
+**Medido: `ACTIVE` y `statusDetails: null` unos 4 minutos después**, sin tocar
+nada.
+
+Es la cara opuesta de la trampa de la nota 42: allí el peligro es un filtro vacío
+que **no** da error; aquí es un error que no significa nada. Mientras dura, el
+grupo se queda en `min_replicas`, que es su comportamiento normal con la cola
+vacía, así que no hay forma de distinguirlo mirando el tamaño. Lo que lo decide
+es leer la serie, y para eso está la fase 1 del guion.
+
+### El `apply` que enciende C5 retira la VM suelta del worker
+
+Entre los 3 destruidos hay uno que la tabla del runbook no listaba:
+`google_compute_instance.worker_server` (`mooc-worker-server`), la VM suelta que el grupo gestionado de C5
+sustituye. Es intencionado y no se lleva nada —un worker es apátrida: consume de
+la cola y escribe en GCS— pero el runbook decía «si propone destruir algo más,
+**para**», así que su propia regla disparaba un falso positivo. Fila añadida.
+
+Los otros dos sí estaban previstos: `mooc-queue-server` (recreación por el paso a
+`metadata["startup-script"]`, nota 42) y la plantilla de la API del 27-oct, que se
+rehace porque `var.image_tag` forma parte de ella —`name_prefix` más
+`create_before_destroy`, así que la sustitución es segura—.
+
+### Lo que esto cambia para los demás
+
+| Issue | Qué tiene que saber |
+| :--- | :--- |
+| **G1, G5, G6** | Cualquier guion que lea el estado de un autoescalador tiene que ir por el grupo, no por `gcloud compute autoscalers` |
+| **C7** | Al crear o recrear el autoescalador, los primeros minutos de `statusDetails` no son evidencia de nada |
+| **D1** | El `apply` que enciende el entorno recrea la plantilla de la API cada vez que cambia `image_tag`. Es lo esperado y la sustitución es segura |
