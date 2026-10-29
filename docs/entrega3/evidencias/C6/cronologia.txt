@@ -1,0 +1,69 @@
+Autoescalado de workers por senal de cola (C6 #209)
+====================================================
+Proyecto : plataforma-mooc-entrega2   Zona: us-east1-b
+Grupo    : mooc-worker-group
+Metrica  : custom.googleapis.com/mooc/queue/outstanding
+Filtro   : metric.type = "custom.googleapis.com/mooc/queue/outstanding" AND resource.type = "generic_node" AND resource.labels.namespace = "mooc-cola"
+
+[2026-10-29T16:09:44Z] T+0s     fase 1: comprobando que el autoescalador puede VER la serie
+[2026-10-29T16:09:49Z] T+5s     >>> ok, la serie existe y vale 0. El autoescalador ve lo mismo. <<<
+[2026-10-29T16:09:53Z] T+9s     autoescalador: ACTIVE	1	
+[2026-10-29T16:09:53Z] T+9s     >>> TOMA LA CAPTURA DE 'ANTES': grupo en 1 replica y cola vacia <<<
+
+[2026-10-29T16:09:53Z] T+9s     fase 2: observando. GENERA LA CARGA AHORA (ver la cabecera del guion).
+
+    T+      outstanding  recomienda  tamano  instancias
+
+[2026-10-29T16:10:12Z] T+28s    0            1           1       mooc-worker-grlz(NONE/HEALTHY) 
+[2026-10-29T16:10:55Z] T+71s    0            1           1       mooc-worker-grlz(NONE/HEALTHY) 
+[2026-10-29T16:11:39Z] T+115s   10           2           2       mooc-worker-f4rb(VERIFYING/TIMEOUT) mooc-worker-grlz(NONE/HEALTHY) 
+[2026-10-29T16:11:39Z] T+115s   >>> EL AUTOESCALADOR AMPLIO EL GRUPO A 2. CAPTURA AHORA Y EN LOS PROXIMOS 2 MIN <<<
+[2026-10-29T16:12:22Z] T+158s   10           3           3       mooc-worker-f4rb(VERIFYING/TIMEOUT) mooc-worker-fprx(VERIFYING/TIMEOUT) mooc-worker-grlz(NONE/HEALTHY) 
+[2026-10-29T16:12:22Z] T+158s   >>> EL AUTOESCALADOR AMPLIO EL GRUPO A 3. CAPTURA AHORA Y EN LOS PROXIMOS 2 MIN <<<
+[2026-10-29T16:13:05Z] T+201s   10           3           3       mooc-worker-f4rb(VERIFYING/TIMEOUT) mooc-worker-fprx(VERIFYING/TIMEOUT) mooc-worker-grlz(NONE/HEALTHY) 
+[2026-10-29T16:13:49Z] T+245s   8            3           3       mooc-worker-f4rb(NONE/HEALTHY) mooc-worker-fprx(VERIFYING/TIMEOUT) mooc-worker-grlz(NONE/HEALTHY) 
+[2026-10-29T16:14:31Z] T+287s   8            3           3       mooc-worker-f4rb(NONE/HEALTHY) mooc-worker-fprx(NONE/HEALTHY) mooc-worker-grlz(NONE/HEALTHY) 
+[2026-10-29T16:15:15Z] T+331s   8            3           3       mooc-worker-f4rb(NONE/HEALTHY) mooc-worker-fprx(NONE/HEALTHY) mooc-worker-grlz(NONE/HEALTHY) 
+[2026-10-29T16:15:58Z] T+374s   8            3           3       mooc-worker-f4rb(NONE/HEALTHY) mooc-worker-fprx(NONE/HEALTHY) mooc-worker-grlz(NONE/HEALTHY) 
+[2026-10-29T16:16:41Z] T+417s   2            3           3       mooc-worker-f4rb(NONE/HEALTHY) mooc-worker-fprx(NONE/HEALTHY) mooc-worker-grlz(NONE/HEALTHY) 
+[2026-10-29T16:17:24Z] T+460s   2            3           3       mooc-worker-f4rb(NONE/HEALTHY) mooc-worker-fprx(NONE/HEALTHY) mooc-worker-grlz(NONE/HEALTHY) 
+[2026-10-29T16:18:06Z] T+502s   2            3           3       mooc-worker-f4rb(NONE/HEALTHY) mooc-worker-fprx(NONE/HEALTHY) mooc-worker-grlz(NONE/HEALTHY) 
+[2026-10-29T16:18:49Z] T+545s   2            3           3       mooc-worker-f4rb(NONE/HEALTHY) mooc-worker-fprx(NONE/HEALTHY) mooc-worker-grlz(NONE/HEALTHY) 
+[2026-10-29T16:19:34Z] T+590s   0            3           3       mooc-worker-f4rb(NONE/HEALTHY) mooc-worker-fprx(NONE/HEALTHY) mooc-worker-grlz(NONE/HEALTHY) 
+[2026-10-29T16:20:17Z] T+633s   0            3           3       mooc-worker-f4rb(NONE/HEALTHY) mooc-worker-fprx(NONE/HEALTHY) mooc-worker-grlz(NONE/HEALTHY) 
+[2026-10-29T16:20:59Z] T+675s   0            3           3       mooc-worker-f4rb(NONE/HEALTHY) mooc-worker-fprx(NONE/HEALTHY) mooc-worker-grlz(NONE/HEALTHY) 
+[2026-10-29T16:21:43Z] T+719s   0            3           3       mooc-worker-f4rb(NONE/HEALTHY) mooc-worker-fprx(NONE/HEALTHY) mooc-worker-grlz(NONE/HEALTHY) 
+[2026-10-29T16:22:26Z] T+762s   0            3           3       mooc-worker-f4rb(NONE/HEALTHY) mooc-worker-fprx(NONE/HEALTHY) mooc-worker-grlz(NONE/HEALTHY) 
+[2026-10-29T16:23:10Z] T+806s   0            3           3       mooc-worker-f4rb(NONE/HEALTHY) mooc-worker-fprx(NONE/HEALTHY) mooc-worker-grlz(NONE/HEALTHY) 
+[2026-10-29T16:23:55Z] T+851s   0            3           3       mooc-worker-f4rb(NONE/HEALTHY) mooc-worker-fprx(NONE/HEALTHY) mooc-worker-grlz(NONE/HEALTHY) 
+[2026-10-29T16:24:38Z] T+894s   0            3           3       mooc-worker-f4rb(NONE/HEALTHY) mooc-worker-fprx(NONE/HEALTHY) mooc-worker-grlz(NONE/HEALTHY) 
+[2026-10-29T16:25:22Z] T+938s   0            3           3       mooc-worker-f4rb(NONE/HEALTHY) mooc-worker-fprx(NONE/HEALTHY) mooc-worker-grlz(NONE/HEALTHY) 
+[2026-10-29T16:26:05Z] T+982s   0            3           3       mooc-worker-f4rb(NONE/HEALTHY) mooc-worker-fprx(NONE/HEALTHY) mooc-worker-grlz(NONE/HEALTHY) 
+[2026-10-29T16:26:49Z] T+1025s  0            3           3       mooc-worker-f4rb(NONE/HEALTHY) mooc-worker-fprx(NONE/HEALTHY) mooc-worker-grlz(NONE/HEALTHY) 
+[2026-10-29T16:27:32Z] T+1068s  0            2           2       mooc-worker-f4rb(NONE/HEALTHY) mooc-worker-grlz(NONE/HEALTHY) 
+[2026-10-29T16:28:15Z] T+1111s  0            2           2       mooc-worker-f4rb(NONE/HEALTHY) mooc-worker-grlz(NONE/HEALTHY) 
+[2026-10-29T16:28:59Z] T+1155s  0            2           2       mooc-worker-f4rb(NONE/HEALTHY) mooc-worker-grlz(NONE/HEALTHY) 
+[2026-10-29T16:29:42Z] T+1198s  0            2           2       mooc-worker-f4rb(NONE/HEALTHY) mooc-worker-grlz(NONE/HEALTHY) 
+[2026-10-29T16:30:25Z] T+1241s  0            2           2       mooc-worker-f4rb(NONE/HEALTHY) mooc-worker-grlz(NONE/HEALTHY) 
+[2026-10-29T16:31:08Z] T+1284s  0            2           2       mooc-worker-f4rb(NONE/HEALTHY) mooc-worker-grlz(NONE/HEALTHY) 
+[2026-10-29T16:31:51Z] T+1327s  0            2           2       mooc-worker-f4rb(NONE/HEALTHY) mooc-worker-grlz(NONE/HEALTHY) 
+[2026-10-29T16:32:34Z] T+1370s  0            2           2       mooc-worker-f4rb(NONE/HEALTHY) mooc-worker-grlz(NONE/HEALTHY) 
+[2026-10-29T16:33:18Z] T+1414s  0            2           2       mooc-worker-f4rb(NONE/HEALTHY) mooc-worker-grlz(NONE/HEALTHY) 
+[2026-10-29T16:34:01Z] T+1457s  0            2           2       mooc-worker-f4rb(NONE/HEALTHY) mooc-worker-grlz(NONE/HEALTHY) 
+[2026-10-29T16:34:47Z] T+1503s  0            2           2       mooc-worker-f4rb(NONE/HEALTHY) mooc-worker-grlz(NONE/HEALTHY) 
+[2026-10-29T16:35:32Z] T+1548s  0            2           2       mooc-worker-f4rb(NONE/HEALTHY) mooc-worker-grlz(NONE/HEALTHY) 
+[2026-10-29T16:36:17Z] T+1593s  0            2           2       mooc-worker-f4rb(NONE/HEALTHY) mooc-worker-grlz(NONE/HEALTHY) 
+[2026-10-29T16:37:01Z] T+1637s  0            2           2       mooc-worker-f4rb(NONE/HEALTHY) mooc-worker-grlz(NONE/HEALTHY) 
+[2026-10-29T16:37:46Z] T+1682s  0            2           2       mooc-worker-f4rb(NONE/HEALTHY) mooc-worker-grlz(NONE/HEALTHY) 
+[2026-10-29T16:38:30Z] T+1726s  0            2           2       mooc-worker-f4rb(NONE/HEALTHY) mooc-worker-grlz(NONE/HEALTHY) 
+[2026-10-29T16:39:13Z] T+1769s  0            2           2       mooc-worker-f4rb(NONE/HEALTHY) mooc-worker-grlz(NONE/HEALTHY) 
+[2026-10-29T16:39:57Z] T+1813s  0            2           2       mooc-worker-f4rb(NONE/HEALTHY) mooc-worker-grlz(NONE/HEALTHY) 
+[2026-10-29T16:40:40Z] T+1856s  0            2           2       mooc-worker-f4rb(NONE/HEALTHY) mooc-worker-grlz(NONE/HEALTHY) 
+[2026-10-29T16:41:24Z] T+1900s  0            2           2       mooc-worker-f4rb(NONE/HEALTHY) mooc-worker-grlz(NONE/HEALTHY) 
+[2026-10-29T16:42:09Z] T+1946s  0            2           2       mooc-worker-f4rb(NONE/HEALTHY) mooc-worker-grlz(NONE/HEALTHY) 
+[2026-10-29T16:42:54Z] T+1990s  0            1           1       mooc-worker-grlz(NONE/HEALTHY) 
+[2026-10-29T16:42:54Z] T+1990s  >>> CICLO COMPLETO: subio a 3 y volvio a 1. <<<
+
+Para la nota 10, exporta los puntos crudos ANTES de que caduquen:
+  los de esta corrida estan en la salida de arriba; guardala en
+  docs/entrega3/evidencias/C6/.
