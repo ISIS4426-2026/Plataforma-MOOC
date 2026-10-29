@@ -71,9 +71,13 @@ Waiting for all workers to finish...
 Quitting worker. task id=media-<recurso>-hls_transcode
 Pushed task id=media-<recurso>-hls_transcode back to queue
 All workers have finished
-job media:process interrumpido  estado=interrumpido
 [Worker Engine] drenaje terminado  duración_ms=9xxxx
 ```
+
+> No esperes una línea `estado=interrumpido`: asynq devuelve la tarea y el
+> proceso sale antes de que la gorutina del manejador vuelva de ffmpeg, así que
+> el middleware no llega a registrarla. Aparece en las pruebas unitarias, no
+> aquí.
 
 Lo que cada línea demuestra:
 
@@ -82,7 +86,6 @@ Lo que cada línea demuestra:
 | `drenaje iniciado` con su `plazo` | el plazo está configurado, y es el nuestro y no los 8 s de asynq |
 | `Waiting for all workers to finish` | dejó de aceptar trabajos nuevos y espera a los activos |
 | `Pushed task ... back to queue` | reencolado seguro: no se perdió |
-| `estado=interrumpido` | no es un fallo del trabajo, y el registro no miente sobre ello |
 | `duración_ms` ≈ 90 000 | el plazo se agotó, que es lo esperado con un trabajo de 720 s |
 
 **Captura 1** → `capturas/AAAA-MM-DD_drenaje-en-el-registro.png`.
@@ -132,8 +135,28 @@ sobre la instancia que tú eliges y cuando tú quieres — sin esperar los 900 s
 `scale_in_control`. El grupo levantará otra para respetar `min_replicas`, que es
 lo correcto y no estorba.
 
-Después, de Cloud Logging —los registros de la instancia sobreviven a la
-instancia—:
+**No busques el drenaje en el registro: no está.** El worker escribe a stdout y
+docker lo guarda con el driver `json-file`, que no se envía a Cloud Logging; y
+las líneas de systemd posteriores al borrado no llegan a despacharse porque la
+máquina desaparece antes. Lo que se mide aquí es **dónde acaba la tarea**, en
+Redis, que distingue los dos caminos sin ambigüedad: `pending` con `retry=0` es
+el drenaje; `retry` con un intento gastado es el *lease* vencido.
+
+```bash
+gcloud compute ssh mooc-queue-server --zone=us-east1-b --tunnel-through-iap --command='
+  for i in $(seq 1 60); do
+    echo "$(date -u +%H:%M:%SZ) activas=$(redis-cli -n 0 LLEN "asynq:{default}:active") \
+pendientes=$(redis-cli -n 0 LLEN "asynq:{default}:pending") \
+retry=$(redis-cli -n 0 ZCARD "asynq:{default}:retry")"
+    sleep 5
+  done'
+```
+
+El instante en que la tarea vuelve, menos el plazo de drenaje, da el momento del
+SIGTERM; y la instancia tuvo que seguir viva hasta ese instante para escribir en
+Redis, lo que da el **suelo** de la ventana del invitado.
+
+Para el contexto de la instancia —arranque, systemd— sí sirve Cloud Logging:
 
 ```bash
 gcloud logging read \
