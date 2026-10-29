@@ -23,7 +23,10 @@ tags:
   - name: Auth
     description: Public registration, authentication, and session control endpoints.
   - name: Users
-    description: Administrative user account management and professor provisioning.
+    description: >-
+      Administrative user account management. No hay alta directa de profesores:
+      la cuenta se registra como estudiante y un administrador la promueve con
+      PATCH /admin/users/{userID}/role.
   - name: Audit
     description: Read side of the immutable audit trail of administrative and authoring actions.
   - name: Courses
@@ -754,42 +757,6 @@ paths:
           $ref: '#/components/responses/403Forbidden'
         '500':
           $ref: '#/components/responses/500InternalServerError'
-
-  /users/professors:
-    post:
-      tags:
-        - Users
-      summary: Create a professor account
-      description: Admin-only endpoint to provision professor accounts (public registration for professors is prohibited).
-      operationId: createProfessor
-      parameters:
-        - $ref: '#/components/parameters/IdempotencyKey'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CreateProfessorRequest'
-      responses:
-        '201':
-          description: Professor account provisioned successfully.
-          headers:
-            Idempotency-Key:
-              $ref: '#/components/headers/IdempotencyKey'
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/UserResponse'
-        '400':
-          $ref: '#/components/responses/400BadRequest'
-        '401':
-          $ref: '#/components/responses/401Unauthorized'
-        '403':
-          $ref: '#/components/responses/403Forbidden'
-        '409':
-          $ref: '#/components/responses/409Conflict'
-        '422':
-          $ref: '#/components/responses/422UnprocessableEntity'
 
   /courses:
     get:
@@ -2526,25 +2493,6 @@ components:
         full_name:
           type: string
           example: "Jane Doe"
-
-    CreateProfessorRequest:
-      type: object
-      required:
-        - email
-        - password
-        - full_name
-      properties:
-        email:
-          type: string
-          format: email
-          example: "prof.smith@example.com"
-        password:
-          type: string
-          minLength: 8
-          example: "ProfSecurePass2026!"
-        full_name:
-          type: string
-          example: "Prof. Alan Smith"
 
     LoginRequest:
       type: object
