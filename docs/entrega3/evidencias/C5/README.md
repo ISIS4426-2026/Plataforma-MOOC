@@ -157,6 +157,12 @@ Entrega 2 quedan sustituidas por los dos grupos administrados.
 
 ## 6. Qué falta, y el procedimiento exacto
 
+> **El procedimiento completo está en
+> [`../C6/RUNBOOK.md`](../C6/RUNBOOK.md).** C5 y C6 piden la misma sesión
+> —entorno desplegado más trabajo real en la cola— así que se cierran juntas, y
+> C5 va primero porque es el caso barato: un grupo cuyas instancias no consumen
+> no va a autoescalar nada. Lo de abajo es el detalle de la parte de C5.
+
 | Criterio | Qué necesita |
 | :--- | :--- |
 | Una instancia nueva consume y procesa sin intervención | `apply` **y un trabajo real en la cola** |
@@ -179,10 +185,18 @@ recurso llegue a `completed`. Sube un PDF y una imagen, que **también pasan por
 worker** como trabajos de cola (nota 16), y son mucho más baratos que un vídeo.
 
 ```bash
-BASE_URL=https://136.68.55.254.sslip.io bash ./scripts/a7_verificar_e2e.sh
+BASE_URL="$(cd infra/terraform && terraform output -raw lb_url)" \
+  bash ./scripts/a7_verificar_e2e.sh
 ```
 
-Necesita cuentas, así que antes hay que sembrar la base.
+Necesita cuentas, así que antes hay que sembrar la base — y el guion que las
+carga apunta por omisión a `mooc-web-server`, que **se retiró en C3**. El runbook
+tiene la línea con el salto correcto.
+
+> **Esto vale para C5 y no vale para C6.** Un PDF y un PNG pasan por el escaneo en
+> segundos, y el guion espera a que cada uno llegue a `completed` antes de seguir:
+> la cola nunca acumula. C6 necesita que la cola **crezca**, y para eso usa
+> `scripts/c6_encolar_carga.sh` con vídeos.
 
 ### Qué capturar
 

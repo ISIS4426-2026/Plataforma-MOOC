@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Arranque de la VM de la cola compartida (B1 - issue #200).
+# Arranque de la VM de la cola compartida (B1 - issue #200), que desde C6 (#209)
+# tambien levanta el exportador de la senal de autoescalado.
 #
 # Lo rellena Terraform con `templatefile`, que sustituye $${queue_ip}. Vive en su
 # propio fichero y no dentro de `metadata_startup_script` porque escribe un
@@ -164,4 +165,148 @@ if [ "$fallos" -gt 0 ]; then
 fi
 
 echo "B1: la cola esta en marcha y configurada como se declaro"
+
+# ==============================================================================
+# El exportador de la senal de cola (C6 - issue #209)
+# ==============================================================================
+# POR QUE CORRE AQUI Y NO EN EL WORKER
+#
+# `internal/worker/queue_metrics.go` ya publica la profundidad de la cola desde
+# dentro de cada worker, y eso **no sirve para autoescalar**: el autoescalador de
+# GCE **suma** las series que devuelve su consulta, y la profundidad es una
+# magnitud de la cola, no de la instancia. Con tres workers veria el triple del
+# que hay y escalaria por su propio reflejo. Y desaparece durante una rotacion,
+# justo cuando la situacion esta cambiando.
+#
+# El enunciado lo dice desde el otro lado: la cola no debe «depender su
+# disponibilidad de una maquina que el autoscaling pueda retirar», y la senal que
+# gobierna el autoscaling es parte de esa disponibilidad. Esta VM es el unico
+# computo del despliegue que no pertenece a un grupo elastico.
+#
+# POR QUE SUS FALLOS NO MATAN EL ARRANQUE
+#
+# La cola es el servicio critico de esta maquina; el exportador es telemetria. Un
+# `docker pull` que falla no puede dejar la plataforma sin cola, asi que esta
+# seccion corre **despues** de que las comprobaciones de Redis hayan pasado y sus
+# fallos solo avisan.
+#
+# Que eso no lo vuelva invisible: sin exportador la serie desaparece de Cloud
+# Monitoring, y un autoescalador sin datos **mantiene el tamano actual** --no baja
+# al minimo ni se desborda--. El grupo se queda congelado: un fallo estatico y
+# visible en la consola del autoescalador, no uno silencioso.
+# ==============================================================================
+
+IMAGEN_EXPORTADOR="${exporter_image}"
+REGISTRO="${region}-docker.pkg.dev"
+
+avisar() { echo "C6: AVISO, $1" >&2; }
+
+instalar_docker() {
+    if command -v docker >/dev/null; then
+        echo "C6: docker ya esta instalado"
+        return 0
+    fi
+
+    # El repositorio oficial de Docker, igual que `infra/bootstrap/
+    # mooc-bootstrap.sh`: una sola forma de instalar Docker en todo el repo.
+    #
+    # **Sin** `docker-buildx-plugin` ni `docker-compose-plugin`, que si instala
+    # el arranque de las instancias. Esta maquina corre un contenedor con
+    # `docker run`: no compone nada ni construye imagenes, y es una e2-small con
+    # 10 GiB de disco.
+    $APT install -y ca-certificates curl gnupg lsb-release || return 1
+
+    install -m 0755 -d /etc/apt/keyrings
+    if [ ! -f /etc/apt/keyrings/docker.gpg ]; then
+        curl -fsSL https://download.docker.com/linux/debian/gpg |
+            gpg --dearmor -o /etc/apt/keyrings/docker.gpg || return 1
+        chmod a+r /etc/apt/keyrings/docker.gpg
+    fi
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/debian $(lsb_release -cs) stable" \
+        >/etc/apt/sources.list.d/docker.list
+
+    $APT update || return 1
+    $APT install -y docker-ce docker-ce-cli containerd.io || return 1
+    systemctl enable --now docker || return 1
+}
+
+configurar_exportador() {
+    # Credenciales del registro con la identidad de la instancia, del servidor de
+    # metadatos. No hay archivo de llave que guardar ni rotar. Es el permiso que
+    # C6 anade a `sa-queue-server` corrigiendo el inventario de B4, que decia que
+    # esta cuenta «no baja imagenes».
+    gcloud auth configure-docker "$REGISTRO" --quiet || return 1
+
+    install -d -m 0755 /etc/mooc
+
+    # El entorno del exportador. No lleva ningun secreto: la cola no tiene
+    # contrasena --esta acotada por cortafuegos a dos cuentas de servicio, B2-- y
+    # las credenciales de Cloud Monitoring salen del servidor de metadatos.
+    cat >/etc/mooc/queue-exporter.env <<ENV
+GOOGLE_CLOUD_PROJECT=${project_id}
+GOOGLE_CLOUD_LOCATION=${zone}
+REDIS_URL=redis://127.0.0.1:6379
+QUEUE_NAMES=${queue_names}
+EXPORT_INTERVAL=${export_interval}
+NODE_ID=${node_id}
+METRIC_NAMESPACE=${metric_namespace}
+ENV
+    chmod 644 /etc/mooc/queue-exporter.env
+
+    # `--network host` para alcanzar 127.0.0.1:6379 sin publicar puertos ni
+    # abrir la cola a la red de puentes de Docker.
+    #
+    # `ExecStartPre` con `-` delante: un `pull` que falla **no** impide arrancar
+    # con la imagen que ya este en disco, asi que un reinicio sin red o sin
+    # registro sigue exportando la senal.
+    cat >/etc/systemd/system/mooc-queue-exporter.service <<UNIDAD
+[Unit]
+Description=Exportador de la senal de cola a Cloud Monitoring (C6, issue #209)
+Documentation=https://github.com/ISIS4426-2026/Plataforma-MOOC/issues/209
+After=docker.service redis-server.service
+Requires=docker.service
+
+[Service]
+Type=simple
+Restart=always
+RestartSec=15
+ExecStartPre=-/usr/bin/docker pull $IMAGEN_EXPORTADOR
+ExecStartPre=-/usr/bin/docker rm -f mooc-queue-exporter
+ExecStart=/usr/bin/docker run --rm --name mooc-queue-exporter --network host --env-file /etc/mooc/queue-exporter.env $IMAGEN_EXPORTADOR /app/queue-exporter
+ExecStop=/usr/bin/docker stop --time 10 mooc-queue-exporter
+
+[Install]
+WantedBy=multi-user.target
+UNIDAD
+
+    systemctl daemon-reload || return 1
+    systemctl enable mooc-queue-exporter || return 1
+    systemctl restart mooc-queue-exporter || return 1
+}
+
+# A partir de aqui nada aborta el arranque: `set -e` se desactiva a proposito
+# para que un fallo de telemetria no se lleve una maquina con la cola sana.
+set +e
+
+if ! instalar_docker; then
+    avisar "no se pudo instalar docker; la cola sigue en marcha sin exportador"
+elif ! configurar_exportador; then
+    avisar "no se pudo arrancar el exportador; la cola sigue en marcha"
+    systemctl status mooc-queue-exporter --no-pager >&2
+    journalctl -u mooc-queue-exporter --no-pager -n 40 >&2
+else
+    # No se afirma que la metrica llegue: la primera escritura tarda y Cloud
+    # Monitoring tarda mas en indexar un tipo de metrica nuevo. Lo que si se
+    # comprueba es que el contenedor este corriendo, que es lo que esta maquina
+    # controla.
+    sleep 10
+    if docker ps --filter name=mooc-queue-exporter --filter status=running \
+        --format '{{.Names}}' | grep -q mooc-queue-exporter; then
+        echo "C6: ok     el exportador corre contra $IMAGEN_EXPORTADOR"
+    else
+        avisar "el exportador no quedo corriendo"
+        journalctl -u mooc-queue-exporter --no-pager -n 40 >&2
+    fi
+fi
+
 exit 0
