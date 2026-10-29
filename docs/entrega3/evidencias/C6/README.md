@@ -208,18 +208,82 @@ sí misma.
 > trabajo termine, y 900 s no cubren los 1 711 s del perfil largo ni pretenden.
 > Apagar el consumo de tareas nuevas antes de parar es **C7 (#210)**.
 
-## 6. Qué falta, y el procedimiento exacto
+## 6. La corrida del 29 de octubre de 2026
 
 > **El procedimiento paso a paso está en [`RUNBOOK.md`](RUNBOOK.md)**, que cubre
 > la sesión entera y cierra **C5 y C6 a la vez**: las dos piden lo mismo
 > —despliegue más trabajo real en la cola— y lo que cada una demuestra es
 > distinto. Lo de abajo es el resumen.
 
-| Criterio | Qué necesita |
+Commit `e602524`. 10 vídeos del perfil corto encolados por el flujo normal de
+subida con `scripts/c6_encolar_carga.sh`. **Ciclo completo en 33 min**, sin que
+nadie tocara el tamaño del grupo.
+
+| Criterio | Estado |
 | :--- | :--- |
-| La métrica visible en Cloud Monitoring | `apply` + un trabajo real en la cola |
-| La decisión del autoescalador tomada sobre ella | lo mismo, con ≥ 6 trabajos sin terminar |
-| **Las capturas** (bloquean el cierre) | lo mismo |
+| La métrica visible en Cloud Monitoring | **cumplido** — una serie, el filtro literal del autoescalador |
+| La decisión del autoescalador tomada sobre ella | **cumplido** — 1 → 2 → 3 réplicas, pedidas por él |
+| La reducción | **cumplida** — 3 → 2 → 1, una por ventana de 900 s |
+| **Las capturas de la consola** | **hechas** — las cuatro, en [`capturas/`](capturas/) |
+
+### La cronología, con los números medidos
+
+| Hora UTC | T+ | Qué |
+| :--- | ---: | :--- |
+| 16:10:34 | 0 s | las 10 confirmaciones. `outstanding` pasa de 0 a 10 entre dos muestreos |
+| 16:10:58 | 24 s | primer punto con `outstanding = 10` |
+| **16:11:07** | **33 s** | **el autoescalador crea la segunda réplica** |
+| 16:11:47 | 73 s | crea la tercera |
+| 16:13:28 | 174 s | `active = 6`: las tres instancias con sus dos ranuras llenas |
+| 16:18:58 | 504 s | `outstanding = 0`, cola vaciada |
+| 16:27:32 | 1 018 s | 3 → 2 |
+| 16:42:54 | 1 940 s | 2 → 1. **Ciclo completo** |
+
+Entre las dos reducciones pasaron **922 s**, que es `time_window_sec = 900` con el
+margen del muestreo: `scale_in_control` hizo exactamente lo que declara.
+
+Los 33 segundos entre el primer punto de la métrica y la primera réplica son la
+medida que importa: es lo que tarda el autoescalador en **ver** la señal y actuar.
+El resto —hasta que la réplica consume— es arranque, y C5 lo midió en 102 s.
+
+### La aritmética del enunciado, comprobada
+
+`single_instance_assignment = 2` tenía que dar `replicas = outstanding / 2`
+acotado entre 1 y 3. Con `outstanding = 10` el cociente es 5, así que el tope de 3
+manda — y es lo que pidió.
+
+Que el 2 fuera el número correcto lo confirma el punto de las 16:13:28:
+**`active = 6`** con tres instancias, es decir las seis ranuras de
+`mooc-worker-concurrency = 2` ocupadas a la vez y `pending` ya en 2. El tamaño que
+pidió el autoescalador es exactamente aquel con el que todo el trabajo está siendo
+atendido.
+
+### `pending` habría oscilado, y los datos lo enseñan
+
+El argumento de la §1 deja de ser teórico:
+
+| Instante | `pending` | `active` | `outstanding` | Qué pasó |
+| :--- | ---: | ---: | ---: | :--- |
+| 16:10:58 | 8 | 2 | **10** | un worker, sus dos ranuras llenas |
+| 16:12:58 | 6 | 4 | **10** | la segunda réplica empieza a consumir |
+| 16:13:28 | 2 | 6 | **8** | las seis ranuras llenas; termina el primer vídeo |
+
+Entre las 16:10:58 y las 16:12:58, `pending` cayó de 8 a 6 con `outstanding`
+clavado en 10: **no terminó nada**, simplemente alguien se puso a trabajar. Medio
+minuto después `pending` estaba en 2 y solo **un** trabajo de los diez había
+terminado.
+
+Un autoescalador leyendo `pending` habría visto 2 —capacidad de sobra— y habría
+retirado lo que acababa de pedir, reencolando el trabajo en vuelo y volviendo a
+subir `pending`. `outstanding` no bajó hasta que un vídeo terminó de verdad, y
+desde ahí decreció de forma monótona hasta 0.
+
+### Los datos crudos
+
+- [`cronologia.txt`](cronologia.txt) — un sondeo cada 30 s: `outstanding`, lo que
+  el autoescalador recomienda, el tamaño del grupo y el estado de cada instancia
+- [`metricas_crudas_29oct2026.csv`](metricas_crudas_29oct2026.csv) — los 76 puntos
+  de las cuatro métricas, exportados el mismo día (nota 10: **caducan**)
 
 ### Hay que publicar imagen
 
@@ -296,10 +360,41 @@ que **se retiró en C3**: el runbook tiene la línea con el salto correcto.
 ### Qué capturar
 
 1. El Explorador de Métricas con `custom.googleapis.com/mooc/queue/outstanding`
-   subiendo. El `output worker_scaling_metric` da el filtro para pegarlo tal cual.
+   subiendo. **Hecha**:
+   [`capturas/2026-10-29_outstanding-sube-y-baja.png`](capturas/2026-10-29_outstanding-sube-y-baja.png).
 2. La consola del autoescalador mostrando su **tamaño recomendado** y el motivo.
-3. El grupo pasando de 1 a 2 o 3 instancias, con la hora.
-4. El grupo volviendo a 1 cuando la cola se vacía.
+   **Hecha**:
+   [`capturas/2026-10-29_autoescalador-utilizacion.png`](capturas/2026-10-29_autoescalador-utilizacion.png),
+   la gráfica *Autoscaler utilization* sobre
+   `custom.googleapis.com/mooc/queue/outstanding` con `Capacity: 2` —que es
+   `single_instance_assignment`—. La política aplicada, en texto, está en
+   [`autoescalador_29oct2026.yaml`](autoescalador_29oct2026.yaml).
+3. El grupo pasando de 1 a 2 o 3 instancias, con la hora. **Hecha**.
+4. El grupo volviendo a 1 cuando la cola se vacía. **Hecha**.
+
+Las dos últimas son la misma imagen,
+[`capturas/2026-10-29_grupo-tamano-1-3-1.png`](capturas/2026-10-29_grupo-tamano-1-3-1.png):
+la gráfica *Group size* del grupo traza a la vez el tamaño configurado (min 1,
+max 3), el recomendado y las instancias reales, así que el ciclo entero —los dos
+escalones de subida sobre las 12:11 EDT y los dos de bajada a las 12:27 y 12:42—
+se lee en un solo cuadro, con el eje de tiempo a la vista.
+
+Esa gráfica es además la respuesta al «la ampliación manual del grupo no acredita
+autoscaling»: la línea de **tamaño recomendado** y la de **instancias** se mueven
+juntas, y el mínimo y el máximo configurados siguen planos en 1 y 3. Nadie
+redimensionó nada.
+
+La consulta de la captura 1, que es el filtro del autoescalador traducido a
+PromQL:
+
+```promql
+custom_googleapis_com:mooc_queue_outstanding{monitored_resource="generic_node",namespace="mooc-cola"}
+```
+
+El `monitored_resource` no es opcional: sin él la API responde que el tipo de
+métrica admite 23 tipos de recurso y no sabe cuál quieres. Y **el `namespace` sí
+importa para la evidencia**: sin esa etiqueta la consulta deja de ser la del
+autoescalador.
 
 Lo que las capturas tienen que dejar claro es que **nadie redimensionó el grupo**:
 el enunciado dice que «la ampliación manual del grupo no acredita autoscaling».
@@ -311,6 +406,12 @@ cuando el cambio lo pidió el autoescalador.
 La nota 10 aplica entera: esta métrica personalizada **caduca**, y desaparece del
 todo cuando el proyecto pierde los recursos en I6. La cronología del guion se
 guarda en este directorio en la misma sesión en que se mide, no después.
+
+**Hecho el 29 de octubre**, el mismo día de la corrida: los 76 puntos de las
+cuatro métricas están en
+[`metricas_crudas_29oct2026.csv`](metricas_crudas_29oct2026.csv), con el recurso y
+el filtro en la cabecera del archivo. A partir de ahí la gráfica se puede rehacer
+sin Cloud Monitoring.
 
 ---
 

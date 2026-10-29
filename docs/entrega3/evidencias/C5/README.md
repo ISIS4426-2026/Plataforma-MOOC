@@ -127,9 +127,30 @@ lo mismo que el de la API —B3 midió 62–66 s— **más** bajar una imagen qu
 FFmpeg dentro, que es sensiblemente mayor.
 
 Sigue valiendo la asimetría de C1: por debajo del arranque real el autohealer
-mata instancias que se están montando. **Hay que calibrarlo** con
-`/var/lib/mooc/arranque.json` del rol worker en cuanto exista una medida — y esa
-medida es parte de lo que C5 demuestra al desplegarse.
+mata instancias que se están montando.
+
+**Medido el 29 de octubre de 2026**, en `mooc-worker-grlz`, la primera instancia
+que creó el grupo:
+
+| | |
+| ---: | :--- |
+| 16 s | creación de la instancia → `lastStartTimestamp` |
+| 41 s | arranque del sistema operativo hasta que empieza `mooc-bootstrap.sh` |
+| 61 s | `mooc-bootstrap.sh`, imagen con FFmpeg incluida (`segundos_hasta_listo`) |
+| **102 s** | **creación → worker consumiendo de la cola** |
+
+Los 420 s tienen **318 s de margen**, un factor de 4. La medida está en
+[`worker_registro_29oct2026.txt`](worker_registro_29oct2026.txt), y el dato que
+hay que citar es el de la última fila: `arranque.json` mide **desde el inicio de
+`mooc-bootstrap.sh`**, no desde que existe la instancia, así que sus 61 s por sí
+solos subestiman el arranque.
+
+Un margen de 4× es mucho, pero **bajarlo es una decisión de G6 y no de C5**: una
+sola medida, en un proyecto en reposo y con la imagen ya en caché regional, no
+dice cuánto tarda un arranque con el registro frío o la zona cargada. El número
+prudente a la vista de esto es ~180 s; hace falta una segunda medida —la de las
+réplicas que levante el autoescalador de C6— antes de tocarlo. Y si se baja,
+`cooldown_period` de C6 baja con él: es el mismo número por la misma razón.
 
 ### Rotar un worker no es rotar una réplica de la API
 
@@ -155,7 +176,7 @@ una VM suelta consumiendo en paralelo no se puede demostrar.
 Con esto, `compute.tf` se queda **sin instancias**: las dos VMs fijas de la
 Entrega 2 quedan sustituidas por los dos grupos administrados.
 
-## 6. Qué falta, y el procedimiento exacto
+## 6. Lo medido, y lo que falta
 
 > **El procedimiento completo está en
 > [`../C6/RUNBOOK.md`](../C6/RUNBOOK.md).** C5 y C6 piden la misma sesión
@@ -163,10 +184,32 @@ Entrega 2 quedan sustituidas por los dos grupos administrados.
 > C5 va primero porque es el caso barato: un grupo cuyas instancias no consumen
 > no va a autoescalar nada. Lo de abajo es el detalle de la parte de C5.
 
-| Criterio | Qué necesita |
+### Sesión del 29 de octubre de 2026 · commit `e602524`
+
+| Criterio | Estado |
 | :--- | :--- |
-| Una instancia nueva consume y procesa sin intervención | `apply` **y un trabajo real en la cola** |
-| **La captura** (bloquea el cierre) | lo mismo |
+| El grupo crea la instancia | **cumplido** — `mooc-worker-grlz`, nombre derivado de `baseInstanceName`; nadie ejecutó un `instances create` |
+| Una instancia nueva consume y procesa sin intervención | **cumplido** — dos trabajos `media:process` de principio a fin |
+| El retardo inicial, calibrado | **medido** — 102 s de creación a consumo, contra 420 s declarados (§4) |
+| **La captura de la consola** | **hecha** — [`capturas/2026-10-29_grupo-resumen-sano.png`](capturas/2026-10-29_grupo-resumen-sano.png) |
+
+Los dos trabajos, del registro del propio worker:
+
+| Trabajo | `duración_ms` |
+| :--- | ---: |
+| `media:process` del PDF | 284 |
+| `media:process` del PNG | 45 |
+
+Los dos salieron de `started` a `completed` sin reintentos, y el recurso llegó a
+`completed` por la API. Los registros crudos:
+
+- [`e2e_29oct2026.txt`](e2e_29oct2026.txt) — el flujo normal de subida completo
+- [`worker_registro_29oct2026.txt`](worker_registro_29oct2026.txt) — `arranque.json`
+  y el worker consumiendo
+
+Lo que esto cierra es el criterio literal del enunciado: la instancia la creó el
+grupo, arrancó sola y empezó a consumir **sin que nadie entrara en ella**. La
+única intervención manual de toda la secuencia fue el `terraform apply`.
 
 ### Hay que publicar imagen
 
@@ -189,6 +232,8 @@ BASE_URL="$(cd infra/terraform && terraform output -raw lb_url)" \
   bash ./scripts/a7_verificar_e2e.sh
 ```
 
+Es lo que se corrió el 29 de octubre: **todas las comprobaciones pasaron**.
+
 Necesita cuentas, así que antes hay que sembrar la base — y el guion que las
 carga apunta por omisión a `mooc-web-server`, que **se retiró en C3**. El runbook
 tiene la línea con el salto correcto.
@@ -201,9 +246,16 @@ tiene la línea con el salto correcto.
 ### Qué capturar
 
 1. La consola del grupo `mooc-worker-group` con su instancia creada por el grupo.
+   **Hecha**:
+   [`capturas/2026-10-29_grupo-resumen-sano.png`](capturas/2026-10-29_grupo-resumen-sano.png)
+   — una instancia, **100 % sana** contra `mooc-worker-ready`, autoescalado
+   `On (min 1, max 3)` «based on 1 metric and 0 schedules», y la plantilla
+   `mooc-worker-20261029154902842600000001` que la creó.
 2. El registro del worker consumiendo: `job media:process started` y
-   `job media:process completed` con su `duración_ms`.
-3. El recurso llegando a `completed` por la API.
+   `job media:process completed` con su `duración_ms`. **Hecho**, en
+   [`worker_registro_29oct2026.txt`](worker_registro_29oct2026.txt).
+3. El recurso llegando a `completed` por la API. **Hecho**, en
+   [`e2e_29oct2026.txt`](e2e_29oct2026.txt).
 
 Lo que la captura tiene que dejar claro es que **nadie tocó la instancia**: la
 creó el grupo, arrancó sola y empezó a consumir.

@@ -1,0 +1,31 @@
+
+== Preparando
+  ok     sesion de profesor
+  ok     curso, modulo y unidad
+
+== 1. Documentos e imagenes por el flujo normal (nota 16)
+  ok     pdf: llego a completed por el flujo normal
+  ok     image: llego a completed por el flujo normal
+
+== 2. El intento de quiz se califica contra el enunciado congelado (nota 17)
+  ok     quiz creado sobre su recurso
+  ok     pregunta creada con su enunciado original
+  ok     curso publicado (requisito para abrir un intento)
+  ok     el estudiante se inscribio (HTTP 200)
+  ok     el estudiante abrio el intento
+  ok     despublicado, pregunta anadida con el intento abierto
+  ok     curso vuelto a publicar (HTTP 200)
+  ok     el intento sigue con su pregunta original y NO ve la anadida: esta congelado
+
+== 3. Separacion de sesiones (A4, nota 23)
+  Se comprueba en la instancia de la cola, no por HTTP:
+    redis-cli -n 0 dbsize   -> solo la cola de asynq
+    redis-cli -n 1 dbsize   -> session:* y ratelimit:*
+  Ojo: la caida a PostgreSQL NO repuebla la cache, asi que un token
+  anterior al despliegue autentica sin escribir en la base 1. Hay que
+  hacer un login nuevo antes de mirar.
+
+== Limpieza
+  ok     curso de pruebas despublicado (la API no permite borrarlo)
+
+Todas las comprobaciones pasaron.
