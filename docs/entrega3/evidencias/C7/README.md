@@ -5,7 +5,7 @@
 | **Bloque** | C — Grupos elásticos y balanceador |
 | **Depende de** | C5 (#208), C6 (#209) |
 | **Desbloquea** | E1, G6 |
-| **Estado** | código cerrado; **falta la captura del drenaje**, que necesita el entorno encendido |
+| **Estado** | **cerrado**: drenaje medido y capturado el 29 de octubre de 2026 |
 
 > **El mecanismo ya existía y estaba mal configurado.** C7 no construye un
 > drenaje: lo ata. `asynq` ya deja de aceptar trabajos nuevos en cuanto recibe
@@ -89,7 +89,8 @@ Es el **menor de tres techos**, no un número elegido por gusto:
 1. `mooc-worker.service` le da al contenedor 120 s. Pasarse de ahí es pedir que
    docker mate el proceso a mitad del drenaje.
 2. Una instancia que el grupo borra solo dispone de la ventana corta de apagado
-   del invitado. La ventana larga sería `graceful_shutdown` — ver §5.
+   del invitado. **Medida el 29 de octubre: al menos 102 s** (§6.3). La ventana
+   larga sería `graceful_shutdown` — ver §5.
 3. El perfil corto de A7 son **144 s** de transcodificado.
 
 El (3) parece decir que el plazo no sirve para nada: 90 s no salvan ni un
@@ -110,31 +111,41 @@ del invitado lo recupera igual el *lease* de 30 s.
 Al cancelarse el contexto, el manejador devuelve `context.Canceled` y el
 registro decía `estado=failed` sobre un trabajo sano que iba a volver a la cola.
 Como **la evidencia que bloquea este issue es precisamente el registro del
-drenaje**, esa línea convertía la prueba en su contrario. Ahora:
+drenaje**, esa línea convertía la prueba en su contrario. Ahora sale como
+`estado=interrumpido` con el motivo; lo que devuelve el manejador no cambia.
 
-```
-"msg":"job media:process interrumpido","estado":"interrumpido",
-"motivo":"el worker se esta retirando; la tarea vuelve a la cola, no es un fallo del trabajo"
-```
-
-Lo que cambia es solo la traza: el error se devuelve igual y asynq decide lo
-mismo que decidía antes.
+> **Corrección medida el 29 de octubre: esa línea no aparece en un drenaje real,
+> y antes de correrlo este documento decía que sí.** Al abortar, asynq devuelve
+> la tarea a la cola y el proceso sale; la gorutina del manejador sigue dentro de
+> ffmpeg y **el proceso termina antes de que ella vuelva**, así que el middleware
+> nunca llega a registrar nada. En la prueba unitaria sí sale, porque allí el
+> manejador vuelve en cuanto se cancela el contexto.
+>
+> El cambio sigue valiendo para el caso en que el manejador sí vuelve —el
+> vencimiento del *lease*, o un trabajo que no es un transcodificado— pero no
+> forma parte del registro esperado de un drenaje en producción.
 
 ### Cómo se lee un drenaje en el registro
 
-Salida real de `drain_test.go` contra un Redis local, con el plazo bajado a
-500 ms para que quepa en una prueba:
+Drenaje real del 29 de octubre de 2026, con un vídeo del perfil medio en vuelo
+—600 s de vídeo, unos 448 s de transcodificado— y el plazo de 90 s en
+producción. Completo en
+[`drenaje_29oct2026.txt`](drenaje_29oct2026.txt):
 
 ```
-"[Worker Engine] drenaje iniciado: no se aceptan trabajos nuevos","plazo":"500ms"
-"Starting graceful shutdown"
-"Waiting for all workers to finish..."
-"Quitting worker. task id=media-c7-recurso-hls_transcode"
-"Pushed task id=media-c7-recurso-hls_transcode back to queue"
-"All workers have finished"
-"job media:process interrumpido","estado":"interrumpido"
-"[Worker Engine] drenaje terminado","duración_ms":505
+19:26:45.003Z  SIGTERM (systemctl stop mooc-worker)
+19:26:45.355Z  [Worker Engine] drenaje iniciado: no se aceptan trabajos nuevos  plazo=1m30s
+19:26:45.908Z  Waiting for all workers to finish...
+19:28:15.910Z  Quitting worker. task id=media-originals/108b17d2-.../1f2aa8d5-....mp4
+19:28:15.912Z  Pushed task id=... back to queue
+19:28:15.913Z  All workers have finished
+19:28:15.916Z  [Worker Engine] drenaje terminado  duración_ms=90560
+19:28:16.489Z  systemctl stop devuelve
 ```
+
+**90,56 s**, dentro de los 120 s del `down --timeout` y de los 180 s de
+`TimeoutStopSec`. El plazo se agotó entero, que es lo esperado con un trabajo de
+448 s.
 
 Las dos líneas de `[Worker Engine]` son nuestras y delimitan el drenaje entero;
 la diferencia de marcas dice cuánto duró de verdad. Sin ellas habría que
@@ -226,19 +237,99 @@ provider más nueva.
 
 ---
 
-## 6. Qué falta
+## 6. La sesión del 29 de octubre de 2026
 
-| Criterio | Estado |
+Commit `1f50d952`. El worker arrancó declarando `"drenaje":"1m30s"`, así que la
+imagen desplegada es la de C7 — importa, porque con la anterior el drenaje
+habría durado 8 s, la captura habría salido «bien» y nadie lo habría notado.
+
+| Criterio del issue | Estado |
 | :--- | :--- |
-| Apagado ordenado atado al ciclo de vida | **hecho** — plazo configurado y cableado hasta la metadata |
-| Reencolado seguro de asynq | **hecho y probado** — `drain_test.go` comprueba que vuelve con `Retried == 0` |
-| Reintentos sin efectos duplicados | **hecho** — almacén compartido + la guarda de `mediaproc` |
-| Límites y puntos únicos de falla documentados | **hecho** — §4 |
-| **La captura del drenaje mientras ocurre** | **pendiente**: bloquea el cierre |
+| Apagado ordenado atado al ciclo de vida | **cumplido** — 90,56 s medidos, §3 |
+| Reencolado seguro de asynq | **cumplido** — `pending=1`, `retry=0`, `archived=0` |
+| Reintentos sin efectos duplicados | **cumplido** — §6.2 |
+| El plazo configurado y justificado | **cumplido** — y ahora medido, §6.3 |
+| **El drenaje capturado mientras ocurre** | **cumplido** — [`drenaje_29oct2026.txt`](drenaje_29oct2026.txt) |
+| Límites y puntos únicos de falla documentados | **cumplido** — §4 |
 
-La captura necesita el entorno encendido y un trabajo largo en vuelo, así que va
-en una sesión como la de C5/C6. El guion de esa sesión está en
-[`RUNBOOK.md`](RUNBOOK.md).
+### 6.1 El reencolado, leído en Redis y no en el código
+
+Justo después del drenaje:
+
+| | |
+| :--- | :--- |
+| `pending` | **1** |
+| `active` | 0 |
+| `retry` | **0** |
+| `archived` | 0 |
+
+Esto distingue los dos caminos sin tener que creerse nada. Una tarea que **sí**
+consume reintento no vuelve a `pending`: va al zset `retry`, con espera
+exponencial. Que esté en `pending`, disponible de inmediato, es la firma de
+`requeue()`. Los dos contadores bastan.
+
+Al rearrancar el servicio, el trabajo se rehízo entero —`started` a las
+19:29:39, `completed` a las 19:37:07, **448 s**— y el recurso llegó a
+`completed` con 171 objetos bajo su prefijo HLS: un solo juego de derivados.
+
+Nota de calibración para E1 y G6: 448 s para un vídeo de 600 s son **0,75× la
+duración**, no el 1,2× que midió A7. La diferencia es la escalera de
+renditions y la instancia, no un error de una de las dos medidas; quien use
+cualquiera de los dos números tiene que decir con cuál se quedó.
+
+### 6.2 Sin efectos duplicados: qué se probó y qué no
+
+Se reconfirmó **la misma** subida sobre el recurso ya `completed`:
+
+| | |
+| :--- | :--- |
+| Respuesta | `202` con el recurso tal cual, `processing_status: completed` |
+| Trabajo encolado | **ninguno** — nada en el registro del worker |
+| Derivados | **171 antes, 171 después** |
+
+Lo honesto es decir **qué capa paró el duplicado**, porque no fue la que se
+esperaba: lo paró la **API**, en `media.Service.ConfirmUpload`, que ante una
+confirmación repetida de una subida ya procesada responde con el recurso sin
+encolar nada (*upload already confirmed and processed; nothing to do*). La
+guarda del worker —`mediaproc` saltándose un recurso ya `completed`— no llegó a
+ejercitarse en vivo; la cubren sus pruebas unitarias.
+
+Son tres capas y las tres siguen en pie: la API no reencola, el worker no
+reprocesa, y el prefijo determinista hace que un rehecho sobrescriba en vez de
+duplicar. Esta sesión demuestra la primera y la tercera.
+
+### 6.3 La retirada por el grupo, y el número que faltaba
+
+El §3 del runbook retira la instancia con `delete-instances`, que es el camino
+del autoescalador sin esperar los 900 s de `scale_in_control`. Detalle completo
+en [`retirada_por_el_grupo_29oct2026.txt`](retirada_por_el_grupo_29oct2026.txt).
+
+**El registro de esa retirada no se puede leer**, y conviene saber por qué antes
+de buscarlo: el worker escribe a stdout, docker lo guarda con el driver
+`json-file` y eso **no se envía a Cloud Logging**; y las líneas de systemd
+posteriores al borrado nunca se despacharon, porque la máquina desapareció
+antes.
+
+Se deduce, y de forma inequívoca, por dónde acaba la tarea:
+
+| Camino | Destino | Reintento |
+| :--- | :--- | :--- |
+| Drenaje (`requeue`) | `pending`, inmediato | **no** consume |
+| *Lease* vencido (30 s) | `retry`, con espera | sí consume |
+
+La tarea apareció en **`pending` con `retry=0`** a las 19:46:18, 102 s después
+de la solicitud de borrado. Si la instancia se hubiera apagado de golpe, el
+*lease* habría vencido sobre las 19:45:06 y estaría en `retry` con un intento
+gastado.
+
+Y el instante cuadra con el plazo: `19:46:18 − 90 s ≈ 19:44:48`, que son unos
+12 s después del borrado — el apagado ACPI y el orden de systemd.
+
+**Conclusión: la retirada por el grupo sí ejecuta el drenaje, y la instancia
+sobrevivió al menos 102 s** desde la solicitud. Los 90 s caben dentro de esa
+ventana. Subirlo a los 120 s que permite la unidad exigiría una ventana de
+~132 s, que esta sesión **no** demuestra: 90 s es el valor que está medido y el
+que se queda.
 
 ---
 
