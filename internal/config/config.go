@@ -60,6 +60,21 @@ type Config struct {
 	// Defaults to 2 (1 worker per vCPU for e2-highcpu-2 profile B1).
 	WorkerConcurrency int
 
+	// WorkerDrainTimeout is how long a worker that received SIGTERM waits for
+	// the jobs already running before giving them back to the queue (C7, issue
+	// #210). It stops accepting new jobs immediately either way; this only
+	// bounds the wait for the ones in flight.
+	//
+	// It exists because asynq's own default is 8 seconds, which is shorter than
+	// every real job this platform runs: A7 measured 144 s for the short media
+	// profile and 1 711 s for the long one. The number is a deliberate
+	// compromise and is documented in docs/entrega3/evidencias/C7/.
+	//
+	// Whatever is still running when the timeout expires is requeued **without
+	// consuming a retry**, so a drain that runs out of time costs work, never
+	// data.
+	WorkerDrainTimeout time.Duration
+
 	// MetricsPort is where the worker (which otherwise has no HTTP server)
 	// exposes GET /metrics for scraping (issue #21). The API mounts its own
 	// metrics endpoint on Port instead, alongside the rest of /api/v1.
@@ -174,6 +189,7 @@ func Load() *Config {
 		MediaMaxOriginalBytes: int64(getEnvInt("MEDIA_MAX_ORIGINAL_MB", 2048)) << 20,
 		MediaHLSLadder:        getEnv("MEDIA_HLS_LADDER", ""),
 		WorkerConcurrency:     getEnvInt("WORKER_CONCURRENCY", 2),
+		WorkerDrainTimeout:    getEnvDuration("WORKER_DRAIN_TIMEOUT", 90*time.Second),
 
 		MetricsPort: getEnv("METRICS_PORT", "9090"),
 

@@ -221,3 +221,12 @@ output "worker_concurrency" {
   EOT
   value       = local.mooc_metadata_worker["mooc-worker-concurrency"]
 }
+
+output "worker_drain_timeout" {
+  description = <<-EOT
+    Cuanto espera un worker que se retira por las tareas que ya estaban en curso
+    (C7). Dejar de tomar tareas nuevas ocurre en el acto y no depende de esto;
+    lo que no termine dentro del plazo vuelve a la cola sin gastar un reintento.
+  EOT
+  value       = local.mooc_metadata_worker["mooc-worker-drain-timeout"]
+}

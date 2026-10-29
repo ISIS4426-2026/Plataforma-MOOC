@@ -147,11 +147,32 @@ func main() {
 	log.Printf("Worker concurrency: %d, work dir: %s, max original size: %d MB\n",
 		workerConcurrency, workDirDesc, cfg.MediaMaxOriginalBytes>>20)
 
-	engine, err := worker.NewWorkerEngine(cfg,
+	// EL ALMACEN DE IDEMPOTENCIA TIENE QUE SER COMPARTIDO (C7, #210).
+	//
+	// Sin esto el motor cae al de memoria, que es por proceso. Un trabajo que
+	// un drenaje devuelve a la cola lo recoge **otra** instancia del grupo, y
+	// esa no veria ninguna marca. Si Redis no responde al arrancar, se sigue
+	// con el de memoria y se dice por que: los efectos duplicados tienen una
+	// segunda defensa --`mediaproc` no reprocesa un recurso ya `completed`
+	// sobre el mismo objeto-- y un worker que no arranca es peor que uno con
+	// una red de seguridad menos.
+	engineOpts := []worker.WorkerOption{
 		worker.WithConcurrency(workerConcurrency),
 		worker.WithMeter(obs.Meter),
 		worker.WithMediaProcessor(asynq.HandlerFunc(mediaProcessor.Handle)),
-	)
+		worker.WithShutdownTimeout(cfg.WorkerDrainTimeout),
+	}
+
+	if store, err := worker.NewRedisIdempotencyStoreFromURL(cfg.RedisURL); err != nil {
+		log.Printf("idempotencia compartida deshabilitada, se usa la de memoria: %v\n", err)
+	} else {
+		engineOpts = append(engineOpts, worker.WithIdempotencyStore(store))
+	}
+
+	log.Printf("Plazo de drenaje: %s (al vencer, lo que siga en curso vuelve a la cola)\n",
+		cfg.WorkerDrainTimeout)
+
+	engine, err := worker.NewWorkerEngine(cfg, engineOpts...)
 
 	if err != nil {
 		log.Fatalf("Failed to initialize worker engine: %v\n", err)

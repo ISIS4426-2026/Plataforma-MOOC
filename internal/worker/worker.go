@@ -31,6 +31,7 @@ type WorkerEngine struct {
 	taskCheckInterval        time.Duration
 	meter                    metric.Meter
 	mediaProcessor           asynq.Handler
+	shutdownTimeout          time.Duration
 }
 
 // WorkerOption defines functional configuration options for WorkerEngine.
@@ -68,6 +69,37 @@ func WithAlertHandler(fn AlertHandlerFunc) WorkerOption {
 func WithIdempotencyStore(store IdempotencyStore) WorkerOption {
 	return func(we *WorkerEngine) {
 		we.idempotencyStore = store
+	}
+}
+
+// WithShutdownTimeout sets how long a drain waits for the jobs already running
+// before handing them back to the queue (C7, issue #210).
+//
+// Que hace exactamente, porque el nombre se presta:
+//
+// El plazo **no** retrasa nada del apagado salvo la espera por las tareas en
+// vuelo. En cuanto llega la senal, asynq deja de tomar tareas nuevas de la cola
+// --`processor.stop()`-- y eso ocurre siempre, valga lo que valga este numero.
+// Lo unico que decide es cuanto se espera a las que ya empezaron.
+//
+// Y lo que pasa al vencer tampoco es una perdida: asynq cierra su canal `abort`
+// y la tarea vuelve a la cola con `requeue`, que **no consume un reintento**
+// --no es `handleFailedMessage`--. Un drenaje que se queda corto cuesta trabajo
+// repetido, nunca un trabajo perdido ni un reintento gastado.
+//
+// Sin esta opcion manda el valor por omision de asynq, que son **8 segundos**:
+// menos que cualquier trabajo real de esta plataforma --A7 midio 144 s en el
+// perfil corto-- y mucho menos que los 120 s que `mooc-worker.service` ya le
+// concede al contenedor. Es decir, sin esto el plazo de la unidad no sirve de
+// nada: el proceso se rinde mucho antes de que nadie lo mate.
+//
+// Un valor <= 0 se ignora y deja el de asynq, porque un cero accidental no debe
+// convertirse en «aborta en el acto».
+func WithShutdownTimeout(d time.Duration) WorkerOption {
+	return func(we *WorkerEngine) {
+		if d > 0 {
+			we.shutdownTimeout = d
+		}
 	}
 }
 
@@ -174,6 +206,10 @@ func NewWorkerEngine(cfg *config.Config, opts ...WorkerOption) (*WorkerEngine, e
 		}),
 	}
 
+	if we.shutdownTimeout > 0 {
+		srvConfig.ShutdownTimeout = we.shutdownTimeout
+	}
+
 	if we.delayedTaskCheckInterval > 0 {
 		srvConfig.DelayedTaskCheckInterval = we.delayedTaskCheckInterval
 	}
@@ -211,6 +247,7 @@ func (w *WorkerEngine) Start(ctx context.Context) error {
 		slog.String("env", w.cfg.Environment),
 		slog.String("redis_url", w.cfg.RedisURL),
 		slog.Int("concurrency", w.concurrency),
+		slog.String("drenaje", w.drainTimeout().String()),
 	)
 
 	if err := w.server.Start(w.mux); err != nil {
@@ -218,7 +255,34 @@ func (w *WorkerEngine) Start(ctx context.Context) error {
 	}
 
 	<-ctx.Done()
-	w.logger.Info("[Worker Engine] Shutting down background worker processor...")
+
+	// Las dos lineas que rodean a `Shutdown` son la evidencia de C7: entre
+	// ellas esta el drenaje entero, y la diferencia de marcas de tiempo dice
+	// cuanto duro de verdad. Sin ellas habria que deducirlo de los mensajes
+	// internos de asynq, que no dicen con que plazo se configuro.
+	inicio := time.Now()
+	w.logger.Info("[Worker Engine] drenaje iniciado: no se aceptan trabajos nuevos",
+		slog.String("plazo", w.drainTimeout().String()),
+		slog.String("al_vencer", "lo que siga en curso vuelve a la cola sin gastar un reintento"),
+	)
+
 	w.server.Shutdown()
+
+	w.logger.Info("[Worker Engine] drenaje terminado",
+		slog.String("duración", time.Since(inicio).String()),
+		slog.Int64("duración_ms", time.Since(inicio).Milliseconds()),
+	)
 	return nil
+}
+
+// drainTimeout devuelve el plazo que el servidor va a usar de verdad, que es el
+// configurado o, si no se configuro, el de asynq. El 8 esta escrito aqui porque
+// asynq no exporta su constante, y una traza que mienta sobre el plazo es peor
+// que no tenerla: el sintoma de C7 es exactamente creer que el plazo es uno
+// cuando es otro.
+func (w *WorkerEngine) drainTimeout() time.Duration {
+	if w.shutdownTimeout > 0 {
+		return w.shutdownTimeout
+	}
+	return 8 * time.Second
 }
