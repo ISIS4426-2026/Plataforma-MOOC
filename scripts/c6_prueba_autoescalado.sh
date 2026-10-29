@@ -17,23 +17,24 @@
 #
 # EL GUION NO GENERA CARGA, Y ES A PROPOSITO
 #
-# Encolar trabajos a mano con `redis-cli` no vale: asynq los codifica, y uno hecho
-# a mano fallaria al decodificar --probaria el decodificador, no el consumo--. El
-# camino honesto es el flujo normal de subida, `scripts/a7_verificar_e2e.sh`, que
-# hay que lanzar varias veces en paralelo para que haya trabajo por atender.
-# Con `single_instance_assignment = 2`, para llegar a 3 replicas hacen falta
-# **6 trabajos sin terminar a la vez**.
+# La carga la encola `scripts/c6_encolar_carga.sh`, que se lanza **despues** y
+# en otra terminal. Separarlos deja que este mida sin competir por la red con
+# las subidas, y que el otro se pueda repetir si una subida falla.
+#
+# `scripts/a7_verificar_e2e.sh` **no sirve** para esto, aunque sea el correcto
+# para C5: sube un PDF y un PNG --escaneo de segundos-- y espera a que cada uno
+# llegue a `completed` antes de seguir, asi que la cola se vacia tan rapido como
+# se llena y `outstanding` no pasa de 2.
 #
 # USO
 #
 #   bash ./scripts/c6_prueba_autoescalado.sh                 # a la salida estandar
 #   bash ./scripts/c6_prueba_autoescalado.sh <fichero>       # y tambien a un fichero
 #
-# y en otra terminal, para generar la carga:
+# y en otra terminal, cuando este guion lo pida:
 #
-#   for i in 1 2 3 4 5 6; do
-#       BASE_URL=https://<dominio> bash ./scripts/a7_verificar_e2e.sh &
-#   done
+#   BASE_URL="$(cd infra/terraform && terraform output -raw lb_url)" \
+#     bash ./scripts/c6_encolar_carga.sh 10
 set -uo pipefail
 
 PROYECTO="${PROYECTO:-plataforma-mooc-entrega2}"
@@ -88,11 +89,22 @@ valor_de() {
         sed 's/.*"\([0-9]*\)"$/\1/'
 }
 
+# EL ESTADO SE LEE POR EL GRUPO, NO POR EL AUTOESCALADOR.
+#
+# `gcloud compute autoscalers` **no existe** en el SDK instalado --comprobado
+# en 586.0.0: `Invalid choice: 'autoscalers'`--. El unico sitio donde este
+# gcloud expone el estado es el campo `autoscaler` del grupo gestionado, que
+# trae lo mismo: `status`, `recommendedSize` y `statusDetails`.
+#
+# El `sed` final no es decorativo: si el grupo existe y **no tiene**
+# autoescalador, gcloud no imprime una linea vacia sino una linea de
+# tabuladores, que para `[ -z ]` no esta vacia. Sin el, la comprobacion de mas
+# abajo daria por bueno un autoescalador que no existe.
 estado_autoescalador() {
-    gcloud compute autoscalers describe "${AUTOESCALADOR}" \
+    gcloud compute instance-groups managed describe "${GRUPO}" \
         --zone="${ZONA}" --project="${PROYECTO}" \
-        --format="value(status,recommendedSize,statusDetails[].message)" \
-        2>/dev/null | tr -d '\r'
+        --format="value(autoscaler.status,autoscaler.recommendedSize,autoscaler.statusDetails[0].message)" \
+        2>/dev/null | tr -d '\r' | sed 's/^[[:space:]]*$//'
 }
 
 estado_del_grupo() {
@@ -155,6 +167,26 @@ if [ -z "${DETALLE}" ]; then
     exit 1
 fi
 marca "autoescalador: ${DETALLE}"
+
+# `CUSTOM_METRIC_INVALID` RECIEN CREADO EL AUTOESCALADOR NO ES UN FALLO.
+#
+# GCE valida la metrica al crear el recurso y deja el veredicto pegado en
+# `statusDetails` hasta el primer sondeo que si la lee. Como el `apply` crea el
+# autoescalador y la VM de la cola a la vez, durante unos minutos el estado es
+# `ERROR / The monitoring metric that was specified does not exist`. Se limpia
+# solo --medido: ACTIVE a los ~4 min-- y mientras tanto el grupo se queda en
+# `min_replicas`, que es su comportamiento normal con la cola vacia.
+#
+# La fase 1 ya ha demostrado que la serie existe, asi que aqui solo se avisa.
+if printf '%s' "${DETALLE}" | grep -q "does not exist"; then
+    emitir ""
+    emitir "AVISO: el autoescalador dice todavia CUSTOM_METRIC_INVALID. Es el"
+    emitir "       veredicto del momento en que se creo, y la fase 1 acaba de"
+    emitir "       leer la serie: espera unos minutos y vuelve a lanzar esto."
+    emitir "       NO toques nada; no hay nada que arreglar."
+    emitir ""
+fi
+
 marca ">>> TOMA LA CAPTURA DE 'ANTES': grupo en 1 replica y cola vacia <<<"
 emitir ""
 
