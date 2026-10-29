@@ -124,8 +124,10 @@ resuelve apuntando la caché al servicio compartido de B1.
 ## 4. La cola vive dentro de la máquina que el autoscaler puede retirar
 
 > **Resuelta en B1 (#200)** en cuanto a la cola: vive en `mooc-queue-server`,
-> fuera de los dos grupos. **La advertencia del exportador sigue viva** y es de
-> C6; ver más abajo.
+> fuera de los dos grupos. **Y en C6 (#209) en cuanto al exportador**, que es la
+> otra mitad: `cmd/queue-exporter` corre en esa misma VM y escribe la señal
+> directamente en Cloud Monitoring. El aviso de abajo se conserva porque explica
+> por qué el exportador no podía vivir en el grupo.
 
 `docker-compose.worker.yml` incluía el `redis` que hace de cola de asynq. En la
 Entrega 2 eso era aceptable porque la VM worker era fija. En la Entrega 3 esa
@@ -1826,3 +1828,106 @@ subida --login, URL prefirmada, PUT, `complete`-- y espera a `completed`. Sube u
 PDF y una imagen, que **también pasan por el worker** como trabajos de cola
 (nota 16) y son mucho más baratos que un vídeo. Necesita cuentas, así que antes
 hay que sembrar la base.
+
+<a id="42"></a>
+## 42. La señal que gobierna el autoscaling no se puede publicar desde el grupo
+
+C6 (#209) tenía la métrica desde A2: `internal/worker/queue_metrics.go` publica
+`worker.queue.pending`, `active` y `oldest_pending_age_seconds`. Lo que no tenía
+es un sitio desde donde publicarla, y la razón es **aritmética del
+autoescalador**, no una preferencia de diseño.
+
+### Tres impedimentos, cada uno suficiente
+
+| | Por qué el worker no puede publicar la señal |
+| :--- | :--- |
+| **El autoescalador SUMA** las series que devuelve su consulta | La profundidad de la cola es una magnitud **global**. Con tres workers publicándola, el autoescalador ve el triple del trabajo que hay y escala por su propio reflejo |
+| La serie desaparece en una rotación | Justo cuando la situación está cambiando |
+| Con `gce_instance` **no se puede filtrar** | Ver abajo: es lo que descarta el camino del agente de operaciones |
+
+El tercero es el que obligó a cambiar de plan a mitad de C6. La documentación de
+GCE sobre métricas personalizadas dice dos cosas que juntas cierran la puerta:
+
+> Si el tipo de recurso es `gce_instance` (el predeterminado), la métrica debe
+> incluir una serie temporal separada para cada instancia, y **no se puede
+> filtrar por etiquetas de recurso**. Para cualquier otro tipo de recurso, la
+> métrica se trata como del grupo, y sí se usa el filtrado por etiquetas.
+
+Un exportador de Prometheus raspado por el agente de operaciones publica bajo
+`gce_instance` **de la máquina donde corre**. En la VM de la cola, que no es
+miembro del grupo, eso produce una serie que el autoescalador no puede
+seleccionar: no es de una instancia del grupo y no admite filtro.
+
+**Por eso el exportador escribe directamente en Cloud Monitoring** con
+`CreateTimeSeries` sobre el recurso `generic_node`, que sí es filtrable. No es
+una preferencia por la API sobre el agente: es la única forma de que el
+autoescalador vea el dato.
+
+### `outstanding`, y por qué no `pending`
+
+La métrica que gobierna el escalado es
+`custom.googleapis.com/mooc/queue/outstanding` = `pending` + `active`. La suma se
+calcula **en el exportador** porque el autoescalador solo sabe sumar series del
+**mismo** tipo de métrica: dos tipos distintos no se pueden sumar en su consulta.
+
+Con `pending` a secas el grupo oscila, y es aritmética:
+
+```
+pending=4 -> pide 2 réplicas -> la nueva toma 2 -> pending=2 -> pide 1
+          -> retira -> el trabajo en vuelo se reencola -> pending=4 -> ...
+```
+
+Un trabajo sale de `pending` en el instante en que **alguien lo empieza**, así que
+`pending` baja porque hay más capacidad trabajando, y el autoescalador lee esa
+bajada como que sobra. `outstanding` solo baja cuando un trabajo **termina**, así
+que durante un vaciado decrece de forma monótona.
+
+### `single_instance_assignment` es «pendientes por consumidor»
+
+El enunciado admite «profundidad o antigüedad de la cola, **trabajos pendientes
+por consumidor** u otra señal que represente la demanda». La tercera traduce
+directo:
+
+| `outstanding` | réplicas |
+| ---: | ---: |
+| 2 | 1 |
+| 4 | 2 |
+| ≥ 6 | 3 |
+
+con `single_instance_assignment = 2`, que es `mooc-worker-concurrency`. El valor
+no es arbitrario: es el número de instancias con el que todo el trabajo está
+siendo atendido y nada espera. **Si alguien cambia la concurrencia, este número
+cambia con ella.**
+
+### Dos trampas que costarían un `apply` o una tarde
+
+1. **`single_instance_assignment` y `target`/`type` son mutuamente excluyentes.**
+   `type = "GAUGE"` describe bien la métrica —un nivel instantáneo— y rompe el
+   `apply`: la API de Compute acepta un modo o el otro, no los dos.
+2. **Un filtro que no devuelve nada no es un error.** El autoescalador sin datos
+   **mantiene el tamaño actual**: no baja al mínimo ni se desborda. El grupo se
+   queda congelado. Por eso el espacio de nombres sale de
+   `local.queue_metric_namespace` y lo leen los dos sitios —el filtro del
+   autoescalador y el entorno del exportador— y por eso hay un `output` con el
+   filtro literal para pegarlo en el Explorador de Métricas.
+
+### La CPU no sirve aquí, y por la razón contraria a la de C2
+
+A7 midió el worker al **96,31 % de CPU media durante casi dos horas**. Un worker
+que transcodifica está saturado mientras tenga **un** trabajo, así que la CPU no
+distingue «uno en curso» de «cien esperando»: con un objetivo de CPU el grupo
+pediría el máximo por un solo vídeo y lo mantendría hasta vaciar la cola.
+
+En C2 la CPU no servía porque **no se movía** (0,18 puntos por petición/s). Aquí
+no sirve porque **está siempre arriba**. Misma conclusión, causas opuestas.
+
+### Lo que esto cambia para los demás
+
+| Issue | Qué tiene que saber |
+| :--- | :--- |
+| **B4** | Su inventario decía que `sa-queue-server` «no lee secretos y no baja imágenes». La primera mitad sigue en pie; la segunda no: C6 le da `artifactregistry.reader` (solo lectura) porque el exportador es un binario de la imagen `worker`. Corregido en `artifact_registry.tf` |
+| **B1** | La VM de la cola pasó de `metadata_startup_script` a `metadata["startup-script"]`. El motivo es que **guarda estado** —el AOF— y el primero es ForceNew. El cambio cuesta **una** recreación, la última; desde entonces tocar el arranque se aplica reiniciando la VM, que conserva el disco |
+| **C7** | `scale_in_control` de 1 réplica / 900 s **no es un drenaje**. Acota la frecuencia del daño a un trabajo en vuelo por ventana, y 900 s no cubren los 1 711 s del perfil largo de A7 ni pretenden |
+| **G6** | `cooldown_period = 420` es una **estimación**, el mismo número que `initial_delay_sec` de C5 porque contestan la misma pregunta. Hay que calibrarlo con `/var/lib/mooc/arranque.json` del rol worker |
+| **G1, G5, G6** | La nota 10 aplica entera: esta métrica personalizada **caduca**. Hay que exportar los puntos crudos de cada corrida al repositorio en el momento |
+| **F2** | `monitoring.metricWriter` de `sa-queue-server` **deja de ser un permiso sin uso**: lo consume el exportador. La nota 31 lo tenía marcado como el único sin uso de las tres cuentas |
