@@ -3,6 +3,7 @@ package worker
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 	"time"
@@ -34,6 +35,31 @@ func LoggingMiddleware(logger *slog.Logger) asynq.MiddlewareFunc {
 
 			err := next.ProcessTask(ctx, t)
 			duration := time.Since(start)
+
+			// UNA TAREA INTERRUMPIDA NO ES UNA TAREA QUE FALLO.
+			//
+			// Cuando un worker se retira (C7, #210) asynq cancela el contexto
+			// de lo que este en curso, y el manejador devuelve
+			// `context.Canceled`. Con la linea normal, el registro del drenaje
+			// --que es la evidencia que C7 tiene que capturar-- dice
+			// `estado=failed` sobre un trabajo que esta sano y que va a volver
+			// a la cola. Quien lea esa captura dentro de seis meses no tiene
+			// como saber que no fue un error.
+			//
+			// Lo que cambia es solo la traza: el error se devuelve igual y
+			// asynq decide lo mismo que decidia antes.
+			if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+				logger.WarnContext(ctx, fmt.Sprintf("job %s interrumpido", taskType),
+					slog.String("id", taskID),
+					slog.String("tipo", taskType),
+					slog.String("estado", "interrumpido"),
+					slog.String("duración", duration.String()),
+					slog.Int64("duración_ms", duration.Milliseconds()),
+					slog.String("motivo", "el worker se esta retirando; la tarea vuelve a la cola, no es un fallo del trabajo"),
+					slog.String("error", err.Error()),
+				)
+				return err
+			}
 
 			if err != nil {
 				logger.ErrorContext(ctx, fmt.Sprintf("job %s failed", taskType),

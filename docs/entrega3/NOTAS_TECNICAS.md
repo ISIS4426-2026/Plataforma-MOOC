@@ -2010,3 +2010,88 @@ rehace porque `var.image_tag` forma parte de ella —`name_prefix` más
 | **G1, G5, G6** | Cualquier guion que lea el estado de un autoescalador tiene que ir por el grupo, no por `gcloud compute autoscalers` |
 | **C7** | Al crear o recrear el autoescalador, los primeros minutos de `statusDetails` no son evidencia de nada |
 | **D1** | El `apply` que enciende el entorno recrea la plantilla de la API cada vez que cambia `image_tag`. Es lo esperado y la sustitución es segura |
+
+---
+
+## 44. El plazo de drenaje vivia en dos capas que no se hablaban
+
+**Contexto:** C7 (#210). El apagado ordenado del worker no habia que
+construirlo: existia entero en asynq y estaba mal configurado.
+
+### 8 segundos contra 120
+
+`mooc-worker.service` le concede al contenedor 120 s para parar
+(`down --timeout 120`) y a la unidad 180 s (`TimeoutStopSec`). B3 los puso a
+proposito y dejo escrito alli que «la politica de verdad la decide C7».
+
+Lo que no se veia desde la unidad: `asynq` v0.26.0 tiene
+`defaultShutdownTimeout = 8 * time.Second` y `NewWorkerEngine` **nunca fijaba
+`ShutdownTimeout`**. La peor combinacion posible — la capa de sistema esperando
+dos minutos a un proceso que se rindio a los ocho segundos.
+
+Es la clase de fallo que no aparece en ninguna prueba y que nadie nota operando:
+el servicio para «bien», solo que tirando trabajo que iba a terminar.
+
+### `requeue` no es `handleFailedMessage`
+
+Leyendo el codigo de asynq para configurarlo bien aparece la distincion que
+sostiene todo el criterio del enunciado:
+
+| Camino | Cuando | Consume reintento |
+| :--- | :--- | :---: |
+| `requeue()` | vence el plazo de drenaje (`close(p.abort)`) | **no** |
+| `handleFailedMessage()` | el manejador devuelve error, o vence el *lease* | si |
+
+Importa porque una instancia que el autoescalador retira **no ha fallado en
+nada**. Si cada retirada gastara uno de los tres intentos, tres reducciones
+seguidas mandarian a la cola de muertos un trabajo perfectamente sano. Con
+`scale_in_control` a una replica cada 900 s (C6), tres reducciones son 45
+minutos: perfectamente alcanzable en una tarde.
+
+### La idempotencia de produccion era un mapa en memoria
+
+`cmd/worker/main.go` no pasaba `WithIdempotencyStore`, asi que el motor caia al
+`MemoryIdempotencyStore` por omision. El `RedisIdempotencyStore` existia
+completo y sin usar.
+
+Con un worker suelto casi no se notaba. Desde C5 el worker es un grupo de 1 a 3,
+y **el trabajo que un drenaje devuelve a la cola lo recoge otra instancia**, que
+no ve ninguna marca.
+
+Sin exagerar el hallazgo: los efectos duplicados si estaban cubiertos, por otro
+sitio. `mediaproc.go` comprueba contra la base que el recurso no este ya
+`completed` sobre el mismo objeto, y el prefijo de los derivados sale de
+`storage.HLSPrefix(resource.StableID)`, que es determinista — un reintento
+**sobrescribe** los mismos objetos. El middleware en memoria era una red de
+seguridad que no estaba atada a nada, no la unica defensa.
+
+### Una tarea interrumpida decia `failed`
+
+Al cancelarse el contexto el manejador devuelve `context.Canceled`, y
+`LoggingMiddleware` registraba `estado=failed` sobre un trabajo sano que iba a
+volver a la cola. Como la evidencia que bloquea C7 es **precisamente el registro
+del drenaje**, esa linea convertia la prueba en su contrario. Ahora sale como
+`estado=interrumpido` con el motivo; lo que devuelve el manejador no cambia.
+
+### `graceful_shutdown` existe y el provider fijado no lo expone
+
+Compute Engine permite un apagado ordenado **de 1 segundo a 6 horas**, y la
+restriccion documentada para grupos administrados es que no puedes *saltartelo*
+cuando el autoescalador borra una instancia — no que no se pueda usar. Con eso,
+un worker retirado terminaria incluso el perfil largo de 1 711 s.
+
+El provider esta fijado en `google 8.4.0` y su esquema **no lo tiene**, ni en
+`google_compute_instance_template` ni en `google_compute_instance` (comprobado
+con `terraform providers schema -json`). Subirlo a mitad de entrega cambia el
+plan de los 68 recursos del estado compartido. Queda anotado: es la mejora de
+mayor efecto por menos codigo de todo el bloque C.
+
+### Lo que esto cambia para los demas
+
+| Issue | Que tiene que saber |
+| :--- | :--- |
+| **E1** | La concurrencia sigue en 2 por instancia y el techo real son **6** transcodificados simultaneos (3 instancias x 2). Los temporales siguen en el volumen `mooc_worker_scratch`, con limpieza por tarea, por `defer` de tarea interrumpida y por `ExecStartPre` |
+| **G6** | El ciclo de escalado ahora incluye un drenaje de hasta 90 s por replica retirada. Una medida de «cuanto tarda en reducir» que lo ignore se queda corta |
+| **C6** | `single_instance_assignment = 2` y `WORKER_CONCURRENCY=2` son el mismo numero. Si alguien cambia uno, cambia el otro |
+| **F2** | El worker usa ahora el Redis de la cola tambien para las claves `idempotency:worker:`. No es una cuenta ni un permiso nuevo: es la misma conexion |
+| **G1, G5** | Redis en una sola VM sigue siendo el punto unico de falla del procesamiento: sin el no hay cola, no hay consumo, y el autoescalador de C6 se queda sin señal y **congela** el tamaño del grupo |

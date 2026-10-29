@@ -69,6 +69,32 @@ locals {
     # 10 %, no el doble, porque ffmpeg ya reparte el trabajo entre los nucleos.
     # La palanca es mas instancias, que es lo que hace C6.
     mooc-worker-concurrency = "2"
+
+    # CUANTO ESPERA UN WORKER QUE SE RETIRA (C7, issue #210).
+    #
+    # Lo que este plazo decide es **solo** la espera por las tareas que ya
+    # estaban en curso. Dejar de tomar tareas nuevas ocurre en el acto, valga lo
+    # que valga este numero.
+    #
+    # 90 s sale de tres restricciones, y es el menor de los tres techos:
+    #
+    #   1. `mooc-worker.service` le da al contenedor 120 s
+    #      (`down --timeout 120`) y a la unidad 180 s (`TimeoutStopSec`).
+    #   2. Una instancia que el grupo borra solo dispone de la ventana corta de
+    #      apagado del invitado. La ventana larga seria `graceful_shutdown`
+    #      --hasta seis horas, y si funciona con los borrados del
+    #      autoescalador-- pero el provider fijado en 8.4.0 **no la expone**.
+    #   3. El perfil corto de A7 son 144 s de transcodificado, asi que 90 s no
+    #      salvan ni un trabajo corto completo.
+    #
+    # El (3) parece decir que el plazo no sirve. Sirve para lo que importa: la
+    # tarea que no termina vuelve a la cola **sin gastar un reintento**, y el
+    # tiempo que si se aprovecha es el de las tareas que estaban por acabar.
+    # Subirlo por encima del techo (2) no compra nada: lo que no cabe en la
+    # ventana del invitado lo recupera el lease de 30 s de asynq.
+    #
+    # Es el numero que la sesion de evidencia de C7 tiene que medir de verdad.
+    mooc-worker-drain-timeout = "90s"
   }
 
   # El dominio de la plataforma es el del **balanceador**, que es la unica

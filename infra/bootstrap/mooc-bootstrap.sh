@@ -43,6 +43,7 @@
 #   mooc-smtp-username      login SMTP                          (rol web, obligatoria)
 #   mooc-hls-bucket         bucket de derivados              (rol worker, obligatoria)
 #   mooc-worker-concurrency procesos de transcodificacion        (rol worker, por omision 2)
+#   mooc-worker-drain-timeout  espera por las tareas en curso al retirarse (rol worker, por omision 90s)
 #
 # IDEMPOTENCIA
 #
@@ -226,6 +227,10 @@ CONFEOF
 else
     HLS_BUCKET="$(meta mooc-hls-bucket)"
     CONCURRENCY="$(meta mooc-worker-concurrency)"; CONCURRENCY="${CONCURRENCY:-2}"
+    # El plazo de drenaje de C7. El valor por omision de aqui tiene que ser el
+    # mismo que el de `config.Load`: una VM cuya metadata no lo traiga --una
+    # plantilla anterior a C7-- se comporta igual que el binario sin variable.
+    DRAIN="$(meta mooc-worker-drain-timeout)"; DRAIN="${DRAIN:-90s}"
     [[ -n "${HLS_BUCKET}" ]] || morir "falta mooc-hls-bucket"
     cat >"${TMP_CONF}" <<CONFEOF
 # Generado por infra/bootstrap/mooc-bootstrap.sh (B3). No editar a mano.
@@ -235,6 +240,7 @@ QUEUE_PRIVATE_IP=${QUEUE_IP}
 GCP_PROJECT_ID=${PROJECT_ID}
 MEDIA_HLS_BUCKET=${HLS_BUCKET}
 WORKER_CONCURRENCY=${CONCURRENCY}
+WORKER_DRAIN_TIMEOUT=${DRAIN}
 CONFEOF
 fi
 
