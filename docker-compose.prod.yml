@@ -42,7 +42,8 @@ services:
       # Solo los lee nginx.web.conf (frontend); los demas perfiles los ignoran.
       - API_UPSTREAM=api:8080
       - STORAGE_ORIGINS=${STORAGE_ORIGINS:-https://storage.googleapis.com}
-      - HLS_BASE_URL=${HLS_BASE_URL:-https://storage.googleapis.com/${S3_BUCKET:-plataforma-mooc-entrega2-media}}
+      # Los derivados HLS viven en SU bucket (publico, `storage_hls_bucket_name`), no en el de medios.
+      - HLS_BASE_URL=${HLS_BASE_URL:-https://storage.googleapis.com/${HLS_BUCKET:-plataforma-mooc-entrega2-hls}}
     volumes:
       # Ya no se montan /etc/letsencrypt ni ./certbot/www: no hay certificado en
       # la instancia ni desafio de ACME que servir.
