@@ -82,8 +82,14 @@ resource "google_compute_instance_template" "api" {
   # de grupo de la VM fija: sirve HTTP plano en el 80 en vez de redirigir a HTTPS
   # y terminar TLS con un certificado que en un disco nuevo no existe, y que sin
   # IP publica certbot no podria obtener.
+  #
+  # `nginx.web.conf` es ese mismo perfil (HTTP plano en el 80, las mismas cabeceras de
+  # reenvio, /api/v1/metrics denegada) mas el frontend de D1: el proxy es la imagen
+  # `web`, publicada con `scripts/publish_images.sh`, que sirve la interfaz y reenvia
+  # /api/ a la API en el mismo origen. `nginx.mig.conf` se conserva por si el grupo
+  # tuviera que servir solo la API.
   metadata = merge(local.mooc_metadata_comun, local.mooc_metadata_web, {
-    mooc-nginx-config = "./nginx.mig.conf"
+    mooc-nginx-config = "./nginx.web.conf"
   })
 
   scheduling {

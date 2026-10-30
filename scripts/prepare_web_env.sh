@@ -45,8 +45,8 @@ GCS_SIGNER_ACCOUNT="${GCS_SIGNER_ACCOUNT:-sa-web-server@${GCP_PROJECT_ID}.iam.gs
 # the backends serve plain HTTP on 80 inside the VPC.
 NGINX_CONFIG_FILE="${NGINX_CONFIG_FILE:-./nginx.mig.conf}"
 case "${NGINX_CONFIG_FILE}" in
-  ./nginx.mig.conf) ;;
-  *) fail "NGINX_CONFIG_FILE must be ./nginx.mig.conf; the TLS profiles went with C3" ;;
+  ./nginx.mig.conf | ./nginx.web.conf) ;;
+  *) fail "NGINX_CONFIG_FILE must be ./nginx.mig.conf (API only) or ./nginx.web.conf (frontend + API)" ;;
 esac
 
 required=(IMAGE_TAG APP_DOMAIN DB_PRIVATE_IP QUEUE_PRIVATE_IP SMTP_FROM SMTP_USERNAME)
@@ -142,6 +142,12 @@ DB_MAX_OPEN_CONNS='25'
 DB_MAX_IDLE_CONNS='25'
 DB_CONN_MAX_LIFETIME='5m'
 EOF
+
+# Con el perfil del frontend (D1) el proxy es la imagen `web`, publicada junto a `api` y `worker` con el
+# mismo IMAGE_TAG: la version de la interfaz y la de la API no pueden separarse.
+if [[ "${NGINX_CONFIG_FILE}" == "./nginx.web.conf" ]]; then
+  echo "PROXY_IMAGE='${GCP_REGION:-us-east1}-docker.pkg.dev/${GCP_PROJECT_ID}/${GCP_ARTIFACT_REGISTRY_REPOSITORY:-mooc}/web:${IMAGE_TAG}'" >>"${TMP_FILE}"
+fi
 
 mv "${TMP_FILE}" "${ENV_FILE}"
 chmod 600 "${ENV_FILE}"

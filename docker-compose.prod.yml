@@ -27,7 +27,10 @@
 
 services:
   proxy:
-    image: nginx:1.27-alpine
+    # Por omision, nginx pelado con nginx.mig.conf (solo la API). En una instancia que sirve el frontend,
+    # PROXY_IMAGE es la imagen `web` (D1, `Dockerfile.web`): trae el build y sirve la API en el mismo origen.
+    # Con ella, NGINX_CONFIG_FILE debe ser ./nginx.web.conf.
+    image: ${PROXY_IMAGE:-nginx:1.27-alpine}
     # Solo el 80. El 443 se fue con C3 (#206): TLS se termina en el balanceador,
     # con un certificado administrado por Google, y los backends sirven HTTP
     # plano dentro de la VPC. Sin IP publica en las instancias, ese HTTP no
@@ -36,6 +39,11 @@ services:
       - "80:80"
     environment:
       - APP_DOMAIN=${APP_DOMAIN:?Set APP_DOMAIN to the public DNS hostname}
+      # Solo los lee nginx.web.conf (frontend); los demas perfiles los ignoran.
+      - API_UPSTREAM=api:8080
+      - STORAGE_ORIGINS=${STORAGE_ORIGINS:-https://storage.googleapis.com}
+      # Los derivados HLS viven en SU bucket (publico, `storage_hls_bucket_name`), no en el de medios.
+      - HLS_BASE_URL=${HLS_BASE_URL:-https://storage.googleapis.com/${HLS_BUCKET:-plataforma-mooc-entrega2-hls}}
     volumes:
       # Ya no se montan /etc/letsencrypt ni ./certbot/www: no hay certificado en
       # la instancia ni desafio de ACME que servir.
