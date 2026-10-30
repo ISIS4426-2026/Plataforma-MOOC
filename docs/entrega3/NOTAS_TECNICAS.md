@@ -47,6 +47,7 @@ lo reemplaza, lo continúa.
 | 27 | [Un `FLUSHDB` en el Redis de asynq mata la observabilidad y no se nota](#27) | **B1, C6, C7**, A7, G4, G6 |
 | 46 | [El frontend se sirve en el mismo origen, y la API no tiene «mis cursos» ni «quién soy»](#46) | **D2, D3**, A4, B3, C1, C3, E1 |
 | 47 | [Interfaces del estudiante y del profesor: trampas que ya costaron tiempo](#47) | **D2, D3**, A1, A5, B1, C3, E1 |
+| 48 | [El arnés `e2e_cloud` ya registra `X-Instance-ID` y reconcilia trabajos, y `delete-instances` devuelve antes de que acabe el drenaje](#48) | **G3, G5, G6**, I1, I4 |
 
 ---
 
@@ -2022,3 +2023,32 @@ Qué hace cada interfaz está en las evidencias de [D2](./evidencias/D2/README.m
 | La BD local sin migraciones 7 y 8 | El cuestionario responde 500 al abrir un intento | Aplicar todas las migraciones antes de probar | A1 |
 | TypeScript 7 y OneDrive | Los archivos con punto de reanálisis de OneDrive se saltan del globbing | `tsconfig.json` lista `files` explícitos | quien compile en OneDrive |
 | Transcodificación lenta en local | 90 s de video a 720p tardaron 2 m 49 s | No se capturó «Procesando → Disponible» en vivo; hacerlo en la nube | D3 |
+
+<a id="48"></a>
+## 48. El arnés `e2e_cloud` ya registra `X-Instance-ID` y reconcilia trabajos, y `delete-instances` devuelve antes de que acabe el drenaje
+
+**Afecta a:** G3 (recorrido extremo a extremo contra la arquitectura elástica), G5 y G6 (ciclo elástico bajo carga de API y workers), I1 (documento de arquitectura y operación) e I4 (vídeo de sustentación).
+
+Hallazgos y herramientas que deja cerrados **E1 (#216)** en [`scripts/e2e_cloud/`](../../scripts/e2e_cloud/main.go), [`scripts/e1_integridad_y_retiro.sh`](../../scripts/e1_integridad_y_retiro.sh) y [`docs/entrega3/evidencias/E1/README.md`](evidencias/E1/README.md):
+
+1. **`scripts/e2e_cloud` registra `X-Instance-ID` y `X-Request-ID` en cada petición y soporta `-min-instancias`**:
+   - Cada fila de `resultados.md` incluye las columnas `Instancia (X-Instance-ID)` y `X-Request-ID`, además de una tabla resumen inicial con el reparto de peticiones por réplica y una tabla final de **Reconciliación de trabajos multimedia aceptados** (cruzando cada `202 Accepted` de `POST /api/v1/media/uploads/{id}/complete` con su estado final y sus derivados en GCS).
+   - La bandera `-min-instancias` vale `1` por omisión (para no fallar si alguien corre el arnés contra una sola réplica), pero en **E1** y **G3** debe invocarse con `-min-instancias 2` cuando `mooc-api-group` tiene dos o más instancias activas.
+2. **Presupuesto del limitador de login (10 intentos/min/IP) en pruebas multi-réplica**:
+   - El Flujo 1 de `scripts/e2e_cloud` ya consume 5 inicios de sesión. Para probar continuidad de sesión, `logout` y suspensión entre réplicas en el Flujo 7 sin disparar `429 Too Many Requests` del limitador por IP, el arnés reutiliza las sesiones ya abiertas de `student` y `professor2` y solo realiza **un** login adicional con `estudiante2@plataforma-mooc.test` (`c0000000-0000-0000-0000-000000000002`), dejando la cuenta reactivada (`status="active"`) al terminar.
+3. **`gcloud compute instance-groups managed delete-instances` retorna en ~4 s, no al terminar el drenaje**:
+   - Al retirar un worker con trabajo activo (`delete-instances mooc-worker-group --instances=<nombre>`), la llamada a la API de GCP devuelve `SUCCESS` en ~4 s mientras la VM permanece en estado `DELETING` durante ~102 s ejecutando los 90 s de `WORKER_DRAIN_TIMEOUT`.
+   - Un guion que deje de muestrear Redis cuando `gcloud` termina nunca verá el `requeue`: hay que seguir sondeando `mooc-queue-server` (`redis-cli -n 0`, que corre como servicio del sistema en esa VM y no dentro de Docker) durante ~105–150 s hasta observar que la tarea pasa de `asynq:{default}:active` a `asynq:{default}:pending` con `retry=0` (y `ZCARD asynq:{default}:retry == 0`).
+
+4. **Trampas descubiertas al ejecutar `scripts/e1_integridad_y_retiro.sh` (reutilizables en G5, G6 y G3)**:
+   - Las cuentas sembradas son `estudiante1@` y `profesor1@` (no `estudiante@`). Rutas reales: `GET /api/v1/me/enrollments` (no hay `/my/…` ni endpoint de certificados), `POST /api/v1/media/presigned-url` (`filename`, `mime_type`, `file_size_bytes`) y `POST /api/v1/media/uploads/{resourceID}/complete` **con** cuerpo `{"object_key": …}`; los recursos se crean con `type`, no `kind`.
+   - Con `api_min_replicas=1`, restaurar el mínimo tras fijar 2 hace que el autoescalador borre una réplica de inmediato, aunque `scale_in_control` diga 600 s (nota 43): una corrida fallida deja una VM en `DELETING` que la siguiente cuenta como sana. El script espera instancias `RUNNING` con `currentAction=NONE` y restaura el mínimo con `trap EXIT`.
+   - `gcloud compute instance-groups managed list-instances --format="value(instance.scope())"` no sirve para `instances describe`; usar `instance.basename()`.
+   - `archived` en asynq no está a 0 (hay 3 de pruebas previas): comparar contra la línea base, no contra 0.
+   - `scratch/` no incluye `docs/media/clase.mp4`: pasar `-video scratch/video_corto.mp4` al arnés.
+
+| Issue | Qué tiene que saber |
+| :--- | :--- |
+| **G3** | Ejecutar `go run ./scripts/e2e_cloud -salida docs/entrega3/evidencias/G3 -min-instancias 2 -video scratch/video_corto.mp4`: ya genera automáticamente las tablas de reparto por `X-Instance-ID`, continuidad/revocación entre réplicas y reconciliación de trabajos |
+| **G5, G6** | Las retiradas deterministas con `delete-instances` de E1 complementan —y no sustituyen— el ciclo automático de `scale-out` y `scale-in` por carga que deben medir G5 (600 s de estabilización en API) y G6 (900 s de estabilización + 90 s de drenaje en workers) |
+| **I1, I4** | Las tres defensas contra duplicados (1.ª API `ConfirmUpload`, 2.ª Worker `idempotency:worker:` + guarda `completed`, 3.ª prefijo determinista `hls/<stable_id>/`) están documentadas y probadas en [`docs/entrega3/evidencias/E1/README.md`](evidencias/E1/README.md) |

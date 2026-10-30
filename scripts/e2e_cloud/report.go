@@ -1,6 +1,7 @@
 package main
 
 import (
+	"cmp"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -8,6 +9,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"time"
 )
@@ -15,21 +17,45 @@ import (
 // ---- resultados ------------------------------------------------------------
 
 // step is one verified interaction: what was called, what the deployment
-// answered, and the state check that backs the answer. The issue's acceptance
-// criterion is precisely that pairing -- an HTTP code on its own does not show
-// that anything was persisted, so every step that expects success also carries
-// the state it went on to observe.
+// answered, which replica served it (X-Instance-ID + X-Request-ID), and the
+// state check that backs the answer. The issue's acceptance criterion is
+// precisely that pairing -- an HTTP code on its own does not show that anything
+// was persisted, so every step that expects success also carries the state it
+// went on to observe.
 type step struct {
-	Flow    string
-	Name    string
-	Request string
-	Status  string
-	State   string
-	Passed  bool
-	Detail  string
+	Flow      string
+	Name      string
+	Request   string
+	Status    string
+	Instance  string
+	RequestID string
+	State     string
+	Passed    bool
+	Detail    string
 	// Info marks a row that is neither a pass nor a failure: a leg the run
 	// deliberately does not drive. It must not read as a green check.
 	Info bool
+}
+
+// mediaJob tracks an asynchronous media processing job accepted by the API
+// (202 on POST /api/v1/media/uploads/{id}/complete) so the run can reconcile
+// accepted jobs against their final state and derivative objects (issue E1).
+type mediaJob struct {
+	ResourceID  string
+	StableID    string
+	Kind        string
+	ObjectKey   string
+	Instance    string
+	RequestID   string
+	FinalStatus string
+	Elapsed     time.Duration
+	Derivatives string
+	Reconciled  bool
+}
+
+type instanceStat struct {
+	ID    string
+	Count int
 }
 
 // run accumulates the steps and writes the run log as it goes, so a run that
@@ -38,6 +64,7 @@ type run struct {
 	api     *client
 	log     io.Writer
 	steps   []step
+	jobs    []mediaJob
 	flow    string
 	started time.Time
 }
@@ -71,8 +98,12 @@ func (r *run) check(name string, res *response, want int, state string, stateOK 
 		state = "el código de estado es la verificación"
 	}
 
+	inst := res.instanceID()
+	reqID := res.requestID()
+
 	r.steps = append(r.steps, step{
 		Flow: r.flow, Name: name, Request: res.label(), Status: status,
+		Instance: inst, RequestID: reqID,
 		State: state, Passed: passed, Detail: detail,
 	})
 
@@ -80,7 +111,11 @@ func (r *run) check(name string, res *response, want int, state string, stateOK 
 	if !passed {
 		mark = "FALLA"
 	}
-	fmt.Fprintf(r.log, "[%s] %-58s %-44s %s -> %s\n", mark, name, res.label(), status, state)
+	trace := ""
+	if inst != "—" || reqID != "—" {
+		trace = fmt.Sprintf(" [inst=%s req=%s]", inst, reqID)
+	}
+	fmt.Fprintf(r.log, "[%s] %-58s %-44s %s%s -> %s\n", mark, name, res.label(), status, trace, state)
 	if detail != "" {
 		fmt.Fprintf(r.log, "        %s\n", detail)
 	}
@@ -92,6 +127,7 @@ func (r *run) check(name string, res *response, want int, state string, stateOK 
 func (r *run) note(name, request, state string, ok bool, detail string) bool {
 	r.steps = append(r.steps, step{
 		Flow: r.flow, Name: name, Request: request, Status: "—",
+		Instance: "—", RequestID: "—",
 		State: state, Passed: ok, Detail: detail,
 	})
 	mark := "OK  "
@@ -113,9 +149,34 @@ func (r *run) note(name, request, state string, ok bool, detail string) bool {
 func (r *run) outOfScope(name, request, why string) {
 	r.steps = append(r.steps, step{
 		Flow: r.flow, Name: name, Request: request, Status: "—",
+		Instance: "—", RequestID: "—",
 		State: why, Passed: true, Info: true,
 	})
 	fmt.Fprintf(r.log, "[nota ] %-58s %-44s %s -> %s\n", name, request, "—", why)
+}
+
+func (r *run) recordJob(job mediaJob) {
+	r.jobs = append(r.jobs, job)
+}
+
+func (r *run) instanceCounts() []instanceStat {
+	counts := make(map[string]int)
+	for _, s := range r.steps {
+		if s.Instance != "" && s.Instance != "—" {
+			counts[s.Instance]++
+		}
+	}
+	stats := make([]instanceStat, 0, len(counts))
+	for id, n := range counts {
+		stats = append(stats, instanceStat{ID: id, Count: n})
+	}
+	slices.SortFunc(stats, func(a, b instanceStat) int {
+		if c := cmp.Compare(b.Count, a.Count); c != 0 {
+			return c
+		}
+		return cmp.Compare(a.ID, b.ID)
+	})
+	return stats
 }
 
 func (r *run) failed() int {
@@ -141,7 +202,7 @@ func (r *run) informational() int {
 // writeTable renders the flow -> result -> evidence table the issue asks for.
 func (r *run) writeTable(path, base string) error {
 	var b strings.Builder
-	fmt.Fprintf(&b, "# G3 — Resultados de la corrida E2E en la nube\n\n")
+	fmt.Fprintf(&b, "# G3 / E1 — Resultados de la corrida E2E en la nube\n\n")
 	fmt.Fprintf(&b, "Generado por `scripts/e2e_cloud` el %s contra `%s`.\n",
 		r.started.Format("2006-01-02 15:04:05 MST"), base)
 	fmt.Fprintf(&b, "No editar a mano: se reescribe en cada corrida.\n\n")
@@ -149,13 +210,23 @@ func (r *run) writeTable(path, base string) error {
 		len(r.steps)-r.informational(), r.failed(), r.informational(),
 		time.Since(r.started).Round(time.Second))
 
+	if stats := r.instanceCounts(); len(stats) > 0 {
+		fmt.Fprintf(&b, "## Instancias de API observadas (`X-Instance-ID`)\n\n")
+		fmt.Fprintf(&b, "| Instancia (`X-Instance-ID`) | Peticiones atendidas |\n")
+		fmt.Fprintf(&b, "| :--- | ---: |\n")
+		for _, st := range stats {
+			fmt.Fprintf(&b, "| `%s` | %d |\n", st.ID, st.Count)
+		}
+		fmt.Fprintf(&b, "\n")
+	}
+
 	flow := ""
 	for _, s := range r.steps {
 		if s.Flow != flow {
 			flow = s.Flow
 			fmt.Fprintf(&b, "\n## %s\n\n", flow)
-			fmt.Fprintf(&b, "| | Paso | Petición | HTTP | Estado verificado |\n")
-			fmt.Fprintf(&b, "| :---: | :--- | :--- | :---: | :--- |\n")
+			fmt.Fprintf(&b, "| | Paso | Petición | HTTP | Instancia (`X-Instance-ID`) | `X-Request-ID` | Estado verificado |\n")
+			fmt.Fprintf(&b, "| :---: | :--- | :--- | :---: | :---: | :---: | :--- |\n")
 		}
 		mark := "✅"
 		state := s.State
@@ -166,8 +237,39 @@ func (r *run) writeTable(path, base string) error {
 			mark = "❌"
 			state = s.State + " — **" + s.Detail + "**"
 		}
-		fmt.Fprintf(&b, "| %s | %s | `%s` | %s | %s |\n",
-			mark, s.Name, s.Request, s.Status, state)
+		instCell := "—"
+		if s.Instance != "" && s.Instance != "—" {
+			instCell = "`" + s.Instance + "`"
+		}
+		reqCell := "—"
+		if s.RequestID != "" && s.RequestID != "—" {
+			reqCell = "`" + s.RequestID + "`"
+		}
+		fmt.Fprintf(&b, "| %s | %s | `%s` | %s | %s | %s | %s |\n",
+			mark, s.Name, s.Request, s.Status, instCell, reqCell, state)
+	}
+
+	if len(r.jobs) > 0 {
+		fmt.Fprintf(&b, "\n## Reconciliación de trabajos multimedia aceptados\n\n")
+		fmt.Fprintf(&b, "| | Recurso (`id` / `stable_id`) | Tipo | `object_key` | Instancia `/complete` | `X-Request-ID` | Estado final | Duración | Derivados y verificación |\n")
+		fmt.Fprintf(&b, "| :---: | :--- | :---: | :--- | :---: | :---: | :---: | ---: | :--- |\n")
+		for _, j := range r.jobs {
+			mark := "✅"
+			if !j.Reconciled {
+				mark = "❌"
+			}
+			instCell := "—"
+			if j.Instance != "" && j.Instance != "—" {
+				instCell = "`" + j.Instance + "`"
+			}
+			reqCell := "—"
+			if j.RequestID != "" && j.RequestID != "—" {
+				reqCell = "`" + j.RequestID + "`"
+			}
+			fmt.Fprintf(&b, "| %s | `%s` (`%s`) | `%s` | `%s` | %s | %s | `%s` | %s | %s |\n",
+				mark, short(j.ResourceID), short(j.StableID), j.Kind, j.ObjectKey,
+				instCell, reqCell, j.FinalStatus, j.Elapsed.Round(time.Second), j.Derivatives)
+		}
 	}
 
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
@@ -202,6 +304,26 @@ type response struct {
 
 func (r *response) label() string {
 	return r.method + " " + r.path
+}
+
+func (r *response) instanceID() string {
+	if r == nil || r.header == nil {
+		return "—"
+	}
+	if v := strings.TrimSpace(r.header.Get("X-Instance-ID")); v != "" {
+		return v
+	}
+	return "—"
+}
+
+func (r *response) requestID() string {
+	if r == nil || r.header == nil {
+		return "—"
+	}
+	if v := strings.TrimSpace(r.header.Get("X-Request-ID")); v != "" {
+		return v
+	}
+	return "—"
 }
 
 func (r *response) errorCode() string {
