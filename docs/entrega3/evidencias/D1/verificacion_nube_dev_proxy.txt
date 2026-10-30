@@ -1,0 +1,25 @@
+Verificacion de D1 contra la API DESPLEGADA (balanceador), sin desplegar el frontend
+Fecha: 2026-10-29 · API: https://136.68.55.254.sslip.io
+Forma: servidor de desarrollo de Vite en http://localhost:5173 con proxy /api -> balanceador, que manda
+  Origin: https://136.68.55.254.sslip.io (unico origen en CSRF_ALLOWED_ORIGINS). Ver frontend/vite.config.ts.
+  La sesion la inicio una persona en el navegador; ninguna contrasena pasa por scripts ni por este archivo.
+Cuenta: estudiante1@plataforma-mooc.test (semilla)
+
+Resultados
+  Login con credenciales falsas por el proxy ........ 401 (no 403: el origen pasa la comprobacion CSRF)
+  Sesion tras iniciar sesion ......................... GET /api/v1/me/enrollments -> 200 (4 inscripciones)
+  document.cookie desde la consola ................... vacio: la cookie __Host-mooc_session es HttpOnly
+  sessionStorage ..................................... solo "mooc.user" (usuario, sin token)
+  localStorage ....................................... vacio
+  GET /api/v1/ready .................................. 200
+  X-Instance-ID de las respuestas .................... d47f1c235d39 (la replica de la nube que atendio)
+  Recorrido de lectura ............................... inicio, catalogo (4 cursos), aula de un curso con
+                                                       3 de 3 recursos completados: todos los GET -> 200
+  Video del curso semilla ............................ el manifiesto HLS responde 404 (el recurso semilla no
+                                                       tiene derivados en el bucket de HLS): la interfaz muestra
+                                                       «El video todavia no esta disponible o no se pudo cargar»,
+                                                       no una pantalla en blanco
+
+Limites
+  - NO es el frontend desplegado: falta que el grupo sirva la imagen web (rama feat/211-d1-frontend-en-grupo).
+  - Solo lecturas: no se creo, edito ni borro nada en la nube.

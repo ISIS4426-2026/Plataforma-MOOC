@@ -23,8 +23,20 @@ function commit(env: Record<string, string>): string {
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "VITE_");
+  const devApiTarget = env.VITE_DEV_API_TARGET || "http://localhost:8080";
+  const devApiRemoto = devApiTarget.startsWith("https://");
   return {
     plugins: [
+      // Solo en desarrollo: lo que en la nube sirve nginx en /config.json (ver nginx.web.conf).
+      {
+        name: "dev-runtime-config",
+        configureServer(server) {
+          server.middlewares.use("/config.json", (_req, res) => {
+            res.setHeader("Content-Type", "application/json");
+            res.end(JSON.stringify({ hlsBaseUrl: env.VITE_DEV_HLS_BASE_URL || "" }));
+          });
+        },
+      },
       react(),
       {
         // /version.json: la version del build, consultable sin abrir la interfaz. Es lo que se
@@ -48,10 +60,16 @@ export default defineConfig(({ mode }) => {
       // En desarrollo el navegador habla con este mismo origen y Vite reenvia
       // /api a la API local: asi la cookie de sesion y la comprobacion de origen
       // se comportan igual que detras del balanceador (mismo origen, sin CORS).
+      //
+      // Contra el entorno desplegado (VITE_DEV_API_TARGET=https://<balanceador>) el proxy manda
+      // `Origin: <balanceador>`: es el unico origen que acepta CSRF_ALLOWED_ORIGINS en la nube, y asi
+      // se prueba la interfaz contra la API real sin tocar el despliegue. Solo para desarrollo.
       proxy: {
         "/api": {
-          target: env.VITE_DEV_API_TARGET || "http://localhost:8080",
-          changeOrigin: false,
+          target: devApiTarget,
+          changeOrigin: devApiRemoto,
+          secure: true,
+          headers: devApiRemoto ? { Origin: new URL(devApiTarget).origin } : undefined,
         },
       },
     },
