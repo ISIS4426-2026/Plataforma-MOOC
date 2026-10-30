@@ -2,10 +2,10 @@
 
 | Criterio de aceptación | |
 | :--- | :---: |
-| Ni la API ni los workers dependen de un Redis local a la instancia | ✅ §4 |
+| Ni la API ni los workers dependen de un Redis local a la instancia | ✅ §4, y confirmado en el despliegue |
 | Destruir cualquier instancia de los dos grupos elásticos no afecta la cola ni los trabajos encolados | ⏳ §6 — requiere C1 y C5 |
-| La cola no es alcanzable desde internet, comprobado desde fuera de la VPC | ⏳ §6 — requiere `apply` |
-| Los trabajos encolados sobreviven al reinicio del servicio de cola | ⏳ §6 — requiere `apply` |
+| La cola no es alcanzable desde internet, comprobado desde fuera de la VPC | ✅ §0 — comprobado el 2026-10-27 |
+| Los trabajos encolados sobreviven al reinicio del servicio de cola | ✅ §0 — con claves sintéticas; alcance declarado |
 | Anotado en `NOTAS_TECNICAS.md` | ✅ nota 30, y la nota 4 queda resuelta |
 
 **Estado: escrito y validado estáticamente; sin desplegar.** Lo que falta para
@@ -14,6 +14,71 @@ exige además que existan los grupos administrados. Está detallado en la §6, c
 lo que bloquea el primer `apply` de la Entrega 3.
 
 ---
+
+## 0. Resultado del despliegue del 2026-10-27
+
+### Un fallo real, encontrado solo al desplegar
+
+La API moría en bucle con
+`ping redis: dial tcp 10.0.1.8:6379: connect: connection refused`.
+
+**Causa.** `apt-get install redis-server` **ya deja el servicio corriendo** con la
+configuración por omisión de Debian, que escucha solo en `127.0.0.1`. El guión la
+sobrescribía entera y hacía `systemctl enable --now`, pero **`--now` no hace nada
+sobre un servicio que ya está activo**: no es `restart`. El fichero en disco decía
+`bind 10.0.1.8`, el proceso escuchaba en loopback.
+
+**Y la comprobación de arranque no lo detectó**, que es la mitad peor del fallo.
+Hacía `CONFIG GET appendonly` y **mostraba** el resultado sin comprobarlo, así que
+salía con 0 estando mal. Peor: `maxmemory-policy` coincidía **por casualidad**,
+porque `noeviction` es también el valor por omisión de Debian, de modo que mirar
+solo esa clave no habría delatado nada.
+
+**Corregido en las dos mitades:**
+
+- `systemctl enable` **y** `systemctl restart`, no `enable --now`;
+- la comprobación **afirma** `appendonly = yes`, `maxmemory-policy = noeviction`
+  y que escucha en la IP privada, y sale con 1 si algo no cuadra.
+
+### Superficie pública
+
+[`superficie_publica.txt`](./superficie_publica.txt):
+
+| | |
+| :--- | :--- |
+| IP externa de `mooc-queue-server` | **ninguna** |
+| IP externa de la instancia del grupo | **ninguna** |
+| 6379 y 5432 contra la única IP pública que queda | cerrados o filtrados |
+| `mooc-allow-queue` | origen y destino **por cuenta de servicio**, como se diseñó |
+
+No hay dirección que barrer desde internet, así que la propiedad es estructural y
+no depende del cortafuegos.
+
+### Persistencia al reinicio
+
+[`persistencia_reinicio.txt`](./persistencia_reinicio.txt). Reinicio **duro** del
+servicio —`uptime_in_seconds:0` confirma proceso nuevo— y sobreviven las tres
+cosas: el registro `asynq:queues`, las 2 tareas pendientes de la base 0 y la
+clave de sesión de la base 1.
+
+> **Alcance declarado.** Se probó la persistencia AOF con **claves sintéticas**
+> con la forma que usa asynq. Lo que **no** se probó es que asynq relea su
+> registro tras el reinicio, porque eso exige tareas reales y por tanto el grupo
+> de workers: es **C5**. Sembrar cuentas y hacer una subida completa no entraba
+> en esta sesión.
+
+### La configuración efectiva es la declarada
+
+[`config_efectiva_cola.txt`](./config_efectiva_cola.txt): `appendonly yes`,
+`appendfsync everysec`, `maxmemory 1468006400`, `maxmemory-policy noeviction`,
+`databases 16`, escuchando en `10.0.1.8:6379` y `127.0.0.1:6379`.
+
+Y el candado de la nota 27 funciona en el servidor:
+
+```
+redis-cli FLUSHDB
+ERR unknown command 'FLUSHDB', with args beginning with:
+```
 
 ## 1. La decisión, y qué la decide
 

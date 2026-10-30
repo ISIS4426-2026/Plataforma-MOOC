@@ -1,0 +1,27 @@
+{
+  "rol": "worker",
+  "commit": "e602524b277972eb8bfd03b4f1d4e4790f62557c",
+  "listo": true,
+  "segundos_hasta_listo": 61,
+  "medido_desde": "inicio de mooc-bootstrap.sh, no desde la creacion de la instancia",
+  "sonda": "contenedor en marcha + GET /metrics",
+  "instante_utc": "2026-10-29T15:52:51Z"
+}
+
+=== uptime ===
+up 17 minutes
+=== registro del worker ===
+2026/10/29 15:52:51 Starting Plataforma MOOC Background Worker [Env: production]
+2026/10/29 15:52:51 Derivatives bucket: plataforma-mooc-entrega2-hls
+2026/10/29 15:52:51 Media ladder: 360:800:96,720:2500:128
+2026/10/29 15:52:51 Worker concurrency: 2, work dir: /tmp/mooc-media, max original size: 2048 MB
+{"time":"2026-10-29T15:52:51.274195167Z","level":"INFO","msg":"[Worker Engine] Starting background worker processor...","env":"production","redis_url":"10.0.1.8:6379","concurrency":2}
+{"time":"2026-10-29T15:52:51.274333117Z","level":"INFO","msg":"Starting processing"}
+{"time":"2026-10-29T16:08:31.211746293Z","level":"INFO","msg":"job media:process started","id":"media-documents/e865ce3f-7e66-4883-9aeb-24930ca1fa5b/393d9614-e882-4cca-bce4-460f2edf6748.pdf","tipo":"media:process","estado":"started"}
+2026/10/29 16:08:31 INFO document accepted without derivatives resource_id=ac27b65c-db3c-4f22-ae3f-5f388d9d73a3 object_key=documents/e865ce3f-7e66-4883-9aeb-24930ca1fa5b/393d9614-e882-4cca-bce4-460f2edf6748.pdf content_type=application/pdf bytes=69
+2026/10/29 16:08:31 INFO media job completed resource_id=ac27b65c-db3c-4f22-ae3f-5f388d9d73a3 object_key=documents/e865ce3f-7e66-4883-9aeb-24930ca1fa5b/393d9614-e882-4cca-bce4-460f2edf6748.pdf took=283.66552ms
+{"time":"2026-10-29T16:08:31.495878609Z","level":"INFO","msg":"job media:process completed","id":"media-documents/e865ce3f-7e66-4883-9aeb-24930ca1fa5b/393d9614-e882-4cca-bce4-460f2edf6748.pdf","tipo":"media:process","estado":"completed","duración":"284.171682ms","duración_ms":284}
+{"time":"2026-10-29T16:08:33.589277047Z","level":"INFO","msg":"job media:process started","id":"media-thumbnails/d60bb966-4f8c-404e-b46d-b08fef26e33c/547fc3d5-2974-4a38-bcc2-0f0d6de4014c.png","tipo":"media:process","estado":"started"}
+2026/10/29 16:08:33 INFO document accepted without derivatives resource_id=2919dbf9-54b6-4a93-bfa9-eccdfffcb19d object_key=thumbnails/d60bb966-4f8c-404e-b46d-b08fef26e33c/547fc3d5-2974-4a38-bcc2-0f0d6de4014c.png content_type=image/png bytes=67
+2026/10/29 16:08:33 INFO media job completed resource_id=2919dbf9-54b6-4a93-bfa9-eccdfffcb19d object_key=thumbnails/d60bb966-4f8c-404e-b46d-b08fef26e33c/547fc3d5-2974-4a38-bcc2-0f0d6de4014c.png took=45.017941ms
+{"time":"2026-10-29T16:08:33.634459215Z","level":"INFO","msg":"job media:process completed","id":"media-thumbnails/d60bb966-4f8c-404e-b46d-b08fef26e33c/547fc3d5-2974-4a38-bcc2-0f0d6de4014c.png","tipo":"media:process","estado":"completed","duración":"45.181611ms","duración_ms":45}

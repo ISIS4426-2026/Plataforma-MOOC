@@ -28,15 +28,18 @@
 services:
   proxy:
     image: nginx:1.27-alpine
+    # Solo el 80. El 443 se fue con C3 (#206): TLS se termina en el balanceador,
+    # con un certificado administrado por Google, y los backends sirven HTTP
+    # plano dentro de la VPC. Sin IP publica en las instancias, ese HTTP no
+    # viaja por internet en ningun tramo.
     ports:
       - "80:80"
-      - "443:443"
     environment:
       - APP_DOMAIN=${APP_DOMAIN:?Set APP_DOMAIN to the public DNS hostname}
     volumes:
-      - ${NGINX_CONFIG_FILE:-./nginx.conf}:/etc/nginx/templates/default.conf.template:ro
-      - /etc/letsencrypt:/etc/letsencrypt:ro
-      - ./certbot/www:/var/www/certbot:ro
+      # Ya no se montan /etc/letsencrypt ni ./certbot/www: no hay certificado en
+      # la instancia ni desafio de ACME que servir.
+      - ${NGINX_CONFIG_FILE:-./nginx.mig.conf}:/etc/nginx/templates/default.conf.template:ro
     depends_on:
       api:
         condition: service_healthy

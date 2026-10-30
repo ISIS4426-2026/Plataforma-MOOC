@@ -7,6 +7,12 @@ se redescubra a mitad de una corrida.
 dejó nada aquí, dilo explícitamente al cerrarlo: así se distingue «no había nada
 que anotar» de «no lo revisé». Es criterio de aceptación de los 44 issues.
 
+La numeración tiene huecos a propósito: las notas **7** y **26** se retiraron el
+29 de octubre de 2026 porque describían un estado del mundo que ya no existe —el
+frontend esperando a la infraestructura, y el entorno de la Entrega 2 a medias—.
+Los números no se reutilizan ni se corren: se citan por todo el repositorio y en
+los READMEs de evidencia, y renumerar dejaría cada cita apuntando a otra cosa.
+
 El equivalente de la entrega anterior, [`docs/entrega2/NOTAS_TECNICAS.md`](../entrega2/NOTAS_TECNICAS.md),
 acumuló 41 hallazgos y dice de sí mismo que la mitad salieron de errores que
 costaron una tarde y se habrían evitado leyéndolos. Sigue vigente: lo de aquí no
@@ -20,7 +26,6 @@ lo reemplaza, lo continúa.
 | 4 | [La cola vive dentro de la máquina que el autoscaler puede retirar](#4) | B1, C5, C6, C7, G1, G6 |
 | 5 | [Con un MIG, tres réplicas pueden migrar la base a la vez](#5) | A3, B3, C1, C5 |
 | 6 | [Las capturas no se pueden rehacer después de I6](#6) | los 18 issues con criterio de captura, I4 |
-| 7 | [El contrato de la API ya existe: el frontend no tiene que esperar a la infraestructura](#7) | D1, D2, D3, H1 |
 | 8 | [El estado `available` del enunciado es `completed` en el código](#8) | D2, D3, G4, I1 |
 | 9 | [Reproducir vídeos completos en las pruebas cuesta más que las propias VMs](#9) | A5, F3, G4, G6 |
 | 10 | [Las métricas de Cloud Monitoring caducan](#10) | C6, G1, G5, G6, G7 |
@@ -39,9 +44,8 @@ lo reemplaza, lo continúa.
 | 23 | [La cola y las sesiones comparten política de expulsión](#23) | B1, C6, F3 |
 | 24 | [Transcodificar un vídeo real cuesta 1,2× su duración, y eso cambia la campaña](#24) | **G4, G6**, A7, C5, C6, F3 |
 | 25 | [Antes de publicar una cifra hay once reglas, y están en código](#25) | **todos los que midan**: A7, G1, G3, G4, G5, G6, G7, H2, H3 |
-| 26 | [El entorno de la Entrega 2 está a medias, y ninguna imagen del tag está publicada](#26) | **A7, B1, B2**, C1, C3, C5, G3, I6 |
 | 27 | [Un `FLUSHDB` en el Redis de asynq mata la observabilidad y no se nota](#27) | **B1, C6, C7**, A7, G4, G6 |
-| 36 | [El frontend se sirve en el mismo origen, y la API no tiene «mis cursos» ni «quién soy»](#36) | **D2, D3**, A4, B3, C1, C3, E1 |
+| 46 | [El frontend se sirve en el mismo origen, y la API no tiene «mis cursos» ni «quién soy»](#46) | **D2, D3**, A4, B3, C1, C3, E1 |
 
 ---
 
@@ -125,8 +129,10 @@ resuelve apuntando la caché al servicio compartido de B1.
 ## 4. La cola vive dentro de la máquina que el autoscaler puede retirar
 
 > **Resuelta en B1 (#200)** en cuanto a la cola: vive en `mooc-queue-server`,
-> fuera de los dos grupos. **La advertencia del exportador sigue viva** y es de
-> C6; ver más abajo.
+> fuera de los dos grupos. **Y en C6 (#209) en cuanto al exportador**, que es la
+> otra mitad: `cmd/queue-exporter` corre en esa misma VM y escribe la señal
+> directamente en Cloud Monitoring. El aviso de abajo se conserva porque explica
+> por qué el exportador no podía vivir en el grupo.
 
 `docker-compose.worker.yml` incluía el `redis` que hace de cola de asynq. En la
 Entrega 2 eso era aceptable porque la VM worker era fija. En la Entrega 3 esa
@@ -183,20 +189,6 @@ consola y gráficas, vídeo corto solo cuando el movimiento es la prueba, nombre
 `AAAA-MM-DD_descripcion.png`. Sin credenciales, tokens ni IPs privadas a la
 vista. Lo que pase de ~10 MB va a la plataforma del vídeo y se enlaza, no al
 repositorio.
-
-<a id="7"></a>
-## 7. El contrato de la API ya existe: el frontend no tiene que esperar a la infraestructura
-
-`api/openapi.yaml` fija el contrato completo. D1 puede desarrollarse contra
-Docker Compose local o contra la URL de la Entrega 2 y cambiar **solo la URL
-base** cuando C3 publique el balanceador. Lo mismo vale para H1: el análisis
-estático arranca con alcance Go y añade el frontend cuando D1 publique su primer
-build.
-
-Lo único que sí hay que coordinar pronto es el **origen** del frontend, porque
-`CSRF_ALLOWED_ORIGINS` y la configuración de CORS dependen de dónde se aloje
-(bucket detrás del mismo balanceador, o servido por las instancias de API). Esa
-decisión es de D1 y la consume A4.
 
 <a id="8"></a>
 ## 8. El estado `available` del enunciado es `completed` en el código
@@ -667,172 +659,6 @@ sobrevive entero; del escenario 2 solo el planteamiento.
 **Para H3**, de paso: el 6,0 supuesto se equivocaba un 18 %. La duración de
 segmento ahora se lee del `#EXTINF`, que es ~7,06 s por lo de la nota 24.
 
-<a id="26"></a>
-## 26. El entorno de la Entrega 2 está a medias, y ninguna imagen del tag está publicada
-
-Estado real, comprobado el 2026-10-25 con `bash ./scripts/a7_preparar.sh`:
-
-| | |
-| :--- | :--- |
-| Las dos VMs | **existen, apagadas** (`TERMINATED`). Conservan disco e IP |
-| Cloud SQL | **borrada el 2026-09-28**, y también fuera del estado de Terraform |
-| VPC, NAT, buckets, Artifact Registry, cuentas de servicio | existen: 50 recursos en el estado |
-| Plan de Terraform desde el tag | **3 a crear, 0 a cambiar, 0 a destruir** |
-
-Consecuencias que ahorran tiempo:
-
-- **Encender no basta.** Falta la base, así que hace falta `terraform apply`. Y
-  **Terraform no gestiona el encendido**: `desired_status` no está declarado, por
-  eso el plan dice «0 a cambiar» con las dos máquinas apagadas. Se encienden con
-  `gcloud compute instances start`.
-- **La IP privada de la base será distinta** de la que las VMs tienen escrita.
-  Hay que editar `/etc/mooc/web.conf` y `/etc/mooc/worker.conf` y reiniciar los
-  servicios, como en el paso 4 de I6.
-- El nombre `mooc-db-1` ya está libre (Google reserva una semana; se borró hace
-  27 días). Si volviera a estarlo, se aplica con `-var db_instance_generation=2`,
-  **y eso cambia el nombre de conexión y la IP otra vez**.
-
-### Ninguna de las imágenes publicadas es el código del tag
-
-En Artifact Registry hay cinco imágenes, todas del 2026-09-27. **Ninguna
-corresponde al commit del tag `entrega-2` ni a `main`.** La más reciente está
-**59 commits antes del tag**, y la diferencia incluye `internal/worker/` con
-`queue_metrics.go`, que es justo lo que el escenario 2 instrumenta.
-
-Así que medir la línea base exige **construir y publicar** la imagen del tag, y
-la corrida corregida la de `main`. Dos cosas que conviene saber antes:
-
-- `publish_images.sh` usa `git rev-parse HEAD` y `.` como contexto, **ambos
-  relativos al directorio actual**. Hay que hacer `cd` al árbol del tag; llamarlo
-  por ruta absoluta desde el repositorio etiquetaría el código de `main` con el
-  SHA del tag.
-- `entrega-2` es un **tag anotado**: `git rev-parse entrega-2` devuelve el objeto
-  de tag (`e81fa4ef…`), no el commit. El SHA que vale como `IMAGE_TAG` es
-  `git rev-parse entrega-2^{commit}` → `1827cdc2…`. `prepare_web_env.sh` solo
-  valida que sean 40 caracteres hexadecimales, así que el objeto de tag pasaría la
-  validación y luego no existiría como imagen.
-
-### Por qué la Entrega 2 midió el escenario 2 contra Docker Compose
-
-No fue descuido. La campaña necesita el inspector de la cola (Redis), y el
-cortafuegos solo abre el 6379 dentro de `10.0.1.0/24`; Cloud SQL no tiene IP
-pública. Desde un portátil no hay a dónde conectarse, y `-base http://api:8080`
-estaba como valor por omisión.
-
-La salida no es medir Compose, es llevar los dos puertos por el **túnel SSH de
-IAP**, que usa el 22 y no abre nada nuevo —**F1** sigue pudiendo demostrar que no
-hay puertos de aplicación ni de datos expuestos—:
-
-```bash
-gcloud compute ssh mooc-worker-server --zone=us-east1-b --tunnel-through-iap \
-    --project=plataforma-mooc-entrega2 \
-    -- -N -L 6379:localhost:6379 -L 5432:<ip privada de la base>:5432
-```
-
-### Lo que cuesta, para que nadie se lo encuentre a mitad
-
-| | |
-| :--- | :--- |
-| Entorno completo encendido | 0,169 USD/h · **4,05 USD/día** |
-| Campaña de A7 completa | ~7,5 h → **1,69 USD** acotando el consumo HLS |
-| Consumo HLS **sin acotar**, desde el portátil | 22,1 GB de egreso → **2,65 USD**, más que todo el cómputo |
-| Escenario 2 con perfiles reales | 162 min de vídeo a 1,2× en 2 vCPU → **97 min de pared** irreducibles |
-
-Para **G4 y G6**: el egreso del consumo HLS es la partida que se dispara, no el
-cómputo. `-max-segmentos` lo acota, y con 10 segmentos por estudiante quedan 8
-con instante de reproducción que cumplir, que es lo mínimo para que el margen de
-buffer y las interrupciones signifiquen algo.
-
-### Lo desplegado en la Entrega 2 no era el código del tag
-
-El `/etc/mooc/web.conf` de la VM traía `IMAGE_TAG=b393116bf172…`, **59 commits
-antes del commit del tag**. Así que los números publicados de la Entrega 2 salen
-de **tres estados de código distintos**: `b393116b` en la nube para el
-escenario 1, Docker Compose en local para el escenario 2, y el tag como lo que el
-repositorio dice que fue la entrega.
-
-La línea base de A7 se mide con **el código del tag**, que es lo comparable con la
-Entrega 3 porque también partirá de un estado etiquetado. Pero se declara como
-«el código del tag», no como «lo que estuvo vivo».
-
-### Lo que corre en las VMs son copias congeladas, no el repositorio
-
-La unidad de systemd apunta a `/home/dfortizr1/mooc/`:
-
-```
-ExecStartPre=/bin/bash /home/dfortizr1/mooc/prepare_env.sh
-ExecStart=/usr/bin/docker compose -f /home/dfortizr1/mooc/docker-compose.prod.yml up -d
-```
-
-`prepare_env.sh` y el compose son copias de la época del tag. **Cambiar
-`IMAGE_TAG` cambia la imagen y nada más.** Para desplegar `main` de verdad hay
-que copiar también esos dos archivos, porque `main` añade `REDIS_SESSION_DB=1`,
-`INSTANCE_ID` y `SESSION_COOKIE_SAMESITE`.
-
-Sin ellos, **las sesiones se quedan en la base lógica 0 junto a la cola de
-asynq**, que es el riesgo de la nota 23. Comprobado en vivo: con el código del
-tag, `redis-cli info keyspace` en el `mooc-queue` del worker muestra las sesiones
-en `db0`.
-
-Afecta a **cualquiera que despliegue sobre estas VMs**, y es un argumento más
-para que la Entrega 3 construya las imágenes y la configuración desde el
-repositorio en el arranque de la instancia, no a mano en un home.
-
-### `cmd/seed-media` solo puede correr en la VM worker
-
-Transcodifica **en proceso** (`mediaProcessor.Handle`, no encola), así que escribe
-los derivados con las credenciales de la máquina donde corre. Y el reparto de
-permisos le prohíbe al SA web escribir derivados a propósito:
-`api_creator_non_derivatives` frente a `hls_worker_writer`. En la VM web da un
-403 que es la política funcionando.
-
-Además escribe hacia `media/hls/` en vez del bucket público, porque el bucket de
-derivados solo está declarado en el `.env` del worker.
-
-**A7 no lo usa:** la campaña del escenario 2 sube los tres perfiles reales 27
-veces por el camino de producción y deja el bucket sembrado con evidencia de la
-propia medición. Si alguien lo ejecuta y falla a mitad, deja un recurso en
-`processing` y un original huérfano: hay que limpiarlos antes de medir, porque la
-verificación terminal cuenta estados bajo `originals/`.
-
-### Dos trampas de operar las VMs desde Windows
-
-- **El `.env` es de root.** `source` sin `sudo` falla con `Permission denied` y,
-  al quedarse sin `DATABASE_URL`, el binario busca Postgres en `localhost`. Se
-  resuelve con `sudo bash -c 'set -a; source …; set +a; exec …'`, que no deja
-  copia del secreto en disco.
-- **Las comillas no sobreviven a `plink`.** `gcloud compute ssh --command` con
-  comillas anidadas, `$(...)` o `$$…$$` llega destrozado y da un error de
-  sintaxis con un `^` que no señala nada. Escribe el script, cópialo y ejecútalo.
-  Y **`--quiet` siempre**: sin él `pscp`/`plink` pueden esperar una confirmación
-  que nadie teclea, sin emitir una sola línea.
-- El túnel IAP hacia el worker dio **14 kB/s con cortes** mientras hacia la web
-  daba 3,4 MB/s, con las dos máquinas ociosas. Para mover algo grande, pásalo por
-  el bucket: es dentro de la región, no cuesta egreso y no depende del túnel.
-
-### `h3_nube.sh escalera` metía el limitador de login en la medición
-
-Dos cosas que cuestan una corrida entera:
-
-- **`escalera` es un subcomando obligatorio.** Sin él, el script imprime su uso y
-  sale con 1.
-- En modo nube, `escalera` borraba `tokens.csv` y volvía a iniciar sesión **en
-  paralelo a las corridas**: ~8,5 logins/min dentro de la ventana medida, que es
-  justo lo que el paso separado de tokens existe para evitar (`escenario1.md` §4).
-  Ahora hay `REUSAR_TOKENS=1`, que usa el camino que `repetir` ya tenía. El valor
-  por omisión sigue siendo rehacerlos: reutilizar es una afirmación explícita de
-  que son de este entorno y de hace menos de 24 h.
-- `CAPACITY_PASSWORD` tiene que ir exportada, o el script la pide por teclado y
-  se cuelga sin terminal interactiva.
-
-### `REDIS_URL` en la disposición de dos VMs
-
-`docker-compose.prod.yml` de `main` ya no levanta Redis y exige `REDIS_URL`
-(A4). **Funciona sin cambios sobre las dos VMs**, porque `prepare_web_env.sh` ya
-escribe `REDIS_URL='${QUEUE_PRIVATE_IP}:6379'`: la cola de la VM worker por la
-VPC, con las sesiones en la base lógica 1. No hace falta esperar a B1 para
-desplegar `main` sobre la Entrega 2.
-
 <a id="27"></a>
 ## 27. Un `FLUSHDB` en el Redis de asynq mata la observabilidad y no se nota
 
@@ -1102,6 +928,14 @@ ausencia deliberada.
 
 **No hay ninguna regla con destino `mooc-worker-node`**, y es a propósito: nadie
 le habla a un worker. Si alguien añade una, que explique qué flujo la necesita.
+
+> **Corregido en C5 (#208).** Sí hay una, y el flujo que la necesita es el
+> autohealing: `mooc-allow-worker-health` deja entrar al **9090** desde
+> `130.211.0.0/22` y `35.191.0.0/16` para que la comprobación de salud alcance
+> la sonda `/readyz` del worker. Sigue sin entrar nadie más: ni el balanceador
+> ni el resto de la subred. Y lo que B2 decía de las **métricas** sigue siendo
+> cierto --el agente las raspa en `localhost`--; lo que se abre es la sonda, que
+> comparte puerto porque el worker no tiene otro servidor HTTP.
 
 ### Lo que esto obliga a los demás
 
@@ -1388,7 +1222,53 @@ se tome, un grupo regional es teatro caro. La conversión sería cambiar a
 
 Si `mooc-image-tag` nombra un commit cuya imagen **no está publicada** en
 Artifact Registry, el arranque falla al bajarla y el autohealer entra en bucle.
-`publish_images.sh` antes de `apply` no es opcional.
+Desde C3 eso es un error del **plan** y no del arranque: dos `data` de Artifact
+Registry en `bootstrap.tf` lo comprueban antes de aplicar.
+
+### Cuándo hay que publicar, con precisión
+
+«Publicar antes de aplicar no es opcional» se generalizó de más en la primera
+versión de esta nota. **`image_tag` es una variable que se elige: no tiene que
+ser el `main` del momento**, y el plan solo exige que la imagen de *ese* tag
+exista. Son dos cosas distintas.
+
+| Qué cambió | ¿Hay que publicar? |
+| :--- | :--- |
+| `cmd/`, `internal/`, `Dockerfile*`, `go.mod` | **Sí**: cambia la imagen |
+| `docker-compose.*.yml`, `nginx.mig.conf`, `scripts/prepare_*_env.sh`, `infra/bootstrap/` | **Sí**, aunque la imagen salga idéntica |
+| Documentación, evidencias, capturas, guiones de prueba | **No** |
+
+Lo que hace que la segunda fila también exija publicar no es obvio: **el arranque
+clona el repositorio en el commit que nombra `IMAGE_TAG`** (B3), así que ese tag
+selecciona dos cosas a la vez —la imagen del contenedor **y** el árbol de ficheros
+de despliegue—. Cambiar solo un compose sin publicar deja a la instancia clonando
+un commit viejo con una imagen nueva, o al revés.
+
+Para decidirlo sin suponer, basta comparar contra lo que corre:
+
+```bash
+{ git diff --name-only <sha-desplegado>; git ls-files --others --exclude-standard; } |
+  grep -E '^(cmd/|internal/|Dockerfile|go[.](mod|sum)|docker-compose[.](prod|worker)[.]yml|nginx[.]mig[.]conf|scripts/prepare_|infra/bootstrap/)'
+```
+
+**Las dos mitades de esa orden existen por un motivo**, y la primera version de
+esta receta no las tenía:
+
+- `git diff --name-only <sha>` **sin `..HEAD`**. Con el sufijo compara commit
+  contra commit y **no ve el trabajo sin commitear**, así que responde «no hace
+  falta publicar» con el cambio delante. Sin él compara contra el árbol de
+  trabajo, que es lo que se va a construir.
+- `git ls-files --others --exclude-standard`, porque **`git diff` no muestra
+  ficheros nuevos sin seguir**. Un fichero recien creado en `internal/` cambia la
+  imagen y la receta anterior lo ignoraba.
+
+Las dos fallaron de verdad al preparar C5: el cambio en `cmd/worker/main.go`
+quedó invisible por lo primero y `internal/worker/readiness.go` por lo segundo,
+y la comprobación dio «0 coincidencias» con dos ficheros desplegables tocados.
+
+Sin coincidencias, el `apply` puede reutilizar el `image_tag` que ya está
+desplegado. Es lo que se hizo para C4: entre el commit desplegado y `main` solo
+había evidencias y notas.
 
 <a id="35"></a>
 ## 35. Las instancias del grupo heredan el dominio de la VM fija, y eso rompe CSRF
@@ -1419,7 +1299,653 @@ igual, así que las capturas de B1, B3 y C1 se pueden tomar sin balanceador.
 | **G3, G5** | Una corrida de carga que entre por el balanceador con el dominio sin fijar mediría 403, no latencia. Comprobar el origen antes de medir |
 
 <a id="36"></a>
-## 36. El frontend se sirve en el mismo origen, y la API no tiene «mis cursos» ni «quién soy»
+## 36. Un comprobador que imprime no comprueba, y van cuatro
+
+No es casualidad: cuatro veces en la Entrega 3 un verificador dio por bueno algo
+que estaba mal, siempre por la misma razón.
+
+| Dónde | Qué hacía | Qué se le escapó |
+| :--- | :--- | :--- |
+| Escritores del escenario 2 (nota 28) | publicaban conclusiones fijas | contradecían a su propia tabla en la misma página |
+| Barrido de secretos (nota 33) | listaba 22 coincidencias | nadie lee un informe con ruido |
+| Arranque de la cola (B1) | `CONFIG GET appendonly` **impreso** | redis corría otra configuración y el guion salía con 0 |
+| Prueba de autohealing (C1) | esperaba un **nombre** de instancia distinto | un MIG reutiliza el nombre: sondeó 38 min sobre algo ya sano |
+
+**La regla.** Un comprobador tiene que **afirmar** y **salir con código distinto
+de cero** cuando la afirmación falla.
+
+**Y hay un quinto caso que conviene distinguir de los cuatro de arriba.** Al
+convertir la comprobación de la cola en asercion, el parseo quedó mal:
+`redis-cli --no-raw CONFIG GET` numera la salida, así que `sed -n 2p` devolvía
+`2) "yes"` y la asercion fallaba **sobre una cola correctamente configurada**.
+
+Eso es un **falso negativo**, y no es lo mismo que los otros cuatro:
+
+| | Falso positivo | Falso negativo |
+| :--- | :--- | :--- |
+| Qué dice | «esta bien» cuando no lo esta | «esta mal» cuando esta bien |
+| Cuando se descubre | cuando ya fallo algo en produccion | de inmediato, el propio arranque se para |
+| Coste | el que tenga el fallo que tapo | unos minutos de diagnostico |
+
+Los dos son errores y los dos hay que arreglarlos, pero **si un comprobador va a
+equivocarse, que sea por este lado**. Es la misma asimetria que
+`initial_delay_sec`: errar por arriba retrasa una sustitucion, errar por abajo
+mata instancias sanas en bucle. Si imprime y sigue, no es un comprobador: es
+un registro, y nadie lo lee hasta que ya es tarde.
+
+Dos corolarios que los cuatro casos ilustran:
+
+- **Comprobar la clave que delata, no la que da la razón.** En la cola,
+  `maxmemory-policy` coincidía **por casualidad** —`noeviction` es también el
+  valor por omisión de Debian—, así que mirar solo esa clave no habría detectado
+  nada. La que delataba era `appendonly`, cuyo valor por omisión es `no`.
+- **Comprobar la identidad correcta.** Un MIG reutiliza el nombre de la
+  instancia; lo que distingue una instancia nueva es el **ID** y el
+  `creationTimestamp`. Afirmar sobre el atributo equivocado da un veredicto
+  equivocado con datos correctos.
+
+### Y la trampa de `systemctl` que lo destapó
+
+`apt-get install redis-server` **deja el servicio corriendo** con la
+configuración de Debian. `systemctl enable --now` **no hace nada sobre un
+servicio ya activo**: no es `restart`. Resultado: el fichero en disco decía
+`bind 10.0.1.8` y el proceso escuchaba en loopback, y la API moría en bucle con
+`connection refused`.
+
+| Issue | Qué tiene que saber |
+| :--- | :--- |
+| **C5, C6, C7** | Cualquier guion de arranque que instale un paquete con servicio y luego escriba su configuración necesita `restart`, no `enable --now`. Las unidades de B3 ya lo hacen bien |
+| **G1** | Las comprobaciones que publiquen métricas tienen que afirmar y salir con código, no imprimir. Es la misma regla que A6 §7 aplicada a los verificadores |
+| **I5** | Antes de etiquetar, los verificadores deben salir con 0 **por afirmación**, no por no haber mirado |
+
+<a id="37"></a>
+## 37. La CPU de la API no sirve como señal de autoscaling, y está medido
+
+C2 (#205) descartó `cpu_utilization` con los datos de A7, no por preferencia.
+
+| Corrida | pet/s | CPU web media/máx | CPU SQL máx | tps |
+| :--- | ---: | ---: | ---: | ---: |
+| A-nivel1 | 0,2 | 3,74 / 8,37 % | 12,7 % | 4,7 |
+| A-nivel200 | 32,5 | 12,00 / 15,55 % | 30,7 % | 350,9 |
+| B-nivel200 | **103,5** | **22,42 / 37,33 %** | 35,2 % | **1 039,7** |
+
+A **500 veces** el caudal, la CPU pasa del 3,7 % al 22,4 %: una pendiente de unos
+**0,18 puntos por petición/s**. Un objetivo del 60 % se alcanzaría sobre **310
+pet/s por instancia**, y a ese caudal tres instancias pedirían del orden de
+**9 000 tps a una base de 1 vCPU**.
+
+**Con un objetivo de CPU, el grupo se queda en una instancia mientras la base se
+funde.** Esta API no computa: traduce HTTP a SQL y espera.
+
+Y la memoria es peor señal todavía: `webMem%` se quedó entre **30,1 y 30,8 %** en
+las ocho corridas, de 0,2 a 103,5 pet/s. Es una constante, no una señal.
+
+### La señal elegida y lo que acopla
+
+`load_balancing_utilization.target = 0.8`, es decir peticiones por segundo y por
+instancia. Pero **es un cociente y su denominador no está en C2**.
+
+| Issue | Qué tiene que saber |
+| :--- | :--- |
+| **C3** | Tiene que declarar `balancing_mode = "RATE"` y `max_rate_per_instance = 100` en el backend service. **Sin eso el autoescalador no escala**, y con `balancing_mode = "UTILIZATION"` volvería a medir CPU por la puerta de atrás |
+| **C6** | La señal de los workers es otra —profundidad y antigüedad de cola— y por el mismo razonamiento: lo que hay que medir es lo que se agota, y allí sí es el cómputo |
+| **G5** | Tiene que medir si la base cede **antes** de las 3 instancias. Si lo hace, la conclusión no es «el autoescalado no funciona» sino «el siguiente cuello es la base» |
+| **C1** | `cooldown_period = 300` es el mismo valor que `initial_delay_sec`, y por la misma medida de B3: 62 s de arranque, 160 s hasta sana |
+
+### El techo de 3 instancias cae donde cae el techo de la base
+
+Con 80 pet/s por instancia, tres cubren 240 pet/s ≈ **2 400 tps**, que
+extrapolando la curva de A7 pondrían Cloud SQL cerca del **80 %** de CPU.
+
+**Escalar la API no escala PostgreSQL**: las tres réplicas comparten una
+instancia de 1 vCPU. El síntoma de ese techo es latencia creciente en todas las
+réplicas a la vez **con CPU de API baja** — el patrón que delata que el cuello no
+está donde se está mirando.
+
+Es una **extrapolación lineal, no una medición**: la curva de CPU de la base por
+encima de 1 040 tps no se ha medido. Subir `max_replicas` por encima de 3 no
+ayudaría: añade réplicas que esperan a la misma base.
+
+<a id="38"></a>
+## 38. El balanceador es la única entrada, y encender el entorno pasa a ser explícito
+
+C3 (#206) puso el balanceador de aplicación **global** con certificado
+administrado por Google sobre `<IP-del-balanceador>.sslip.io`, y con él se fue
+todo el TLS de las instancias.
+
+### El certificado: tres cosas comprobadas antes de elegirlo
+
+| Comprobación | Resultado |
+| :--- | :--- |
+| El nombre resuelve a la IP que lleva dentro | **A = la IP** ✅ |
+| Registro AAAA parásito, causa habitual de `FAILED_NOT_VISIBLE` | **no hay** ✅ |
+| CAA que limite quién emite | **no hay**, así que Google Trust Services puede ✅ |
+
+El tercero importa más de lo que parece: un CAA que solo autorizara a Let's
+Encrypt habría dejado el certificado en provisión **sin un error que lo
+explicara**.
+
+**Riesgos aceptados:** aprovisionar tarda hasta una hora y el 443 no sirve hasta
+que está `ACTIVE`; `sslip.io` es un tercero y su caída impediría la **renovación**,
+que revalida el DNS; y la IP no puede cambiar, porque el dominio la lleva dentro.
+
+### Lo que se retiró, y por qué no era opcional
+
+El criterio es que la API solo sea alcanzable por el balanceador. La VM web fija
+tenía IP pública con 80 y 443 sirviendo la misma aplicación: un segundo camino.
+
+Con ella se fueron su dirección, la regla `mooc-allow-web-ingress`, `nginx.conf`,
+`nginx.bootstrap.conf`, `certbot/`, los montajes de `/etc/letsencrypt` y el
+puerto 443 del Compose. **Ya no queda ninguna regla de cortafuegos con origen
+`0.0.0.0/0` en la VPC.**
+
+La VM del worker sigue: sin superficie pública desde B2, la sustituye C5.
+
+> Su disco era la única copia legible de `SMTP_FROM` y `SMTP_USERNAME` sin
+> conocerlos de memoria. Siguen en la metadata de la plantilla, que persiste.
+
+### La nota 35 queda resuelta
+
+`mooc_app_domain` pasa a ser el dominio del balanceador. Antes salía de la IP de
+la VM fija, y de ese valor sale `CSRF_ALLOWED_ORIGINS`: **toda petición que
+mutara estado entrando por el balanceador habría dado 403**.
+
+### Encender el entorno es ahora un acto explícito
+
+| Variable | Omisión | Qué hace |
+| :--- | :--- | :--- |
+| `lb_enabled` | `false` | crea las dos reglas de reenvío, que son la entrada pública |
+| `api_autoscaling_enabled` | `false` | crea el autoescalador, cuyo `min_replicas = 1` levanta una instancia |
+| `db_activation_policy` | **`ALWAYS`** | **no se pudo invertir**: la instancia tiene que existir antes de poder detenerse |
+
+El valor por omisión de los dos primeros se invirtió a propósito: con `true`,
+**cualquier `apply` desaparcaba el entorno**, y en este proyecto eso ya costó
+dinero — A7 gastó 15 h de entorno encendido sin medir, la mayor parte de sus
+4,88 USD.
+
+**La tercera es la que cuesta si se olvida:** un `apply` sin
+`-var db_activation_policy=NEVER` vuelve a encender la base a 0,0855 USD/h. El
+plan lo dice con `will be updated in-place`.
+
+### Por qué las reglas de reenvío se apagan pero el certificado se conserva
+
+Una regla de reenvío se factura **por hora, sirva o no tráfico**: 0,025 USD/h, y
+hay dos. Son 1,20 USD/día aparcado, veinte veces la base detenida. Pero destruir
+el balanceador entero obligaría a reaprovisionar el certificado —hasta una hora—
+en cada sesión.
+
+Así que se apagan solo las reglas y se conservan dirección, certificado, backend,
+mapas y proxies, que **no tienen coste por hora**. Aparcado: ~0,30 USD/día.
+
+| Issue | Qué tiene que saber |
+| :--- | :--- |
+| **C4** | La sonda del backend es `/api/v1/ready`, la misma del autohealing de C1. Dos sondas distintas serían dos opiniones sobre si una réplica sirve |
+| **C5** | La VM fija del worker sigue en pie; retirarla es de C5, como C3 hizo con la web |
+| **C7** | `connection_draining_timeout_sec = 60` es para **peticiones**. Un worker no recibe peticiones, así que su drenaje es otro problema |
+| **D1** | Con el frontend detrás del **mismo** balanceador no hace falta CORS ni `SESSION_COOKIE_SAMESITE=none` (A4); en otro origen, las tres cosas |
+| **G3, G5** | La URL de medición es la del balanceador, y `lb_enabled=true` es obligatorio para que exista |
+| **I3** | La URL HTTPS va enlazada desde el README, y sale de `terraform output lb_url` |
+| **I6** | Al destruir, el certificado y la dirección se van con el resto. Si se recrean, el dominio cambia porque lleva la IP dentro |
+
+<a id="39"></a>
+## 39. La metadata es una copia derivada, y recuperar valores de ella los corrompe
+
+Durante el despliegue de C3, la instancia del grupo no arrancaba:
+
+```
+/etc/mooc/web.conf: line 9: unexpected EOF while looking for matching `"'
+```
+
+La línea 9 es `SMTP_USERNAME`, y su valor tenía esta forma, con el valor real
+sustituido aquí por `VALOR`:
+
+```
+SMTP_USERNAME=['["[\'VALOR\']"]']
+```
+
+**Triple envoltura.** La causa, en dos pasos:
+
+1. `gcloud ... --format="value[](...extract(value))"` **no devuelve el valor:
+   devuelve una lista literal**, `['valor']`. El `[]` del `value[]` lo provoca.
+2. Esa salida se usó como **fuente de recuperación** para el siguiente `apply`,
+   dos veces. Cada vuelta añadió una capa, y la comilla sin cerrar de la tercera
+   rompió el `source` del fichero de configuración.
+
+El síntoma estuvo a la vista antes de romper nada: una consulta de
+`mooc-app-domain` devolvió `['136.68.55.254.sslip.io']`, con corchetes, y no se
+leyó.
+
+### El error de fondo no es la fórmula
+
+Es **tratar la metadata de una instancia como fuente de verdad cuando es una
+copia derivada**. El valor viaja `tfvars → Terraform → metadata → /etc/mooc`, y
+leer del final de esa cadena para alimentar el principio es un bucle que acumula
+transformaciones.
+
+**Arreglado donde corresponde:** `smtp_from` y `smtp_username` viven en
+`infra/terraform/terraform.tfvars`, que está en `.gitignore` desde la Entrega 2 y
+es exactamente para lo que `terraform.tfvars.example` dice que sirve. Terraform lo
+lee solo, así que el `apply` ya no necesita variables de entorno para ellos y no
+hay nada que recuperar.
+
+| Issue | Qué tiene que saber |
+| :--- | :--- |
+| **C5, C6, C7** | Los valores del nivel 2 de B4 salen de `terraform.tfvars`, **no** de la metadata de una instancia |
+| **I5, I6** | Antes de destruir, comprobar que `terraform.tfvars` existe en la máquina de quien vaya a recrear: es la única copia fuera del estado |
+| **cualquiera** | Si hace falta leer metadata, `--format="json(metadata.items)"` y parsear. `value[]` con `extract()` miente |
+
+### Dos comprobaciones que llegaron tarde
+
+- `prepare_web_env.sh` valida que `SMTP_FROM` y `SMTP_USERNAME` no lleven saltos
+  de línea ni comillas, **pero esa validación corre después del `source`**, y el
+  `source` es lo que fallaba. Una comprobación que se ejecuta después del fallo
+  que debía detectar no sirve: es la nota 36 con otro disfraz.
+- Al diagnosticarlo, un `terraform plan` imprimió los dos valores en claro en el
+  diff de la metadata. Son del nivel 2 de B4 —no secretos, pero no publicables—
+  así que **la salida de un `plan` que toque esas claves no se pega en una
+  evidencia ni en un informe sin redactar**.
+
+<a id="40"></a>
+## 40. Una sola comprobación de salud para el balanceador y el autohealing tiene precio
+
+C4 (#207) lo midió. `google_compute_health_check.api` alimenta a **dos**
+consumidores: el backend service del balanceador (C3) y el autohealing del grupo
+(C1). Es más simple y garantiza que lo que decide el tráfico y lo que decide la
+reparación sean lo mismo. Pero:
+
+> **Un parpadeo de 30 segundos de la aplicación no solo saca la réplica de la
+> rotación: dispara una reparación de la máquina.**
+
+Medido degradando una réplica a propósito —parando su contenedor `api`, de modo
+que nginx devuelva 502 a `/api/v1/ready`:
+
+| T+ | Salud | Acción del grupo | Tráfico |
+| ---: | :--- | :--- | :--- |
+| 45 s | `HEALTHY` | `NONE` | 25 de 40 peticiones |
+| **98 s** | `TIMEOUT` | **`RECREATING`** | **0** |
+| 292 s | `TIMEOUT` | `VERIFYING` | 0 |
+| **387 s** | `HEALTHY` | `NONE` | vuelve al reparto |
+
+- **Exclusión del balanceador: 43 s.** Cuadra con los parámetros —tres sondeos
+  fallidos a diez segundos— más la propagación.
+- **Reincorporación: 278 s**, cuando con `healthy_threshold = 2` deberían ser
+  ~20 s.
+
+La diferencia no es del balanceador: al restaurar el contenedor, el grupo **ya
+había empezado su reparación**, y una instancia con una acción en curso no vuelve
+a la rotación aunque su salud se recupere. Hay que esperar a que la acción se
+despeje.
+
+**La instancia no llegó a sustituirse**: conservó su id. La reparación se inició y
+se resolvió sin crear una máquina nueva.
+
+### Los dos mecanismos, que no son el mismo
+
+| | Exclusión por el balanceador | Reparación por el grupo |
+| :--- | :--- | :--- |
+| Qué hace | deja de enviarle peticiones nuevas | repara o reemplaza la instancia |
+| Escala | **decenas de segundos** | **minutos** (160–273 s en C1) |
+| Reversible | sí, en ~20 s | no: una vez recreada, es otra máquina |
+
+| Issue | Qué tiene que saber |
+| :--- | :--- |
+| **C6, C7** | Tienen la misma decisión del lado de los workers. Si se quiere que el autohealing **no** reaccione a fallos de aplicación transitorios, hacen falta **dos** comprobaciones: una ágil para el reparto y otra tolerante —intervalo mayor, umbral más alto— para la reparación |
+| **G5** | Una réplica con `currentAction` distinto de `NONE` **no recibe tráfico aunque esté sana**. Medir reparto sin mirar esa columna da números que no se explican |
+| **G7** | Los dos tiempos se publican por separado: 43 s de exclusión y 160–273 s de reparación. Promediarlos no significa nada |
+
+### Y un detalle del reparto que conviene no malinterpretar
+
+Con `balancing_mode = "RATE"`, el balanceador reparte **hasta la capacidad
+declarada por instancia**, no a turnos. En reposo el reparto no es mitad y mitad
+—se midió 25/15 de 40— y eso no es un defecto: las dos réplicas están muy por
+debajo de `max_rate_per_instance = 100`, así que lo que decide es la proximidad
+del proxy de Google que atiende cada conexión. Un reparto uniforme solo aparece
+sosteniendo carga por encima de la capacidad de una réplica, que es G5.
+
+<a id="41"></a>
+## 41. Un worker no se comprueba como una réplica de la API
+
+C5 (#208) tuvo que añadir una sonda al worker, porque el criterio del issue es
+«proceso vivo **y conectado a la cola compartida**» y un worker no atiende
+peticiones.
+
+| Sonda | Por qué no basta |
+| :--- | :--- |
+| TCP al 9090 | el puerto acepta conexiones con el proceso vivo y la cola caída |
+| HTTP a `/metrics` | responde 200 sin saber nada de la cola |
+
+Las dos dan por **sana una instancia que vive y no consume**: ocupa una máquina
+sin hacer trabajo, que es justo lo que el grupo debería reparar.
+
+`internal/worker/readiness.go` añade las dos sondas que la API tenía desde A2:
+`/healthz` dice que el proceso vive, y **`/readyz` hace PING sobre la misma
+conexión con la que consume**. Comprobar una conexión distinta de la que trabaja
+puede dar sano con el consumo roto.
+
+**El autohealing mira `/readyz`.**
+
+### La contrapartida, que hay que saber antes de que pase
+
+Si la cola cae, **todas las instancias del grupo se declaran no sanas a la vez** y
+el grupo intentará recrearlas. No arregla nada --el problema está fuera-- pero
+tampoco empeora el servicio, porque sin cola no hay trabajo.
+
+Es una consecuencia más del punto único de fallo de la nota 30. Quien quiera
+evitarlo tiene que hacer la cola redundante, **no** cambiar la sonda: una sonda
+que ignore la cola devuelve el problema del principio.
+
+### Lo que esto obliga a los demás
+
+| Issue | Qué tiene que saber |
+| :--- | :--- |
+| **C6** | La señal de escalado es la cola, pero la de **salud** es `/readyz`. Son dos cosas distintas sobre el mismo Redis, y confundirlas haría que una cola vacía pareciera un worker enfermo |
+| **C7** | `max_unavailable_fixed = 0` levanta la nueva antes de retirar la vieja, pero **no espera a que termine su tarea** --A7 midió 1 711 s en el perfil largo--. El drenaje ordenado es de C7; hasta entonces una rotación tira como mucho una tarea en vuelo por instancia |
+| **G4, G6** | La VM fija del worker se retiró: un consumidor fuera del grupo también saca tareas, y entonces no se puede atribuir el trabajo al grupo |
+| **C6** | `initial_delay_sec = 420`, mayor que los 300 de la API porque la imagen del worker lleva FFmpeg. **Hay que calibrarlo** con `/var/lib/mooc/arranque.json` del rol worker |
+
+### Y cómo se prueba un worker sin inventarse el trabajo
+
+No vale encolar una tarea a mano con `redis-cli`: asynq las codifica, y una hecha
+a mano fallaría al decodificar --probaría el decodificador, no el consumo--.
+
+El camino corto ya existe: `scripts/a7_verificar_e2e.sh` hace el flujo normal de
+subida --login, URL prefirmada, PUT, `complete`-- y espera a `completed`. Sube un
+PDF y una imagen, que **también pasan por el worker** como trabajos de cola
+(nota 16) y son mucho más baratos que un vídeo. Necesita cuentas, así que antes
+hay que sembrar la base.
+
+<a id="42"></a>
+## 42. La señal que gobierna el autoscaling no se puede publicar desde el grupo
+
+C6 (#209) tenía la métrica desde A2: `internal/worker/queue_metrics.go` publica
+`worker.queue.pending`, `active` y `oldest_pending_age_seconds`. Lo que no tenía
+es un sitio desde donde publicarla, y la razón es **aritmética del
+autoescalador**, no una preferencia de diseño.
+
+### Tres impedimentos, cada uno suficiente
+
+| | Por qué el worker no puede publicar la señal |
+| :--- | :--- |
+| **El autoescalador SUMA** las series que devuelve su consulta | La profundidad de la cola es una magnitud **global**. Con tres workers publicándola, el autoescalador ve el triple del trabajo que hay y escala por su propio reflejo |
+| La serie desaparece en una rotación | Justo cuando la situación está cambiando |
+| Con `gce_instance` **no se puede filtrar** | Ver abajo: es lo que descarta el camino del agente de operaciones |
+
+El tercero es el que obligó a cambiar de plan a mitad de C6. La documentación de
+GCE sobre métricas personalizadas dice dos cosas que juntas cierran la puerta:
+
+> Si el tipo de recurso es `gce_instance` (el predeterminado), la métrica debe
+> incluir una serie temporal separada para cada instancia, y **no se puede
+> filtrar por etiquetas de recurso**. Para cualquier otro tipo de recurso, la
+> métrica se trata como del grupo, y sí se usa el filtrado por etiquetas.
+
+Un exportador de Prometheus raspado por el agente de operaciones publica bajo
+`gce_instance` **de la máquina donde corre**. En la VM de la cola, que no es
+miembro del grupo, eso produce una serie que el autoescalador no puede
+seleccionar: no es de una instancia del grupo y no admite filtro.
+
+**Por eso el exportador escribe directamente en Cloud Monitoring** con
+`CreateTimeSeries` sobre el recurso `generic_node`, que sí es filtrable. No es
+una preferencia por la API sobre el agente: es la única forma de que el
+autoescalador vea el dato.
+
+### `outstanding`, y por qué no `pending`
+
+La métrica que gobierna el escalado es
+`custom.googleapis.com/mooc/queue/outstanding` = `pending` + `active`. La suma se
+calcula **en el exportador** porque el autoescalador solo sabe sumar series del
+**mismo** tipo de métrica: dos tipos distintos no se pueden sumar en su consulta.
+
+Con `pending` a secas el grupo oscila, y es aritmética:
+
+```
+pending=4 -> pide 2 réplicas -> la nueva toma 2 -> pending=2 -> pide 1
+          -> retira -> el trabajo en vuelo se reencola -> pending=4 -> ...
+```
+
+Un trabajo sale de `pending` en el instante en que **alguien lo empieza**, así que
+`pending` baja porque hay más capacidad trabajando, y el autoescalador lee esa
+bajada como que sobra. `outstanding` solo baja cuando un trabajo **termina**, así
+que durante un vaciado decrece de forma monótona.
+
+### `single_instance_assignment` es «pendientes por consumidor»
+
+El enunciado admite «profundidad o antigüedad de la cola, **trabajos pendientes
+por consumidor** u otra señal que represente la demanda». La tercera traduce
+directo:
+
+| `outstanding` | réplicas |
+| ---: | ---: |
+| 2 | 1 |
+| 4 | 2 |
+| ≥ 6 | 3 |
+
+con `single_instance_assignment = 2`, que es `mooc-worker-concurrency`. El valor
+no es arbitrario: es el número de instancias con el que todo el trabajo está
+siendo atendido y nada espera. **Si alguien cambia la concurrencia, este número
+cambia con ella.**
+
+### Dos trampas que costarían un `apply` o una tarde
+
+1. **`single_instance_assignment` y `target`/`type` son mutuamente excluyentes.**
+   `type = "GAUGE"` describe bien la métrica —un nivel instantáneo— y rompe el
+   `apply`: la API de Compute acepta un modo o el otro, no los dos.
+2. **Un filtro que no devuelve nada no es un error.** El autoescalador sin datos
+   **mantiene el tamaño actual**: no baja al mínimo ni se desborda. El grupo se
+   queda congelado. Por eso el espacio de nombres sale de
+   `local.queue_metric_namespace` y lo leen los dos sitios —el filtro del
+   autoescalador y el entorno del exportador— y por eso hay un `output` con el
+   filtro literal para pegarlo en el Explorador de Métricas.
+
+### La CPU no sirve aquí, y por la razón contraria a la de C2
+
+A7 midió el worker al **96,31 % de CPU media durante casi dos horas**. Un worker
+que transcodifica está saturado mientras tenga **un** trabajo, así que la CPU no
+distingue «uno en curso» de «cien esperando»: con un objetivo de CPU el grupo
+pediría el máximo por un solo vídeo y lo mantendría hasta vaciar la cola.
+
+En C2 la CPU no servía porque **no se movía** (0,18 puntos por petición/s). Aquí
+no sirve porque **está siempre arriba**. Misma conclusión, causas opuestas.
+
+### Lo que esto cambia para los demás
+
+| Issue | Qué tiene que saber |
+| :--- | :--- |
+| **B4** | Su inventario decía que `sa-queue-server` «no lee secretos y no baja imágenes». La primera mitad sigue en pie; la segunda no: C6 le da `artifactregistry.reader` (solo lectura) porque el exportador es un binario de la imagen `worker`. Corregido en `artifact_registry.tf` |
+| **B1** | La VM de la cola pasó de `metadata_startup_script` a `metadata["startup-script"]`. El motivo es que **guarda estado** —el AOF— y el primero es ForceNew. El cambio cuesta **una** recreación, la última; desde entonces tocar el arranque se aplica reiniciando la VM, que conserva el disco |
+| **C7** | `scale_in_control` de 1 réplica / 900 s **no es un drenaje**. Acota la frecuencia del daño a un trabajo en vuelo por ventana, y 900 s no cubren los 1 711 s del perfil largo de A7 ni pretenden |
+| **G6** | `cooldown_period = 420` es una **estimación**, el mismo número que `initial_delay_sec` de C5 porque contestan la misma pregunta. Hay que calibrarlo con `/var/lib/mooc/arranque.json` del rol worker |
+| **G1, G5, G6** | La nota 10 aplica entera: esta métrica personalizada **caduca**. Hay que exportar los puntos crudos de cada corrida al repositorio en el momento |
+| **F2** | `monitoring.metricWriter` de `sa-queue-server` **deja de ser un permiso sin uso**: lo consume el exportador. La nota 31 lo tenía marcado como el único sin uso de las tres cuentas |
+
+---
+
+## 43. El estado del autoescalador miente dos veces al encenderlo
+
+**Contexto:** sesión de despliegue de C5 y C6 (#208, #209), 29 de octubre de
+2026. `terraform apply` salió limpio —11 añadidos, 2 cambiados, 3 destruidos— y
+las tres cosas que siguen habrían pasado por fallos del diseño cuando no lo son.
+
+### `gcloud compute autoscalers` no existe
+
+```
+$ gcloud compute autoscalers describe mooc-worker-autoscaler --zone=us-east1-b
+ERROR: (gcloud.compute) Invalid choice: 'autoscalers'.
+```
+
+No es una ruta mal escrita ni un permiso: el SDK instalado —**586.0.0**, core
+2026.09.20— no trae ese grupo de comandos. El único sitio donde este gcloud
+expone el estado es el campo `autoscaler` del grupo gestionado, y trae lo mismo:
+
+```bash
+gcloud compute instance-groups managed describe mooc-worker-group \
+  --zone=us-east1-b --project=plataforma-mooc-entrega2 \
+  --format="value(autoscaler.status,autoscaler.recommendedSize,autoscaler.statusDetails[0].message)"
+```
+
+Importa porque `scripts/c6_prueba_autoescalado.sh` leía el estado por el camino
+que no existe, y su comprobación «¿existe el autoescalador?» se cumplía siempre:
+el guion abortaba **antes** de generar carga, diciendo que faltaba un recurso que
+estaba creado. Corregido.
+
+Y un detalle del formato, que es el que hacía falsa la comprobación: si el grupo
+existe y **no tiene** autoescalador, `--format=value(...)` no imprime una línea
+vacía sino **una línea de tabuladores**, que para `[ -z ]` no está vacía. De ahí
+el `sed 's/^[[:space:]]*$//'` del guion.
+
+### `CUSTOM_METRIC_INVALID` recién creado es transitorio
+
+Durante los primeros minutos tras el `apply`:
+
+```
+status        : ERROR
+statusDetails : The monitoring metric that was specified does not exist
+                or does not have the required labels. Check the metric.
+```
+
+Y a la vez la serie **sí existía**: 18 puntos, el filtro del autoescalador
+devolviéndola, el descriptor como `GAUGE`/`INT64` con `generic_node` entre sus
+`monitoredResourceTypes`. GCE valida la métrica al crear el recurso y deja ese
+veredicto pegado en `statusDetails` hasta el primer sondeo que la lee bien.
+**Medido: `ACTIVE` y `statusDetails: null` unos 4 minutos después**, sin tocar
+nada.
+
+Es la cara opuesta de la trampa de la nota 42: allí el peligro es un filtro vacío
+que **no** da error; aquí es un error que no significa nada. Mientras dura, el
+grupo se queda en `min_replicas`, que es su comportamiento normal con la cola
+vacía, así que no hay forma de distinguirlo mirando el tamaño. Lo que lo decide
+es leer la serie, y para eso está la fase 1 del guion.
+
+### El `apply` que enciende C5 retira la VM suelta del worker
+
+Entre los 3 destruidos hay uno que la tabla del runbook no listaba:
+`google_compute_instance.worker_server` (`mooc-worker-server`), la VM suelta que el grupo gestionado de C5
+sustituye. Es intencionado y no se lleva nada —un worker es apátrida: consume de
+la cola y escribe en GCS— pero el runbook decía «si propone destruir algo más,
+**para**», así que su propia regla disparaba un falso positivo. Fila añadida.
+
+Los otros dos sí estaban previstos: `mooc-queue-server` (recreación por el paso a
+`metadata["startup-script"]`, nota 42) y la plantilla de la API del 27-oct, que se
+rehace porque `var.image_tag` forma parte de ella —`name_prefix` más
+`create_before_destroy`, así que la sustitución es segura—.
+
+### Lo que esto cambia para los demás
+
+| Issue | Qué tiene que saber |
+| :--- | :--- |
+| **G1, G5, G6** | Cualquier guion que lea el estado de un autoescalador tiene que ir por el grupo, no por `gcloud compute autoscalers` |
+| **C7** | Al crear o recrear el autoescalador, los primeros minutos de `statusDetails` no son evidencia de nada |
+| **D1** | El `apply` que enciende el entorno recrea la plantilla de la API cada vez que cambia `image_tag`. Es lo esperado y la sustitución es segura |
+
+---
+
+## 44. El plazo de drenaje vivia en dos capas que no se hablaban
+
+**Contexto:** C7 (#210). El apagado ordenado del worker no habia que
+construirlo: existia entero en asynq y estaba mal configurado.
+
+### 8 segundos contra 120
+
+`mooc-worker.service` le concede al contenedor 120 s para parar
+(`down --timeout 120`) y a la unidad 180 s (`TimeoutStopSec`). B3 los puso a
+proposito y dejo escrito alli que «la politica de verdad la decide C7».
+
+Lo que no se veia desde la unidad: `asynq` v0.26.0 tiene
+`defaultShutdownTimeout = 8 * time.Second` y `NewWorkerEngine` **nunca fijaba
+`ShutdownTimeout`**. La peor combinacion posible — la capa de sistema esperando
+dos minutos a un proceso que se rindio a los ocho segundos.
+
+Es la clase de fallo que no aparece en ninguna prueba y que nadie nota operando:
+el servicio para «bien», solo que tirando trabajo que iba a terminar.
+
+### `requeue` no es `handleFailedMessage`
+
+Leyendo el codigo de asynq para configurarlo bien aparece la distincion que
+sostiene todo el criterio del enunciado:
+
+| Camino | Cuando | Consume reintento |
+| :--- | :--- | :---: |
+| `requeue()` | vence el plazo de drenaje (`close(p.abort)`) | **no** |
+| `handleFailedMessage()` | el manejador devuelve error, o vence el *lease* | si |
+
+Importa porque una instancia que el autoescalador retira **no ha fallado en
+nada**. Si cada retirada gastara uno de los tres intentos, tres reducciones
+seguidas mandarian a la cola de muertos un trabajo perfectamente sano. Con
+`scale_in_control` a una replica cada 900 s (C6), tres reducciones son 45
+minutos: perfectamente alcanzable en una tarde.
+
+### La idempotencia de produccion era un mapa en memoria
+
+`cmd/worker/main.go` no pasaba `WithIdempotencyStore`, asi que el motor caia al
+`MemoryIdempotencyStore` por omision. El `RedisIdempotencyStore` existia
+completo y sin usar.
+
+Con un worker suelto casi no se notaba. Desde C5 el worker es un grupo de 1 a 3,
+y **el trabajo que un drenaje devuelve a la cola lo recoge otra instancia**, que
+no ve ninguna marca.
+
+Sin exagerar el hallazgo: los efectos duplicados si estaban cubiertos, por otro
+sitio. `mediaproc.go` comprueba contra la base que el recurso no este ya
+`completed` sobre el mismo objeto, y el prefijo de los derivados sale de
+`storage.HLSPrefix(resource.StableID)`, que es determinista — un reintento
+**sobrescribe** los mismos objetos. El middleware en memoria era una red de
+seguridad que no estaba atada a nada, no la unica defensa.
+
+### Una tarea interrumpida decia `failed`
+
+Al cancelarse el contexto el manejador devuelve `context.Canceled`, y
+`LoggingMiddleware` registraba `estado=failed` sobre un trabajo sano que iba a
+volver a la cola. Como la evidencia que bloquea C7 es **precisamente el registro
+del drenaje**, esa linea convertia la prueba en su contrario. Ahora sale como
+`estado=interrumpido` con el motivo; lo que devuelve el manejador no cambia.
+
+### `graceful_shutdown` existe y el provider fijado no lo expone
+
+Compute Engine permite un apagado ordenado **de 1 segundo a 6 horas**, y la
+restriccion documentada para grupos administrados es que no puedes *saltartelo*
+cuando el autoescalador borra una instancia — no que no se pueda usar. Con eso,
+un worker retirado terminaria incluso el perfil largo de 1 711 s.
+
+El provider esta fijado en `google 8.4.0` y su esquema **no lo tiene**, ni en
+`google_compute_instance_template` ni en `google_compute_instance` (comprobado
+con `terraform providers schema -json`). Subirlo a mitad de entrega cambia el
+plan de los 68 recursos del estado compartido. Queda anotado: es la mejora de
+mayor efecto por menos codigo de todo el bloque C.
+
+### Lo que esto cambia para los demas
+
+| Issue | Que tiene que saber |
+| :--- | :--- |
+| **E1** | La concurrencia sigue en 2 por instancia y el techo real son **6** transcodificados simultaneos (3 instancias x 2). Los temporales siguen en el volumen `mooc_worker_scratch`, con limpieza por tarea, por `defer` de tarea interrumpida y por `ExecStartPre` |
+| **G6** | El ciclo de escalado ahora incluye un drenaje de hasta 90 s por replica retirada. Una medida de «cuanto tarda en reducir» que lo ignore se queda corta |
+| **C6** | `single_instance_assignment = 2` y `WORKER_CONCURRENCY=2` son el mismo numero. Si alguien cambia uno, cambia el otro |
+| **F2** | El worker usa ahora el Redis de la cola tambien para las claves `idempotency:worker:`. No es una cuenta ni un permiso nuevo: es la misma conexion |
+| **G1, G5** | Redis en una sola VM sigue siendo el punto unico de falla del procesamiento: sin el no hay cola, no hay consumo, y el autoescalador de C6 se queda sin señal y **congela** el tamaño del grupo |
+
+---
+
+## 45. El punto de acceso de la arquitectura desplegada
+
+**Punto de acceso:** https://136.68.55.254.sslip.io
+
+**Documentacion navegable:** https://136.68.55.254.sslip.io/api/docs
+
+Es la unica entrada publica (nota 38): todo pasa por el balanceador. La
+direccion global esta reservada, asi que el dominio **no cambia** aunque el
+entorno se apague y se vuelva a encender; lo que se va al aparcar son las reglas
+de reenvio, y mientras no esten la URL no responde.
+
+Las 57 rutas estan verificadas contra este entorno. El detalle, con lo que el
+frontend necesita saber antes de escribir el cliente, esta en
+[`VERIFICACION_ENDPOINTS.md`](VERIFICACION_ENDPOINTS.md).
+
+| Issue | Que tiene que saber |
+| :--- | :--- |
+| **D1-D5** | Este es el origen contra el que se construye. El frontend solo puede llamar desde un origen que este en `CSRF_ALLOWED_ORIGINS`, que hoy es unicamente el del balanceador |
+| **I3** | Es la URL que va al README de la entrega |
+| **G1, G3-G7** | Es el destino de las corridas de carga |
+
+<a id="46"></a>
+## 46. El frontend se sirve en el mismo origen, y la API no tiene «mis cursos» ni «quién soy»
 
 **Afecta a:** D2, D3 (consumen el cliente y la sesión), A4 y E1 (origen y cookie), B3, C1 y C3
 (la imagen del frontend entra en la plantilla y el balanceador la expone).

@@ -33,18 +33,20 @@ SMTP_PORT="${SMTP_PORT:-587}"
 S3_BUCKET="${S3_BUCKET:-plataforma-mooc-entrega2-media}"
 GCS_SIGNER_ACCOUNT="${GCS_SIGNER_ACCOUNT:-sa-web-server@${GCP_PROJECT_ID}.iam.gserviceaccount.com}"
 
-# Which nginx profile this instance serves (C1, #204).
+# Which nginx profile this instance serves (C1, #204; narrowed in C3, #206).
 #
-# The fixed VM keeps `nginx.conf`: it redirects 80 to HTTPS and terminates TLS
-# with a Let's Encrypt certificate. A managed-group instance cannot do either --
-# there is no certificate in /etc/letsencrypt on a fresh disk, and with no public
-# IP certbot could never obtain one -- so it serves plain HTTP on 80 and lets the
-# load balancer terminate TLS. A 301 on port 80 would also fail C1's health
-# check, and an unhealthy instance gets recreated, in a loop.
-NGINX_CONFIG_FILE="${NGINX_CONFIG_FILE:-./nginx.conf}"
+# There is only one profile left. Until C3 the fixed VM used `nginx.conf`, which
+# redirected 80 to HTTPS and terminated TLS with a Let's Encrypt certificate; a
+# managed-group instance can do neither -- no certificate on a fresh disk, and
+# with no public IP certbot could never obtain one -- and a 301 on port 80 would
+# fail the health check, so the autohealer would recreate the instance in a loop.
+#
+# C3 retired that VM and both TLS profiles: the load balancer terminates TLS and
+# the backends serve plain HTTP on 80 inside the VPC.
+NGINX_CONFIG_FILE="${NGINX_CONFIG_FILE:-./nginx.mig.conf}"
 case "${NGINX_CONFIG_FILE}" in
-  ./nginx.conf | ./nginx.bootstrap.conf | ./nginx.mig.conf) ;;
-  *) fail "NGINX_CONFIG_FILE must be one of ./nginx.conf, ./nginx.bootstrap.conf or ./nginx.mig.conf" ;;
+  ./nginx.mig.conf) ;;
+  *) fail "NGINX_CONFIG_FILE must be ./nginx.mig.conf; the TLS profiles went with C3" ;;
 esac
 
 required=(IMAGE_TAG APP_DOMAIN DB_PRIVATE_IP QUEUE_PRIVATE_IP SMTP_FROM SMTP_USERNAME)

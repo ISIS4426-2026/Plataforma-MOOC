@@ -1,0 +1,19 @@
+autoscaler:
+  autoscalingPolicy:
+    coolDownPeriodSec: 420
+    customMetricUtilizations:
+    - filter: resource.type = "generic_node" AND resource.labels.namespace = "mooc-cola"
+      metric: custom.googleapis.com/mooc/queue/outstanding
+      singleInstanceAssignment: 2.0
+    maxNumReplicas: 3
+    minNumReplicas: 1
+    mode: ON
+    scaleInControl:
+      maxScaledInReplicas:
+        fixed: 1
+      timeWindowSec: 900
+  name: mooc-worker-autoscaler
+  recommendedSize: 1
+  status: ACTIVE
+name: mooc-worker-group
+targetSize: 1

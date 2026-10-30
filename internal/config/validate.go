@@ -134,6 +134,20 @@ func (c *Config) validar(sirveHTTP bool) error {
 			"WORKER_CONCURRENCY=%d no puede ser negativo", c.WorkerConcurrency))
 	}
 
+	// Solo el negativo, y no el cero, por la misma razon que
+	// WORKER_CONCURRENCY de arriba: un `config.Config` construido a mano --las
+	// pruebas, un binario auxiliar-- deja este campo a cero sin querer decir
+	// nada con ello, y rechazarlo convertiria cada struct literal en invalido.
+	//
+	// El cero tampoco se escapa sin red: `getEnvDuration` devuelve el valor por
+	// omision cuando la variable falta o no se puede leer, y
+	// `WithShutdownTimeout` ignora cualquier valor no positivo y deja el de
+	// asynq. Un negativo, en cambio, solo puede venir de alguien escribiendolo.
+	if c.WorkerDrainTimeout < 0 {
+		problemas = append(problemas, fmt.Sprintf(
+			"WORKER_DRAIN_TIMEOUT=%s no puede ser negativo", c.WorkerDrainTimeout))
+	}
+
 	if !strings.EqualFold(c.Environment, EnvironmentProduction) {
 		if len(problemas) == 0 {
 			return nil
