@@ -24,11 +24,6 @@ output "web_server_service_account" {
   value       = google_service_account.web_server.email
 }
 
-output "worker_server_service_account" {
-  description = "Cuenta de servicio de la VM de workers. Se adjunta a la instancia en E1."
-  value       = google_service_account.worker_server.email
-}
-
 output "enabled_services" {
   description = "APIs habilitadas en el proyecto."
   value       = sort([for s in google_project_service.required : s.service])
@@ -149,37 +144,13 @@ output "database_url_template" {
 
 # --- Maquinas Virtuales de Computo (issue #123, D2) -------------------------
 
-output "web_server_name" {
-  description = "Nombre de la instancia de cómputo del Web Server (D2)."
-  value       = google_compute_instance.web_server.name
-}
-
-output "web_server_public_ip" {
-  description = "Dirección IPv4 pública estática del Web Server (D2)."
-  value       = google_compute_address.web_server_ip.address
-}
-
-output "web_server_private_ip" {
-  description = "Dirección IPv4 privada en mooc-subnet del Web Server (D2)."
-  value       = google_compute_instance.web_server.network_interface[0].network_ip
-}
-
 # --- Maquinas Virtuales de Computo - Worker Server (issue #124, E1) ---------
-
-output "worker_server_name" {
-  description = "Nombre de la instancia de cómputo del Worker Server (E1)."
-  value       = google_compute_instance.worker_server.name
-}
 
 # La IP publica del worker se retiro en B2 (#201): la maquina no recibe trafico
 # de nadie, su salida va por el Cloud NAT y la administracion entra por IAP, asi
 # que una direccion externa era superficie sin funcion. No hay salida que
-# sustituya a esta: su IP privada se obtiene de `worker_server_private_ip`.
-
-output "worker_server_private_ip" {
-  description = "Dirección IPv4 privada en mooc-subnet del Worker Server (E1)."
-  value       = google_compute_instance.worker_server.network_interface[0].network_ip
-}
+# sustituya a esta. En C5 (#208) se retiro la propia VM, asi que tampoco queda
+# su IP privada: la sustituye el grupo administrado de workers.
 
 # ---------------------------------------------------------------------------
 # Cola compartida (B1 - issue #200)
@@ -198,3 +169,10 @@ output "queue_private_ip" {
   description = "IP privada estable de la cola. Es el QUEUE_PRIVATE_IP de los guiones de preparacion."
   value       = google_compute_address.queue_internal_ip.address
 }
+
+# Las salidas de la VM web fija se retiraron en C3 (#206) junto con la propia VM.
+# La direccion publica de la plataforma es ahora `lb_url`, en load_balancer.tf.
+
+# Las salidas de la VM fija del worker se retiraron en C5 (#208) junto con la
+# propia VM. El grupo que la sustituye expone `worker_group_name` en
+# worker_group.tf.

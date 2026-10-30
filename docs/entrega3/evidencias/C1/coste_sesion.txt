@@ -1,0 +1,26 @@
+Coste de la sesion de despliegue del 2026-10-27
+===============================================
+
+Estimado de las horas medidas a tarifas de lista de us-east1, no importe
+facturado. El facturado se consulta en la consola de facturacion.
+
+  Recurso                      Tiempo    USD/h aprox   USD
+  ---------------------------------------------------------
+  mooc-db-1 (db-custom-1-3840)  ~1,2 h      0,0855     0,10
+  mooc-web-server (e2-highcpu-2) ~1,5 h     0,0495     0,07
+  instancia del grupo (e2-highcpu-2) ~1,0 h 0,0495     0,05
+  mooc-queue-server (e2-small)  ~1,2 h      0,0167     0,02
+  ---------------------------------------------------------
+  TOTAL                                                ~0,24
+
+De ese total, unos 0,10 USD se fueron en 38 minutos de entorno encendido
+mientras el guion de prueba de autohealing seguia sondeando una instancia que
+ya estaba sana. El fallo era del guion, no de la plataforma: esperaba un nombre
+de instancia distinto y un MIG reutiliza el nombre. Ver la nota tecnica 36.
+
+Para comparar: A7 entera costo 4,88 USD, y alli el sobrecoste fueron 15 h de
+entorno encendido sin medir. Esta sesion se ajusto porque se apago en cuanto se
+cosecho la evidencia.
+
+Queda Cloud SQL encendida hasta que se ejecute el destroy: 0,0855 USD/h, es
+decir unos 2,05 USD/dia si se olvida.

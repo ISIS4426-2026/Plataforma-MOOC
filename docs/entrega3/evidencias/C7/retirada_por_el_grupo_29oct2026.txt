@@ -1,0 +1,70 @@
+Retirada de un worker POR EL GRUPO, con un trabajo activo (C7, #210)
+=====================================================================
+Sesion del 29 de octubre de 2026. Commit 1f50d9525942c8cc6f1709854365461311377edb.
+Instancia retirada: mooc-worker-06p6 (us-east1-b).
+
+Es el mismo camino que usa el autoescalador al reducir, pero sobre la instancia
+elegida y sin esperar los 900 s de scale_in_control:
+
+    gcloud compute instance-groups managed delete-instances mooc-worker-group \
+      --instances=mooc-worker-06p6 --zone=us-east1-b
+
+
+CRONOLOGIA
+----------
+19:44:10.000Z  encolado un video del perfil medio (600 s) por el flujo normal
+19:44:11.406Z  "job media:process started" en mooc-worker-06p6
+19:44:33.918Z  ultima linea de la instancia que llego a Cloud Logging
+19:44:36.335Z  solicitud de borrado al grupo
+19:44:40.426Z  la API responde SUCCESS
+19:44:56.358Z  el grupo crea la sustituta (mooc-worker-w7br), por min_replicas=1
+
+               ... la instancia sigue viva y drenando ...
+
+19:46:02Z      activas=1  pendientes=0  retry=0
+19:46:07Z      activas=1  pendientes=0  retry=0
+19:46:13Z      activas=1  pendientes=0  retry=0
+19:46:18Z      activas=0  pendientes=1  retry=0   <-- la tarea vuelve
+
+
+QUE DEMUESTRA, Y POR QUE NO HACE FALTA EL REGISTRO
+--------------------------------------------------
+El registro del contenedor NO llega a Cloud Logging: el worker escribe a stdout
+y docker lo guarda con el driver json-file, que no se envia a ningun sitio. Y
+las lineas de systemd posteriores a 19:44:33 nunca se enviaron: la maquina
+desaparecio antes de que el agente las despachara.
+
+Asi que el drenaje de una retirada real no se puede leer. Se puede **deducir**,
+y de forma inequivoca, por donde acaba la tarea:
+
+    camino                     destino               reintento
+    drenaje (requeue)          pending, inmediato    NO consume
+    lease vencido (30 s)       retry, con espera     SI consume
+
+La tarea aparecio en **pending** con **retry=0**. Si la instancia se hubiera
+apagado de golpe, el lease de 30 s habria vencido sobre las 19:45:06 y la tarea
+estaria en `retry` con un intento gastado. No lo estaba.
+
+Ademas el instante cuadra con el plazo configurado:
+
+    19:46:18 (reencolado) - 90 s (plazo) = 19:44:48 aprox. = SIGTERM
+    19:44:48 - 19:44:36 (borrado) = ~12 s de apagado ACPI y orden de systemd
+
+CONCLUSION: la retirada por el grupo **si** ejecuta el drenaje, y la instancia
+sobrevivio al menos **102 s** desde la solicitud de borrado -- tuvo que estar
+viva para escribir en Redis a las 19:46:18.
+
+Los 90 s de WORKER_DRAIN_TIMEOUT caben dentro de esa ventana. Subirlo a los
+120 s que permite `mooc-worker.service` exigiria una ventana de ~132 s, que esta
+sesion no demuestra; 90 s es el valor que esta medido.
+
+
+LO QUE NO SE PUEDE AFIRMAR CON ESTOS DATOS
+------------------------------------------
+- El instante exacto del SIGTERM. Se deduce del reencolado, no se observa.
+- El techo real de la ventana del invitado. Solo se sabe que es >= 102 s.
+- Que el resultado sea identico con una reduccion del autoescalador en vez de
+  `delete-instances`. Es el mismo camino de la API, pero no se midio.
+
+
+Este archivo no contiene credenciales, llaves ni secretos.

@@ -68,8 +68,17 @@ variable "db_max_connections" {
 # Antes de detenerla por primera vez hay que contrastar el ahorro real contra el
 # informe de facturacion, que es lo que pide la regla 5 de
 # docs/entrega2/CONFIGURACION_Y_COSTOS.md.
+# OJO: el valor por omision es ALWAYS y **no se puede invertir como el del
+# autoescalador**. Una instancia de Cloud SQL tiene que existir antes de poder
+# detenerse, y no se ha comprobado que el proveedor acepte crearla ya en NEVER,
+# asi que dejarlo en NEVER por omision arriesga romper la creacion inicial.
+#
+# Consecuencia practica, y cuesta dinero si se olvida: **un `apply` sin
+# `-var db_activation_policy=NEVER` vuelve a encender la base**, a 0,0855 USD/h.
+# El plan lo dice con `google_sql_database_instance.main will be updated
+# in-place`; hay que leerlo.
 variable "db_activation_policy" {
-  description = "ALWAYS para tener la instancia encendida, NEVER para detenerla y dejar de pagar computo."
+  description = "ALWAYS para tener la instancia encendida, NEVER para detenerla. Un apply sin declararla la ENCIENDE."
   type        = string
   default     = "ALWAYS"
 

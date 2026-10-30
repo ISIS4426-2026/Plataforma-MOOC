@@ -30,6 +30,43 @@
 # ==============================================================================
 
 # ------------------------------------------------------------------------------
+# Lo que la cola y el autoescalador tienen que compartir (C6 - issue #209)
+# ------------------------------------------------------------------------------
+# Estos tres valores los leen DOS ficheros: este, que configura el exportador, y
+# `worker_autoscaler.tf`, que escribe el filtro con el que el autoescalador busca
+# la serie. Si divergieran, el filtro no devolveria nada -- y una consulta vacía
+# **no es un error visible**: es un grupo que deja de escalar en silencio.
+#
+# Por eso viven aquí y no duplicados en cada sitio, y por eso el exportador lee
+# el espacio de nombres del entorno en vez de tenerlo fijo en el código.
+locals {
+  # El espacio de nombres del recurso `generic_node` de las series de cola.
+  queue_metric_namespace = "mooc-cola"
+
+  # Las colas que se observan. Hoy es una: `asynq` enruta todo a `default`
+  # (`internal/worker`), y una cola por tipo de trabajo es una decisión que nadie
+  # ha tomado todavía.
+  queue_names = "default"
+
+  # Cada cuánto se escribe un punto. 30 s es menos que el periodo de muestreo del
+  # autoescalador, así que no le falta dato, y no multiplica el coste de
+  # escritura de Cloud Monitoring, que se factura por punto.
+  queue_export_interval = "30s"
+
+  # El exportador es un binario de la imagen `worker`, no una imagen propia: ver
+  # la cabecera de `Dockerfile.worker`. La etiqueta es el SHA completo, y el
+  # repositorio es `immutable_tags = true`, así que la referencia es inmutable
+  # sin necesidad de fijar el digest.
+  #
+  # Que la imagen EXISTA lo garantiza `data.google_artifact_registry_docker_image
+  # .worker` de bootstrap.tf: ese `data` falla el **plan** si `var.image_tag` no
+  # está publicado, y aquí eso importa el doble, porque un fallo de `pull` en
+  # esta máquina no se ve como un grupo recreando instancias sino como una
+  # métrica que nunca aparece.
+  queue_exporter_image = "${var.region}-docker.pkg.dev/${var.project_id}/${google_artifact_registry_repository.images.repository_id}/worker:${var.image_tag}"
+}
+
+# ------------------------------------------------------------------------------
 # Dirección interna estática
 # ------------------------------------------------------------------------------
 # Sin esto, la IP privada la asigna el DHCP de la subred y **cambia si la VM se
@@ -104,18 +141,48 @@ resource "google_compute_instance" "queue_server" {
 
   allow_stopping_for_update = true
 
+  # EL GUION VA DENTRO DEL MAPA, NO EN `metadata_startup_script`.
+  #
+  # `metadata_startup_script` es **ForceNew** en el proveedor: cambiar su
+  # contenido recrea la VM. Para una plantilla de grupo eso es irrelevante --una
+  # plantilla es inmutable-- pero esta maquina **guarda estado**: el AOF con los
+  # trabajos encolados, que es la razon entera de no usar Memorystore. Recrearla
+  # cada vez que se toca el guion tira la cola.
+  #
+  # `metadata["startup-script"]` se actualiza en sitio. El arranque solo corre al
+  # arrancar, asi que para aplicar un cambio hay que reiniciar la VM --y un
+  # reinicio conserva el disco de arranque, y con el el AOF-- en vez de
+  # recrearla.
+  #
+  # ESTE CAMBIO CUESTA UNA RECREACION, LA ULTIMA. Mover el guion de un sitio al
+  # otro tambien es ForceNew, asi que el `apply` que introduce C6 recrea la cola
+  # una vez y pierde lo que hubiera encolado. En un entorno aparcado no hay nada;
+  # si hubiera trabajos en vuelo, hay que esperar a que la cola se vacie.
+  #
+  # El guion sigue en su propio fichero y no en un heredoc aqui, por lo de
+  # siempre: escribe un redis.conf con heredoc, y un heredoc anidado dentro del de
+  # Terraform depende de como `<<-EOT` recorta la sangria comun. Un espacio de
+  # mas al principio de una directiva deja a redis-server sin arrancar, en una
+  # maquina sin IP publica a la que hay que entrar por IAP para averiguarlo.
   metadata = {
     enable-osconfig = "TRUE"
-  }
 
-  # El guion vive en su propio fichero, no en un heredoc aqui: escribe un
-  # redis.conf con heredoc, y un heredoc anidado dentro del de Terraform depende
-  # de como `<<-EOT` recorta la sangria comun. Un espacio de mas al principio de
-  # una directiva deja a redis-server sin arrancar, en una maquina sin IP publica
-  # a la que hay que entrar por IAP para averiguarlo.
-  metadata_startup_script = templatefile("${path.module}/queue_startup.sh", {
-    queue_ip = google_compute_address.queue_internal_ip.address
-  })
+    startup-script = templatefile("${path.module}/queue_startup.sh", {
+      queue_ip = google_compute_address.queue_internal_ip.address
+
+      # Configuracion del exportador de C6. `node_id` es el nombre de la
+      # instancia y no su hostname por omision: identifica la serie de forma
+      # estable aunque la maquina se recree.
+      project_id       = var.project_id
+      region           = var.region
+      zone             = var.zone
+      exporter_image   = local.queue_exporter_image
+      queue_names      = local.queue_names
+      export_interval  = local.queue_export_interval
+      metric_namespace = local.queue_metric_namespace
+      node_id          = "mooc-queue-server"
+    })
+  }
 
   depends_on = [
     google_compute_subnetwork.subnet,

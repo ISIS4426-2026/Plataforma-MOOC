@@ -1,0 +1,31 @@
+B1: superficie publica de la cola, 2026-10-27T16:35:37Z
+==================================================================
+
+1) Direcciones externas de todas las instancias
+
+   NAME                STATUS      IP_EXTERNA
+   mooc-api-l7zr       RUNNING
+   mooc-queue-server   RUNNING
+   mooc-web-server     RUNNING     34.24.52.111
+   mooc-worker-server  TERMINATED
+
+   La cola y la instancia del grupo no tienen IP externa: no hay direccion
+   que barrer desde internet. No depende del cortafuegos.
+
+2) La regla del 6379 va por identidad, no por rango ni etiqueta
+
+   allowed:
+   - IPProtocol: tcp
+     ports:
+     - '6379'
+   direction: INGRESS
+   sourceServiceAccounts:
+   - sa-worker-server@plataforma-mooc-entrega2.iam.gserviceaccount.com
+   - sa-web-server@plataforma-mooc-entrega2.iam.gserviceaccount.com
+   targetServiceAccounts:
+   - sa-queue-server@plataforma-mooc-entrega2.iam.gserviceaccount.com
+
+3) El 6379 desde fuera de la VPC, contra la unica IP publica que queda
+
+   34.24.52.111:6379  cerrado o filtrado
+   34.24.52.111:5432  cerrado o filtrado

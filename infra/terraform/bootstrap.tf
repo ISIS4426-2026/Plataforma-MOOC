@@ -69,13 +69,43 @@ locals {
     # 10 %, no el doble, porque ffmpeg ya reparte el trabajo entre los nucleos.
     # La palanca es mas instancias, que es lo que hace C6.
     mooc-worker-concurrency = "2"
+
+    # CUANTO ESPERA UN WORKER QUE SE RETIRA (C7, issue #210).
+    #
+    # Lo que este plazo decide es **solo** la espera por las tareas que ya
+    # estaban en curso. Dejar de tomar tareas nuevas ocurre en el acto, valga lo
+    # que valga este numero.
+    #
+    # 90 s sale de tres restricciones, y es el menor de los tres techos:
+    #
+    #   1. `mooc-worker.service` le da al contenedor 120 s
+    #      (`down --timeout 120`) y a la unidad 180 s (`TimeoutStopSec`).
+    #   2. Una instancia que el grupo borra solo dispone de la ventana corta de
+    #      apagado del invitado. La ventana larga seria `graceful_shutdown`
+    #      --hasta seis horas, y si funciona con los borrados del
+    #      autoescalador-- pero el provider fijado en 8.4.0 **no la expone**.
+    #   3. El perfil corto de A7 son 144 s de transcodificado, asi que 90 s no
+    #      salvan ni un trabajo corto completo.
+    #
+    # El (3) parece decir que el plazo no sirve. Sirve para lo que importa: la
+    # tarea que no termina vuelve a la cola **sin gastar un reintento**, y el
+    # tiempo que si se aprovecha es el de las tareas que estaban por acabar.
+    # Subirlo por encima del techo (2) no compra nada: lo que no cabe en la
+    # ventana del invitado lo recupera el lease de 30 s de asynq.
+    #
+    # Es el numero que la sesion de evidencia de C7 tiene que medir de verdad.
+    mooc-worker-drain-timeout = "90s"
   }
 
-  # El dominio por omision es el que la Entrega 2 escribia a mano en web.conf.
-  # Calcularlo de la direccion reservada quita un valor que se podia quedar
-  # desfasado al recrearla. Cuando C3 ponga el balanceador delante, el dominio
-  # sera el suyo y hay que declararlo en `var.app_domain`.
-  mooc_app_domain = var.app_domain != "" ? var.app_domain : "${google_compute_address.web_server_ip.address}.sslip.io"
+  # El dominio de la plataforma es el del **balanceador**, que es la unica
+  # entrada publica desde C3. Lo calcula `local.lb_domain` en load_balancer.tf de
+  # la direccion global reservada, via sslip.io.
+  #
+  # Hasta C3 se calculaba de la IP de la VM fija, y eso era la nota tecnica 35:
+  # `CSRF_ALLOWED_ORIGINS` sale de este valor, asi que con el dominio de la VM
+  # vieja **toda peticion que mutara estado entrando por el balanceador habria
+  # dado 403**. Resuelto aqui.
+  mooc_app_domain = local.lb_domain
 }
 
 output "mooc_bootstrap_image_tag" {
@@ -86,4 +116,30 @@ output "mooc_bootstrap_image_tag" {
 output "mooc_bootstrap_app_domain" {
   description = "Dominio efectivo que recibe la instancia web por metadata (B3)."
   value       = local.mooc_app_domain
+}
+
+# ------------------------------------------------------------------------------
+# La imagen de `var.image_tag` tiene que existir ANTES del apply
+# ------------------------------------------------------------------------------
+# Si `mooc-image-tag` nombra un commit cuya imagen no esta publicada, el arranque
+# falla al bajarla, la instancia no queda sana y el autohealer la recrea: un
+# bucle que se lee como «la imagen esta rota» cuando en realidad no existe.
+#
+# La nota tecnica 34 lo documentaba como trampa de operacion --«publicar antes de
+# aplicar no es opcional»-- y aun asi mordio: un `apply` con el `main` recien
+# mergeado creo una plantilla que apuntaba a un commit sin publicar.
+#
+# Estos dos `data` convierten ese fallo en un error del **plan**. Es la diferencia
+# entre enterarse en diez segundos y enterarse cuando el grupo lleva media hora
+# recreando instancias.
+data "google_artifact_registry_docker_image" "api" {
+  location      = google_artifact_registry_repository.images.location
+  repository_id = google_artifact_registry_repository.images.name
+  image_name    = "api:${var.image_tag}"
+}
+
+data "google_artifact_registry_docker_image" "worker" {
+  location      = google_artifact_registry_repository.images.location
+  repository_id = google_artifact_registry_repository.images.name
+  image_name    = "worker:${var.image_tag}"
 }
