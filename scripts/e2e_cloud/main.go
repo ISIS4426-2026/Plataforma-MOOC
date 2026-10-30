@@ -54,12 +54,12 @@ const (
 
 func main() {
 	var (
-		base         = flag.String("base", "", "origen HTTPS del despliegue (por omisión, el de docs/postman/mooc_cloud.postman_environment.json)")
-		bucket       = flag.String("bucket", "plataforma-mooc-entrega2-media", "bucket privado de originales, documentos y miniaturas")
-		hlsBucket    = flag.String("bucket-hls", "plataforma-mooc-entrega2-hls", "bucket de derivados HLS, de lectura pública (#167)")
-		videoPath    = flag.String("video", "docs/media/clase.mp4", "mp4 real que se sube en el tramo de multimedia")
-		docPath      = flag.String("documento", "docs/media/guia.pdf", "pdf real que se sube en el tramo de documentos")
-		imgPath      = flag.String("imagen", "docs/media/diagrama.png", "imagen real que se sube en el tramo de documentos")
+		base      = flag.String("base", "", "origen HTTPS del despliegue (por omisión, el de docs/postman/mooc_cloud.postman_environment.json)")
+		bucket    = flag.String("bucket", "plataforma-mooc-entrega2-media", "bucket privado de originales, documentos y miniaturas")
+		hlsBucket = flag.String("bucket-hls", "plataforma-mooc-entrega2-hls", "bucket de derivados HLS, de lectura pública (#167)")
+		videoPath = flag.String("video", "docs/media/clase.mp4", "mp4 real que se sube en el tramo de multimedia")
+		docPath   = flag.String("documento", "docs/media/guia.pdf", "pdf real que se sube en el tramo de documentos")
+		imgPath   = flag.String("imagen", "docs/media/diagrama.png", "imagen real que se sube en el tramo de documentos")
 		// La evidencia de la Entrega 2 esta congelada: es el registro que se
 		// califico. Una corrida de hoy tiene mas pasos que aquella, asi que
 		// escribe en la entrega en curso y no sobre docs/entrega2/evidencias/G3.
