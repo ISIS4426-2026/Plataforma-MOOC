@@ -14,5 +14,6 @@
     "types": ["vite/client", "node"],
     "noEmit": true
   },
+  "files": ["src/main.tsx", "src/vite-env.d.ts"],
   "include": ["src", "vite.config.ts"]
 }

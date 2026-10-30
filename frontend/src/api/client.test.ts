@@ -75,6 +75,28 @@ describe("cliente HTTP", () => {
     expect(res.data).toBeUndefined();
   });
 
+  it("un 422 de publicacion conserva la lista de problemas campo a campo", async () => {
+    fetchMock.mockResolvedValue(
+      respuesta(422, {
+        code: "validation_failed",
+        message: "El curso no cumple los requisitos de publicación.",
+        details: [{ field: "structure", message: "El curso debe tener al menos un módulo." }, { field: "x" }],
+      }),
+    );
+    const error = await request("/courses/1/publish", { method: "POST", body: {} }).catch((e) => e);
+    expect(error).toBeInstanceOf(ApiError);
+    expect(error.status).toBe(422);
+    // solo se conservan los problemas que traen un mensaje legible
+    expect(error.details).toEqual([{ field: "structure", message: "El curso debe tener al menos un módulo." }]);
+  });
+
+  it("envia If-Match cuando se da y devuelve el ETag de la respuesta", async () => {
+    fetchMock.mockResolvedValue(respuesta(200, { id: "c1" }, { ETag: '"abc"' }));
+    const res = await request("/courses/c1", { method: "PUT", body: {}, ifMatch: '"v1"' });
+    expect((fetchMock.mock.calls[0][1] as RequestInit).headers).toMatchObject({ "If-Match": '"v1"' });
+    expect(res.etag).toBe('"abc"');
+  });
+
   it("genera claves de idempotencia distintas", () => {
     expect(newIdempotencyKey()).not.toBe(newIdempotencyKey());
   });

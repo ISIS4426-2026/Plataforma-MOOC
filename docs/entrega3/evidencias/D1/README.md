@@ -16,7 +16,7 @@ Código en [`frontend/`](../../../../frontend/). Decisión y trampas en la
 | Tarea del issue | Estado |
 | :--- | :---: |
 | Arrancar sin esperar a la infraestructura (Docker Compose local) | ✅ |
-| Coordinar el origen con A4 (CSRF/CORS) | ⚠️ decidido y documentado (mismo origen); **falta que Fredy lo confirme** |
+| Coordinar el origen con A4 (CSRF/CORS) | ✅ decidido, documentado y **confirmado por Fredy** (2026-10-26) |
 | Elegir el framework y justificarlo | ✅ React + Vite + TypeScript (§1) |
 | Decidir y documentar el alojamiento y su efecto en CORS, cookies y CSRF | ✅ nginx en el mismo origen (§1) |
 | Cliente HTTP con sesión por cookie, origen permitido y manejo global de 401, 403 y 5xx | ✅ (§2, pruebas unitarias) |
@@ -105,7 +105,7 @@ Dos falsos positivos de la librería de rutas se resolvieron afinando la regla, 
 1. **Cuando C3 publique el balanceador:** poner `CSRF_ALLOWED_ORIGINS` con su URL HTTPS, desplegar la imagen
    `Dockerfile.web` en las instancias (B3, C1), repetir `scripts/verify_frontend_origin.sh` con
    `BASE_URL=https://<balanceador>` y **registrar aquí la URL HTTPS pública del frontend**.
-2. **Confirmar con Fredy** el alojamiento (mismo origen vía nginx, opción A): lo consumen A4, C3 y E1.
+2. ~~Confirmar con Fredy el alojamiento~~ **Hecho** (2026-10-26): Fredy aprobó el mismo origen vía nginx (opción A). Lo consumen A4, C3 y E1.
 3. **Dos huecos de la API que bloquean a D2 y D3** (nota 46): listar los cursos propios del profesor y un
    `GET /me`.
 4. Capturar la interfaz una vez más con la versión de un commit limpio (las capturas actuales muestran `-sin-commit`).

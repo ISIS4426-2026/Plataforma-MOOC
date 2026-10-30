@@ -98,14 +98,26 @@ func (r *CourseRepository) GetByStableIDAndVersion(ctx context.Context, stableID
 // skip or repeat a row, and one extra row is fetched to learn whether
 // another page exists without a second COUNT query.
 func (r *CourseRepository) ListPublished(ctx context.Context, filter domain.CourseFilter) (*domain.CoursePage, error) {
+	return r.listCourses(ctx, "status = $1", []any{string(domain.CourseStatusPublished)}, filter, "list published courses")
+}
+
+// ListByAuthor lists the author's own courses in every status. It shares the
+// query, the cursor and the page size rules with ListPublished: only the base
+// condition differs.
+func (r *CourseRepository) ListByAuthor(ctx context.Context, authorID string, filter domain.CourseFilter) (*domain.CoursePage, error) {
+	return r.listCourses(ctx, "author_id = $1", []any{authorID}, filter, "list author courses")
+}
+
+// listCourses runs the paged listing for a base condition that already uses $1.
+func (r *CourseRepository) listCourses(ctx context.Context, base string, baseArgs []any, filter domain.CourseFilter, what string) (*domain.CoursePage, error) {
 	limit := filter.Limit
 	if limit <= 0 {
 		limit = domain.DefaultCoursePageSize
 	}
 	limit = min(limit, domain.MaxCoursePageSize)
 
-	conditions := []string{"status = $1"}
-	args := []any{string(domain.CourseStatusPublished)}
+	conditions := []string{base}
+	args := append([]any{}, baseArgs...)
 
 	if filter.Search != "" {
 		args = append(args, "%"+filter.Search+"%")
@@ -129,7 +141,7 @@ func (r *CourseRepository) ListPublished(ctx context.Context, filter domain.Cour
 
 	rows, err := r.db.QueryContext(ctx, query, args...)
 	if err != nil {
-		return nil, fmt.Errorf("list published courses: %w", err)
+		return nil, fmt.Errorf("%s: %w", what, err)
 	}
 	defer rows.Close()
 

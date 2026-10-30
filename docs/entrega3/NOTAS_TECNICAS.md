@@ -46,6 +46,7 @@ lo reemplaza, lo continúa.
 | 25 | [Antes de publicar una cifra hay once reglas, y están en código](#25) | **todos los que midan**: A7, G1, G3, G4, G5, G6, G7, H2, H3 |
 | 27 | [Un `FLUSHDB` en el Redis de asynq mata la observabilidad y no se nota](#27) | **B1, C6, C7**, A7, G4, G6 |
 | 46 | [El frontend se sirve en el mismo origen, y la API no tiene «mis cursos» ni «quién soy»](#46) | **D2, D3**, A4, B3, C1, C3, E1 |
+| 47 | [Interfaces del estudiante y del profesor: trampas que ya costaron tiempo](#47) | **D2, D3**, A1, A5, B1, C3, E1 |
 
 ---
 
@@ -2001,3 +2002,23 @@ comprobación de origen de la API (el navegador manda `Origin` en toda escritura
   más de lo que es.
 - `Dockerfile.api` copia todo el repositorio: `frontend/node_modules` y `frontend/dist` están en
   `.dockerignore` para no meterlos en su contexto.
+
+<a id="47"></a>
+## 47. Interfaces del estudiante y del profesor: trampas que ya costaron tiempo
+
+Qué hace cada interfaz está en las evidencias de [D2](./evidencias/D2/README.md), [D3](./evidencias/D3/README.md),
+[D4](./evidencias/D4/README.md) y [D5](./evidencias/D5/README.md). Aquí, lo que otro del equipo debe saber.
+
+| Trampa | Qué pasa | Qué hace la interfaz | A quién afecta |
+| :--- | :--- | :--- | :--- |
+| `processing_status` por defecto es `completed` | Un recurso recién creado, **sin archivo**, ya figura como «disponible» (nota 8: `completed` del código = «available» del enunciado) y pasa la validación de publicación | Para tipos con archivo exige `object_key`; sin él muestra «sin archivo», no «procesando» ni «disponible» | A1, A5, G1, quien valide la publicación |
+| `GET /courses/{id}` es público para cursos publicados | La interfaz del profesor podía abrir el editor de un curso ajeno | Verifica que el curso esté en `GET /me/courses`; el servidor igual responde 403 a toda escritura | D3, D4 |
+| `GET /me/courses` es un endpoint nuevo | Sin él el profesor no puede ver sus borradores | Rama `feat/213-api-mis-cursos-profesor`, cambio aditivo en `api/openapi.yaml`; aprobado por Fredy (2026-10-26) | A2, D3 |
+| No existe `GET /me` | El usuario solo llega en el login | Se guarda sin token en `sessionStorage`; cualquier 401 = sesión vencida | D1 |
+| Las inscripciones no traen el id del curso | No se puede ir de «mis inscripciones» al curso | `courseIndex()` recorre el catálogo para mapear el id estable al curso | D2 |
+| Envío duplicado concurrente del cuestionario | El segundo envío recibe 409 | Guardia `useRef` contra doble clic en enviar, inscribirse, crear curso/módulo/recurso | D2, D3 |
+| URL firmada con host interno | En Compose la URL de subida apuntaba a `minio:9000`, inalcanzable desde el navegador | Local: `S3_ENDPOINT=http://host.docker.internal:9000` y `STORAGE_ORIGINS` acorde. En la nube la URL firmada debe ser pública (B1/B2) | A5, B1, E1 |
+| La CSP del frontend lista los orígenes de almacenamiento | Subir o reproducir desde un origen no listado falla en silencio | `STORAGE_ORIGINS` y `HLS_BASE_URL` de `nginx.web.conf` | C3, E1 |
+| La BD local sin migraciones 7 y 8 | El cuestionario responde 500 al abrir un intento | Aplicar todas las migraciones antes de probar | A1 |
+| TypeScript 7 y OneDrive | Los archivos con punto de reanálisis de OneDrive se saltan del globbing | `tsconfig.json` lista `files` explícitos | quien compile en OneDrive |
+| Transcodificación lenta en local | 90 s de video a 720p tardaron 2 m 49 s | No se capturó «Procesando → Disponible» en vivo; hacerlo en la nube | D3 |

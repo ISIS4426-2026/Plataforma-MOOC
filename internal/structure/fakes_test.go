@@ -47,6 +47,9 @@ func (f *fakeCourseRepo) GetByStableIDAndVersion(context.Context, string, int) (
 func (f *fakeCourseRepo) ListPublished(context.Context, domain.CourseFilter) (*domain.CoursePage, error) {
 	return &domain.CoursePage{}, nil
 }
+func (f *fakeCourseRepo) ListByAuthor(context.Context, string, domain.CourseFilter) (*domain.CoursePage, error) {
+	return &domain.CoursePage{}, nil
+}
 func (f *fakeCourseRepo) Update(context.Context, string, string, string, domain.ChangeOptions, *domain.AuditEntry) (*domain.Course, error) {
 	return nil, nil
 }

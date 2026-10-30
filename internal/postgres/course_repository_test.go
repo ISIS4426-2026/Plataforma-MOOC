@@ -261,3 +261,53 @@ func TestCourseRepositoryUpdateStatusAllowsUnpublishing(t *testing.T) {
 		t.Fatalf("Update after unpublish returned an error: %v", err)
 	}
 }
+
+// ListByAuthor is the professor's own workspace (issue #213): every status, only
+// the author's courses, newest first and paged like the public catalog.
+func TestCourseRepositoryListByAuthorReturnsOwnCoursesInAnyStatus(t *testing.T) {
+	db := newTestDB(t)
+	users := postgres.NewUserRepository(db)
+	courses := postgres.NewCourseRepository(db)
+	ctx := context.Background()
+
+	author := newAuthorUser(t, users)
+	other := newAuthorUser(t, users)
+
+	mine := newDraftCourse(author.ID)
+	mine.Title = "Mine draft " + uuid.NewString()
+	published := newDraftCourse(author.ID)
+	published.Title = "Mine published " + uuid.NewString()
+	theirs := newDraftCourse(other.ID)
+	for _, c := range []*domain.Course{mine, published, theirs} {
+		if err := courses.Create(ctx, c, courseAuditEntry(c.AuthorID, c.ID, domain.AuditActionCourseCreated)); err != nil {
+			t.Fatalf("Create returned an error: %v", err)
+		}
+	}
+	if _, err := db.ExecContext(ctx, `UPDATE courses SET status = $1 WHERE id = $2`,
+		domain.CourseStatusPublished, published.ID); err != nil {
+		t.Fatalf("failed to mark the course published directly: %v", err)
+	}
+
+	page, err := courses.ListByAuthor(ctx, author.ID, domain.CourseFilter{})
+	if err != nil {
+		t.Fatalf("ListByAuthor returned an error: %v", err)
+	}
+	got := map[string]domain.CourseStatus{}
+	for _, c := range page.Courses {
+		if c.AuthorID != author.ID {
+			t.Errorf("ListByAuthor returned a course by %q, want only %q", c.AuthorID, author.ID)
+		}
+		got[c.ID] = c.Status
+	}
+	if got[mine.ID] != domain.CourseStatusDraft || got[published.ID] != domain.CourseStatusPublished || len(got) != 2 {
+		t.Fatalf("ListByAuthor returned %v, want exactly the author's draft and published course", got)
+	}
+
+	paged, err := courses.ListByAuthor(ctx, author.ID, domain.CourseFilter{Limit: 1})
+	if err != nil {
+		t.Fatalf("ListByAuthor (paged) returned an error: %v", err)
+	}
+	if len(paged.Courses) != 1 || !paged.HasMore || paged.NextCursor == "" {
+		t.Fatalf("a page of 1 over 2 courses should report more: got %d courses, HasMore=%v", len(paged.Courses), paged.HasMore)
+	}
+}

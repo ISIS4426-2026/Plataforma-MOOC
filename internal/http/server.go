@@ -267,6 +267,8 @@ func NewServer(cfg *config.Config, deps Deps, logger *slog.Logger) *Server {
 	// professor or administrator and carry Idempotency-Key like the other
 	// mutating admin endpoints.
 	mux.HandleFunc("GET /api/v1/courses", courseHandler.List)
+	// The author's own workspace, drafts included. Same role guard as creating a course.
+	mux.Handle("GET /api/v1/me/courses", requireAuthor(courseHandler.Mine))
 	mux.HandleFunc("GET /api/v1/courses/{courseID}", courseHandler.Get)
 	mux.Handle("POST /api/v1/courses",
 		requireAuthor(idempotent(http.HandlerFunc(courseHandler.Create)).ServeHTTP))
