@@ -1,0 +1,15 @@
+[2026-10-27T15:39:17Z] B3: ===== inicio del arranque =====
+[2026-10-27T15:39:18Z] B3: rol=web commit=15ae2f9c4bf7 proyecto=plataforma-mooc-entrega2 region=us-east1
+[2026-10-27T15:39:18Z] B3: instalando dependencias del anfitrion
+[2026-10-27T15:39:59Z] B3: docker activo
+[2026-10-27T15:39:59Z] B3: autenticando contra us-east1-docker.pkg.dev
+[2026-10-27T15:40:02Z] B3: clonando https://github.com/ISIS4426-2026/Plataforma-MOOC.git en /opt/mooc
+[2026-10-27T15:40:04Z] B3: repositorio en 15ae2f9c4bf78abd33c49c55ba769cf49f8c7b8b
+[2026-10-27T15:40:04Z] B3: configuracion escrita en /etc/mooc/web.conf (modo 0640)
+[2026-10-27T15:40:04Z] B3: unidad mooc-web.service instalada
+2026-10-27T15:40:07.441307+00:00 mooc-api-l7zr bash[4282]: B3/migrar: aplicando migraciones pendientes
+2026-10-27T15:40:08.454734+00:00 mooc-api-l7zr bash[4282]: B3/migrar: comprobando que no falta ninguna
+2026-10-27T15:40:08.756117+00:00 mooc-api-l7zr bash[4282]: B3/migrar: esquema al dia
+[2026-10-27T15:40:19Z] B3: unidad mooc-web.service activa
+[2026-10-27T15:40:19Z] B3: esperando a que la instancia quede lista
+[2026-10-27T15:40:19Z] B3: ===== LISTO en 62s (rol web, commit 15ae2f9c4bf7) =====

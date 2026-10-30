@@ -3,6 +3,7 @@ module github.com/ISIS4426-2026/Plataforma-MOOC
 go 1.24.0
 
 require (
+	cloud.google.com/go/monitoring v1.24.3
 	cloud.google.com/go/storage v1.60.0
 	github.com/google/uuid v1.6.0
 	github.com/hibiken/asynq v0.26.0
@@ -18,6 +19,8 @@ require (
 	go.opentelemetry.io/otel/sdk/metric v1.39.0
 	go.opentelemetry.io/otel/trace v1.39.0
 	golang.org/x/crypto v0.47.0
+	google.golang.org/genproto/googleapis/api v0.0.0-20260203192932-546029d2fa20
+	google.golang.org/protobuf v1.36.12
 )
 
 require (
@@ -27,7 +30,6 @@ require (
 	cloud.google.com/go/auth/oauth2adapt v0.2.8 // indirect
 	cloud.google.com/go/compute/metadata v0.9.0 // indirect
 	cloud.google.com/go/iam v1.5.3 // indirect
-	cloud.google.com/go/monitoring v1.24.3 // indirect
 	github.com/GoogleCloudPlatform/opentelemetry-operations-go/detectors/gcp v1.30.0 // indirect
 	github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/metric v0.55.0 // indirect
 	github.com/GoogleCloudPlatform/opentelemetry-operations-go/internal/resourcemapping v0.55.0 // indirect
@@ -76,8 +78,6 @@ require (
 	golang.org/x/time v0.14.0 // indirect
 	google.golang.org/api v0.265.0 // indirect
 	google.golang.org/genproto v0.0.0-20260128011058-8636f8732409 // indirect
-	google.golang.org/genproto/googleapis/api v0.0.0-20260203192932-546029d2fa20 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260203192932-546029d2fa20 // indirect
 	google.golang.org/grpc v1.78.0 // indirect
-	google.golang.org/protobuf v1.36.12 // indirect
 )

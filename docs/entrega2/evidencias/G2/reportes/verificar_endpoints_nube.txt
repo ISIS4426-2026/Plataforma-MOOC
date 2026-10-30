@@ -1,0 +1,38 @@
+Endpoints sin cobertura de Postman, contra https://136.68.55.254.sslip.io
+======================================================
+
+1. Sondas e infraestructura (sin token)
+  ok     GET /api/v1/health -> 200
+  ok     GET /api/v1/live -> 200
+  ok     GET /api/v1/ready -> 200
+  ok     GET /api/v1/metrics -> 403
+  ok     GET /api/docs -> 200
+
+2. Sesiones
+  ok     sesion de admin
+  ok     sesion de profesor
+  ok     sesion de estudiante
+
+3. Administracion
+  ok     GET /api/v1/admin/audit-logs -> 200
+  ok     POST /users/professors -> 404
+
+4. Edicion de la estructura del curso (lo que mas usa un frontend)
+  ok     curso de prueba 3969ffe7-2c7b-40d8-bfb3-9e9f50fb0da8
+  ok     PUT /api/v1/modules/47d55323-dc2a-4b09-bb0c-20790cfb7ac8 -> 200
+  ok     PUT /api/v1/units/1cc360a4-2ee8-4276-b252-5a80b35b81cc -> 200
+  ok     PUT /api/v1/resources/0b6677f2-ae5f-4577-aae8-4e7db75dc5f7 -> 200
+  ok     PUT /api/v1/modules/47d55323-dc2a-4b09-bb0c-20790cfb7ac8 -> 403
+  ok     DELETE /api/v1/units/1cc360a4-2ee8-4276-b252-5a80b35b81cc -> 204
+  ok     DELETE /api/v1/modules/47d55323-dc2a-4b09-bb0c-20790cfb7ac8 -> 204
+
+5. Intentos de quiz
+  ok     POST /api/v1/quizzes/e7fd3d2e-f67c-45b3-a2ae-68b824b08a5d/attempts -> 200
+  ok     GET /api/v1/quizzes/e7fd3d2e-f67c-45b3-a2ae-68b824b08a5d/attempts/current -> 200
+  ok     PUT /api/v1/quizzes/e7fd3d2e-f67c-45b3-a2ae-68b824b08a5d/attempts/current -> 200
+
+======================================================
+Comprobaciones correctas: 20
+Fallos                 : 0
+
+El curso 3969ffe7-2c7b-40d8-bfb3-9e9f50fb0da8 se queda publicado: la API no permite borrar cursos.

@@ -1469,7 +1469,7 @@
             "exec": [
               "pm.test(\"responde 400\", function () { pm.response.to.have.status(400); });",
               "pm.test(\"lo rechaza como entrada invalida\", function () {",
-              "    pm.expect(pm.response.json().error.code).to.eql(\"invalid_input\");",
+              "    pm.expect(pm.response.json().code).to.eql(\"invalid_input\");",
               "});"
             ]
           }
@@ -1523,7 +1523,7 @@
             "exec": [
               "pm.test(\"responde 403\", function () { pm.response.to.have.status(403); });",
               "pm.test(\"la propiedad se aplica tambien a los documentos\", function () {",
-              "    pm.expect(pm.response.json().error.code).to.eql(\"forbidden\");",
+              "    pm.expect(pm.response.json().code).to.eql(\"forbidden\");",
               "});"
             ]
           }
