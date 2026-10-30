@@ -1,0 +1,31 @@
+Prueba de autohealing del grupo mooc-api-group (C1 #204, B3 #202)
+==============================================================
+Proyecto : plataforma-mooc-entrega2   Zona: us-east1-b
+
+[2026-10-28T03:16:22Z] T+6s     instancia actual: mooc-api-l9rf  id=6820144070318151384
+[2026-10-28T03:16:23Z] T+7s     >>> TOMA LA CAPTURA DE 'ANTES' AHORA, con el grupo en NONE / HEALTHY <<<
+
+    mooc-api-l9rf	RUNNING	NONE	HEALTHY
+
+[2026-10-28T03:16:26Z] T+10s    borrando a mano mooc-api-l9rf
+[2026-10-28T03:16:46Z] T+30s    orden de borrado aceptada
+[2026-10-28T03:16:46Z] T+30s    >>> LA CONSOLA YA MUESTRA LA RECREACION. CAPTURA AHORA Y EN LOS PROXIMOS 2 MIN <<<
+
+[2026-10-28T03:16:50Z] T+34s    mooc-api-l9rf  RECREATING   UNKNOWN      ?
+[2026-10-28T03:17:13Z] T+57s    mooc-api-l9rf  RECREATING   UNKNOWN      ?
+[2026-10-28T03:17:34Z] T+78s    mooc-api-l9rf  RECREATING   UNKNOWN      ?
+[2026-10-28T03:17:56Z] T+100s   mooc-api-l9rf  RECREATING   UNKNOWN      ?
+[2026-10-28T03:18:18Z] T+122s   mooc-api-l9rf  RECREATING   UNKNOWN      ?
+[2026-10-28T03:18:39Z] T+143s   mooc-api-l9rf  CREATING     UNKNOWN      ?
+[2026-10-28T03:18:43Z] T+147s   >>> el grupo creo una instancia NUEVA: id=4402968417801131874 creada=2026-10-27T20:18:37.960-07:00 <<<
+[2026-10-28T03:19:01Z] T+165s   mooc-api-l9rf  RUNNING      VERIFYING    UNKNOWN
+[2026-10-28T03:19:22Z] T+186s   mooc-api-l9rf  RUNNING      VERIFYING    TIMEOUT
+[2026-10-28T03:19:44Z] T+208s   mooc-api-l9rf  RUNNING      VERIFYING    TIMEOUT
+[2026-10-28T03:20:06Z] T+230s   mooc-api-l9rf  RUNNING      VERIFYING    TIMEOUT
+[2026-10-28T03:20:28Z] T+252s   mooc-api-l9rf  RUNNING      VERIFYING    TIMEOUT
+[2026-10-28T03:20:49Z] T+273s   mooc-api-l9rf  RUNNING      NONE         HEALTHY
+[2026-10-28T03:20:53Z] T+277s   >>> SANA. El grupo se recupero sin intervencion. <<<
+
+Para la evidencia de B3, el arranque de esta instancia:
+  gcloud compute instances get-serial-port-output mooc-api-l9rf \
+    --zone=us-east1-b --project=plataforma-mooc-entrega2 | grep -E 'B3:|B3/migrar:'

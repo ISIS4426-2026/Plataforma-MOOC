@@ -2,12 +2,12 @@
 
 | Criterio de aceptación | |
 | :--- | :---: |
-| Borrar una instancia a mano hace que el grupo la recree y quede operativa sin intervención | ⏳ §7 — requiere `apply` |
+| Borrar una instancia a mano hace que el grupo la recree y quede operativa sin intervención | ✅ **medido dos veces: 160 s y 273 s** §0 |
 | Todas las instancias del grupo responden la misma versión | ✅ §3 — estructural |
 | El grupo nunca baja de 1 ni sube de 3 | ✅ §4 — el techo lo impone C2 |
 | La ampliación manual queda descartada como evidencia | ✅ §4 — `target_size = 1` y `ignore_changes` |
-| **Bloquea el cierre:** la instancia borrada y el grupo recreándola, con tiempos | ⏳ §7 — requiere `apply` |
-| Todo en Terraform, **aplicado desde `main`** | ⏳ §7 — escrito; el `apply` va después del merge |
+| **Bloquea el cierre:** la instancia borrada y el grupo recreándola, con tiempos | ✅ §0 — seis capturas más el registro cronometrado |
+| Todo en Terraform, **aplicado desde `main`** | ✅ aplicado el 2026-10-27 desde `main`, 0 errores |
 | Anotado en `NOTAS_TECNICAS.md` | ✅ notas 34 y 35 |
 
 **Estado: escrito y validado; sin desplegar.** `terraform validate` pasa, `fmt`
@@ -15,6 +15,114 @@ limpio, y el plan está en [`plan_c1.txt`](./plan_c1.txt): **tres recursos nuevo
 ninguna VM recreada**.
 
 ---
+
+## 0. Resultado del despliegue del 2026-10-27
+
+Aplicado desde `main` con el commit `15ae2f9c`, **0 errores**. El grupo creó su
+instancia sola y el autohealing se comprobó borrándola a mano.
+
+| T+ | Qué pasó |
+| ---: | :--- |
+| 0 s | orden de borrado de `mooc-api-l7zr` |
+| 26 s | borrado aceptado |
+| 30 s | el grupo ya está en `STAGING` / `CREATING` |
+| 49 s | `RUNNING` / `VERIFYING` |
+| 67 s | salud `TIMEOUT` — la aplicación todavía arranca |
+| **160 s** | **`HEALTHY`.** Operativa sin ninguna intervención |
+
+Instancia nueva confirmada por **ID** y marca de creación, no por nombre:
+`3746978593596341138`, creada a las `15:38:37Z`, 27 s después de la orden de
+borrado. Registro completo en
+[`autohealing_02_recreacion.txt`](./autohealing_02_recreacion.txt).
+
+**Un MIG reutiliza el nombre de la instancia.** El guión de prueba esperaba un
+nombre distinto para darla por nueva, así que siguió sondeando 38 minutos sobre
+algo que llevaba ese tiempo sano y acabó imprimiendo
+`ERROR: no quedo sana en el plazo`. Los datos del registro son válidos —la tabla
+de arriba sale de ahí—; lo que estaba mal era el veredicto. Lo que distingue una
+instancia nueva es el **ID** y el `creationTimestamp`.
+
+### Lo que esto confirma del diseño de C1
+
+| | |
+| :--- | :--- |
+| `nginx.mig.conf` | `/api/v1/ready` devolvió **200 por el puerto 80**. Con `nginx.conf` habría dado 301, o nginx no habría arrancado por falta de certificado |
+| La comprobación de salud | el grupo marcó `HEALTHY` contra la instancia real |
+| La plantilla | `NGINX_CONFIG_FILE=./nginx.mig.conf` y el árbol en `15ae2f9c…` |
+| Sin IP externa | ninguna instancia del grupo tuvo dirección pública |
+
+### El retardo inicial, ahora calibrado
+
+`initial_delay_sec` pasó de **600 s a ciegas** a **300 s medidos**: 160 s del
+borrado a sana, de los cuales 62 son el arranque. 300 deja casi el doble de
+margen y reduce a la mitad lo que tarda en sustituirse una instancia muerta.
+
+### La segunda corrida, con capturas
+
+Repetida el 2026-10-27 con la consola del grupo abierta. **El guion de la primera
+version dio un falso positivo** y hubo que corregirlo antes; está contado abajo.
+
+| T+ | Estado |
+| ---: | :--- |
+| 6 s | `mooc-api-l9rf`, id **6820144070318151384**, `HEALTHY` |
+| 10 s | orden de borrado |
+| 30 s | borrado aceptado |
+| 34 s | **`RECREATING`** |
+| 143 s | **`CREATING`** |
+| 165 s | `RUNNING` / `VERIFYING` |
+| 186 s | `VERIFYING` / `TIMEOUT` — la aplicación aún arranca |
+| **273 s** | **`RUNNING` / `NONE` / `HEALTHY`** |
+
+Instancia nueva confirmada por **id**: **4402968417801131874**, creada a las
+20:18:37. Registro completo en
+[`autohealing_recreacion.txt`](./autohealing_recreacion.txt).
+
+> **El nombre es el mismo en las dos; el id es distinto.** `mooc-api-l9rf` antes
+> y después. Un grupo administrado **reutiliza el nombre**, así que lo único que
+> distingue una instancia nueva es su id y su `creationTimestamp`.
+
+### El número que se publica es un rango, no una cifra
+
+| Corrida | Del borrado a `HEALTHY` | Arranque propio (B3) |
+| :--- | ---: | ---: |
+| Primera | 160 s | 62 s |
+| Segunda | 273 s | 65 s |
+
+Lo que varía es el tramo `RECREATING`→`CREATING` del proveedor, de 34 a 143 s;
+**el arranque propio es estable en 62–66 s**. Así que lo honesto es publicar
+**2,7 a 4,6 minutos**, no una media de dos observaciones.
+
+Eso confirma que `initial_delay_sec = 300` está bien calibrado: cubre los 273 s
+con margen, y los 600 originales eran el doble de lo necesario.
+
+### Lo que prueba cada captura
+
+| Captura | Qué demuestra |
+| :--- | :--- |
+| `grupo-antes` | la línea base: una instancia sana antes de tocar nada |
+| `grupo-borrando-instancia` | el borrado **a mano**, que es la condición del criterio |
+| `grupo-recreando` | el grupo reacciona solo, sin que nadie se lo pida |
+| `grupo-verificando` | la comprobación de salud sobre la instancia nueva |
+| `grupo-instancia-sana` | el ciclo cerrado, de vuelta a `HEALTHY` |
+| `grupo-resumen-autoescalado-1-3` | `1 instance` · `100% healthy` · `Healthcheck mooc-api-ready` · **`Autoscaling: On (min 1, max 3)`** |
+
+La última vale por tres criterios a la vez: el límite 1–3, que la sonda es la de
+A2, y que el autoescalador de C2 está activo sobre una métrica.
+
+### El falso positivo de la primera versión del guión
+
+Hay que dejarlo escrito porque estuvo a punto de cerrar C1 con evidencia falsa.
+
+`gcloud ... list-instances --format="value(instance)"` devuelve **la zona**,
+`us-east1-b`, no el nombre de la instancia. El guión intentó borrar una máquina
+con ese nombre, el borrado falló, **no se miraba el código de salida**, y como el
+id de la «vieja» quedó vacío, el de la que seguía viva le pareció nuevo. Imprimió
+«SANA. El grupo se recupero sin intervencion» **sin haber tocado nada**.
+
+Lo delató una observación de quien miraba la consola: «se ejecuta muy rápido y no
+cambia el estado». Corregido con tres aserciones —el nombre tiene que empezar por
+`mooc-api-`, el id no puede estar vacío, y el borrado tiene que salir con 0— y
+anotado en la nota 36 como el quinto caso del mismo patrón.
 
 ## 1. El bloqueo que había que resolver antes de poder escribir el autohealing
 

@@ -1,0 +1,31 @@
+B1: los trabajos encolados sobreviven al reinicio de la cola
+============================================================
+Fecha: 2026-10-27T16:36:37Z
+
+ALCANCE: se prueba la persistencia AOF del servicio de cola con claves
+sintetiticas en las dos bases logicas, con la forma que usa asynq. Lo que NO
+se prueba aqui es que asynq relea su registro tras el reinicio: eso exige
+tareas reales y por tanto el grupo de workers, que es C5.
+
+1) Estado antes
+   appendonly        : yes
+   maxmemory-policy  : noeviction
+   bases con claves  : 0
+
+2) Se escriben claves en la base 0 (cola) y la 1 (sesiones)
+   asynq:queues           -> default 
+   pendientes en la cola  -> 2
+   clave de sesion (db 1) -> valor-de-prueba
+
+3) Reinicio DURO del servicio de cola
+   redis respondio: PONG
+   tiempo en marcha: uptime_in_seconds:0 (confirma que es un proceso nuevo)
+
+4) Estado despues
+   asynq:queues           -> default 
+   pendientes en la cola  -> 2
+   clave de sesion (db 1) -> valor-de-prueba
+
+5) Limpieza de las claves sinteticas
+   borradas. asynq:queues se CONSERVA a proposito: borrarlo es la nota 27.
+   asynq:queues -> default 

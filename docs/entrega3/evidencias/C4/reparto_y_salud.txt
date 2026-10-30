@@ -1,0 +1,50 @@
+C4 - Reparto de trafico y exclusion por salud
+==============================================
+Destino : https://136.68.55.254.sslip.io/api/v1/ready
+Grupo   : mooc-api-group  (us-east1-b)
+
+[22:26:35Z] T+6s     instancias en el grupo: mooc-api-l9rf mooc-api-sj3d
+
+Correspondencia entre instancia y el identificador que publica:
+    mooc-api-l9rf  ->  4a04e2ede9e8
+    mooc-api-sj3d  ->  9cb53ef3626d
+
+[22:26:52Z] T+23s    midiendo el reparto con las dos sanas (40 peticiones)
+[22:27:14Z] T+45s    reparto: 4a04e2ede9e8:25 9cb53ef3626d:15 
+[22:27:14Z] T+45s    >>> OK: el balanceador reparte entre 2 replicas <<<
+
+[22:27:14Z] T+45s    >>> DEGRADANDO mooc-api-l9rf (4a04e2ede9e8): se para su contenedor api <<<
+[22:27:14Z] T+45s    >>> TOMA LA CAPTURA DEL REPARTO SANO AHORA, antes de que cambie <<<
+[22:27:25Z] T+56s    contenedor api parado en mooc-api-l9rf
+[22:27:25Z] T+56s    esperando a que el balanceador deje de mandarle peticiones
+[22:28:07Z] T+98s    reparto: 9cb53ef3626d:10   salud: mooc-api-l9rf TIMEOUT RECREATING mooc-api-sj3d HEALTHY NONE 
+[22:28:07Z] T+98s    >>> EXCLUIDA: 0 peticiones a 4a04e2ede9e8 tras 43s <<<
+[22:28:08Z] T+99s    >>> CAPTURA AHORA: la consola muestra la replica no sana <<<
+
+[22:28:08Z] T+99s    >>> RECUPERANDO mooc-api-l9rf: se arranca su contenedor api <<<
+[22:28:18Z] T+109s   contenedor api arrancado
+[22:28:27Z] T+119s   reparto: 9cb53ef3626d:10   salud: mooc-api-l9rf UNHEALTHY RECREATING mooc-api-sj3d HEALTHY NONE 
+[22:28:46Z] T+137s   reparto: 9cb53ef3626d:10   salud: mooc-api-l9rf HEALTHY RECREATING mooc-api-sj3d HEALTHY NONE 
+[22:29:06Z] T+157s   reparto: 9cb53ef3626d:10   salud: mooc-api-l9rf HEALTHY RECREATING mooc-api-sj3d HEALTHY NONE 
+[22:29:25Z] T+176s   reparto: 9cb53ef3626d:10   salud: mooc-api-l9rf HEALTHY RECREATING mooc-api-sj3d HEALTHY NONE 
+[22:29:44Z] T+195s   reparto: 9cb53ef3626d:10   salud: mooc-api-l9rf HEALTHY RECREATING mooc-api-sj3d HEALTHY NONE 
+[22:30:03Z] T+215s   reparto: 9cb53ef3626d:10   salud: mooc-api-l9rf HEALTHY RECREATING mooc-api-sj3d HEALTHY NONE 
+[22:30:22Z] T+233s   reparto: 9cb53ef3626d:10   salud: mooc-api-l9rf HEALTHY RECREATING mooc-api-sj3d HEALTHY NONE 
+[22:30:42Z] T+253s   reparto: 9cb53ef3626d:10   salud: mooc-api-l9rf UNKNOWN RECREATING mooc-api-sj3d HEALTHY NONE 
+[22:31:02Z] T+273s   reparto: 9cb53ef3626d:10   salud: mooc-api-l9rf UNKNOWN RECREATING mooc-api-sj3d HEALTHY NONE 
+[22:31:21Z] T+292s   reparto: 9cb53ef3626d:10   salud: mooc-api-l9rf TIMEOUT VERIFYING mooc-api-sj3d HEALTHY NONE 
+[22:31:40Z] T+311s   reparto: 9cb53ef3626d:10   salud: mooc-api-l9rf TIMEOUT VERIFYING mooc-api-sj3d HEALTHY NONE 
+[22:31:59Z] T+330s   reparto: 9cb53ef3626d:10   salud: mooc-api-l9rf TIMEOUT VERIFYING mooc-api-sj3d HEALTHY NONE 
+[22:32:18Z] T+349s   reparto: 9cb53ef3626d:10   salud: mooc-api-l9rf TIMEOUT VERIFYING mooc-api-sj3d HEALTHY NONE 
+[22:32:37Z] T+368s   reparto: 9cb53ef3626d:10   salud: mooc-api-l9rf TIMEOUT VERIFYING mooc-api-sj3d HEALTHY NONE 
+[22:32:56Z] T+387s   reparto: 4a04e2ede9e8:4 9cb53ef3626d:6   salud: mooc-api-l9rf HEALTHY NONE mooc-api-sj3d HEALTHY NONE 
+[22:32:56Z] T+387s   >>> REINCORPORADA: vuelve a recibir trafico tras 278s <<<
+
+==============================================
+RESUMEN
+  reparto con dos sanas        : 4a04e2ede9e8:25 9cb53ef3626d:15 
+  exclusion tras degradar      : 43s
+  reincorporacion tras reparar : 278s
+
+La reparacion por el grupo administrado es otro mecanismo y otra escala:
+la mide C1, y son minutos frente a estos segundos.

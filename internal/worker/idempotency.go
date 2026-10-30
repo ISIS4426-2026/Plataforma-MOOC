@@ -2,6 +2,7 @@ package worker
 
 import (
 	"context"
+	"fmt"
 	"sync"
 	"time"
 
@@ -71,6 +72,34 @@ func NewRedisIdempotencyStore(client redis.UniversalClient) *RedisIdempotencySto
 		client: client,
 		prefix: "idempotency:worker:",
 	}
+}
+
+// NewRedisIdempotencyStoreFromURL construye el almacen compartido a partir de la
+// misma URL con la que el worker habla con la cola.
+//
+// Por que hace falta, y no es un atajo de comodidad:
+//
+// El almacen por omision de `NewWorkerEngine` es el de memoria, que vive dentro
+// de un proceso. Con un worker suelto eso bastaba. Desde C5 el worker es un
+// grupo de 1 a 3 instancias, y la marca de «esto ya se hizo» que deja una
+// instancia no la ve ninguna otra: exactamente el caso que C7 tiene que cubrir,
+// porque un trabajo reencolado por un drenaje lo recoge **otra** instancia.
+//
+// Comparte el Redis de la cola a proposito. Es una dependencia mas que ya
+// existe --si ese Redis no esta, no hay cola y no hay nada que procesar-- y
+// evita un segundo punto unico de falla. Las claves van con el prefijo
+// `idempotency:worker:`, asi que no se confunden con las de asynq.
+func NewRedisIdempotencyStoreFromURL(redisURL string) (*RedisIdempotencyStore, error) {
+	opt, err := ParseRedisOpt(redisURL)
+	if err != nil {
+		return nil, err
+	}
+
+	client, ok := opt.MakeRedisClient().(redis.UniversalClient)
+	if !ok {
+		return nil, fmt.Errorf("la conexion de redis %T no es un cliente universal", opt)
+	}
+	return NewRedisIdempotencyStore(client), nil
 }
 
 // IsProcessed checks Redis to see if the idempotency key exists.

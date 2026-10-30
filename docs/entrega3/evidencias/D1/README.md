@@ -1,7 +1,7 @@
 # Evidencia D1 — Base del frontend: stack, build versionado, despliegue, sesión y CORS (issue #211)
 
 Código en [`frontend/`](../../../../frontend/). Decisión y trampas en la
-[nota 36](../../NOTAS_TECNICAS.md#36) de `docs/entrega3/NOTAS_TECNICAS.md`.
+[nota 46](../../NOTAS_TECNICAS.md#46) de `docs/entrega3/NOTAS_TECNICAS.md`.
 
 ## Estado frente a los criterios del issue
 
@@ -98,7 +98,7 @@ del build. Se verificó que el revisor **detecta** lo que debe, con un archivo d
 tipo (salida 1). El revisor corre **dentro de `docker build`** y en la CI: una imagen con un secreto no se
 construye. Configuración pública solo por `VITE_*` (origen de la API opcional, vacío = mismo origen).
 
-Dos falsos positivos de la librería de rutas se resolvieron afinando la regla, no silenciándola (nota 36).
+Dos falsos positivos de la librería de rutas se resolvieron afinando la regla, no silenciándola (nota 46).
 
 
 ## 6. El frontend dentro del grupo de instancias (B3 / C1)
@@ -124,7 +124,7 @@ Comprobado: la plantilla de nginx se renderiza y `nginx -t` pasa; `docker compos
    `Dockerfile.web` en las instancias (B3, C1), repetir `scripts/verify_frontend_origin.sh` con
    `BASE_URL=https://<balanceador>` y **registrar aquí la URL HTTPS pública del frontend**.
 2. **Confirmar con Fredy** el alojamiento (mismo origen vía nginx, opción A): lo consumen A4, C3 y E1.
-3. **Dos huecos de la API que bloquean a D2 y D3** (nota 36): listar los cursos propios del profesor y un
+3. **Dos huecos de la API que bloquean a D2 y D3** (nota 46): listar los cursos propios del profesor y un
    `GET /me`.
 4. Capturar la interfaz una vez más con la versión de un commit limpio (las capturas actuales muestran `-sin-commit`).
 

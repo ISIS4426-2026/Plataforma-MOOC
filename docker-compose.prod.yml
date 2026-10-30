@@ -27,13 +27,16 @@
 
 services:
   proxy:
-    # Por omision, nginx pelado (VM fija de la Entrega 2). En una instancia de grupo, PROXY_IMAGE es la
-    # imagen del frontend (D1, `Dockerfile.web`): trae el build y sirve la API en el mismo origen. Con ella,
-    # NGINX_CONFIG_FILE debe ser ./nginx.web.conf.
+    # Por omision, nginx pelado con nginx.mig.conf (solo la API). En una instancia que sirve el frontend,
+    # PROXY_IMAGE es la imagen `web` (D1, `Dockerfile.web`): trae el build y sirve la API en el mismo origen.
+    # Con ella, NGINX_CONFIG_FILE debe ser ./nginx.web.conf.
     image: ${PROXY_IMAGE:-nginx:1.27-alpine}
+    # Solo el 80. El 443 se fue con C3 (#206): TLS se termina en el balanceador,
+    # con un certificado administrado por Google, y los backends sirven HTTP
+    # plano dentro de la VPC. Sin IP publica en las instancias, ese HTTP no
+    # viaja por internet en ningun tramo.
     ports:
       - "80:80"
-      - "443:443"
     environment:
       - APP_DOMAIN=${APP_DOMAIN:?Set APP_DOMAIN to the public DNS hostname}
       # Solo los lee nginx.web.conf (frontend); los demas perfiles los ignoran.
@@ -41,9 +44,9 @@ services:
       - STORAGE_ORIGINS=${STORAGE_ORIGINS:-https://storage.googleapis.com}
       - HLS_BASE_URL=${HLS_BASE_URL:-https://storage.googleapis.com/${S3_BUCKET:-plataforma-mooc-entrega2-media}}
     volumes:
-      - ${NGINX_CONFIG_FILE:-./nginx.conf}:/etc/nginx/templates/default.conf.template:ro
-      - /etc/letsencrypt:/etc/letsencrypt:ro
-      - ./certbot/www:/var/www/certbot:ro
+      # Ya no se montan /etc/letsencrypt ni ./certbot/www: no hay certificado en
+      # la instancia ni desafio de ACME que servir.
+      - ${NGINX_CONFIG_FILE:-./nginx.mig.conf}:/etc/nginx/templates/default.conf.template:ro
     depends_on:
       api:
         condition: service_healthy

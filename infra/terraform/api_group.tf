@@ -178,14 +178,23 @@ resource "google_compute_instance_group_manager" "api" {
     # rota». Errar por arriba solo retrasa la sustitucion de una instancia de
     # verdad muerta, asi que el lado seguro es claro.
     #
-    # 600 s cubren con holgura lo que hace `mooc-bootstrap.sh`: arrancar la VM,
-    # instalar docker, git y psql, clonar el repositorio, leer dos secretos,
-    # aplicar las migraciones y bajar y levantar los contenedores.
+    # CALIBRADO CON LA MEDIDA REAL del 2026-10-27, no a ojo.
     #
-    # **Hay que calibrarlo a la baja** con el numero que B3 escribe en
-    # `/var/lib/mooc/arranque.json` en cuanto exista una medida real. A2 ya avisa
-    # de lo mismo para el periodo de inicializacion del autoescalador.
-    initial_delay_sec = 600
+    # Se puso en 600 s a ciegas antes del primer despliegue. Medido:
+    #
+    #   62 s   lo que tarda `mooc-bootstrap.sh` de principio a `/api/v1/ready`
+    #          (`/var/lib/mooc/arranque.json`, B3)
+    #  160 s   del borrado a mano de una instancia a que el grupo la declare
+    #          sana, incluyendo arrancar la VM y el sondeo del health check
+    #
+    # 300 s deja casi el doble de margen sobre los 160 s medidos y reduce a la
+    # mitad lo que tarda en sustituirse una instancia de verdad muerta.
+    #
+    # Sigue siendo mejor errar por arriba: por debajo del arranque real, el
+    # autohealer mata instancias que se estan montando y las sustituye por otras
+    # que haran lo mismo. Si el arranque se alarga --mas migraciones, una imagen
+    # mas grande-- hay que volver a medirlo, no suponerlo.
+    initial_delay_sec = 300
   }
 
   # Rotar a una version nueva sin bajar del minimo, que es el criterio de
