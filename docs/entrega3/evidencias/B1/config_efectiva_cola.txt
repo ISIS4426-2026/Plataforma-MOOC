@@ -1,0 +1,15 @@
+Claves efectivas del servicio de cola, 2026-10-27T16:37:10Z
+
+  appendonly         yes
+  appendfsync        everysec
+  maxmemory          1468006400
+  maxmemory-policy   noeviction
+  databases          16
+
+  escucha en:
+    LISTEN 0      511         10.0.1.8:6379       0.0.0.0:*          
+    LISTEN 0      511        127.0.0.1:6379       0.0.0.0:*          
+
+  FLUSHDB y FLUSHALL desactivados por nombre:
+    ERR unknown command 'FLUSHDB', with args beginning with: 
+    

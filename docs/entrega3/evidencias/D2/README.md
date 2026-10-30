@@ -29,7 +29,7 @@ con la URL del balanceador visible y registrar el `X-Instance-ID` de las respues
 - **Cuestionario:** el estudiante nunca recibe la clave de respuestas. Doble clic en «Enviar» no genera un segundo
   envío (guardia local; sin ella el servidor responde 409 al duplicado concurrente).
 - **Recurso sin archivo:** un recurso de tipo archivo sin `object_key` se muestra «sin archivo», no «procesando»
-  ni «disponible» (ver nota 37).
+  ni «disponible» (ver nota 47).
 - **Estados de interfaz** (cargando, vacío, error con reintento, sin permiso): ver [D4](../D4/README.md).
 - **Pruebas unitarias:** 30 pruebas de la capa de cliente y utilidades pasan (`npm test` en `frontend/`).
 

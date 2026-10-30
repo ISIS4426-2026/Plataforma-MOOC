@@ -14,6 +14,19 @@ RUN CGO_ENABLED=0 GOOS=linux go build -o /app/bin/worker ./cmd/worker
 # service that runs by default, only invoked one-off via `make seed-media`.
 RUN CGO_ENABLED=0 GOOS=linux go build -o /app/bin/seed-media ./cmd/seed-media
 
+# queue-exporter (C6, issue #209) shares this image rather than getting its own,
+# for two reasons:
+#
+#  1. It shares `internal/worker` -- the Redis URL parsing and the asynq queue
+#     semantics. A separate image could drift from what the worker consumes.
+#  2. D1 publishes exactly two images per commit, `api` and `worker`, and
+#     bootstrap.tf guards both with a plan-time `data` lookup. A third image is a
+#     third thing that can be missing at apply time for no gain.
+#
+# It does NOT run by default: the queue VM starts it with
+# `docker run ... /app/queue-exporter`, overriding this image's CMD.
+RUN CGO_ENABLED=0 GOOS=linux go build -o /app/bin/queue-exporter ./cmd/queue-exporter
+
 FROM alpine:3.22
 
 # The media pipeline shells out to ffmpeg and ffprobe, so they are part of the
@@ -26,6 +39,7 @@ RUN apk add --no-cache ffmpeg ca-certificates \
 WORKDIR /app
 COPY --from=builder --chown=app:app /app/bin/worker /app/worker
 COPY --from=builder --chown=app:app /app/bin/seed-media /app/seed-media
+COPY --from=builder --chown=app:app /app/bin/queue-exporter /app/queue-exporter
 
 # Originals are downloaded and renditions written here before upload. Declaring
 # it keeps the scratch space in one known place, so disk use during a load test

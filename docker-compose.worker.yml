@@ -32,6 +32,10 @@ services:
       - S3_BUCKET=${S3_BUCKET:-plataforma-mooc-entrega2-media}
       - GCP_PROJECT_ID=${GCP_PROJECT_ID:-plataforma-mooc-entrega2}
       - WORKER_CONCURRENCY=${WORKER_CONCURRENCY:-2}
+      # C7 (#210): cuanto espera por las tareas en curso al recibir SIGTERM.
+      # Tiene que caber dentro del `down --timeout` de mooc-worker.service, o
+      # docker mata el contenedor antes de que el drenaje acabe.
+      - WORKER_DRAIN_TIMEOUT=${WORKER_DRAIN_TIMEOUT:-90s}
       # Los derivados van a un bucket propio, de lectura publica (#167). Vacio
       # deja el comportamiento de un solo bucket, que es el de MinIO en local.
       - MEDIA_HLS_BUCKET=${MEDIA_HLS_BUCKET:-}

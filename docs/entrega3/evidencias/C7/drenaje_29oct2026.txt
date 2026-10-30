@@ -1,0 +1,20 @@
+contenedor: 1ae6c2a741da
+SIGTERM en 19:26:45.003Z
+parado   en 19:28:16.489Z
+=== REGISTRO DEL DRENAJE ===
+2026-10-29T19:24:36.997385597Z 2026/10/29 19:24:36 Starting Plataforma MOOC Background Worker [Env: production]
+2026-10-29T19:24:37.039966287Z {"time":"2026-10-29T19:24:37.039275312Z","level":"INFO","msg":"[Worker Engine] Starting background worker processor...","env":"production","redis_url":"10.0.1.8:6379","concurrency":2,"drenaje":"1m30s"}
+2026-10-29T19:24:37.040041403Z {"time":"2026-10-29T19:24:37.039380733Z","level":"INFO","msg":"Starting processing"}
+2026-10-29T19:24:37.040061284Z 2026/10/29 19:24:37 Derivatives bucket: plataforma-mooc-entrega2-hls
+2026-10-29T19:24:37.040067769Z 2026/10/29 19:24:37 Media ladder: 360:800:96,720:2500:128
+2026-10-29T19:24:37.040096092Z 2026/10/29 19:24:37 Worker concurrency: 2, work dir: /tmp/mooc-media, max original size: 2048 MB
+2026-10-29T19:24:37.040102300Z 2026/10/29 19:24:37 Plazo de drenaje: 1m30s (al vencer, lo que siga en curso vuelve a la cola)
+2026-10-29T19:25:37.088862473Z {"time":"2026-10-29T19:25:37.088524832Z","level":"INFO","msg":"job media:process started","id":"media-originals/108b17d2-73f0-4d07-a170-902a1e27d233/1f2aa8d5-db19-4056-bd89-07355b04efd0.mp4","tipo":"media:process","estado":"started"}
+2026-10-29T19:26:45.355612661Z {"time":"2026-10-29T19:26:45.355346862Z","level":"INFO","msg":"[Worker Engine] drenaje iniciado: no se aceptan trabajos nuevos","plazo":"1m30s","al_vencer":"lo que siga en curso vuelve a la cola sin gastar un reintento"}
+2026-10-29T19:26:45.355663587Z {"time":"2026-10-29T19:26:45.355407572Z","level":"INFO","msg":"Starting graceful shutdown"}
+2026-10-29T19:26:45.908867533Z {"time":"2026-10-29T19:26:45.908588843Z","level":"INFO","msg":"Waiting for all workers to finish..."}
+2026-10-29T19:28:15.910484933Z {"time":"2026-10-29T19:28:15.910264348Z","level":"WARN","msg":"Quitting worker. task id=media-originals/108b17d2-73f0-4d07-a170-902a1e27d233/1f2aa8d5-db19-4056-bd89-07355b04efd0.mp4"}
+2026-10-29T19:28:15.912713646Z {"time":"2026-10-29T19:28:15.912496583Z","level":"INFO","msg":"Pushed task id=media-originals/108b17d2-73f0-4d07-a170-902a1e27d233/1f2aa8d5-db19-4056-bd89-07355b04efd0.mp4 back to queue"}
+2026-10-29T19:28:15.913444855Z {"time":"2026-10-29T19:28:15.913316512Z","level":"INFO","msg":"All workers have finished"}
+2026-10-29T19:28:15.916318508Z {"time":"2026-10-29T19:28:15.91607344Z","level":"INFO","msg":"Exiting"}
+2026-10-29T19:28:15.916360747Z {"time":"2026-10-29T19:28:15.916193464Z","level":"INFO","msg":"[Worker Engine] drenaje terminado","duración":"1m30.560856174s","duración_ms":90560}
