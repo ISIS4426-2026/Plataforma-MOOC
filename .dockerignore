@@ -52,3 +52,7 @@ clase_test.mp4
 # --- Entornos de editor ---
 .idea/
 .vscode/
+
+# D1 (#211): el frontend se compila en su propia imagen (Dockerfile.web); no entra al contexto de la API
+frontend/node_modules/
+frontend/dist/

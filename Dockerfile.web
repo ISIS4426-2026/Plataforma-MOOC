@@ -1,0 +1,32 @@
+# Imagen del frontend (issue #211, D1): los archivos estaticos compilados mas un nginx
+# que los sirve y reenvia /api a la API. Contexto de construccion: la raiz del repositorio.
+#
+#   docker build -f Dockerfile.web --build-arg APP_COMMIT=$(git rev-parse --short=12 HEAD) -t mooc-web .
+#
+# POR QUE NGINX Y NO UN BUCKET (nota 22 de docs/entrega3/NOTAS_TECNICAS.md)
+# La cookie de sesion es SameSite=Lax: solo viaja si pagina y API comparten origen. Servir el
+# frontend desde el mismo sitio que la API no necesita CORS, ni SameSite=None, ni tocar la lista
+# de origenes de CSRF. Cada instancia de API del grupo elastico lleva esta misma imagen, asi que
+# la version del frontend viaja con la de la plantilla.
+
+# --- Etapa 1: compilar. La construccion FALLA si el bundle lleva secretos o direcciones internas ---
+FROM node:24-alpine AS build
+WORKDIR /app
+COPY frontend/package.json frontend/package-lock.json ./
+RUN npm ci --no-audit --no-fund
+COPY frontend/ ./
+# El contexto de Docker no incluye .git: el commit llega como argumento.
+ARG APP_COMMIT=desconocido
+ENV VITE_APP_COMMIT=${APP_COMMIT}
+RUN npm run build && npm run check:bundle
+
+# --- Etapa 2: servir ---
+FROM nginx:1.27-alpine
+COPY --from=build /app/dist /usr/share/nginx/html
+# nginx sustituye las variables de entorno de /etc/nginx/templates/*.template al arrancar.
+COPY nginx.web.conf /etc/nginx/templates/default.conf.template
+# API_UPSTREAM: donde esta la API vista desde el contenedor (Compose: "api:8080").
+# STORAGE_ORIGINS: de donde puede el navegador pedir archivos (subidas firmadas y video HLS).
+ENV API_UPSTREAM=api:8080 \
+    STORAGE_ORIGINS=https://storage.googleapis.com
+EXPOSE 80

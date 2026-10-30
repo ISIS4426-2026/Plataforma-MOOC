@@ -74,3 +74,7 @@ capacity-planning/datos/
 # Python deja su cache al lado del modulo.
 __pycache__/
 *.pyc
+
+# D1 (#211): frontend
+frontend/node_modules/
+frontend/dist/

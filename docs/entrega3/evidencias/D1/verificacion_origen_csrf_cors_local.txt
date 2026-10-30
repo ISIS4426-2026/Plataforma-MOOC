@@ -1,0 +1,18 @@
+== Origen del frontend: http://localhost:8081
+-- 1. El frontend sirve su pagina y su version
+  OK   GET / -> 200
+     version: {"commit":"3affa11394ea-sin-commit","builtAt":"2026-10-26T17:36:19.631Z"}
+-- 2. Login desde el origen del frontend (el navegador manda Origin: http://localhost:8081)
+  OK   POST /auth/login con Origin propio -> 200
+     cookie de sesion recibida: 1 (nombre con prefijo __Host-, Secure, HttpOnly)
+-- 3. CSRF: una escritura con la cookie de sesion y un origen AJENO se rechaza
+  OK   POST /auth/logout con Origin ajeno -> 403
+     respuesta: {"code":"csrf_origin_rejected","message":"El origen de la solicitud no está permitido."}
+  OK   POST /auth/logout SIN Origin (con cookie) -> 403
+-- 4. CORS: el origen ajeno no recibe permiso para leer respuestas
+  OK   preflight desde origen ajeno sin Access-Control-Allow-Origin
+  OK   nunca devuelve comodin *
+-- 5. La escritura legitima con la cookie y el origen del frontend SI pasa (cierra la sesion)
+  OK   POST /auth/logout con Origin propio (204 = sin contenido) -> 204
+
+RESULTADO: todas las comprobaciones pasaron
