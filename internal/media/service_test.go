@@ -11,6 +11,7 @@ import (
 )
 
 const (
+	studentID        = "55555555-5555-5555-5555-555555555555"
 	authorID         = "11111111-1111-1111-1111-111111111111"
 	otherProfessorID = "22222222-2222-2222-2222-222222222222"
 	resourceID       = "33333333-3333-3333-3333-333333333333"
@@ -18,10 +19,12 @@ const (
 )
 
 type harness struct {
-	svc       *Service
-	resources *fakeResources
-	store     *fakeStorage
-	queue     *fakeQueue
+	course      *domain.Course
+	enrollments *fakeEnrollments
+	svc         *Service
+	resources   *fakeResources
+	store       *fakeStorage
+	queue       *fakeQueue
 }
 
 func newHarness(t *testing.T, resourceType domain.ResourceType) *harness {
@@ -35,16 +38,19 @@ func newHarness(t *testing.T, resourceType domain.ResourceType) *harness {
 	store := newFakeStorage()
 	queue := &fakeQueue{}
 
+	course := &domain.Course{ID: "course-1", StableID: "course-stable-1", AuthorID: authorID, Status: domain.CourseStatusPublished}
+	enrollments := &fakeEnrollments{active: map[string]bool{}}
 	svc := NewService(Deps{
-		Courses:   &fakeCourses{course: &domain.Course{ID: "course-1", AuthorID: authorID}},
-		Modules:   &fakeModules{module: &domain.Module{ID: "module-1", CourseID: "course-1"}},
-		Units:     &fakeUnits{unit: &domain.Unit{ID: "unit-1", ModuleID: "module-1"}},
-		Resources: resources,
-		Storage:   store,
-		Queue:     queue,
+		Enrollments: enrollments,
+		Courses:     &fakeCourses{course: course},
+		Modules:     &fakeModules{module: &domain.Module{ID: "module-1", CourseID: "course-1"}},
+		Units:       &fakeUnits{unit: &domain.Unit{ID: "unit-1", ModuleID: "module-1"}},
+		Resources:   resources,
+		Storage:     store,
+		Queue:       queue,
 	}, Options{MaxUploadBytes: 10 << 20}, nil)
 
-	return &harness{svc: svc, resources: resources, store: store, queue: queue}
+	return &harness{svc: svc, resources: resources, store: store, queue: queue, course: course, enrollments: enrollments}
 }
 
 func author() Actor {
@@ -383,6 +389,75 @@ func TestDownloadURLSignsTheStoredObject(t *testing.T) {
 	}
 	if expiresAt.IsZero() {
 		t.Error("expected an expiry")
+	}
+}
+
+func student() Actor {
+	return Actor{ID: studentID, Role: domain.RoleStudent}
+}
+
+// A student reads a file of a published course while actively enrolled, and in no other case.
+func TestDownloadURLForAStudent(t *testing.T) {
+	cases := []struct {
+		name    string
+		enroll  bool
+		status  domain.CourseStatus
+		wantErr error
+	}{
+		{"enrolled, published course", true, domain.CourseStatusPublished, nil},
+		{"not enrolled", false, domain.CourseStatusPublished, domain.ErrForbidden},
+		{"enrolled but the course is unpublished", true, domain.CourseStatusUnpublished, domain.ErrForbidden},
+		{"enrolled but the course is a draft", true, domain.CourseStatusDraft, domain.ErrForbidden},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			h := newHarness(t, domain.ResourceTypePDF)
+			key := uploadAndLand(t, h, "guia.pdf", "application/pdf", 1<<20)
+			if _, err := h.svc.ConfirmUpload(context.Background(), author(), resourceID, key); err != nil {
+				t.Fatalf("ConfirmUpload: %v", err)
+			}
+			h.course.Status = tc.status
+			if tc.enroll {
+				h.enrollments.active[studentID+"|"+h.course.StableID] = true
+			}
+
+			url, _, err := h.svc.DownloadURL(context.Background(), student(), resourceID)
+			if !errors.Is(err, tc.wantErr) {
+				t.Fatalf("error = %v, want %v", err, tc.wantErr)
+			}
+			if tc.wantErr == nil && !strings.Contains(url, key) {
+				t.Errorf("download URL %q does not reference %q", url, key)
+			}
+			if tc.wantErr != nil && url != "" {
+				t.Errorf("a refused student must not receive a URL, got %q", url)
+			}
+		})
+	}
+}
+
+// A student asking about a file that carries no object learns nothing about it
+// unless they could read it: forbidden comes before not-found.
+func TestDownloadURLForANonEnrolledStudentIsForbiddenEvenWithoutAnObject(t *testing.T) {
+	h := newHarness(t, domain.ResourceTypePDF)
+	if _, _, err := h.svc.DownloadURL(context.Background(), student(), resourceID); !errors.Is(err, domain.ErrForbidden) {
+		t.Fatalf("error = %v, want ErrForbidden", err)
+	}
+}
+
+// Another professor is still refused: opening the route to students must not open it to them.
+func TestDownloadURLStillRefusesAnotherProfessor(t *testing.T) {
+	h := newHarness(t, domain.ResourceTypePDF)
+	other := Actor{ID: otherProfessorID, Role: domain.RoleProfessor}
+	if _, _, err := h.svc.DownloadURL(context.Background(), other, resourceID); !errors.Is(err, domain.ErrForbidden) {
+		t.Fatalf("error = %v, want ErrForbidden", err)
+	}
+}
+
+func TestDownloadURLRefusesAStudentWhenNoEnrollmentCheckerIsWired(t *testing.T) {
+	h := newHarness(t, domain.ResourceTypePDF)
+	h.svc.deps.Enrollments = nil
+	if _, _, err := h.svc.DownloadURL(context.Background(), student(), resourceID); !errors.Is(err, domain.ErrForbidden) {
+		t.Fatalf("error = %v, want ErrForbidden", err)
 	}
 }
 

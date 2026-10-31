@@ -51,6 +51,12 @@ type (
 	UnitLookup interface {
 		GetByID(ctx context.Context, id string) (*domain.Unit, error)
 	}
+	// EnrollmentChecker answers whether a student may currently work through a
+	// course. It is the same access check the structure and enrollment services
+	// use for reading content, so a read URL follows the rule the listing does.
+	EnrollmentChecker interface {
+		IsActive(ctx context.Context, studentID, courseStableID string) (bool, error)
+	}
 	// ResourceStore reads the resource and records a confirmed upload on it.
 	// Notably absent is Update: this service never touches the client-editable
 	// fields.
@@ -66,8 +72,11 @@ type Deps struct {
 	Modules   ModuleLookup
 	Units     UnitLookup
 	Resources ResourceStore
-	Storage   domain.StorageProvider
-	Queue     Enqueuer
+	// Enrollments is what lets a student read a published course's files. Nil
+	// leaves downloads to the authoring roles.
+	Enrollments EnrollmentChecker
+	Storage     domain.StorageProvider
+	Queue       Enqueuer
 }
 
 // Options tune the issued URLs and the size ceiling.
@@ -302,7 +311,7 @@ func (s *Service) DownloadURL(ctx context.Context, actor Actor, resourceID strin
 	if err != nil {
 		return "", time.Time{}, err
 	}
-	if err := s.authorizeOnResource(ctx, actor, resource); err != nil {
+	if err := s.authorizeDownload(ctx, actor, resource); err != nil {
 		return "", time.Time{}, err
 	}
 	if resource.ObjectKey == "" {
@@ -318,6 +327,19 @@ func (s *Service) DownloadURL(ctx context.Context, actor Actor, resourceID strin
 
 // ---- shared -----------------------------------------------------------
 
+// courseOfResource walks the hierarchy from a resource up to its course.
+func (s *Service) courseOfResource(ctx context.Context, resource *domain.Resource) (*domain.Course, error) {
+	unit, err := s.deps.Units.GetByID(ctx, resource.UnitID)
+	if err != nil {
+		return nil, err
+	}
+	module, err := s.deps.Modules.GetByID(ctx, unit.ModuleID)
+	if err != nil {
+		return nil, err
+	}
+	return s.deps.Courses.GetByID(ctx, module.CourseID)
+}
+
 // authorizeOnResource applies the same rule the authoring services do: only the
 // course's author, or an administrator, may act on its content. Defence in
 // depth -- the routes are already restricted by middleware.RequireRole.
@@ -325,20 +347,43 @@ func (s *Service) authorizeOnResource(ctx context.Context, actor Actor, resource
 	if actor.Role != domain.RoleProfessor && actor.Role != domain.RoleAdmin {
 		return domain.ErrForbidden
 	}
-
-	unit, err := s.deps.Units.GetByID(ctx, resource.UnitID)
-	if err != nil {
-		return err
-	}
-	module, err := s.deps.Modules.GetByID(ctx, unit.ModuleID)
-	if err != nil {
-		return err
-	}
-	course, err := s.deps.Courses.GetByID(ctx, module.CourseID)
+	course, err := s.courseOfResource(ctx, resource)
 	if err != nil {
 		return err
 	}
 	if actor.Role != domain.RoleAdmin && course.AuthorID != actor.ID {
+		return domain.ErrForbidden
+	}
+	return nil
+}
+
+// authorizeDownload decides who may be handed a read URL. The authoring roles
+// keep the rule above; a student may read a file of a published course they are
+// actively enrolled in -- the same access the course tree already grants. Every
+// other case is forbidden, never "not found": a student must not learn which
+// resources exist in courses they cannot read.
+func (s *Service) authorizeDownload(ctx context.Context, actor Actor, resource *domain.Resource) error {
+	if actor.Role != domain.RoleStudent {
+		return s.authorizeOnResource(ctx, actor, resource)
+	}
+	if s.deps.Enrollments == nil {
+		return domain.ErrForbidden
+	}
+	course, err := s.courseOfResource(ctx, resource)
+	if err != nil {
+		if errors.Is(err, domain.ErrNotFound) {
+			return domain.ErrForbidden
+		}
+		return err
+	}
+	if course.Status != domain.CourseStatusPublished {
+		return domain.ErrForbidden
+	}
+	active, err := s.deps.Enrollments.IsActive(ctx, actor.ID, course.StableID)
+	if err != nil {
+		return err
+	}
+	if !active {
 		return domain.ErrForbidden
 	}
 	return nil

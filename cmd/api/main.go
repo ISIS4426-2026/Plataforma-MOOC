@@ -214,8 +214,10 @@ func run(logger *slog.Logger) error {
 		Modules:   moduleRepo,
 		Units:     unitRepo,
 		Resources: resourceRepo,
-		Storage:   storageProvider,
-		Queue:     queueClient,
+		// Lets a student read the files of a published course they are enrolled in.
+		Enrollments: enrollmentRepo,
+		Storage:     storageProvider,
+		Queue:       queueClient,
 	}, media.Options{
 		UploadURLTTL:   cfg.MediaUploadURLTTL,
 		DownloadURLTTL: cfg.MediaDownloadURLTTL,
