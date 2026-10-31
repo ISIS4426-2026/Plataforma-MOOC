@@ -2038,5 +2038,5 @@ ninguna ruta de lectura para el estudiante**, y el enunciado pide «consumir con
 | Qué | Estado |
 | :--- | :--- |
 | La interfaz | Lo dice: «Este archivo no se puede descargar», sin pantalla en blanco. Y el aviso global de 403 ya no sigue al estudiante a la pantalla siguiente |
-| Arreglo propuesto | En `DownloadURL`: permitir al estudiante con inscripción activa en el curso (`EnrollmentRepository.IsActive`) y curso publicado; abrir la ruta a cualquier usuario autenticado. Cambio de la API: hay que republicar la imagen |
+| Arreglo | Rama `fix/media-descarga-estudiante`: la ruta pasa a `requireAuth` y `DownloadURL` autoriza al estudiante con inscripción activa (`EnrollmentRepository.IsActive`) en un curso **publicado**; el resto, 403, también si el recurso no tiene archivo. Pruebas en `internal/media`. **Cambio de la API: hay que republicar la imagen y aplicar** |
 | Quién | Es del módulo de media (Fredy) |
