@@ -1,0 +1,21 @@
+Autorización negativa en la NUBE, a través del balanceador (versión f6aa76e5988c)
+Fecha: 2026-10-31 · URL: https://136.68.55.254.sslip.io · Sesión: estudiante1@plataforma-mooc.test (rol estudiante)
+Hecho desde el navegador, con la sesión (cookie HttpOnly) y el Origin del propio sitio; no se creó nada.
+El «curso D3» es el curso de prueba del profesor1 (ver D3).
+
+SERVIDOR (peticiones directas, saltándose la interfaz)
+  GET  /api/v1/me/courses                  -> 403 forbidden
+  POST /api/v1/courses                     -> 403 forbidden
+  PUT  /api/v1/courses/<curso D3>          -> 403 forbidden
+  POST /api/v1/courses/<curso D3>/modules  -> 403 forbidden
+  POST /api/v1/courses/<curso D3>/publish  -> 403 forbidden
+  POST /api/v1/courses/<curso D3>/unpublish-> 403 forbidden
+  Sin sesión: GET /api/v1/media/resources/{id}/download-url -> 401
+
+INTERFAZ
+  Un estudiante que abre /profesor/cursos/<curso D3> vuelve a «/» (inicio del estudiante) y su menú
+  solo trae Inicio, Catálogo y Mis cursos. Pero el control de acceso es el del servidor, no el de la interfaz.
+
+Origen ajeno (sin sesión): POST /api/v1/auth/login con Origin https://evil.example -> 403 csrf_origin_rejected
+Pendiente: el rechazo de un profesor sobre el curso de OTRO profesor en la nube (necesita una segunda cuenta de
+profesor) y el mismo recorrido con scripts/verify_authorization.sh contra el balanceador.
