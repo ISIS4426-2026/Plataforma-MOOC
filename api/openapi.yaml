@@ -2299,6 +2299,11 @@ paths:
         Media is served straight from object storage at this stage, with no CDN.
         The URL is deliberately far shorter-lived than an upload URL, since a
         leaked read URL is a copy of the content.
+
+        Who may ask: the course's author and administrators, and a **student with
+        an active enrollment in a published course**. Any other caller gets 403,
+        including for a resource that carries no stored object, so a student
+        cannot probe which resources exist in a course they cannot read.
       operationId: getMediaDownloadUrl
       security:
         - bearerAuth: []

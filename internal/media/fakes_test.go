@@ -40,6 +40,15 @@ func (f *fakeUnits) GetByID(context.Context, string) (*domain.Unit, error) {
 	return f.unit, nil
 }
 
+type fakeEnrollments struct {
+	active map[string]bool // "studentID|courseStableID"
+	err    error
+}
+
+func (f *fakeEnrollments) IsActive(_ context.Context, studentID, courseStableID string) (bool, error) {
+	return f.active[studentID+"|"+courseStableID], f.err
+}
+
 type fakeResources struct {
 	mu        sync.Mutex
 	resource  *domain.Resource
