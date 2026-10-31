@@ -47,6 +47,7 @@ lo reemplaza, lo continúa.
 | 27 | [Un `FLUSHDB` en el Redis de asynq mata la observabilidad y no se nota](#27) | **B1, C6, C7**, A7, G4, G6 |
 | 46 | [El frontend se sirve en el mismo origen, y la API no tiene «mis cursos» ni «quién soy»](#46) | **D2, D3**, A4, B3, C1, C3, E1 |
 | 47 | [Interfaces del estudiante y del profesor: trampas que ya costaron tiempo](#47) | **D2, D3**, A1, A5, B1, C3, E1 |
+| 48 | [Un estudiante inscrito no puede abrir un PDF, una imagen ni un archivo descargable](#48) | **D2, D5**, G1, A5 |
 
 ---
 
@@ -2022,3 +2023,20 @@ Qué hace cada interfaz está en las evidencias de [D2](./evidencias/D2/README.m
 | La BD local sin migraciones 7 y 8 | El cuestionario responde 500 al abrir un intento | Aplicar todas las migraciones antes de probar | A1 |
 | TypeScript 7 y OneDrive | Los archivos con punto de reanálisis de OneDrive se saltan del globbing | `tsconfig.json` lista `files` explícitos | quien compile en OneDrive |
 | Transcodificación lenta en local | 90 s de video a 720p tardaron 2 m 49 s | No se capturó «Procesando → Disponible» en vivo; hacerlo en la nube | D3 |
+
+<a id="48"></a>
+## 48. Un estudiante inscrito no puede abrir un PDF, una imagen ni un archivo descargable
+
+Encontrado el 2026-10-31 al recorrer el aula contra el balanceador (D2). **Afecta a:** D2, D5, G1, A5.
+
+`GET /api/v1/media/resources/{id}/download-url` está montada con `requireAuthor` y `authorizeOnResource` solo
+deja pasar al **autor del curso o a un administrador** (`internal/media/service.go`). Un estudiante inscrito
+recibe `403 forbidden`, siempre. El video no se ve afectado: el HLS sale del bucket público de derivados. Pero
+los tipos con archivo que no son video (`pdf`, `presentation`, `downloadable`, `image`, `audio`) **no tienen
+ninguna ruta de lectura para el estudiante**, y el enunciado pide «consumir contenido multimedia y documentos».
+
+| Qué | Estado |
+| :--- | :--- |
+| La interfaz | Lo dice: «Este archivo no se puede descargar», sin pantalla en blanco. Y el aviso global de 403 ya no sigue al estudiante a la pantalla siguiente |
+| Arreglo propuesto | En `DownloadURL`: permitir al estudiante con inscripción activa en el curso (`EnrollmentRepository.IsActive`) y curso publicado; abrir la ruta a cualquier usuario autenticado. Cambio de la API: hay que republicar la imagen |
+| Quién | Es del módulo de media (Fredy) |

@@ -1,9 +1,18 @@
+import { useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import { APP_VERSION } from "../config";
 import { useAuth } from "../auth/AuthContext";
 
 /** Aviso global: sesion vencida, sin permiso, servidor caido. */
 export function NoticeBanner() {
   const { notice, clearNotice } = useAuth();
+  const { pathname } = useLocation();
+  // Un error de una pantalla no debe seguir a la siguiente. El aviso de sesion vencida si se queda:
+  // se muestra justo despues de navegar a /login.
+  useEffect(() => {
+    if (notice?.kind === "error") clearNotice();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname]);
   if (!notice) return null;
   return (
     <div role="status" className={`notice ${notice.kind}`}>
