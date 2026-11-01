@@ -2,7 +2,7 @@
 
 | Criterio de aceptación | Estado | Dónde |
 | :--- | :---: | :--- |
-| Tablero o exportaciones que cubran todas las métricas exigidas por el enunciado | ✅ | §1 · [`ejemplo_ventana_del_despliegue/`](./ejemplo_ventana_del_despliegue/) |
+| Tablero o exportaciones que cubran todas las métricas exigidas por el enunciado | ✅ | §1 · [`ejemplo_ventana_del_despliegue/`](./ejemplo_ventana_del_despliegue/) · [gráfica del tablero](./capturas/2026-10-31_tablero-ventana-del-despliegue.png) |
 | Generador externo verificado como no limitante | ⏳ herramienta lista y probada; falta encender la VM y la primera corrida | §2, §3 |
 | Toda corrida de la Entrega 3 pasa las comprobaciones de A6 antes de publicarse | ✅ el paso quedó en el posproceso | §4 |
 | Una respuesta HTTP exitosa no sustituye la validación del resultado de negocio | ✅ ya lo hacen los planes (3 envíos por estudiante, sin duplicados, en la base) y A6 | §4 |
@@ -26,7 +26,9 @@ escalamiento de G5 y G6).
 **Probado contra el entorno real**, en la ventana del despliegue del 2026-10-31 (22:10–22:45 UTC), en la que el grupo de la API
 pasó de 1 a 2 instancias y volvió a 1: [`ejemplo_ventana_del_despliegue/`](./ejemplo_ventana_del_despliegue/) muestra
 `instancias_existentes` máx 2, `instancias_operativas` máx 2, la cola vacía, 348 solicitudes por el balanceador y los dos
-autoescaladores en el mínimo. Esa ventana **no es una corrida de carga**: demuestra que el recolector lee todo, no que la
+autoescaladores en el mínimo. La gráfica que sale de ese CSV (`scripts/capacity_graficas.py`, cuatro paneles: instancias por grupo, CPU, cola y balanceador) es
+[`capturas/2026-10-31_tablero-ventana-del-despliegue.png`](./capturas/2026-10-31_tablero-ventana-del-despliegue.png); sirve igual para el ciclo
+de escalamiento de G5 y G6. Esa ventana **no es una corrida de carga**: demuestra que el recolector lee todo, no que la
 plataforma rinda.
 
 ## 2. El generador externo
@@ -71,11 +73,36 @@ Reúne las métricas de cada corrida y comprueba el generador. Una corrida `LIMI
 (percentiles monótonos, destino declarado, métricas no derivadas de una constante) ya corren dentro de
 `capacity_resumen_jtl.py`.
 
+## 5. Primera prueba real del comprobante, y un hallazgo abierto (2026-11-01)
+
+Una corrida de humo del plan de calibración (`capacity-planning/calibracion_generador.jmx`, 5 usuarios, 60 s, solo lecturas)
+**desde un portátil** contra el balanceador, y después el posproceso: [`calibracion_humo_desde_portatil/`](./calibracion_humo_desde_portatil/).
+
+| Señal | Resultado |
+| :--- | :--- |
+| CPU y memoria del generador | holgadas: p95 6 % de un núcleo, 5,6 % de la memoria |
+| Brecha de latencia, p50 | generador 87 ms, balanceador 6 ms: **81 ms** (red Colombia → `us-east1`), dentro del umbral de 150 ms |
+| **Solicitudes contadas** | JMeter 170 en total (136 tras el calentamiento); el balanceador contó **136**, 80 % de las 170 → **LIMITADO** |
+
+El comprobante hizo lo que debe: **no dio la corrida por buena**. Pero la causa de las 34 solicitudes que el balanceador no cuenta
+**no está explicada**, y no se va a esconder bajando el umbral:
+
+- El conteo del balanceador no cambia al volver a leerlo 9 minutos después, ni con otra alineación (`ALIGN_SUM`/`ALIGN_DELTA`).
+- Todas las 170 respuestas fueron `200`; ninguna falló en JMeter.
+- Los minutos no coinciden: JMeter 78 y 92 por minuto, el balanceador 51 y 85. Faltan más en el primer minuto (la rampa y la apertura de conexiones).
+- El entorno es **compartido**: en el mismo rato el balanceador contó 128 solicitudes desde Colombia cuando este equipo envió 40 (un experimento
+  aparte con `curl`), o sea que alguien más estaba generando tráfico. Con tráfico ajeno no se puede cerrar la igualdad, solo el *mínimo*.
+
+Hipótesis, por orden de lo que cuesta descartarla: (a) algo entre el portátil y el balanceador atiende parte de las lecturas (un proxy o
+antivirus con inspección de HTTPS); (b) retrasos de ingesta de Monitoring que no vuelven a llenarse; (c) un efecto de la rampa. **La
+corrida de calibración desde la VM del generador (misma región, sin intermediarios) las separa**: si ahí cuenta ≥ 95 %, la causa es el
+portátil, y es un argumento más para que G3 y G4 salgan de la VM.
+
 ## Pendiente
 
 1. **Encender el generador** (`apply` con `generator_enabled=true`) y hacer una **corrida de calibración** a baja carga para
    comprobar en vivo que el generador no limita; guardar su `contraste_generador.json` aquí. Lo aplica quien lleve el entorno.
-2. Una **captura del tablero** en Cloud Monitoring con las métricas de ambos grupos (hoy la exportación es el JSON y el CSV).
+2. ~~Captura del tablero~~ **Hecho** como gráfica exportada del CSV (arriba). La del tablero de la consola de Google queda opcional.
 3. Confirmar con Diego (responsable del issue) que no tenía trabajo adelantado.
 
 ## Nunca

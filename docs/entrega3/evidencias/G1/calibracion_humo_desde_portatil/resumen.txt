@@ -1,0 +1,21 @@
+Destino      : https://136.68.55.254.sslip.io  [remoto]
+Entorno      : nube-entrega3-prueba-local
+Codigo       : 8282f25
+Generador    : justb4/jmeter:latest en DESKTOP-LCSE11U
+Ventana UTC  : 2026-11-01T04:49:18Z -> 2026-11-01T04:50:31Z
+
+Muestras totales: 170  | consideradas (tras omitir 15 s de calentamiento): 136
+Duracion de la corrida: 58 s  | hilos maximos: 5
+
+Resultado de las peticiones medidas:
+      136  100.00%  ok
+
+Fallos reales: 0 (0.00%)  | fallos de validacion funcional: 0 (0.00%)
+
+paso                                                    n          p50          p95          p99    max  fallos
+01 GET catalogo de cursos                              68           91          186   n/d (n=68)    199       0
+02 GET readiness                                       68           85           94   n/d (n=68)    230       0
+
+Ventana de agregacion: 42 s (medidas, sin el calentamiento)  | corrida completa: 58 s
+Global ms: p50=87 p95=183 p99=199  | rendimiento: 3.2 peticiones/s
+Timeouts: 0

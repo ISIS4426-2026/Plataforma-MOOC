@@ -1,0 +1,70 @@
+{
+  "publicable": true,
+  "destino": {
+    "base_url": "https://136.68.55.254.sslip.io",
+    "entorno": "nube-entrega3-prueba-local",
+    "plan": "calibracion_generador.jmx",
+    "usuarios": 5,
+    "rampa_s": 10,
+    "pausa_ms": "1000+-1000",
+    "sesiones": 1,
+    "calentamiento_omitido_s": 15,
+    "commit": "8282f25",
+    "generador": "justb4/jmeter:latest en DESKTOP-LCSE11U",
+    "nucleos_generador": 12,
+    "memoria_generador_gib": 5.8,
+    "inicio_utc": "2026-11-01T04:49:18Z",
+    "fin_utc": "2026-11-01T04:50:31Z",
+    "clase": "remoto"
+  },
+  "muestras": 136,
+  "omitidas_calentamiento_s": 15.0,
+  "duracion_corrida_s": 57.7,
+  "ventana_agregacion_s": 42.3,
+  "hilos_max": 5,
+  "fallos_reales": 0,
+  "fallos_reales_pct": 0.0,
+  "fallos_validacion": 0,
+  "rechazos_negocio": 0,
+  "timeouts": 0,
+  "ms": {
+    "p50": 87,
+    "p95": 183,
+    "p99": 199,
+    "max": 230
+  },
+  "ms_publicables": {
+    "p50": 87,
+    "p95": 183,
+    "p99": 199
+  },
+  "rps": 3.22,
+  "pasos": {
+    "02 GET readiness": {
+      "n": 68,
+      "p50": 85,
+      "p95": 94,
+      "p99": 230,
+      "max": 230,
+      "fallos": 0,
+      "publicables": {
+        "p50": 85,
+        "p95": 94,
+        "p99": null
+      }
+    },
+    "01 GET catalogo de cursos": {
+      "n": 68,
+      "p50": 91,
+      "p95": 186,
+      "p99": 199,
+      "max": 199,
+      "fallos": 0,
+      "publicables": {
+        "p50": 91,
+        "p95": 186,
+        "p99": null
+      }
+    }
+  }
+}
