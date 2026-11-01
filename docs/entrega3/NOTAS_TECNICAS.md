@@ -60,6 +60,7 @@ lo reemplaza, lo continúa.
 | 58 | [G3: la arquitectura elástica no se distingue de la de una instancia por debajo de ~110 pet./s, y escalar tarda minutos](#58) | **G3, G5**, G6, G7, I1, I4 |
 | 59 | [El Entregable 6 (`docs/entrega3/deuda-tecnica.md`) consolida 8 correcciones cerradas en el sprint, 12 ítems de deuda con los 8 campos obligatorios en las 5 dimensiones, el desglose individual de los 33 `MAJOR` (`go:S2077`) y la exportación del commit final](#59) | **H3**, I1, I2, I3, I4, I5, I6 |
 | 60 | [`arquitectura.md` lo escriben dos issues, y sus tablas copian valores de Terraform](#60) | **I2**, I3, I4, cualquiera que cambie `infra/terraform/` |
+| 61 | [F1 encontró que el balanceador aceptaba TLS 1.0/1.1, y su guion daba cinco falsas FALLA en Windows](#61) | **F1**, F2, G5, I1, I2, I6 |
 
 ---
 
@@ -2303,3 +2304,24 @@ Cifras medidas en la corrida completa del **Escenario 3B (ciclo de escalamiento 
 | **La topología omite a propósito dos flechas** | la salida por Cloud NAT y el acceso por IAP valen para todas las máquinas; dibujarlas para cada una hacía ilegible el diagrama. Lo dice el texto bajo el dibujo; si I2 añade nodos, que siga ese criterio |
 | **Permisos de IAM: no se duplican** | el §3.7 solo nombra las cuentas de servicio y enlaza a F2 para los roles, porque F2 los está recortando. Si se copian aquí, se desfasan con el siguiente cambio de F2 |
 | **Para I3 e I4** | el README ya enlaza el documento. Los diagramas del §2.1 y §3.1 son los que sirven para abrir el vídeo |
+
+<a id="61"></a>
+## 61. F1 encontró que el balanceador aceptaba TLS 1.0/1.1, y su guion daba cinco falsas FALLA en Windows
+
+**Afecta a:** F1 (#219), F2, G5, I1, I2, I6. Escrito el 2026-11-01.
+
+| Qué | Detalle |
+| :--- | :--- |
+| El hallazgo real | el balanceador **aceptaba TLS 1.0 y 1.1** (un cliente limitado a 1.1 negoció `TLSv1.1`). La Entrega 2 lo rechazaba con Nginx y ese control se perdió al pasar a un balanceador sin política propia. **Arreglo:** `google_compute_ssl_policy.api` con `min_tls_version = TLS_1_2` y perfil `MODERN` en `load_balancer.tf`, aplicada el 2026-11-01. Se aplica sin cortar servicio (cambia solo el proxy HTTPS) |
+| Lo que se retiró | la **red `default`** y sus dos reglas heredadas de la Entrega 2 (`default-allow-icmp`, `default-allow-internal`): no tenía ninguna instancia. Confirmado en la terminal por la responsable de G3/F1 con el visto bueno de F1 y de infraestructura; registro en [`F1/retiro_reglas.txt`](evidencias/F1/retiro_reglas.txt). Si alguna herramienta asumía que `default` existe, ya no |
+| La IP que no es del balanceador | `136.72.18.9` es la dirección de **salida del NAT**: la reservó el NAT (`AUTO_ONLY`), la usa solo el router, y se barrió igual (ningún puerto abierto). El guion la clasifica ahora como esperada; antes la contaba como «dirección pública ajena» |
+| Falsas FALLA del guion (cuatro causas, todas de Windows o del propio guion) | (1) `curl` de Windows usa **Schannel**, que **ignora `--tls-max`**: la prueba de TLS 1.1 daba 200 negociando 1.3. Ahora se prueba con el módulo `ssl` de Python **con control positivo** (el mismo cliente debe poder hacer el saludo con 1.2, o el resultado es «no concluyente», no «rechazado»). (2) el `POST` de la prueba CSRF iba **sin cuerpo** y el balanceador contesta `411`: ahora lleva `-d ''`. (3) el Python de Windows termina las líneas con `\r` y la comprobación de cuenta y etiquetas comparaba con `"1"` exacto. (4) la IP del NAT, arriba |
+| Un fallo transitorio | tras aplicar la política TLS, una pasada dio «el 80 no redirige a HTTPS»; a los minutos volvió a dar 301 y la repetición salió limpia. Si pasa justo después de un `apply` del balanceador, repetir antes de investigar |
+| La observación que queda | sin `Strict-Transport-Security`: heredada de la Entrega 2, no es falla. El balanceador no añade cabeceras por sí solo; haría falta `custom_response_headers` en el backend |
+
+| Issue | Qué tiene que saber |
+| :--- | :--- |
+| **F2** | los roles y cuentas no cambiaron; solo la red `default` desapareció y su `compute.firewalls` ya no existe |
+| **G5** | un `apply` desde `main` ahora incluye la política TLS: no la vuelve a quitar |
+| **I1, I2** | el control «TLS mínimo 1.2» de la Entrega 2 está vigente otra vez, demostrado con el barrido de F1 del 2026-11-01 |
+| **I6** | al destruir el entorno, la política `mooc-api-tls` se destruye con el balanceador; no queda nada suelto |

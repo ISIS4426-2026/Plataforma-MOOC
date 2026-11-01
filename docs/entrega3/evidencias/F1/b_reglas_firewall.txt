@@ -1,0 +1,25 @@
+# b) Inventario de reglas de cortafuegos efectivas, con su razon
+# Generado: 2026-11-01T23:08:24Z por scripts/f1_superficie_red.sh (solo lectura), desde MINGW64_NT-10.0-26300 fuera de la VPC
+# Proyecto: plataforma-mooc-entrega2   Balanceador: https://136.68.55.254.sslip.io
+
+== Inventario: todas las reglas del proyecto, en todas las redes ==
+
+ESPERADA     mooc-allow-internal-icmp | red=mooc-vpc INGRESS permite=icmp origen=10.0.1.0/24 destino=TODA LA RED
+             razon: diagnostico dentro de la subred; no abre ningun puerto de servicio (B2)
+
+ESPERADA     mooc-allow-lb-health | red=mooc-vpc INGRESS permite=tcp:80 origen=130.211.0.0/22,35.191.0.0/16 destino=mooc-api-node
+             razon: balanceador externo global y sus verificaciones de salud hacia la API; unica entrada a la API (B2, C3)
+
+ESPERADA     mooc-allow-queue | red=mooc-vpc INGRESS permite=tcp:6379 origen=sa-web-server@plataforma-mooc-entrega2.iam.gserviceaccount.com,sa-worker-server@plataforma-mooc-entrega2.iam.gserviceaccount.com destino=sa-queue-server@plataforma-mooc-entrega2.iam.gserviceaccount.com
+             razon: cola compartida: solo las cuentas de la API y de los workers hacia la cuenta de la cola (B1, B2)
+
+ESPERADA     mooc-allow-ssh-iap | red=mooc-vpc INGRESS permite=tcp:22 origen=35.235.240.0/20 destino=allow-iap-ssh
+             razon: administracion: SSH solo por el tunel de IAP de Google; no hay SSH desde internet (B2)
+
+ESPERADA     mooc-allow-worker-health | red=mooc-vpc INGRESS permite=tcp:9090 origen=130.211.0.0/22,35.191.0.0/16 destino=mooc-worker-node
+             razon: verificacion de salud del autohealing de workers (/readyz); los rangos son los de Google, no internet (C5)
+
+== Reglas con origen 0.0.0.0/0 en cualquier red ==
+ninguna
+
+OK     5 de 5 reglas esperadas existen y coinciden con el codigo, cada una con su razon
