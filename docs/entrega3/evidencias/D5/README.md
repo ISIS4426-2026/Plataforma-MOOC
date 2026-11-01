@@ -26,10 +26,16 @@ encuentra, se inscribe, lee, reproduce el video, resuelve el cuestionario (nota 
 Detalle y tiempos: [`D3/recorrido_profesor_nube_2026-10-31.txt`](../D3/recorrido_profesor_nube_2026-10-31.txt) y
 [`D2/recorrido_estudiante_nube_2026-10-31.txt`](../D2/recorrido_estudiante_nube_2026-10-31.txt).
 
+## Video del recorrido conectado
+
+Decisión acordada con Fredy (2026-11-01): **no se graba un clip aparte**. El enunciado pide demostrar el recorrido conectado
+profesor → estudiante dentro del **video de sustentación**, y allí se muestra. Mientras tanto, la prueba escrita y con capturas es
+la de arriba: [profesor](../D3/recorrido_profesor_nube_2026-10-31.txt), [estudiante](../D2/recorrido_estudiante_nube_2026-10-31.txt)
+y la autorización negativa en [D4](../D4/README.md).
+
 ## Pendiente
 
-1. **El video corto de pantalla** del recorrido conectado, que pide el issue: lo debe grabar una persona (el movimiento es la prueba).
-2. ~~El rechazo de un profesor sobre el curso de otro~~ **Hecho** (2026-11-01): `verify_authorization.sh` contra el balanceador, 16 de 16 (ver D4).
+Enlazar aquí el video de sustentación cuando exista.
 
 ## Nunca
 
