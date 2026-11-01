@@ -11,11 +11,11 @@
 **Estado: estimación hecha y reproducible; faltan el consumo facturado y la
 comprobación de las alertas, que salen de la consola de facturación (§5 y §6).**
 
-Operar la arquitectura elástica 24×7 cuesta **183,29 USD/mes con los dos grupos
-a 1 instancia y 343,83 USD/mes con los dos a 3**, frente a 133,73 USD/mes de la
+Operar la arquitectura elástica 24×7 cuesta **186,94 USD/mes con los dos grupos
+a 1 instancia y 347,48 USD/mes con los dos a 3**, frente a 133,73 USD/mes de la
 Entrega 2. Aparcado, el entorno cuesta **0,33 USD/día** con la cola parada y
 **0,74 USD/día** con la cola encendida. Una sesión de pruebas de 2 h con el
-generador, **0,78 USD**.
+generador, **0,79 USD**.
 
 ---
 
@@ -50,7 +50,9 @@ Supuestos de volumen, que pesan centavos: 3 GiB en buckets y 5 GiB/mes de HLS
 hacia Sudamérica (los de la Entrega 2), 5 GiB/mes procesados por el balanceador,
 2 GiB/mes por Cloud NAT (paquetes, `git clone` y correo de las instancias
 nuevas; Artifact Registry y las APIs de Google van por Private Google Access, no
-por NAT) y 1 GiB de copias y registros de PITR.
+por NAT). Durante una corrida de carga el tráfico del generador también pasa por
+el NAT (nota 57), pero son lecturas pequeñas: la de G5 procesa menos de 1 GiB,
+unos 4 centavos y 1 GiB de copias y registros de PITR.
 
 #### Escenario 1: los dos grupos a 1 instancia
 
@@ -64,11 +66,12 @@ por NAT) y 1 GiB de copias y registros de PITR.
 | Cloud SQL: 1 vCPU, 3,75 GiB, zonal | 0,0675 | 49,31 |  |
 | Cloud SQL: 10 GiB SSD + copias y PITR | 0,0024 | 1,78 |  |
 | Cloud NAT: pasarela | 0,0042 | 3,07 | por VM que sale por ella |
+| Cloud NAT: 1 IP externa de la pasarela | 0,0050 | 3,65 | una IP para ~8 VM a 2 048 puertos cada una (nota 57) |
 | Cloud NAT: datos procesados | 0,0001 | 0,09 | supuesto de volumen |
 | Cloud Storage: 2 buckets STANDARD | 0,0001 | 0,06 | supuesto de volumen |
 | Salida a internet: HLS a Sudamerica | 0,0013 | 0,95 | supuesto de volumen |
 | Monitoring: metrica personalizada de la cola | 0,0000 | 0,00 | NO es instancia; dentro de lo gratuito |
-| **Total** | **0,2511** | **183,29** | |
+| **Total** | **0,2561** | **186,94** | |
 
 #### Escenario 3: los dos grupos a 3 instancias
 
@@ -82,13 +85,14 @@ por NAT) y 1 GiB de copias y registros de PITR.
 | Cloud SQL: 1 vCPU, 3,75 GiB, zonal | 0,0675 | 49,31 |  |
 | Cloud SQL: 10 GiB SSD + copias y PITR | 0,0024 | 1,78 |  |
 | Cloud NAT: pasarela | 0,0098 | 7,15 | por VM que sale por ella |
+| Cloud NAT: 1 IP externa de la pasarela | 0,0050 | 3,65 | una IP para ~8 VM a 2 048 puertos cada una (nota 57) |
 | Cloud NAT: datos procesados | 0,0001 | 0,09 | supuesto de volumen |
 | Cloud Storage: 2 buckets STANDARD | 0,0001 | 0,06 | supuesto de volumen |
 | Salida a internet: HLS a Sudamerica | 0,0013 | 0,95 | supuesto de volumen |
 | Monitoring: metrica personalizada de la cola | 0,0000 | 0,00 | NO es instancia; dentro de lo gratuito |
-| **Total** | **0,4710** | **343,83** | |
+| **Total** | **0,4760** | **347,48** | |
 
-Pasar de 1 a 3 instancias por grupo cuesta **0,2199 USD/h** mas (+88 %): solo crecen las instancias y su paso por Cloud NAT; todo lo demas es fijo.
+Pasar de 1 a 3 instancias por grupo cuesta **0,2199 USD/h** mas (+86 %): solo crecen las instancias y su paso por Cloud NAT; todo lo demas es fijo.
 
 #### Sesion de pruebas: escenario 1 mas el generador
 
@@ -102,14 +106,15 @@ Pasar de 1 a 3 instancias por grupo cuesta **0,2199 USD/h** mas (+88 %): solo cr
 | Cloud SQL: 1 vCPU, 3,75 GiB, zonal | 0,0675 | 49,31 |  |
 | Cloud SQL: 10 GiB SSD + copias y PITR | 0,0024 | 1,78 |  |
 | Cloud NAT: pasarela | 0,0056 | 4,09 | por VM que sale por ella |
+| Cloud NAT: 1 IP externa de la pasarela | 0,0050 | 3,65 | una IP para ~8 VM a 2 048 puertos cada una (nota 57) |
 | Cloud NAT: datos procesados | 0,0001 | 0,09 | supuesto de volumen |
 | Cloud Storage: 2 buckets STANDARD | 0,0001 | 0,06 | supuesto de volumen |
 | Salida a internet: HLS a Sudamerica | 0,0013 | 0,95 | supuesto de volumen |
 | Monitoring: metrica personalizada de la cola | 0,0000 | 0,00 | NO es instancia; dentro de lo gratuito |
 | Generador de carga: e2-standard-4 + 30 GiB | 0,1381 | 100,83 | solo durante las pruebas |
-| **Total** | **0,3906** | **285,14** | |
-| Una sesion de 2 h | | **0,78** | 2 h |
-| Una sesion de 3 h | | **1,17** | 3 h |
+| **Total** | **0,3956** | **288,79** | |
+| Una sesion de 2 h | | **0,79** | 2 h |
+| Una sesion de 3 h | | **1,19** | 3 h |
 
 #### Entorno aparcado, con la cola parada
 
@@ -138,7 +143,6 @@ Pasar de 1 a 3 instancias por grupo cuesta **0,2199 USD/h** mas (+88 %): solo cr
 
 La metrica personalizada son ~2,7 MiB/mes (4 series, un punto cada 30 s, 8 bytes por punto), frente a 150 MiB gratuitos por cuenta de facturacion.
 
-
 ### Los tres que no son instancias de grupo, y facturan igual
 
 | | Cuánto | Por qué se escapa |
@@ -151,10 +155,10 @@ La metrica personalizada son ~2,7 MiB/mes (4 series, un punto cada 30 s, 8 bytes
 
 | | Entrega 2 (24×7) | Entrega 3, 1 instancia por grupo | Entrega 3, 3 por grupo |
 | :--- | ---: | ---: | ---: |
-| Total | 133,73 | **183,29** | **343,83** |
-| Diferencia con la Entrega 2 | — | +49,56 (+37 %) | +210,10 (+157 %) |
+| Total | 133,73 | **186,94** | **347,48** |
+| Diferencia con la Entrega 2 | — | +53,21 (+40 %) | +213,75 (+160 %) |
 
-Los **49,56 USD/mes** de la arquitectura mínima no son instancias: con un grupo
+Los **53,21 USD/mes** de la arquitectura mínima no son instancias: con un grupo
 de cada a 1 hay las mismas dos `e2-highcpu-2` que en la Entrega 2. Son la **entrada
 y la cola**:
 
@@ -162,10 +166,10 @@ y la cola**:
 | :--- | ---: |
 | Reglas de reenvío del balanceador | +36,50 |
 | VM dedicada de la cola | +13,23 |
-| Cloud NAT (pasarela y datos) | +3,16 |
+| Cloud NAT (pasarela, su IP y datos) | +6,81 |
 | Las dos IPv4 externas de la Entrega 2, retiradas | −3,65 |
 | Copias de Cloud SQL, datos del balanceador, egreso al precio actual | +0,32 |
-| **Total** | **+49,56** |
+| **Total** | **+53,21** |
 
 Lo que añade **escalar** es otra cosa: cada instancia más de cualquiera de los
 dos grupos son 0,055 USD/h (39,11 USD/mes más 1 USD de NAT). Con un ciclo como
@@ -190,9 +194,12 @@ desglosan: **0,33 USD/día** con la cola parada, **0,74 USD/día** encendida.
 > a reaprovisionar el certificado, hasta una hora—, pero hay que contarla: es
 > **el 72 %** del costo aparcado con la cola parada.
 
-Lo que no está en la tabla porque falta medirlo: **las imágenes de Artifact
-Registry** (0,10 USD/GiB-mes por encima de 0,5 GiB gratis). Cada commit
-publicado sube tres imágenes, y la del worker lleva FFmpeg. Se mide con:
+Lo que no está en las tablas por ser marginal: **las imágenes de Artifact
+Registry**. Medido el 2026-11-01: el repositorio `mooc` ocupa **1 287 MB**, con
+40 versiones de `api`, 39 de `worker` y 12 de `web`. Por encima de los 0,5 GiB
+gratuitos, a 0,10 USD/GiB-mes, son **unos 0,07 USD/mes**, aparcado o encendido.
+Crece unos 30 MB por cada commit publicado; no merece una política de limpieza
+antes de I6, que lo borra todo.
 
 ```bash
 gcloud artifacts repositories describe mooc --location=us-east1 \
@@ -223,7 +230,10 @@ explicar:
 
 ## 6. Alertas de presupuesto
 
-*Pendiente de comprobar en la consola.* La configuración que se estableció en la
+*Pendiente de comprobar en la consola.* No se puede leer por línea de comandos:
+`gcloud billing budgets list` exige la *Cloud Billing Budget API*, que no está
+habilitada en el proyecto, y habilitarla es un cambio de configuración que no se
+hizo solo para leer. La configuración que se estableció en la
 Entrega 2
 ([`CONFIGURACION_Y_COSTOS.md` §5](../../../entrega2/CONFIGURACION_Y_COSTOS.md)):
 50 USD en un **rango personalizado** —no mensual, porque el cupón no se reinicia
