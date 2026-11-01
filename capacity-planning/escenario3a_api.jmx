@@ -1,0 +1,332 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Escenario 3A: ciclo de escalamiento automatico de la API (G5, issue #225).
+
+  Cinco etapas SEGUIDAS, una por grupo de hilos, cada una con su tasa fija de peticiones (Constant
+  Throughput Timer, modo 4: la tasa la comparte el grupo entero). La tasa no depende del numero de
+  hilos: los hilos son el techo, la tasa es la que manda. Asi la carga que ve el autoescalador es la
+  que dice el guion, y no la que salga de pausas y latencias.
+
+  No usa cuentas ni escribe nada: el catalogo y la sonda de disponibilidad, como la calibracion de G1.
+  La senal del autoescalador de la API (C2) son peticiones por segundo y por instancia que cuenta el
+  balanceador, asi que cualquier peticion cuenta igual; lo que se ha de verificar de los datos durante
+  el ciclo lo hace aparte el arnes de consistencia (scripts/e2e_cloud -escenario consistencia).
+
+  Propiedades (-J), todas las pone scripts/g5_carga_escalonada.sh:
+    host, port, protocol, origin, rampa_s
+    por etapa eN (e1..e5): hilos_eN, dur_eN (s), inicio_eN (s desde el arranque), ppm_eN (peticiones/min)
+-->
+<jmeterTestPlan version="1.2" properties="5.0" jmeter="5.5">
+  <hashTree>
+    <TestPlan guiclass="TestPlanGui" testclass="TestPlan" testname="Escenario 3A - escalamiento de la API (G5)" enabled="true">
+      <stringProp name="TestPlan.comments">Carga escalonada por tasa fija a traves del balanceador; sin cuentas y sin escrituras.</stringProp>
+      <boolProp name="TestPlan.functional_mode">false</boolProp>
+      <boolProp name="TestPlan.tearDown_on_shutdown">true</boolProp>
+      <boolProp name="TestPlan.serialize_threadgroups">false</boolProp>
+      <elementProp name="TestPlan.user_defined_variables" elementType="Arguments" guiclass="ArgumentsPanel" testclass="Arguments" testname="User Defined Variables" enabled="true">
+        <collectionProp name="Arguments.arguments"/>
+      </elementProp>
+      <stringProp name="TestPlan.user_define_classpath"></stringProp>
+    </TestPlan>
+    <hashTree>
+      <HeaderManager guiclass="HeaderPanel" testclass="HeaderManager" testname="Cabeceras" enabled="true">
+        <collectionProp name="HeaderManager.headers">
+          <elementProp name="" elementType="Header">
+            <stringProp name="Header.name">Origin</stringProp>
+            <stringProp name="Header.value">${__P(origin)}</stringProp>
+          </elementProp>
+          <elementProp name="" elementType="Header">
+            <stringProp name="Header.name">Cache-Control</stringProp>
+            <stringProp name="Header.value">no-cache</stringProp>
+          </elementProp>
+        </collectionProp>
+      </HeaderManager>
+      <hashTree/>
+      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="e1 1 base: una instancia, carga baja" enabled="true">
+        <stringProp name="ThreadGroup.on_sample_error">continue</stringProp>
+        <elementProp name="ThreadGroup.main_controller" elementType="LoopController" guiclass="LoopControlPanel" testclass="LoopController" testname="Loop Controller" enabled="true">
+          <boolProp name="LoopController.continue_forever">false</boolProp>
+          <intProp name="LoopController.loops">-1</intProp>
+        </elementProp>
+        <stringProp name="ThreadGroup.num_threads">${__P(hilos_e1,20)}</stringProp>
+        <stringProp name="ThreadGroup.ramp_time">${__P(rampa_s,10)}</stringProp>
+        <boolProp name="ThreadGroup.scheduler">true</boolProp>
+        <stringProp name="ThreadGroup.duration">${__P(dur_e1,60)}</stringProp>
+        <stringProp name="ThreadGroup.delay">${__P(inicio_e1,0)}</stringProp>
+        <boolProp name="ThreadGroup.same_user_on_next_iteration">true</boolProp>
+      </ThreadGroup>
+      <hashTree>
+        <ConstantThroughputTimer guiclass="TestBeanGUI" testclass="ConstantThroughputTimer" testname="Tasa de la etapa (peticiones por minuto, compartida por el grupo)" enabled="true">
+          <intProp name="calcMode">4</intProp>
+          <stringProp name="throughput">${__P(ppm_e1,600)}</stringProp>
+        </ConstantThroughputTimer>
+        <hashTree/>
+        <GenericController guiclass="LogicControllerGui" testclass="GenericController" testname="Peticiones" enabled="true"/>
+        <hashTree>
+          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="e1 GET catalogo de cursos" enabled="true">
+            <elementProp name="HTTPsampler.Arguments" elementType="Arguments" guiclass="HTTPArgumentsPanel" testclass="Arguments" testname="User Defined Variables" enabled="true">
+              <collectionProp name="Arguments.arguments"/>
+            </elementProp>
+            <stringProp name="HTTPSampler.domain">${__P(host)}</stringProp>
+            <stringProp name="HTTPSampler.port">${__P(port)}</stringProp>
+            <stringProp name="HTTPSampler.protocol">${__P(protocol)}</stringProp>
+            <stringProp name="HTTPSampler.path">/api/v1/courses?limit=20</stringProp>
+            <stringProp name="HTTPSampler.method">GET</stringProp>
+            <stringProp name="HTTPSampler.connect_timeout">5000</stringProp>
+            <stringProp name="HTTPSampler.response_timeout">15000</stringProp>
+            <boolProp name="HTTPSampler.follow_redirects">true</boolProp>
+            <boolProp name="HTTPSampler.auto_redirects">false</boolProp>
+            <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
+            <boolProp name="HTTPSampler.DO_MULTIPART_POST">false</boolProp>
+          </HTTPSamplerProxy>
+          <hashTree/>
+          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="e1 GET readiness" enabled="true">
+            <elementProp name="HTTPsampler.Arguments" elementType="Arguments" guiclass="HTTPArgumentsPanel" testclass="Arguments" testname="User Defined Variables" enabled="true">
+              <collectionProp name="Arguments.arguments"/>
+            </elementProp>
+            <stringProp name="HTTPSampler.domain">${__P(host)}</stringProp>
+            <stringProp name="HTTPSampler.port">${__P(port)}</stringProp>
+            <stringProp name="HTTPSampler.protocol">${__P(protocol)}</stringProp>
+            <stringProp name="HTTPSampler.path">/api/v1/ready</stringProp>
+            <stringProp name="HTTPSampler.method">GET</stringProp>
+            <stringProp name="HTTPSampler.connect_timeout">5000</stringProp>
+            <stringProp name="HTTPSampler.response_timeout">15000</stringProp>
+            <boolProp name="HTTPSampler.follow_redirects">true</boolProp>
+            <boolProp name="HTTPSampler.auto_redirects">false</boolProp>
+            <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
+            <boolProp name="HTTPSampler.DO_MULTIPART_POST">false</boolProp>
+          </HTTPSamplerProxy>
+          <hashTree/>
+        </hashTree>
+      </hashTree>
+      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="e2 2 subida: 40 pet/s, por debajo del umbral" enabled="true">
+        <stringProp name="ThreadGroup.on_sample_error">continue</stringProp>
+        <elementProp name="ThreadGroup.main_controller" elementType="LoopController" guiclass="LoopControlPanel" testclass="LoopController" testname="Loop Controller" enabled="true">
+          <boolProp name="LoopController.continue_forever">false</boolProp>
+          <intProp name="LoopController.loops">-1</intProp>
+        </elementProp>
+        <stringProp name="ThreadGroup.num_threads">${__P(hilos_e2,20)}</stringProp>
+        <stringProp name="ThreadGroup.ramp_time">${__P(rampa_s,10)}</stringProp>
+        <boolProp name="ThreadGroup.scheduler">true</boolProp>
+        <stringProp name="ThreadGroup.duration">${__P(dur_e2,60)}</stringProp>
+        <stringProp name="ThreadGroup.delay">${__P(inicio_e2,0)}</stringProp>
+        <boolProp name="ThreadGroup.same_user_on_next_iteration">true</boolProp>
+      </ThreadGroup>
+      <hashTree>
+        <ConstantThroughputTimer guiclass="TestBeanGUI" testclass="ConstantThroughputTimer" testname="Tasa de la etapa (peticiones por minuto, compartida por el grupo)" enabled="true">
+          <intProp name="calcMode">4</intProp>
+          <stringProp name="throughput">${__P(ppm_e2,600)}</stringProp>
+        </ConstantThroughputTimer>
+        <hashTree/>
+        <GenericController guiclass="LogicControllerGui" testclass="GenericController" testname="Peticiones" enabled="true"/>
+        <hashTree>
+          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="e2 GET catalogo de cursos" enabled="true">
+            <elementProp name="HTTPsampler.Arguments" elementType="Arguments" guiclass="HTTPArgumentsPanel" testclass="Arguments" testname="User Defined Variables" enabled="true">
+              <collectionProp name="Arguments.arguments"/>
+            </elementProp>
+            <stringProp name="HTTPSampler.domain">${__P(host)}</stringProp>
+            <stringProp name="HTTPSampler.port">${__P(port)}</stringProp>
+            <stringProp name="HTTPSampler.protocol">${__P(protocol)}</stringProp>
+            <stringProp name="HTTPSampler.path">/api/v1/courses?limit=20</stringProp>
+            <stringProp name="HTTPSampler.method">GET</stringProp>
+            <stringProp name="HTTPSampler.connect_timeout">5000</stringProp>
+            <stringProp name="HTTPSampler.response_timeout">15000</stringProp>
+            <boolProp name="HTTPSampler.follow_redirects">true</boolProp>
+            <boolProp name="HTTPSampler.auto_redirects">false</boolProp>
+            <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
+            <boolProp name="HTTPSampler.DO_MULTIPART_POST">false</boolProp>
+          </HTTPSamplerProxy>
+          <hashTree/>
+          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="e2 GET readiness" enabled="true">
+            <elementProp name="HTTPsampler.Arguments" elementType="Arguments" guiclass="HTTPArgumentsPanel" testclass="Arguments" testname="User Defined Variables" enabled="true">
+              <collectionProp name="Arguments.arguments"/>
+            </elementProp>
+            <stringProp name="HTTPSampler.domain">${__P(host)}</stringProp>
+            <stringProp name="HTTPSampler.port">${__P(port)}</stringProp>
+            <stringProp name="HTTPSampler.protocol">${__P(protocol)}</stringProp>
+            <stringProp name="HTTPSampler.path">/api/v1/ready</stringProp>
+            <stringProp name="HTTPSampler.method">GET</stringProp>
+            <stringProp name="HTTPSampler.connect_timeout">5000</stringProp>
+            <stringProp name="HTTPSampler.response_timeout">15000</stringProp>
+            <boolProp name="HTTPSampler.follow_redirects">true</boolProp>
+            <boolProp name="HTTPSampler.auto_redirects">false</boolProp>
+            <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
+            <boolProp name="HTTPSampler.DO_MULTIPART_POST">false</boolProp>
+          </HTTPSamplerProxy>
+          <hashTree/>
+        </hashTree>
+      </hashTree>
+      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="e3 3 subida: 70 pet/s, cerca del umbral" enabled="true">
+        <stringProp name="ThreadGroup.on_sample_error">continue</stringProp>
+        <elementProp name="ThreadGroup.main_controller" elementType="LoopController" guiclass="LoopControlPanel" testclass="LoopController" testname="Loop Controller" enabled="true">
+          <boolProp name="LoopController.continue_forever">false</boolProp>
+          <intProp name="LoopController.loops">-1</intProp>
+        </elementProp>
+        <stringProp name="ThreadGroup.num_threads">${__P(hilos_e3,20)}</stringProp>
+        <stringProp name="ThreadGroup.ramp_time">${__P(rampa_s,10)}</stringProp>
+        <boolProp name="ThreadGroup.scheduler">true</boolProp>
+        <stringProp name="ThreadGroup.duration">${__P(dur_e3,60)}</stringProp>
+        <stringProp name="ThreadGroup.delay">${__P(inicio_e3,0)}</stringProp>
+        <boolProp name="ThreadGroup.same_user_on_next_iteration">true</boolProp>
+      </ThreadGroup>
+      <hashTree>
+        <ConstantThroughputTimer guiclass="TestBeanGUI" testclass="ConstantThroughputTimer" testname="Tasa de la etapa (peticiones por minuto, compartida por el grupo)" enabled="true">
+          <intProp name="calcMode">4</intProp>
+          <stringProp name="throughput">${__P(ppm_e3,600)}</stringProp>
+        </ConstantThroughputTimer>
+        <hashTree/>
+        <GenericController guiclass="LogicControllerGui" testclass="GenericController" testname="Peticiones" enabled="true"/>
+        <hashTree>
+          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="e3 GET catalogo de cursos" enabled="true">
+            <elementProp name="HTTPsampler.Arguments" elementType="Arguments" guiclass="HTTPArgumentsPanel" testclass="Arguments" testname="User Defined Variables" enabled="true">
+              <collectionProp name="Arguments.arguments"/>
+            </elementProp>
+            <stringProp name="HTTPSampler.domain">${__P(host)}</stringProp>
+            <stringProp name="HTTPSampler.port">${__P(port)}</stringProp>
+            <stringProp name="HTTPSampler.protocol">${__P(protocol)}</stringProp>
+            <stringProp name="HTTPSampler.path">/api/v1/courses?limit=20</stringProp>
+            <stringProp name="HTTPSampler.method">GET</stringProp>
+            <stringProp name="HTTPSampler.connect_timeout">5000</stringProp>
+            <stringProp name="HTTPSampler.response_timeout">15000</stringProp>
+            <boolProp name="HTTPSampler.follow_redirects">true</boolProp>
+            <boolProp name="HTTPSampler.auto_redirects">false</boolProp>
+            <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
+            <boolProp name="HTTPSampler.DO_MULTIPART_POST">false</boolProp>
+          </HTTPSamplerProxy>
+          <hashTree/>
+          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="e3 GET readiness" enabled="true">
+            <elementProp name="HTTPsampler.Arguments" elementType="Arguments" guiclass="HTTPArgumentsPanel" testclass="Arguments" testname="User Defined Variables" enabled="true">
+              <collectionProp name="Arguments.arguments"/>
+            </elementProp>
+            <stringProp name="HTTPSampler.domain">${__P(host)}</stringProp>
+            <stringProp name="HTTPSampler.port">${__P(port)}</stringProp>
+            <stringProp name="HTTPSampler.protocol">${__P(protocol)}</stringProp>
+            <stringProp name="HTTPSampler.path">/api/v1/ready</stringProp>
+            <stringProp name="HTTPSampler.method">GET</stringProp>
+            <stringProp name="HTTPSampler.connect_timeout">5000</stringProp>
+            <stringProp name="HTTPSampler.response_timeout">15000</stringProp>
+            <boolProp name="HTTPSampler.follow_redirects">true</boolProp>
+            <boolProp name="HTTPSampler.auto_redirects">false</boolProp>
+            <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
+            <boolProp name="HTTPSampler.DO_MULTIPART_POST">false</boolProp>
+          </HTTPSamplerProxy>
+          <hashTree/>
+        </hashTree>
+      </hashTree>
+      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="e4 4 alta sostenida: por encima de 80 pet/s por instancia" enabled="true">
+        <stringProp name="ThreadGroup.on_sample_error">continue</stringProp>
+        <elementProp name="ThreadGroup.main_controller" elementType="LoopController" guiclass="LoopControlPanel" testclass="LoopController" testname="Loop Controller" enabled="true">
+          <boolProp name="LoopController.continue_forever">false</boolProp>
+          <intProp name="LoopController.loops">-1</intProp>
+        </elementProp>
+        <stringProp name="ThreadGroup.num_threads">${__P(hilos_e4,20)}</stringProp>
+        <stringProp name="ThreadGroup.ramp_time">${__P(rampa_s,10)}</stringProp>
+        <boolProp name="ThreadGroup.scheduler">true</boolProp>
+        <stringProp name="ThreadGroup.duration">${__P(dur_e4,60)}</stringProp>
+        <stringProp name="ThreadGroup.delay">${__P(inicio_e4,0)}</stringProp>
+        <boolProp name="ThreadGroup.same_user_on_next_iteration">true</boolProp>
+      </ThreadGroup>
+      <hashTree>
+        <ConstantThroughputTimer guiclass="TestBeanGUI" testclass="ConstantThroughputTimer" testname="Tasa de la etapa (peticiones por minuto, compartida por el grupo)" enabled="true">
+          <intProp name="calcMode">4</intProp>
+          <stringProp name="throughput">${__P(ppm_e4,600)}</stringProp>
+        </ConstantThroughputTimer>
+        <hashTree/>
+        <GenericController guiclass="LogicControllerGui" testclass="GenericController" testname="Peticiones" enabled="true"/>
+        <hashTree>
+          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="e4 GET catalogo de cursos" enabled="true">
+            <elementProp name="HTTPsampler.Arguments" elementType="Arguments" guiclass="HTTPArgumentsPanel" testclass="Arguments" testname="User Defined Variables" enabled="true">
+              <collectionProp name="Arguments.arguments"/>
+            </elementProp>
+            <stringProp name="HTTPSampler.domain">${__P(host)}</stringProp>
+            <stringProp name="HTTPSampler.port">${__P(port)}</stringProp>
+            <stringProp name="HTTPSampler.protocol">${__P(protocol)}</stringProp>
+            <stringProp name="HTTPSampler.path">/api/v1/courses?limit=20</stringProp>
+            <stringProp name="HTTPSampler.method">GET</stringProp>
+            <stringProp name="HTTPSampler.connect_timeout">5000</stringProp>
+            <stringProp name="HTTPSampler.response_timeout">15000</stringProp>
+            <boolProp name="HTTPSampler.follow_redirects">true</boolProp>
+            <boolProp name="HTTPSampler.auto_redirects">false</boolProp>
+            <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
+            <boolProp name="HTTPSampler.DO_MULTIPART_POST">false</boolProp>
+          </HTTPSamplerProxy>
+          <hashTree/>
+          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="e4 GET readiness" enabled="true">
+            <elementProp name="HTTPsampler.Arguments" elementType="Arguments" guiclass="HTTPArgumentsPanel" testclass="Arguments" testname="User Defined Variables" enabled="true">
+              <collectionProp name="Arguments.arguments"/>
+            </elementProp>
+            <stringProp name="HTTPSampler.domain">${__P(host)}</stringProp>
+            <stringProp name="HTTPSampler.port">${__P(port)}</stringProp>
+            <stringProp name="HTTPSampler.protocol">${__P(protocol)}</stringProp>
+            <stringProp name="HTTPSampler.path">/api/v1/ready</stringProp>
+            <stringProp name="HTTPSampler.method">GET</stringProp>
+            <stringProp name="HTTPSampler.connect_timeout">5000</stringProp>
+            <stringProp name="HTTPSampler.response_timeout">15000</stringProp>
+            <boolProp name="HTTPSampler.follow_redirects">true</boolProp>
+            <boolProp name="HTTPSampler.auto_redirects">false</boolProp>
+            <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
+            <boolProp name="HTTPSampler.DO_MULTIPART_POST">false</boolProp>
+          </HTTPSamplerProxy>
+          <hashTree/>
+        </hashTree>
+      </hashTree>
+      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="e5 5 bajada: vuelve la carga baja y se observa la reduccion" enabled="true">
+        <stringProp name="ThreadGroup.on_sample_error">continue</stringProp>
+        <elementProp name="ThreadGroup.main_controller" elementType="LoopController" guiclass="LoopControlPanel" testclass="LoopController" testname="Loop Controller" enabled="true">
+          <boolProp name="LoopController.continue_forever">false</boolProp>
+          <intProp name="LoopController.loops">-1</intProp>
+        </elementProp>
+        <stringProp name="ThreadGroup.num_threads">${__P(hilos_e5,20)}</stringProp>
+        <stringProp name="ThreadGroup.ramp_time">${__P(rampa_s,10)}</stringProp>
+        <boolProp name="ThreadGroup.scheduler">true</boolProp>
+        <stringProp name="ThreadGroup.duration">${__P(dur_e5,60)}</stringProp>
+        <stringProp name="ThreadGroup.delay">${__P(inicio_e5,0)}</stringProp>
+        <boolProp name="ThreadGroup.same_user_on_next_iteration">true</boolProp>
+      </ThreadGroup>
+      <hashTree>
+        <ConstantThroughputTimer guiclass="TestBeanGUI" testclass="ConstantThroughputTimer" testname="Tasa de la etapa (peticiones por minuto, compartida por el grupo)" enabled="true">
+          <intProp name="calcMode">4</intProp>
+          <stringProp name="throughput">${__P(ppm_e5,600)}</stringProp>
+        </ConstantThroughputTimer>
+        <hashTree/>
+        <GenericController guiclass="LogicControllerGui" testclass="GenericController" testname="Peticiones" enabled="true"/>
+        <hashTree>
+          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="e5 GET catalogo de cursos" enabled="true">
+            <elementProp name="HTTPsampler.Arguments" elementType="Arguments" guiclass="HTTPArgumentsPanel" testclass="Arguments" testname="User Defined Variables" enabled="true">
+              <collectionProp name="Arguments.arguments"/>
+            </elementProp>
+            <stringProp name="HTTPSampler.domain">${__P(host)}</stringProp>
+            <stringProp name="HTTPSampler.port">${__P(port)}</stringProp>
+            <stringProp name="HTTPSampler.protocol">${__P(protocol)}</stringProp>
+            <stringProp name="HTTPSampler.path">/api/v1/courses?limit=20</stringProp>
+            <stringProp name="HTTPSampler.method">GET</stringProp>
+            <stringProp name="HTTPSampler.connect_timeout">5000</stringProp>
+            <stringProp name="HTTPSampler.response_timeout">15000</stringProp>
+            <boolProp name="HTTPSampler.follow_redirects">true</boolProp>
+            <boolProp name="HTTPSampler.auto_redirects">false</boolProp>
+            <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
+            <boolProp name="HTTPSampler.DO_MULTIPART_POST">false</boolProp>
+          </HTTPSamplerProxy>
+          <hashTree/>
+          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="e5 GET readiness" enabled="true">
+            <elementProp name="HTTPsampler.Arguments" elementType="Arguments" guiclass="HTTPArgumentsPanel" testclass="Arguments" testname="User Defined Variables" enabled="true">
+              <collectionProp name="Arguments.arguments"/>
+            </elementProp>
+            <stringProp name="HTTPSampler.domain">${__P(host)}</stringProp>
+            <stringProp name="HTTPSampler.port">${__P(port)}</stringProp>
+            <stringProp name="HTTPSampler.protocol">${__P(protocol)}</stringProp>
+            <stringProp name="HTTPSampler.path">/api/v1/ready</stringProp>
+            <stringProp name="HTTPSampler.method">GET</stringProp>
+            <stringProp name="HTTPSampler.connect_timeout">5000</stringProp>
+            <stringProp name="HTTPSampler.response_timeout">15000</stringProp>
+            <boolProp name="HTTPSampler.follow_redirects">true</boolProp>
+            <boolProp name="HTTPSampler.auto_redirects">false</boolProp>
+            <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
+            <boolProp name="HTTPSampler.DO_MULTIPART_POST">false</boolProp>
+          </HTTPSamplerProxy>
+          <hashTree/>
+        </hashTree>
+      </hashTree>
+    </hashTree>
+  </hashTree>
+</jmeterTestPlan>
