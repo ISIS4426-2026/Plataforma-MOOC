@@ -2,8 +2,8 @@
 
 | Criterio de aceptación | Estado | Dónde |
 | :--- | :---: | :--- |
-| Un recurso cargado por una instancia es legible y procesable desde otra | ⏳ por diseño ✅; falta la prueba en vivo con 2 instancias de cada grupo | §1, §5 |
-| El estado de un trabajo es consultable desde cualquier instancia de API | ⏳ por diseño ✅; falta la prueba en vivo | §2, §5 |
+| Un recurso cargado por una instancia es legible y procesable desde otra | ✅ 6 subidas con 2 APIs y 2 workers; 5 firmadas por una API y confirmadas por otra | §5 |
+| El estado de un trabajo es consultable desde cualquier instancia de API | ✅ la unidad se consultó desde una API distinta a la que confirmó | §2, §5 |
 | Inventario de lo que queda en disco local y por qué es reconstruible | ✅ | §3 |
 | Anotado en `NOTAS_TECNICAS.md` | ✅ nota 50 | |
 
@@ -53,12 +53,27 @@ trabajo configurado (sería el temporal del sistema, compartido). Cuatro pruebas
 no barre el temporal del sistema; tolera que no exista; no sigue enlaces (esta se omite en Windows, que no permite crearlos sin privilegios).
 Su única suposición está escrita: el directorio pertenece a **un** solo worker, como en el despliegue (un contenedor por VM, un volumen con nombre).
 
-## 5. Pendiente: la prueba en vivo con dos instancias de cada grupo
+## 5. Prueba en vivo con dos instancias de cada grupo (2026-11-01)
 
-El criterio pide una prueba, no solo un razonamiento. Plan: `terraform apply` con `-var api_min_replicas=2 -var worker_min_replicas=2`
-(existen para demostraciones), repetir varias veces *presign → subida directa → confirmación → lectura del estado* por el balanceador,
-**registrando el `X-Instance-ID` de cada paso**, y comprobar en los registros qué worker procesó cada recurso. Luego volver a 1+1.
-Coste aproximado: 0,15 USD/h durante ~30 min.
+[`prueba_en_vivo_2026-11-01.txt`](./prueba_en_vivo_2026-11-01.txt). Con `api_min_replicas=2` y `worker_min_replicas=2` (versión `370c94ba7f2f`, que
+ya trae el barrido de §4), se subieron **6 videos de 1 s** por la misma ruta que usa la interfaz (*presign → PUT directo al bucket → confirmación*)
+y se registró el `X-Instance-ID` de cada paso y el worker que procesó cada uno:
+
+| | Resultado |
+| :--- | :--- |
+| APIs que atendieron | **2 distintas** (`c8f5…`, `ae79…`) |
+| Subidas que una API firmó y **otra** confirmó | **5 de 6** (la confirmación comprobó en el bucket que el objeto existía) |
+| Workers que procesaron | **2 distintos**: `mooc-worker-55d2` (videos 1–5) y `mooc-worker-1qdn` (video 6) |
+| Archivo local que hizo falta | **ninguno**: cada worker bajó el original (2187 bytes) del bucket y subió 3 derivados a `hls/<id>/` |
+| Estado final de los 6 | `completed`, leído desde una API distinta a la que confirmó la mayoría |
+
+**Límites, dichos aquí:** los 6 trabajos entraron en 3 s y el reparto entre workers lo decide la cola, no la prueba (5 y 1); la consulta del estado se
+hizo cuando ya estaban procesados (el cambio en vivo está capturado en D3); y los registros de los contenedores worker casi no llegan a Cloud Logging en estas
+instancias, por lo que la evidencia sale de `docker logs` por IAP. Después de la prueba se volvió a `min_replicas=1` en los dos grupos.
+
+## Pendiente
+
+Nada de este issue.
 
 ## Nunca
 

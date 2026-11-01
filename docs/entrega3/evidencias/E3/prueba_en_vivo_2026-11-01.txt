@@ -1,0 +1,41 @@
+Prueba en vivo de E3 (#218): estado externo y procesamiento entre instancias distintas
+Fecha: 2026-11-01 · URL: https://136.68.55.254.sslip.io · Versión desplegada: 370c94ba7f2f (main, con el barrido de E3)
+Entorno: 2 instancias de API y 2 de workers (api_min_replicas=2, worker_min_replicas=2), todas sanas y en la misma plantilla.
+Hecho desde el navegador, con la sesión de profesor1 (iniciada por una persona; ninguna contraseña pasa por scripts ni por este archivo).
+
+Curso de prueba: «[prueba E3] Estado externo entre instancias 20261101» (id afc080ad-2531-421b-a19c-840d89026353), una unidad
+y 6 recursos de video; a cada uno se le sube un mp4 de 1 s (2187 bytes) por la misma ruta que usa la interfaz.
+
+1) Quién atendió cada paso de la subida (X-Instance-ID de la respuesta). Instancias de API: c8f5675e6b41 (A) y ae7945850dfd (B)
+   Video  presign (firma la URL)   PUT directo al bucket   complete (confirma y encola)
+     1     B  200                   200                     A  202       <- firma B, confirma A
+     2     B  200                   200                     A  202       <- firma B, confirma A
+     3     A  200                   200                     A  202
+     4     B  200                   200                     A  202       <- firma B, confirma A
+     5     A  200                   200                     B  202       <- firma A, confirma B
+     6     A  200                   200                     B  202       <- firma A, confirma B
+   Crear el curso (A), el módulo (B) y la unidad (A) también se repartieron entre las dos.
+   -> 5 de 6 subidas las firmó una instancia de API y las confirmó otra; la confirmación comprobó que el objeto existía en el bucket
+      (no estaba en ninguna copia local de la que firmó): el objeto es legible desde otra instancia.
+
+2) Quién procesó cada video (registro de cada contenedor worker, `media rendered to HLS`). Workers: mooc-worker-55d2 y mooc-worker-1qdn
+   mooc-worker-55d2  07:08:27  Video 1 (7d53dc54…)
+   mooc-worker-55d2  07:08:28  Video 2 (5c107e07…)
+   mooc-worker-55d2  07:08:29  Video 3 (0896362c…)
+   mooc-worker-55d2  07:08:30  Video 4 (c13a0f24…)
+   mooc-worker-55d2  07:08:31  Video 5 (50c0b4bf…)
+   mooc-worker-1qdn  07:08:33  Video 6 (b6f87501…)
+   Cada uno: original_bytes=2187 bajado del bucket, 3 archivos de derivados subidos a hls/<id>/…; los 6 resultaron «completed».
+   -> Ninguno de los dos workers es la VM de la API que firmó o confirmó, y ninguno tenía el archivo: lo bajaron del bucket.
+      Dos workers distintos procesaron los trabajos de una misma cola compartida.
+
+3) El estado se lee desde cualquier API: la consulta de la unidad (GET .../resources) la atendió ae7945850dfd y devolvió los 6
+   recursos en `completed`, aunque la subida la confirmó mayoritariamente c8f5675e6b41.
+
+Límites de esta prueba (dichos para que nadie los lea de más)
+  - Los 6 trabajos entraron en 3 s y los procesó casi todos el mismo worker: el reparto entre workers lo decide la cola, no esta prueba.
+    Lo que demuestra es que cualquiera de los dos puede procesar un archivo subido por cualquier API, y que ambos lo hicieron.
+  - La consulta del estado se hizo cuando ya estaban procesados (la subida terminó antes de empezar a consultar). El cambio en vivo
+    «en cola → procesando → disponible» está capturado en D3.
+  - Los registros de los contenedores worker casi no llegan a Cloud Logging en estas instancias (0 y 3 entradas en la ventana); la evidencia de §2 sale de
+    `docker logs` de cada worker por IAP.
