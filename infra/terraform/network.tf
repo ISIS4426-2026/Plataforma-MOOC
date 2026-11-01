@@ -69,6 +69,14 @@ resource "google_compute_router_nat" "nat" {
   nat_ip_allocate_option             = "AUTO_ONLY"
   source_subnetwork_ip_ranges_to_nat = "ALL_SUBNETWORKS_ALL_IP_RANGES"
 
+  # G3 (#223): con los 64 puertos por VM de la configuracion por omision, el generador de carga pierde paquetes
+  # (`dropped_sent_packets_count` con motivo OUT_OF_RESOURCES) en cuanto abre mas de ~64 conexiones simultaneas
+  # hacia la misma IP y puerto del balanceador: 100 usuarios virtuales dieron 2 012 timeouts de conexion de 4 200
+  # peticiones. Cada conexion a un mismo destino ocupa un puerto de NAT, y las cerradas lo retienen durante el
+  # TIME_WAIT. La linea base de A7 no lo vio porque salia desde un portatil, sin NAT. 2048 deja margen para los
+  # 200 usuarios del escenario 1 y para los de G5; con ~8 VMs sale de una sola IP de NAT (65 536 puertos).
+  min_ports_per_vm = 2048
+
   log_config {
     enable = true
     filter = "ERRORS_ONLY"
