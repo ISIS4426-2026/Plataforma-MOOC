@@ -8,7 +8,7 @@ El entregable es el documento, no esta carpeta: [`docs/entrega3/arquitectura.md`
 | Los archivos fuente de los diagramas están en el repositorio | los bloques Mermaid del propio documento (§8) |
 | La tabla de cambios cubre API, acceso, inicialización, workers, cola, frontend, persistencia, validación y calidad | §4, más una fila de red. Validación y calidad marcadas «en curso» con su fecha |
 | Saltos de línea de Mermaid con `<br/>` | comprobado: ningún `\n` dentro de los bloques |
-| Anotado en `NOTAS_TECNICAS.md` | [nota 59](../../NOTAS_TECNICAS.md#59) |
+| Anotado en `NOTAS_TECNICAS.md` | [nota 60](../../NOTAS_TECNICAS.md#60) |
 
 ## Cómo se comprobaron los diagramas
 

@@ -394,12 +394,12 @@ superficie de red verificada desde fuera, en F1
 | **Persistencia** | Cloud SQL y buckets, usados por dos VMs | Los mismos servicios, compartidos por todas las réplicas; sesiones e idempotencia en la cola compartida, sin cachés locales | E1, E2, E3 |
 | **Red** | Dos VMs con IP pública | Ninguna IP pública salvo el balanceador; salida por Cloud NAT; regla interna abierta sustituida por reglas con propósito | B2, F1 |
 | **Validación** | Caracterización de capacidad, con el escenario 2 medido contra Docker Compose | Hechos: línea base de la Entrega 2 medida de nuevo contra la nube (A7), generador externo en VM propia (G1), escenario 1 sobre la arquitectura elástica (G3) y ciclo de escalado de workers (G6). En curso: escenario 2 (G4), ciclo de la API (G5) e informe consolidado (G7) | A7, G1, G3–G7 |
-| **Calidad y deuda técnica** | Sin línea base formal | Hechos: SonarQube en la CI (H1) y verificación de umbrales (H2). En curso: primer documento de deuda técnica (H3) | H1–H3 |
+| **Calidad y deuda técnica** | Sin línea base formal | SonarQube en la CI (H1), verificación de umbrales (H2) y primer documento de deuda técnica en [`deuda-tecnica.md`](./deuda-tecnica.md) (H3), hechos | H1–H3 |
 
 **Estado al 2026-11-01:** las ocho primeras filas están desplegadas y
-verificadas en sus evidencias. Validación y calidad tienen partes **en curso**: cuando
-cierren, sus resultados quedan en el informe de capacidad (G7) y en el documento
-de deuda técnica (H3), y esta tabla se actualiza.
+verificadas en sus evidencias, y la de calidad también está cerrada. Validación
+tiene partes **en curso**: cuando cierren, sus resultados quedan en el informe de
+capacidad (G7) y esta tabla se actualiza.
 
 ---
 
