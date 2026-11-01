@@ -49,6 +49,7 @@ lo reemplaza, lo continúa.
 | 47 | [Interfaces del estudiante y del profesor: trampas que ya costaron tiempo](#47) | **D2, D3**, A1, A5, B1, C3, E1 |
 | 48 | [Un estudiante inscrito no puede abrir un PDF, una imagen ni un archivo descargable](#48) | **D2, D5**, G1, A5 |
 | 49 | [El generador de carga sale de una VM propia, y lo que mide el balanceador contrasta lo que mide JMeter](#49) | **G1**, G3, G4, G5, G6, G7 |
+| 50 | [Un trabajo interrumpido dejaba su carpeta de trabajo en el disco del worker, y nada la limpiaba](#50) | **E3**, C7, G4, G6 |
 
 ---
 
@@ -2061,3 +2062,16 @@ ninguna ruta de lectura para el estudiante**, y el enunciado pide «consumir con
 | **Se compara contra lo ENVIADO, no contra la tabla** | el balanceador cuenta también el calentamiento que el resumen omite. `capacity_contraste_generador.py` cuenta las filas del `.jtl` |
 | **Un portátil perdió el 20 % de las solicitudes y la VM no** | la misma calibración (20 usuarios, 3 min): 80 % contadas desde el portátil, 102 % desde la VM. Una razón más para medir G3 y G4 desde la VM |
 | **El generador se rechaza solo** | `capacity_contraste_generador.py` cruza CPU/memoria, brecha de latencia contra el balanceador y solicitudes contadas. Sin datos **no** da la corrida por buena. Umbrales fechados en `capacity-planning/criterios_de_medicion.md` |
+
+<a id="50"></a>
+## 50. Un trabajo interrumpido dejaba su carpeta de trabajo en el disco del worker, y nada la limpiaba
+
+**Afecta a:** E3 (#218), C7, G4, G6. Escrito el 2026-11-01.
+
+| Qué | Detalle |
+| :--- | :--- |
+| El problema | `defer os.RemoveAll(workDir)` solo corre en salidas normales. Con un `SIGKILL` (el plazo de drenaje de C7 vence con un video largo, un OOM, la VM se detiene) la carpeta `mooc-media-*` —con el original de hasta 2 GiB— queda en el volumen `worker_scratch`, **que sobrevive al reinicio del contenedor**. El trabajo reintentado usa una carpeta nueva: la vieja nunca se reclama. Un disco de 30 GiB se llena con unos pocos |
+| El arreglo | `handler.SweepStaleScratch`, una vez al arrancar el worker y antes de aceptar trabajos. Solo directorios con el prefijo `mooc-media-`, sin seguir enlaces; vacío = no se barre (sería el temporal del sistema) |
+| La suposición | el directorio de trabajo es de **un** worker. Si algún día dos contenedores comparten volumen, el barrido de uno borraría el trabajo en curso del otro |
+| Para G4 y G6 | un video largo procesado con un drenaje corto es exactamente el caso que lo provoca. Si una corrida mata workers, el log del siguiente arranque dice cuántas carpetas y cuántos MB se liberaron |
+| Lo que no cambia | no hay ninguna copia local que sea la única fuente de un dato de negocio: el original está en el bucket y las renditions se regeneran |
