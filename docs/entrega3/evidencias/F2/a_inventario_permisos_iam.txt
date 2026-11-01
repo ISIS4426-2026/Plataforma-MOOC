@@ -1,0 +1,52 @@
+# a) Inventario de permisos por cuenta de servicio y recorte de permisos sin uso (F2, #220)
+# Generado: 2026-11-01T18:00:53Z por scripts/f2_identidades_y_secretos.sh
+# Commit  : 2ee4d33ff1a30aeaa54501232b9dd58d7986d5a6
+
+== 1. Verificacion de recorte: roles/cloudsql.client retirado del codigo HCL ==
+   0 apariciones de 'roles/cloudsql.client' en el codigo ejecutable de infra/terraform/*.tf
+
+== 2. Ausencia de recursos de llaves de cuenta de servicio (google_service_account_key) ==
+   0 recursos 'google_service_account_key' en infra/terraform/*.tf
+
+== 3. Cuentas de servicio declaradas y asignacion explicita a cada componente ==
+   sa-web-server        declarada en service_accounts.tf  -> usada en api_group.tf     (Grupo elastico de API (mooc-api-group))
+   sa-worker-server     declarada en service_accounts.tf  -> usada en worker_group.tf  (Grupo elastico de workers (mooc-worker-group))
+   sa-queue-server      declarada en service_accounts.tf  -> usada en queue.tf         (Servidor dedicado de cola Redis/asynq (mooc-queue-server))
+   sa-load-generator    declarada en generator.tf         -> usada en generator.tf     (VM generadora de carga externa bajo demanda (mooc-load-generator))
+
+== 4. Matriz completa de permisos efectivos declarados en HCL por identidad ==
+   sa-web-server      | Proyecto (service_accounts.tf)             | roles/logging.logWriter                  | Envio de logs del Ops Agent a Cloud Logging
+   sa-web-server      | Proyecto (service_accounts.tf)             | roles/monitoring.metricWriter            | Envio de metricas del Ops Agent (infra/ops-agent/web.yaml) a Cloud Monitoring
+   sa-web-server      | Sobre si misma (service_accounts.tf)       | roles/iam.serviceAccountTokenCreator     | Firma de URLs V4 con signBlob sin archivo de llave (internal/storage/gcs.go)
+   sa-web-server      | Bucket media (storage.tf)                  | roles/storage.objectViewer               | Lectura y verificacion de metadatos de objetos (StatObject, GetObject)
+   sa-web-server      | Bucket media + CEL (storage.tf)            | roles/storage.objectCreator [condicion: api_deny_derivatives_write] | Delegacion en URL firmada PUT solo para originals/, documents/ y thumbnails/ (prohibido hls/)
+   sa-web-server      | Secreto db-password (database.tf)          | roles/secretmanager.secretAccessor       | Lectura de contrasena de PostgreSQL en prepare_web_env.sh
+   sa-web-server      | Secreto smtp-password (mail.tf)            | roles/secretmanager.secretAccessor       | Lectura de credencial SMTP en prepare_web_env.sh (exclusivo de API)
+   sa-web-server      | Repositorio mooc (artifact_registry.tf)    | roles/artifactregistry.reader            | Descarga de imagenes api y web en el arranque
+   sa-worker-server   | Proyecto (service_accounts.tf)             | roles/logging.logWriter                  | Envio de logs del Ops Agent a Cloud Logging
+   sa-worker-server   | Proyecto (service_accounts.tf)             | roles/monitoring.metricWriter            | Envio de metricas del Ops Agent y Prometheus (:9090/metrics)
+   sa-worker-server   | Bucket media (storage.tf)                  | roles/storage.objectViewer               | Descarga de originales/documentos/imagenes para procesarlos (solo lectura)
+   sa-worker-server   | Bucket hls (storage.tf)                    | roles/storage.objectUser                 | Escritura de manifiestos y segmentos derivados HLS en el bucket publico
+   sa-worker-server   | Secreto db-password (database.tf)          | roles/secretmanager.secretAccessor       | Lectura de contrasena de PostgreSQL en prepare_worker_env.sh
+   sa-worker-server   | Repositorio mooc (artifact_registry.tf)    | roles/artifactregistry.reader            | Descarga de la imagen worker en el arranque
+   sa-queue-server    | Proyecto (service_accounts.tf)             | roles/logging.logWriter                  | Envio de logs del Ops Agent de la VM de cola
+   sa-queue-server    | Proyecto (service_accounts.tf)             | roles/monitoring.metricWriter            | Publicacion de custom.googleapis.com/mooc/queue/* por cmd/queue-exporter (C6)
+   sa-queue-server    | Repositorio mooc (artifact_registry.tf)    | roles/artifactregistry.reader            | Descarga de la imagen worker para correr /app/queue-exporter (C6)
+   sa-load-generator  | Proyecto (generator.tf, count=generator_enabled) | roles/logging.logWriter                  | Envio de logs cuando la VM generadora esta encendida (G1)
+   sa-load-generator  | Proyecto (generator.tf, count=generator_enabled) | roles/monitoring.metricWriter            | Envio de metricas de CPU/memoria del generador para contraste de capacidad (G1)
+OK     roles/cloudsql.client retirado de sa-web-server y sa-worker-server en infra/terraform/service_accounts.tf
+OK     ninguna cuenta de servicio genera ni exporta archivos de llave en Terraform (0 google_service_account_key)
+OK     las 4 identidades (sa-web-server, sa-worker-server, sa-queue-server, sa-load-generator) estan declaradas y adjuntas por componente
+OK     common_roles en service_accounts.tf contiene exactamente logging.logWriter y monitoring.metricWriter
+OK     roles/iam.serviceAccountTokenCreator esta acotado a sa-web-server sobre si misma (el worker no puede firmar URLs)
+OK     sa-web-server tiene condicion CEL api_deny_derivatives_write en el bucket de medios (no puede escribir en hls/)
+OK     sa-worker-server escribe derivados unicamente en el bucket HLS y solo tiene objectViewer en el bucket de medios
+OK     el secreto smtp-password solo concede secretAccessor a sa-web-server (ni worker ni cola leen SMTP)
+OK     el secreto db-password solo concede secretAccessor a sa-web-server y sa-worker-server (ni cola ni generador leen BD)
+OK     el repositorio de Artifact Registry solo concede artifactregistry.reader (solo lectura) a las cuentas de ejecucion
+
+== 5. Nota sobre aplicacion en la nube (Nota Tecnica 1) ==
+   Segun la Nota Tecnica 1, 'terraform apply' se ejecuta unicamente desde la rama 'main'.
+   Al mergear F2 en 'main' y aplicar, Terraform destruira exclusivamente los 2 enlaces:
+     - google_project_iam_member.common["web-cloudsql.client"]
+     - google_project_iam_member.common["worker-cloudsql.client"]

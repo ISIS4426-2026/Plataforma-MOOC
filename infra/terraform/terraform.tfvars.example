@@ -1,49 +1,70 @@
-# Plantilla de terraform.tfvars  (issue #115, actualizada en B4 #203)
+# Plantilla de terraform.tfvars  (issue #115, actualizada en B4 #203 y F2 #220)
 #
-# NO HACE FALTA crear un terraform.tfvars para trabajar con normalidad: el
-# proyecto, la region y la zona ya vienen con valor por defecto en variables.tf,
-# y son precisamente las decisiones fijadas en B1 de la Entrega 2. Eso es a
-# proposito -- si cada integrante tuviera que configurarlas en un archivo que no
-# se versiona, podrian divergir sin que nadie se entere.
-#
-# Lo que SI hace falta son tres valores sin valor por defecto, y van **por
-# entorno**, no en este archivo. Copialo a terraform.tfvars solo para el caso
-# excepcional de levantar un entorno aparte; terraform.tfvars esta en
-# .gitignore.
+# El proyecto, la region y la zona ya vienen con valor por defecto en
+# variables.tf, y son precisamente las decisiones fijadas en B1 de la Entrega 2.
+# Eso es a proposito -- si cada integrante tuviera que configurarlas en un
+# archivo que no se versiona, podrian divergir sin que nadie se entere.
 #
 # ============================================================================
-# 1. OBLIGATORIAS, Y NUNCA EN UN ARCHIVO
+# 1. OBLIGATORIAS (NIVEL 1 Y NIVEL 2 DE B4 / F2)
 # ============================================================================
 #
-# Sin estas tres, `terraform plan` se para y pregunta. Es deliberado: un valor
+# Sin estas cuatro, `terraform plan` se para y pregunta. Es deliberado: un valor
 # ausente tiene que detener el despliegue, no elegir uno equivocado en silencio.
 #
-#     export TF_VAR_db_password='...'        # la contrasena de Cloud SQL
-#     export TF_VAR_image_tag='<40 hex>'     # el SHA del commit publicado
+#     # Nivel 1 (SECRETO): nunca en un archivo, se exporta desde Secret Manager
+#     export TF_VAR_db_password="$(gcloud secrets versions access latest --secret=db-password --project=plataforma-mooc-entrega2 | tr -d '\r\n')"
+#
+#     # Commit publicado en Artifact Registry (40 hexadecimales)
+#     export TF_VAR_image_tag='<40 hex>'
+#
+#     # Nivel 2 (no secretos, pero no publicables en el repositorio publico):
+#     # pueden ir en infra/terraform/terraform.tfvars local (en .gitignore,
+#     # nota tecnica 39) o por entorno:
 #     export TF_VAR_smtp_from='...'          # remitente verificado
 #     export TF_VAR_smtp_username='...'      # login del proveedor SMTP
 #
-# db_password      es un SECRETO. Vive en Secret Manager (`db-password`) y se
-#                  pasa aqui solo porque Terraform tiene que crear el usuario de
-#                  la base con ella. Ojo: queda en claro en el estado remoto, y
-#                  por eso el estado vive en un bucket privado y versionado y no
-#                  se versiona en git.
+# db_password      es un SECRETO (Nivel 1). Vive en Secret Manager (`db-password`)
+#                  y se pasa aqui solo porque Terraform tiene que crear el usuario
+#                  de la base (`moocuser`) con ella. Ojo: queda en claro en el
+#                  estado remoto, y por eso el estado vive en un bucket privado y
+#                  versionado y no se versiona en git.
 #
-# image_tag        no es sensible, pero no tiene valor por defecto a proposito:
-#                  es el SHA completo de 40 hexadecimales del commit cuya imagen
-#                  corre en las instancias, y de el sale tambien el commit que el
-#                  arranque saca del repositorio (B3). Una etiqueta movil como
-#                  `latest` dejaria dos instancias del mismo grupo en imagenes
-#                  distintas segun cuando arrancaron. Lo valida variables.tf.
+# image_tag        no es sensible (Nivel 3), pero no tiene valor por defecto a
+#                  proposito: es el SHA completo de 40 hexadecimales del commit
+#                  cuya imagen corre en las instancias, y de el sale tambien el
+#                  commit que el arranque saca del repositorio (B3). Una etiqueta
+#                  movil como `latest` dejaria dos instancias del mismo grupo en
+#                  imagenes distintas segun cuando arrancaron. Lo valida variables.tf.
 #
-# smtp_from        no son secretos -- la contrasena del proveedor si lo es y vive
-# smtp_username    en Secret Manager (`smtp-password`) --, pero identifican la
-#                  cuenta del equipo y este repositorio es publico. Tratarlos
-#                  como secretos seria teatro: en Brevo el usuario ES el correo
-#                  de la cuenta. Ver el comentario de mail.tf.
+# smtp_from        no son secretos (Nivel 2) -- la contrasena del proveedor si lo
+# smtp_username    es y vive en Secret Manager (`smtp-password`) --, pero
+#                  identifican la cuenta del equipo y este repositorio es publico.
+#                  Tratarlos como secretos seria teatro: en Brevo el usuario ES el
+#                  correo de la cuenta. Pueden guardarse en `terraform.tfvars`
+#                  local (en `.gitignore`, nota tecnica 39) para no recuperarlos
+#                  nunca de la metadata derivada. Ver el comentario de mail.tf.
 #
 # ============================================================================
-# 2. CON VALOR POR DEFECTO, PUBLICAS
+# 2. VARIABLES OPERATIVAS DE ENCENDIDO / APARCADO (ENTREGA 3 — C2, C3, C6, G1)
+# ============================================================================
+#
+# Sus valores por defecto en el codigo dejan el entorno APARCADO (salvo
+# `db_activation_policy = "ALWAYS"`, que exige `-var db_activation_policy=NEVER`
+# al aparcar; ver nota tecnica 38). Se pasan con `-var` desde `main`:
+#
+# lb_enabled                 = false   # true crea las dos reglas de reenvio del balanceador (C3)
+# api_autoscaling_enabled    = false   # true activa el autoescalador del grupo de API (C2)
+# api_min_replicas           = 1       # 2 durante corridas multi-replica (C4, E1, G3, G5)
+# api_max_replicas           = 3
+# worker_autoscaling_enabled = false   # true activa el autoescalador del grupo de workers (C6)
+# worker_min_replicas        = 1
+# worker_max_replicas        = 3
+# generator_enabled          = false   # true crea la VM generadora de carga en us-east1-c (G1)
+# db_activation_policy       = "ALWAYS" # "NEVER" detiene Cloud SQL cuando el entorno se aparca
+#
+# ============================================================================
+# 3. CON VALOR POR DEFECTO, PUBLICAS (NIVEL 3)
 # ============================================================================
 #
 # Estan en variables.tf con el valor que usa la entrega. Descomentar solo para
@@ -58,16 +79,16 @@
 # storage_cors_origins    = ["https://otro-dominio.example"]
 # labels                  = { entorno = "pruebas" }
 
-# app_domain: vacio se calcula como `<ip-publica-de-la-vm-web>.sslip.io`, que es
-# lo que la Entrega 2 usaba escrito a mano. Cuando C3 ponga el balanceador
-# delante, el dominio sera el suyo y entonces hay que declararlo.
+# app_domain: desde C3 (#206) se calcula automaticamente del dominio del
+# balanceador (`<ip-global-del-balanceador>.sslip.io` en `load_balancer.tf`).
 # app_domain = "mooc.example"
 
 # ============================================================================
-# 3. LO QUE NO ESTA AQUI, Y NO ES UN OLVIDO
+# 4. LO QUE NO ESTA AQUI, Y NO ES UN OLVIDO
 # ============================================================================
 #
 # Ninguna llave de cuenta de servicio. No existen: Terraform y las VMs usan
-# identidades adjuntas y obtienen credenciales del servidor de metadatos, asi
-# que no hay ningun archivo de llave que guardar, rotar ni filtrar. Es el
-# resultado que mas vale del inventario de B4.
+# identidades adjuntas (`sa-web-server`, `sa-worker-server`, `sa-queue-server`,
+# `sa-load-generator`) y obtienen credenciales efimeras del servidor de
+# metadatos, asi que no hay ningun archivo de llave que guardar, rotar ni
+# filtrar. Es el resultado que mas vale del inventario de B4 y F2.

@@ -37,11 +37,11 @@ resource "google_service_account" "queue_server" {
 }
 
 # ---------------------------------------------------------------------------
-# Permisos comunes: hablar con la base y reportar telemetria.
+# Permisos comunes: reportar telemetria (registros y metricas).
 # ---------------------------------------------------------------------------
 
 locals {
-  # OJO con `cloudsql.client`: NO es lo que permite abrir esta conexion.
+  # `roles/cloudsql.client` fue retirado en F2 (#220).
   #
   # Ese rol concede `cloudsql.instances.connect`, que es lo que consumen el proxy
   # de autenticacion y los conectores de Cloud SQL. Esta plataforma **no usa
@@ -50,16 +50,14 @@ locals {
   # ese camino IAM no se consulta. Lo que permite la conexion es la ruta de la
   # VPC mas la contrasena de PostgreSQL.
   #
-  # Es decir: hoy este rol **no se usa**. Lo encontro el inventario de B4 (#203),
-  # que corrige la auditoria de B2 (#201), donde se declaro que solo habia un
-  # permiso sin uso. Retirarlo es de F2 (#220), con una comprobacion contra un
-  # despliegue vivo: si alguna ruta lo necesitara, el fallo seria «permiso
-  # denegado» y no «conexion rechazada», que se distinguen mal a ciegas.
+  # El inventario de B4 (#203) detecto que ese rol no se usaba (corrigiendo la
+  # auditoria de B2, #201) y F2 (#220) lo recorta de las dos cuentas tras
+  # comprobar que ni la API ni los workers ni `scripts/migrate.sh` invocan la API
+  # de administracion/conexion IAM de Cloud SQL.
   #
-  # Lo que si es cierto: no administra nada. Ni la API ni el worker pueden borrar
-  # la base, cambiar su tamano ni leer sus respaldos.
+  # Tampoco administran nada: ni la API ni el worker pueden borrar la base,
+  # cambiar su tamano ni leer sus respaldos.
   common_roles = [
-    "roles/cloudsql.client",
     "roles/logging.logWriter",
     "roles/monitoring.metricWriter",
   ]
@@ -69,8 +67,7 @@ locals {
     worker = google_service_account.worker_server.email
   }
 
-  # Producto cartesiano cuenta x rol, para no repetir seis bloques casi
-  # identicos.
+  # Producto cartesiano cuenta x rol, para no repetir bloques casi identicos.
   common_bindings = {
     for pair in setproduct(keys(local.service_accounts), local.common_roles) :
     "${pair[0]}-${replace(pair[1], "roles/", "")}" => {
@@ -91,17 +88,16 @@ resource "google_project_iam_member" "common" {
 # ---------------------------------------------------------------------------
 # La cola: telemetria y nada mas
 # ---------------------------------------------------------------------------
-# Deliberadamente fuera de `local.service_accounts`, y por tanto del producto
-# cartesiano de arriba: `common_roles` incluye `roles/cloudsql.client`, y la VM
-# de la cola no abre la base de datos. Meterla en el producto habria sido una
-# linea mas corta y un permiso de mas -- y eso sigue siendo el criterio correcto
-# aunque B4 haya descubierto que ese rol tampoco lo usan las otras dos.
+# Separada de `local.service_accounts` desde B1 (#200) cuando `common_roles`
+# aun incluia `roles/cloudsql.client`, porque la VM de la cola no abre la base
+# de datos. Se conserva en su propio recurso para no renombrar las claves del
+# estado remoto de Terraform (`google_project_iam_member.queue_telemetry`).
 #
-# Los dos roles que si tiene son los que hacen falta para que C6 lea la senal de
-# la cola: el exportador de `worker.queue.pending` y
-# `oldest_pending_age_seconds` tiene que vivir **fuera** de los grupos
-# elasticos, porque si vive dentro el autoescalador se queda ciego justo cuando
-# reduce a una instancia (nota tecnica 4). Esta VM es su sitio natural.
+# Los dos roles que tiene son los que hacen falta para que C6 (#209) publique la
+# senal de la cola: el exportador (`cmd/queue-exporter`) de
+# `custom.googleapis.com/mooc/queue/{pending,active,outstanding,oldest_pending_age_seconds}`
+# vive en `mooc-queue-server`, fuera de los grupos elasticos, para que el
+# autoescalador no se quede ciego al reducir a una instancia (notas tecnicas 4 y 42).
 resource "google_project_iam_member" "queue_telemetry" {
   for_each = toset([
     "roles/logging.logWriter",

@@ -1,0 +1,24 @@
+# b) Separacion de las dos capas de identidad: Autorizacion Cloud (IAM) vs Autenticacion PostgreSQL
+# Generado: 2026-11-01T18:00:53Z por scripts/f2_identidades_y_secretos.sh
+# Commit  : 2ee4d33ff1a30aeaa54501232b9dd58d7986d5a6
+
+== 1. Capa 1 — Autorizacion de acceso al servicio cloud (GCP IAM) ==
+   Sujeto       : Cuenta de servicio adjunta a la VM (sa-web-server, sa-worker-server, sa-queue-server, sa-load-generator)
+   Credencial   : Token OAuth2 efimero obtenido de http://metadata.google.internal/computeMetadata/v1/ (sin archivo JSON)
+   Alcance      : APIs de GCP (Secret Manager, Cloud Storage, Artifact Registry, Cloud Logging, Cloud Monitoring, IAM signBlob)
+   Revocacion   : Retirar el binding IAM en Terraform; efecto inmediato sin rotar secretos
+
+
+== 2. Capa 2 — Autenticacion de la aplicacion ante PostgreSQL (Cloud SQL) ==
+   Sujeto       : Rol de PostgreSQL 'moocuser' (declarado en google_sql_user.app en database.tf)
+   Red y cifrado: IP privada en mooc-vpc (ipv4_enabled = false) + TLS obligatorio (ssl_mode = ENCRYPTED_ONLY / sslmode=require)
+   Credencial   : Contrasena en DATABASE_URL (leida en el arranque desde Secret Manager 'db-password')
+   Alcance      : Objetos SQL dentro de la base 'moocdb' (tablas, secuencias, advisory locks de migraciones)
+   Revocacion   : Nueva version en Secret Manager + terraform apply + reinicio de contenedores (independiente de IAM)
+
+OK     Capa 1 (GCS): internal/storage/gcs.go usa Application Default Credentials (servidor de metadatos) y signBlob sin archivos de llave
+OK     Capa 1 (Secret Manager): prepare_web_env.sh lee db-password y smtp-password via IAM; prepare_worker_env.sh lee solo db-password
+OK     Capa 2 (Red y TLS en servidor): database.tf exige ipv4_enabled=false, private_network=mooc-vpc y ssl_mode=ENCRYPTED_ONLY
+OK     Capa 2 (Identidad SQL): database.tf declara el usuario PostgreSQL 'moocuser' sobre la base 'moocdb'
+OK     Independencia de capas: ni go.mod ni los scripts usan Cloud SQL Auth Proxy ni conectores IAM; la conexion es TCP directa a la IP privada
+OK     Capa 2 (TLS en cliente): prepare_web_env.sh, prepare_worker_env.sh e internal/config/validate.go exigen sslmode=require en produccion

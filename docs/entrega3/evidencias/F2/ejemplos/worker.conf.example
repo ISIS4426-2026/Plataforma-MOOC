@@ -1,0 +1,11 @@
+# Ejemplo de /etc/mooc/worker.conf (generado en produccion por infra/bootstrap/mooc-bootstrap.sh)
+# Permisos en la VM: 0640 (root:root). No contiene secretos (Nivel 1) ni valores
+# del Nivel 2 (el worker no envia correo ni recibe variables SMTP).
+IMAGE_TAG=0000000000000000000000000000000000000000
+DB_PRIVATE_IP=<IP_PRIVADA_CLOUDSQL>
+QUEUE_PRIVATE_IP=<IP_PRIVADA_COLA_COMPARTIDA>
+GCP_PROJECT_ID=plataforma-mooc-entrega2
+MEDIA_HLS_BUCKET=plataforma-mooc-entrega2-hls
+WORKER_CONCURRENCY=2
+WORKER_DRAIN_TIMEOUT=90s
+
