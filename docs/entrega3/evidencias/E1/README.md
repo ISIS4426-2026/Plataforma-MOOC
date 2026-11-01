@@ -24,7 +24,19 @@ Fuente cruda: [`retiro_y_reconciliacion.txt`](retiro_y_reconciliacion.txt), [`re
 | Defensas contra duplicados | 1.ª: el `/complete` repetido devolvió `completed` y `pending=0`. 2.ª: llaves `idempotency:worker:*` en Redis compartido (27). 3.ª: un único `master.m3u8` bajo cada `hls/<stable_id>/`. |
 | Reconciliación | 3/3 trabajos del arnés (video, PDF, imagen) y los 2 videos del retiro en `completed`. |
 
-**Pendiente (bloquea el cierre):** las capturas PNG de `capturas/` (sesión en dos instancias y worker retirado terminando su trabajo) no se han tomado; solo existen las bitácoras anteriores. El entorno se destruye en I6, así que deben tomarse a partir de estos artefactos o repitiendo la corrida.
+**Capturas (cierran el bloqueo del issue):** la corrida se **repitió el 1 de noviembre de 2026 (08:07–08:36 UTC)** para tomarlas mientras ocurre. Todo salió bien
+(`TODAS LAS COMPROBACIONES SUPERADAS`) y está en [`corrida_2026-11-01/`](./corrida_2026-11-01/); la corrida del 30 de octubre se conserva intacta arriba. Capturas, renderizadas
+de la salida real de la consola con [`scripts/render_consola.py`](../../../../scripts/render_consola.py) (cada línea es del archivo crudo de al lado, sin editar):
+
+| Captura | Qué muestra |
+| :--- | :--- |
+| [`2026-11-01_sesion-atendida-por-dos-instancias.png`](./capturas/2026-11-01_sesion-atendida-por-dos-instancias.png) | Una misma sesión atendida por `c8f5675e6b41` y `7cd19d976ef6` sin reautenticar; `logout` y suspensión dan 401 en las dos |
+| [`2026-11-01_retiro-de-una-api-bajo-trafico-85-de-85.png`](./capturas/2026-11-01_retiro-de-una-api-bajo-trafico-85-de-85.png) | `delete-instances` sobre una API bajo tráfico: 85/85 respuestas 200; catálogo, inscripciones y los dos cursos testigo intactos |
+| [`2026-11-01_worker-retirado-con-trabajo-activo-lo-termina-el-reemplazo.png`](./capturas/2026-11-01_worker-retirado-con-trabajo-activo-lo-termina-el-reemplazo.png) | Worker retirado con un trabajo activo: a los **123 s** vuelve a `pending` con `retry=0` (drenaje ordenado, no muerte súbita), `archived` no sube y el worker de reemplazo `mooc-worker-6l1m` lo termina |
+
+Lo que cambió respecto a la corrida del 30 de octubre, dicho para no mezclarlo: el drenaje midió **123 s** (la vez anterior 96 s; C7 midió 90,56 s): el retiro por el grupo no es instantáneo
+y esta vez el trabajo de 240 s tardó más en soltarse. El reparto de la sesión fue `7cd19d976ef6` 50 y `c8f5675e6b41` 45 peticiones en el recorrido. Quien repita esto desde **Windows** necesita `jq`, `ffmpeg`
+y un adaptador para `gcloud` (ver la nota 51, punto 4): `gcloud.cmd` rompe los argumentos con espacios y agrega `` a cada línea.
 
 ---
 

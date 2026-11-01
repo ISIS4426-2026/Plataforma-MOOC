@@ -1,0 +1,148 @@
+G3 / E1 — E2E de flujos críticos e integridad en la nube
+Origen  : https://136.68.55.254.sslip.io
+Bucket  : plataforma-mooc-entrega2-media
+Réplicas: mín. 2 exigida(s)
+Inicio  : 2026-11-01T03:20:32-05:00
+
+=== 0. Entorno desplegado
+[OK  ] La API responde y alcanza la base administrada             GET /api/v1/health                           200 [inst=7cd19d976ef6 req=afc70ae7-a9ef-4d88-8736-e5b2ff1033ca] -> status="pass" database="up"
+[OK  ] La sonda de liveness responde sin consultar dependencias   GET /api/v1/live                             200 [inst=7cd19d976ef6 req=1f53980c-13b7-4fee-b529-fd88e9012ce0] -> 200 mientras el proceso sirva, para que un parpadeo de la base no recree las réplicas
+[OK  ] La sonda de readiness declara que la réplica puede atender GET /api/v1/ready                            200 [inst=c8f5675e6b41 req=ec6e5723-5bb7-4e89-831a-0953312c478e] -> 200 con la base alcanzable
+[OK  ] La sonda pública no revela dependencias ni topología       GET /api/v1/ready                            200 [inst=c8f5675e6b41 req=ec6e5723-5bb7-4e89-831a-0953312c478e] -> cuerpo={"status":"pass"}
+[OK  ] Cada respuesta dice qué réplica la atendió                 GET /api/v1/ready                            200 [inst=c8f5675e6b41 req=ec6e5723-5bb7-4e89-831a-0953312c478e] -> X-Instance-ID="c8f5675e6b41"
+
+=== 1. Registro, verificación de correo y login
+[OK  ] Registro de una cuenta nueva (el 201 implica que el relevo SMTP aceptó el correo) POST /api/v1/auth/register                   201 [inst=c8f5675e6b41 req=c8ab8705-6358-428f-a4e5-6e2c957a8828] -> role="estudiante" status="pending_verification"
+[OK  ] La cuenta sin verificar no puede iniciar sesión            POST /api/v1/auth/login                      403 [inst=7cd19d976ef6 req=aaf9ad81-22c0-4280-a82d-3ab309e73885] -> code="email_not_verified", sin token emitido
+[OK  ] Un enlace de verificación inválido se rechaza sin distinguir la causa GET /api/v1/auth/verify?token=token-inexistente-000000 400 [inst=7cd19d976ef6 req=3bc7f147-0816-4865-9a47-77d548c4c1d6] -> code="invalid_token"
+[OK  ] Reenvío del enlace de verificación (segunda entrega real por SMTP) POST /api/v1/auth/verify/resend              202 [inst=7cd19d976ef6 req=141dd257-d5e0-4568-9adf-389211cf9b9b] -> el código de estado es la verificación
+[nota ] Activación con el token recibido por correo                GET /api/v1/auth/verify?token=…              — -> el token solo viaja por correo, así que esta pata no se conduce desde aquí; ciclo completo verificado a mano en la evidencia de F1
+[OK  ] Inicia sesión administrador (admin)                        POST /api/v1/auth/login                      200 [inst=c8f5675e6b41 req=5c124bf6-856b-4b2a-9e1e-18cae7c149b8] -> role="administrador" status="active", sesión emitida
+[OK  ] Inicia sesión profesor (profesor1)                         POST /api/v1/auth/login                      200 [inst=c8f5675e6b41 req=4f3f3bba-786b-4a4a-8e93-8e7c16a0971c] -> role="profesor" status="active", sesión emitida
+[OK  ] Inicia sesión profesor (profesor2)                         POST /api/v1/auth/login                      200 [inst=c8f5675e6b41 req=c3386e56-84f0-45fb-939a-ce763476b540] -> role="profesor" status="active", sesión emitida
+[OK  ] Inicia sesión estudiante (estudiante1)                     POST /api/v1/auth/login                      200 [inst=7cd19d976ef6 req=3e1a1ebf-eabd-46a7-8266-cfa118ddd356] -> role="estudiante" status="active", sesión emitida
+
+=== 2. Roles, propiedad y accesos denegados
+[OK  ] Un estudiante no puede crear cursos                        POST /api/v1/courses                         403 [inst=7cd19d976ef6 req=003434e8-ce18-43d1-9750-82ff8211b9a2] -> code="forbidden"
+[OK  ] El profesor crea el curso en borrador                      POST /api/v1/courses                         201 [inst=c8f5675e6b41 req=cbc4b3f9-11da-4633-bdda-a3f029636a8c] -> status="draft" version=1 stable_id emitido
+[OK  ] El borrador no aparece en el catálogo público              GET /api/v1/courses?limit=50&search=G3+%C2%B7+Recorrido+E2E+en+la+nube+1793521235 200 [inst=7cd19d976ef6 req=66d5ce4e-d67a-4e2c-b735-eed076f3a0fd] -> el catálogo responde sin sesión y no lista el borrador
+[OK  ] Sin sesión, el contenido del curso responde 401            GET /api/v1/courses/5e630571-0f69-41b1-8261-62f4468dead4/modules 401 [inst=7cd19d976ef6 req=cf238045-0bb5-430e-87e9-22b7453caae4] -> code="unauthorized"
+[OK  ] Con sesión pero sin inscripción, responde 403              GET /api/v1/courses/5e630571-0f69-41b1-8261-62f4468dead4/modules 403 [inst=c8f5675e6b41 req=62d37edd-c58b-492f-9106-d72baee90090] -> code="forbidden"
+[OK  ] El autor lee su propio borrador sin inscribirse            GET /api/v1/courses/5e630571-0f69-41b1-8261-62f4468dead4/modules 200 [inst=c8f5675e6b41 req=0aab896d-7784-42af-b770-39923e6f3f70] -> la lista responde al autor
+[OK  ] El administrador lee el borrador ajeno                     GET /api/v1/courses/5e630571-0f69-41b1-8261-62f4468dead4/modules 200 [inst=c8f5675e6b41 req=1e075b6f-9093-479a-8eb8-845fb576ec52] -> la lista responde al administrador
+[OK  ] Otro profesor no puede editar un curso que no es suyo      POST /api/v1/courses/5e630571-0f69-41b1-8261-62f4468dead4/modules 403 [inst=7cd19d976ef6 req=81655e80-fa93-4fe5-bd5a-5160a04dc3ca] -> code="forbidden", la propiedad manda sobre el rol
+
+=== 3. Autoría y publicación
+[OK  ] Publicar un curso vacío acumula los errores de validación  POST /api/v1/courses/5e630571-0f69-41b1-8261-62f4468dead4/publish 422 [inst=c8f5675e6b41 req=4d33b103-c2be-4b3b-b83a-5a1f3a9a3fb0] -> code="validation_failed" campos=[structure approval_criteria]
+[OK  ] El intento fallido no publicó nada                         GET /api/v1/courses/5e630571-0f69-41b1-8261-62f4468dead4 200 [inst=7cd19d976ef6 req=c661cbf8-d81f-478d-9547-a794f39de26c] -> status="draft"
+[OK  ] El profesor crea el módulo                                 POST /api/v1/courses/5e630571-0f69-41b1-8261-62f4468dead4/modules 201 [inst=c8f5675e6b41 req=6db854a1-9d24-4c03-9dd8-aa17decc19a3] -> position=0 (base 0), stable_id emitido
+[OK  ] El profesor crea la unidad                                 POST /api/v1/modules/acca4700-7f72-4e31-acac-dd91b7cae545/units 201 [inst=7cd19d976ef6 req=63f98c74-1ba6-4ee6-81cc-f1644900bfb0] -> position=0 (base 0), stable_id emitido
+[OK  ] Recurso de video, obligatorio y visible                    POST /api/v1/units/6fdec52d-2b8b-4eb6-a23e-4847194d9d94/resources 201 [inst=7cd19d976ef6 req=eb588287-815a-4d76-82c6-c15699f73a18] -> position=0 (base 0), stable_id emitido
+[OK  ] Recurso de texto, obligatorio y visible                    POST /api/v1/units/6fdec52d-2b8b-4eb6-a23e-4847194d9d94/resources 201 [inst=7cd19d976ef6 req=fe9c8967-bca3-4d27-ba19-4b7af5ac8c32] -> position=1 (base 0), stable_id emitido
+[OK  ] Recurso de quiz, obligatorio y visible                     POST /api/v1/units/6fdec52d-2b8b-4eb6-a23e-4847194d9d94/resources 201 [inst=7cd19d976ef6 req=d149d1dc-820e-4484-9c53-858166662424] -> position=2 (base 0), stable_id emitido
+[OK  ] El profesor define el cuestionario                         POST /api/v1/resources/18f10a91-ec57-4c1a-80b5-d1cdcc8bcc8e/quiz 201 [inst=c8f5675e6b41 req=e8f71724-5807-4d2b-b609-b565484a7b99] -> quiz creado sobre el recurso 18f10a91-ec57-4c1a-80b5-d...
+[OK  ] Pregunta 1 con su clave de respuesta                       POST /api/v1/quizzes/dca5ad8e-cd09-4999-bdba-afba7b098f89/questions 201 [inst=c8f5675e6b41 req=249f46e1-243f-455c-ad8a-b0d44bfcabbf] -> position=0
+[OK  ] Pregunta 2 con su clave de respuesta                       POST /api/v1/quizzes/dca5ad8e-cd09-4999-bdba-afba7b098f89/questions 201 [inst=7cd19d976ef6 req=539da56d-ec29-4c02-88bb-d09c91aae460] -> position=1
+[OK  ] El autor relee el cuestionario con su clave de respuestas  GET /api/v1/resources/18f10a91-ec57-4c1a-80b5-d1cdcc8bcc8e/quiz 200 [inst=7cd19d976ef6 req=4e8f2d91-f351-481a-8f5c-a296f97fb7f6] -> 2 pregunta(s) con clave, passing_score=70
+
+=== 4. Carga multimedia, procesamiento asíncrono y consumo
+[OK  ] La API firma la URL de carga directa                       POST /api/v1/media/presigned-url             200 [inst=7cd19d976ef6 req=1df01828-fa11-4def-97ca-026ecced0d94] -> method="PUT" content_type="video/mp4" object_key bajo originals/f24004d5-504e-44a2-931c-2dd05e2ef29d/
+[OK  ] Una extensión no permitida no obtiene firma                POST /api/v1/media/presigned-url             400 [inst=c8f5675e6b41 req=9833aaad-185a-47f5-ac8b-da5546df7b84] -> code="invalid_input"
+[OK  ] Un estudiante no obtiene URL de carga                      POST /api/v1/media/presigned-url             403 [inst=7cd19d976ef6 req=d4215a9c-27d3-431f-81c0-0ef485ee09f2] -> code="forbidden"
+[OK  ] El navegador sube el original directo al bucket con la URL firmada PUT https://storage.googleapis.com/plataforma-mooc-entrega2-media/originals/f24... 200 -> 81427 bytes aceptados por Cloud Storage sin pasar por la API
+[OK  ] Confirmar la carga registra el objeto y encola el procesamiento POST /api/v1/media/uploads/d98ffff9-d01e-4ff5-8039-70f32dd8ea6a/complete 202 [inst=c8f5675e6b41 req=6c3f46cd-3697-475b-9ff0-b884c5ef09bc] -> processing_status="pending" object_key registrado
+[OK  ] Confirmar dos veces la misma carga no cambia el estado     POST /api/v1/media/uploads/d98ffff9-d01e-4ff5-8039-70f32dd8ea6a/complete 202 [inst=c8f5675e6b41 req=13f07881-a270-4714-9cfb-ab2223154e36] -> object_key intacto, processing_status="pending"
+[OK  ] El autor obtiene una URL firmada de lectura del original   GET /api/v1/media/resources/d98ffff9-d01e-4ff5-8039-70f32dd8ea6a/download-url 200 [inst=7cd19d976ef6 req=1875c581-7d73-41a0-b218-ca8e5674fdd5] -> la URL lleva firma V4
+[OK  ] El original se lee con la firma y devuelve los bytes subidos GET https://storage.googleapis.com/plataforma-mooc-entrega2-media/originals/f24... 200 -> Content-Length=81427 frente a 81427 subidos
+[OK  ] El mismo original sin firma es inaccesible                 GET https://storage.googleapis.com/plataforma-mooc-entrega2-media/originals/f24... 403 -> el prefijo originals/ no es legible de forma anónima
+        processing_status="pending" (0s)
+        processing_status="completed" (10s)
+[OK  ] El worker de la otra VM transcodifica el original a HLS    GET /api/v1/units/{unitID}/resources (sondeo) — -> processing_status="completed" tras 10s de espera
+[OK  ] El bucket de derivados admite lectura sin firma            GET https://storage.googleapis.com/plataforma-mooc-entrega2-hls/hls/no-existe-a... 404 -> un objeto inexistente responde 404 (bucket público) y no 403 (bucket privado)
+[OK  ] Un reproductor consume el manifiesto HLS sin firma         GET https://storage.googleapis.com/plataforma-mooc-entrega2-hls/hls/f24004d5-50... 200 -> el maestro declara sus variantes por ruta relativa
+
+=== 4b. Documentos e imágenes sin transcodificación
+[OK  ] Recurso de PDF, visible y no obligatorio                   POST /api/v1/units/6fdec52d-2b8b-4eb6-a23e-4847194d9d94/resources 201 [inst=c8f5675e6b41 req=73821ab6-91ab-4a91-9f32-1ccabe94d2d7] -> position=3 (base 0), stable_id emitido
+[OK  ] La API firma la carga del PDF bajo documents/              POST /api/v1/media/presigned-url             200 [inst=7cd19d976ef6 req=117744fc-5cda-4c10-b252-34fc9fa7c4f0] -> content_type="application/pdf" object_key bajo documents/612db377-091c-4d14-a38c-8a2f81e3301f/
+[OK  ] El PDF sube directo al bucket con la URL firmada           PUT https://storage.googleapis.com/plataforma-mooc-entrega2-media/documents/612... 200 -> 613 bytes aceptados por Cloud Storage
+[OK  ] Confirmar la carga del PDF encola su procesamiento         POST /api/v1/media/uploads/88802d5b-eb66-4c69-97f9-404b211164dc/complete 202 [inst=7cd19d976ef6 req=b5195962-439b-4217-a668-e9d47c3ee054] -> processing_status="pending"
+        processing_status="pending" (0s)
+        processing_status="completed" (10s)
+[OK  ] El PDF queda disponible sin pasar por el transcodificador  POST /api/v1/media/uploads/88802d5b-eb66-4c69-97f9-404b211164dc/complete 202 [inst=7cd19d976ef6 req=b5195962-439b-4217-a668-e9d47c3ee054] -> processing_status="completed" tras 10s
+[OK  ] El autor obtiene URL firmada de lectura del PDF            GET /api/v1/media/resources/88802d5b-eb66-4c69-97f9-404b211164dc/download-url 200 [inst=c8f5675e6b41 req=272b25df-da93-4333-9da9-4c5cddd843fc] -> la URL lleva firma V4
+[OK  ] El PDF se lee con la firma y devuelve los bytes subidos    GET https://storage.googleapis.com/plataforma-mooc-entrega2-media/documents/612... 200 -> Content-Length=613 frente a 613 subidos
+[OK  ] El mismo PDF sin firma es inaccesible                      GET https://storage.googleapis.com/plataforma-mooc-entrega2-media/documents/612... 403 -> el prefijo documents/ no es legible de forma anónima
+[OK  ] Recurso de imagen, visible y no obligatorio                POST /api/v1/units/6fdec52d-2b8b-4eb6-a23e-4847194d9d94/resources 201 [inst=7cd19d976ef6 req=564295d4-3fc8-4327-9dc5-44e873377a05] -> position=4 (base 0), stable_id emitido
+[OK  ] La API firma la carga del imagen bajo thumbnails/          POST /api/v1/media/presigned-url             200 [inst=c8f5675e6b41 req=519093b1-9d70-49b3-9bbe-7735fd037c6c] -> content_type="image/png" object_key bajo thumbnails/c5719a4e-e3ed-4078-8766-e481d3fe97f7/
+[OK  ] El imagen sube directo al bucket con la URL firmada        PUT https://storage.googleapis.com/plataforma-mooc-entrega2-media/thumbnails/c5... 200 -> 463 bytes aceptados por Cloud Storage
+[OK  ] Confirmar la carga del imagen encola su procesamiento      POST /api/v1/media/uploads/a19b1898-71d9-497b-9b41-7b300c3f5144/complete 202 [inst=c8f5675e6b41 req=4dfa2d33-5c32-4980-a06d-c03037e6b1cd] -> processing_status="pending"
+        processing_status="pending" (0s)
+        processing_status="completed" (10s)
+[OK  ] El imagen queda disponible sin pasar por el transcodificador POST /api/v1/media/uploads/a19b1898-71d9-497b-9b41-7b300c3f5144/complete 202 [inst=c8f5675e6b41 req=4dfa2d33-5c32-4980-a06d-c03037e6b1cd] -> processing_status="completed" tras 10s
+[OK  ] El autor obtiene URL firmada de lectura del imagen         GET /api/v1/media/resources/a19b1898-71d9-497b-9b41-7b300c3f5144/download-url 200 [inst=7cd19d976ef6 req=236a6b05-2693-491a-a9df-56d115bc532d] -> la URL lleva firma V4
+[OK  ] El imagen se lee con la firma y devuelve los bytes subidos GET https://storage.googleapis.com/plataforma-mooc-entrega2-media/thumbnails/c5... 200 -> Content-Length=463 frente a 463 subidos
+[OK  ] El mismo imagen sin firma es inaccesible                   GET https://storage.googleapis.com/plataforma-mooc-entrega2-media/thumbnails/c5... 403 -> el prefijo thumbnails/ no es legible de forma anónima
+
+=== 3. Autoría y publicación (cierre)
+[OK  ] Con estructura y criterio de aprobación, el curso se publica POST /api/v1/courses/5e630571-0f69-41b1-8261-62f4468dead4/publish 200 [inst=7cd19d976ef6 req=3d5825e5-2a08-4a8d-b5bf-4a566d564c7c] -> status="published" version=1
+[OK  ] Un curso publicado es inmutable                            PUT /api/v1/courses/5e630571-0f69-41b1-8261-62f4468dead4 409 [inst=c8f5675e6b41 req=55a6e90e-bbad-47b7-a98a-3f9b8697c3ae] -> code="course_immutable"
+[OK  ] El rechazo dejó el título intacto                          GET /api/v1/courses/5e630571-0f69-41b1-8261-62f4468dead4 200 [inst=c8f5675e6b41 req=6b02cfcf-29ee-4067-9eea-1bab3285f1ec] -> title sigue siendo el publicado ("G3 · Recorrido E2E en la...")
+[OK  ] El curso publicado ya figura en el catálogo público        GET /api/v1/courses?limit=50&search=G3+%C2%B7+Recorrido+E2E+en+la+nube+1793521235 200 [inst=7cd19d976ef6 req=f61decce-f190-438c-8d40-48cb293799a6] -> el catálogo anónimo lo lista
+
+=== 5. Inscripción, quiz idempotente y progreso
+[OK  ] El estudiante se inscribe en el curso publicado            POST /api/v1/courses/5e630571-0f69-41b1-8261-62f4468dead4/enrollments 200 [inst=c8f5675e6b41 req=c2a2de48-bc81-47e4-851d-8d2018971cbf] -> status="active" sobre el stable_id del curso
+[OK  ] Con la inscripción activa ya lee el contenido              GET /api/v1/courses/5e630571-0f69-41b1-8261-62f4468dead4/modules 200 [inst=7cd19d976ef6 req=6eae8b3d-ce6a-4271-8f4a-6aa5caa512a1] -> 1 módulo(s) visibles donde antes había 403
+[OK  ] El estudiante ve el cuestionario sin la clave de respuestas GET /api/v1/resources/18f10a91-ec57-4c1a-80b5-d1cdcc8bcc8e/quiz 200 [inst=7cd19d976ef6 req=a1004a6c-d7a9-4afe-b552-92a4876d3cc5] -> la respuesta no trae questions_with_key ni is_correct
+[OK  ] El progreso arranca en cero sobre los tres recursos obligatorios GET /api/v1/progress/courses/5e630571-0f69-41b1-8261-62f4468dead4 200 [inst=c8f5675e6b41 req=0f103355-a5ca-43d0-87e8-4bb8554778b2] -> 0/3 · 0.00% · aprobado=false
+[OK  ] El estudiante abre el intento y recibe el cuestionario congelado POST /api/v1/quizzes/dca5ad8e-cd09-4999-bdba-afba7b098f89/attempts 200 [inst=c8f5675e6b41 req=156610c5-5482-4e21-9697-43d3fad0739b] -> attempt=1 con 2 pregunta(s), sin respuestas previas
+[OK  ] El intento congelado no lleva la clave de respuestas       POST /api/v1/quizzes/dca5ad8e-cd09-4999-bdba-afba7b098f89/attempts 200 [inst=c8f5675e6b41 req=156610c5-5482-4e21-9697-43d3fad0739b] -> ninguna opción viene marcada como correcta
+[OK  ] Abrir el intento dos veces no consume dos intentos         POST /api/v1/quizzes/dca5ad8e-cd09-4999-bdba-afba7b098f89/attempts 200 [inst=7cd19d976ef6 req=5c9fe6f5-6f96-4123-a6d0-8166f71d4b9d] -> attempt=1 en ambas llamadas
+[OK  ] El estudiante guarda una respuesta parcial sin calificar nada PUT /api/v1/quizzes/dca5ad8e-cd09-4999-bdba-afba7b098f89/attempts/current 200 [inst=7cd19d976ef6 req=e943aa8c-d711-405c-b80c-85745f48c793] -> 1 de 2 respuestas guardadas
+[OK  ] El avance sobrevive a cerrar el navegador                  GET /api/v1/quizzes/dca5ad8e-cd09-4999-bdba-afba7b098f89/attempts/current 200 [inst=c8f5675e6b41 req=b4369abc-c85e-46fc-a6c2-f70ab61b8fcd] -> 1 respuesta(s) recuperadas del intento en curso
+[OK  ] El estudiante envía el quiz y queda calificado             POST /api/v1/quizzes/dca5ad8e-cd09-4999-bdba-afba7b098f89/submissions 200 [inst=7cd19d976ef6 req=63b3e2aa-9c87-4b57-b1ca-ddbef391e387] -> score=100 passed=true attempt=1
+[OK  ] Reenviar con la misma Idempotency-Key no vuelve a calificar POST /api/v1/quizzes/dca5ad8e-cd09-4999-bdba-afba7b098f89/submissions 200 [inst=c8f5675e6b41 req=aa8143f4-450c-4a6c-a901-708ebce9586d] -> submission_id idéntico y attempt sigue en 1
+[OK  ] Solo quedó un envío registrado, no dos                     GET /api/v1/quizzes/dca5ad8e-cd09-4999-bdba-afba7b098f89/submissions/me 200 [inst=7cd19d976ef6 req=96315243-ff75-48d1-999f-6c5a23216e0c] -> 1 envío(s) en el historial del estudiante
+[OK  ] Aprobar el quiz completó su recurso sin latido del cliente GET /api/v1/progress/courses/5e630571-0f69-41b1-8261-62f4468dead4 200 [inst=c8f5675e6b41 req=3c9ee617-8274-487e-8c91-14b57619b0ae] -> 1/3 · 33.33%
+[OK  ] Un latido sobre la lectura avanza el progreso              POST /api/v1/progress/heartbeat              200 [inst=c8f5675e6b41 req=db80cfd1-e9ea-49a3-8a6f-2d8fa600940c] -> 2/3 · 66.67%
+[OK  ] El último recurso obligatorio completa el curso y emite la insignia POST /api/v1/progress/heartbeat              200 [inst=7cd19d976ef6 req=25e3afd5-36bd-4e7d-82ff-4a1b9d9bd564] -> 3/3 · 100.00% · aprobado=true · insignia=true
+[OK  ] Repetir el latido no infla el avance                       POST /api/v1/progress/heartbeat              200 [inst=7cd19d976ef6 req=c249909d-12e8-499b-b1f1-953bea5e52eb] -> sigue en 3/3
+[OK  ] El autor no acumula progreso en su propio curso            POST /api/v1/progress/heartbeat              403 [inst=c8f5675e6b41 req=6bb5419b-4d6d-4179-a199-80ca05797a08] -> code="forbidden": sin inscripción no hay avance
+
+=== 6. Insignia y verificación pública
+[OK  ] El estudiante lee su propia insignia                       GET /api/v1/badges/374fb570-3653-494a-9ab5-52d51769c909 200 [inst=c8f5675e6b41 req=502cd959-38ca-47a9-81a7-94af235e9e3a] -> course_stable_id correcto, revoked=false, ETag emitido
+[OK  ] Con el ETag vigente la lectura es condicional              GET /api/v1/badges/374fb570-3653-494a-9ab5-52d51769c909 304 [inst=7cd19d976ef6 req=e404cd02-86de-49d2-b940-4c3651c7a545] -> 304 sin cuerpo
+[OK  ] La insignia de otra persona responde 404, no 403           GET /api/v1/badges/374fb570-3653-494a-9ab5-52d51769c909 404 [inst=c8f5675e6b41 req=e5c376b1-67cc-4966-8c94-a02f0cabc33a] -> code="not_found": el identificador no confirma que exista
+[OK  ] Cualquiera verifica la insignia con el código, sin sesión  GET /api/v1/badges/verify/61f6f283-3c6d-46a3-88a2-aedac600d70b 200 [inst=7cd19d976ef6 req=5ce57102-afc5-4f5e-9fbd-7f88ecd61004] -> valid=true revoked=false, nombra el curso y no identifica al estudiante
+[OK  ] Un código inexistente no confirma ni niega nada más que el 404 GET /api/v1/badges/verify/00000000-0000-0000-0000-000000000000 404 [inst=7cd19d976ef6 req=50dbac95-2927-484b-853b-05f3b30d942f] -> code="not_found"
+
+=== 7. Continuidad de sesión, revocación y suspensión entre réplicas (E1)
+[OK  ] Sesión activa atendida por instancia c8f5675e6b41 (intento #1) GET /api/v1/auth/sessions                    200 [inst=c8f5675e6b41 req=0363b06b-92f5-473f-a15b-569c9a0610cb] -> X-Instance-ID="c8f5675e6b41" X-Request-ID="0363b06b-92f5-473f-a15b-569c9a0610cb"
+[OK  ] Sesión activa atendida por instancia 7cd19d976ef6 (intento #2) GET /api/v1/auth/sessions                    200 [inst=7cd19d976ef6 req=f01a813e-5ba0-4fef-bce5-5942eccb97ec] -> X-Instance-ID="7cd19d976ef6" X-Request-ID="f01a813e-5ba0-4fef-bce5-5942eccb97ec"
+[OK  ] Peticiones sucesivas de la misma sesión atendidas por instancias distintas sin reautenticar GET /api/v1/auth/sessions                    200 [inst=7cd19d976ef6 req=6fdafae8-568b-4bc5-9210-c7893d1fa35e] -> 2 instancia(s) distinta(s) atendieron la sesión: 7cd19d976ef6=2, c8f5675e6b41=2 (mín. exigido=2)
+[OK  ] Sesión activa atendida por instancia c8f5675e6b41 (intento #1) GET /api/v1/auth/sessions                    200 [inst=c8f5675e6b41 req=99d130b5-ebd2-49b7-83dd-7092fc0cf9d7] -> X-Instance-ID="c8f5675e6b41" X-Request-ID="99d130b5-ebd2-49b7-83dd-7092fc0cf9d7"
+[OK  ] Sesión activa atendida por instancia 7cd19d976ef6 (intento #3) GET /api/v1/auth/sessions                    200 [inst=7cd19d976ef6 req=0aab1141-223a-4bff-a2ee-caeef4b3b4ae] -> X-Instance-ID="7cd19d976ef6" X-Request-ID="0aab1141-223a-4bff-a2ee-caeef4b3b4ae"
+[OK  ] La sesión de profesor2 opera y calienta caché en las réplicas antes del logout GET /api/v1/auth/sessions                    200 [inst=7cd19d976ef6 req=bfdcd3c5-ac30-446f-9af0-f67e4cb203ff] -> 200 en 2 instancia(s): 7cd19d976ef6=2, c8f5675e6b41=2
+[OK  ] Logout revoca la sesión en la instancia que lo recibe y en la caché compartida POST /api/v1/auth/logout                     204 [inst=c8f5675e6b41 req=7f7a324b-370d-43cf-89fc-54455dd3a85c] -> 204 procesado por X-Instance-ID="c8f5675e6b41"
+[OK  ] Rechazo inmediato (401) en instancia 7cd19d976ef6 (intento #1) GET /api/v1/auth/sessions                    401 [inst=7cd19d976ef6 req=af35f57a-bd70-4a13-a322-70751f38a577] -> code="unauthorized" X-Instance-ID="7cd19d976ef6"
+[OK  ] Rechazo inmediato (401) en instancia c8f5675e6b41 (intento #2) GET /api/v1/auth/sessions                    401 [inst=c8f5675e6b41 req=9a1989a9-2c8c-4212-a239-d27780da50bb] -> code="unauthorized" X-Instance-ID="c8f5675e6b41"
+[OK  ] El logout invalida la sesión de inmediato en todas las instancias en la siguiente petición GET /api/v1/auth/sessions                    401 [inst=7cd19d976ef6 req=91f9cfee-bc54-4a64-bb11-b8220e47c236] -> 401 (code="unauthorized") en el 100% de 4 peticiones repartidas en: 7cd19d976ef6=3, c8f5675e6b41=1
+[OK  ] El administrador asegura que estudiante2 está activo antes de la prueba PATCH /api/v1/admin/users/c0000000-0000-0000-0000-000000000002/status 200 [inst=c8f5675e6b41 req=c4090a7f-dfa2-409a-b335-fe4d5b411a5e] -> status="active"
+[OK  ] Inicia sesión estudiante (estudiante2)                     POST /api/v1/auth/login                      200 [inst=7cd19d976ef6 req=d9264883-2186-42bd-aea9-c18df5f22a74] -> role="estudiante" status="active", sesión emitida
+[OK  ] Sesión activa atendida por instancia c8f5675e6b41 (intento #1) GET /api/v1/auth/sessions                    200 [inst=c8f5675e6b41 req=59aa3a8e-6868-42fe-87fb-fa73089a31bb] -> X-Instance-ID="c8f5675e6b41" X-Request-ID="59aa3a8e-6868-42fe-87fb-fa73089a31bb"
+[OK  ] Sesión activa atendida por instancia 7cd19d976ef6 (intento #4) GET /api/v1/auth/sessions                    200 [inst=7cd19d976ef6 req=513d86d6-9c5d-46c0-8764-8016ef167de5] -> X-Instance-ID="7cd19d976ef6" X-Request-ID="513d86d6-9c5d-46c0-8764-8016ef167de5"
+[OK  ] La sesión de estudiante2 es atendida por las réplicas antes de suspender GET /api/v1/auth/sessions                    200 [inst=7cd19d976ef6 req=513d86d6-9c5d-46c0-8764-8016ef167de5] -> 200 en 2 instancia(s): 7cd19d976ef6=1, c8f5675e6b41=3
+[OK  ] El administrador suspende la cuenta de estudiante2         PATCH /api/v1/admin/users/c0000000-0000-0000-0000-000000000002/status 200 [inst=7cd19d976ef6 req=1e28165c-3d73-457f-98e3-a8d802a5fc04] -> status="suspended" procesado por X-Instance-ID="7cd19d976ef6"
+[OK  ] Rechazo inmediato (401) en instancia c8f5675e6b41 (intento #1) GET /api/v1/auth/sessions                    401 [inst=c8f5675e6b41 req=88eb0dad-b8f5-43c2-a457-719849a92eb7] -> code="unauthorized" X-Instance-ID="c8f5675e6b41"
+[OK  ] Rechazo inmediato (401) en instancia 7cd19d976ef6 (intento #5) GET /api/v1/auth/sessions                    401 [inst=7cd19d976ef6 req=e25e3494-8f87-43f6-a9b3-137d60509e2d] -> code="unauthorized" X-Instance-ID="7cd19d976ef6"
+[OK  ] Suspender al usuario corta sus sesiones en todas las instancias en la siguiente petición GET /api/v1/auth/sessions                    401 [inst=7cd19d976ef6 req=e25e3494-8f87-43f6-a9b3-137d60509e2d] -> 401 (code="unauthorized") en el 100% de 5 peticiones repartidas en: 7cd19d976ef6=1, c8f5675e6b41=4
+[OK  ] El administrador reactiva estudiante2 para dejar la base idempotente PATCH /api/v1/admin/users/c0000000-0000-0000-0000-000000000002/status 200 [inst=c8f5675e6b41 req=2d977ccf-1c97-4a83-9be2-1206cafb2461] -> status="active" restaurado
+[OK  ] La sesión previa a la suspensión sigue revocada incluso tras reactivar la cuenta GET /api/v1/auth/sessions                    401 [inst=c8f5675e6b41 req=562b84ec-0a43-4715-aa9a-2e8d44b07f75] -> code="unauthorized" en X-Instance-ID="c8f5675e6b41"
+
+=== 8. Reconciliación de trabajos multimedia aceptados (E1)
+[OK  ] Todos los trabajos aceptados alcanzaron su estado final sin pérdidas ni duplicados reconciliación POST /complete (202) -> worker -> PostgreSQL + GCS — -> 3/3 trabajos reconciliados en completed [video:completed(d98ffff9-d01e-4ff5-8039-7...), pdf:completed(88802d5b-eb66-4c69-97f9-4...), image:completed(a19b1898-71d9-497b-9b41-7...)]
+
+===============================================
+Instancias observadas (X-Instance-ID): 7cd19d976ef6:50 · c8f5675e6b41:45
+Pasos verificados: 108 · fallos: 0 · fuera de alcance: 1 · duración: 45s
+Tabla: docs/entrega3/evidencias/E1/corrida_2026-11-01/resultados.md
+Log  : docs/entrega3/evidencias/E1/corrida_2026-11-01/corrida_e2e_cloud.txt

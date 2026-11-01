@@ -2099,6 +2099,7 @@ Hallazgos y herramientas que deja cerrados **E1 (#216)** en [`scripts/e2e_cloud/
    - `gcloud compute instance-groups managed list-instances --format="value(instance.scope())"` no sirve para `instances describe`; usar `instance.basename()`.
    - `archived` en asynq no está a 0 (hay 3 de pruebas previas): comparar contra la línea base, no contra 0.
    - `scratch/` no incluye `docs/media/clase.mp4`: pasar `-video scratch/video_corto.mp4` al arnés.
+   - **Desde Windows**, `scripts/e1_integridad_y_retiro.sh` necesita `jq` y `ffmpeg` (`winget install jqlang.jq Gyan.FFmpeg`) y no funciona con `gcloud.cmd`: `cmd.exe` rompe los argumentos con espacios (`--filter="a=1 AND b=2"`) y cada línea sale con ``, así que `instances describe` rechaza el nombre. Se resuelve con un `gcloud` de envoltura que llame al Python incluido (`platform/bundledpython/python.exe lib/gcloud.py`) y pase la salida por `tr -d ''`. Corrió así el 2026-11-01.
 
 | Issue | Qué tiene que saber |
 | :--- | :--- |
