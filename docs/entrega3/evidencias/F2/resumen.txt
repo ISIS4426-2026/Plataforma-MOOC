@@ -1,0 +1,27 @@
+OK     roles/cloudsql.client retirado de sa-web-server y sa-worker-server en infra/terraform/service_accounts.tf
+OK     ninguna cuenta de servicio genera ni exporta archivos de llave en Terraform (0 google_service_account_key)
+OK     las 4 identidades (sa-web-server, sa-worker-server, sa-queue-server, sa-load-generator) estan declaradas y adjuntas por componente
+OK     common_roles en service_accounts.tf contiene exactamente logging.logWriter y monitoring.metricWriter
+OK     roles/iam.serviceAccountTokenCreator esta acotado a sa-web-server sobre si misma (el worker no puede firmar URLs)
+OK     sa-web-server tiene condicion CEL api_deny_derivatives_write en el bucket de medios (no puede escribir en hls/)
+OK     sa-worker-server escribe derivados unicamente en el bucket HLS y solo tiene objectViewer en el bucket de medios
+OK     el secreto smtp-password solo concede secretAccessor a sa-web-server (ni worker ni cola leen SMTP)
+OK     el secreto db-password solo concede secretAccessor a sa-web-server y sa-worker-server (ni cola ni generador leen BD)
+OK     el repositorio de Artifact Registry solo concede artifactregistry.reader (solo lectura) a las cuentas de ejecucion
+OK     Capa 1 (GCS): internal/storage/gcs.go usa Application Default Credentials (servidor de metadatos) y signBlob sin archivos de llave
+OK     Capa 1 (Secret Manager): prepare_web_env.sh lee db-password y smtp-password via IAM; prepare_worker_env.sh lee solo db-password
+OK     Capa 2 (Red y TLS en servidor): database.tf exige ipv4_enabled=false, private_network=mooc-vpc y ssl_mode=ENCRYPTED_ONLY
+OK     Capa 2 (Identidad SQL): database.tf declara el usuario PostgreSQL 'moocuser' sobre la base 'moocdb'
+OK     Independencia de capas: ni go.mod ni los scripts usan Cloud SQL Auth Proxy ni conectores IAM; la conexion es TCP directa a la IP privada
+OK     Capa 2 (TLS en cliente): prepare_web_env.sh, prepare_worker_env.sh e internal/config/validate.go exigen sslmode=require en produccion
+OK     scripts/b4_barrido_secretos.sh paso con 0 hallazgos en arbol, URIs, historial de git y tests de validate.go
+OK     .dockerignore excluye .env, llaves JSON, estado de Terraform, .git/ y docs/ del contexto de construccion
+OK     las 3 imagenes (Dockerfile.api, Dockerfile.worker, Dockerfile.web) son multietapa y no incorporan secretos ni archivos .env
+OK     plantillas de arranque y scripts versionados leen secretos de Secret Manager en ejecucion (modo 0600) sin valores en duro
+OK     ninguna evidencia de docs/entrega3/evidencias/ contiene tokens Bearer, firmas de URL ni llaves privadas
+OK     los 6 archivos de ejemplo (.env.example, terraform.tfvars.example y ejemplos de F2) existen y tienen vacios o con marcador todos los campos sensibles
+
+=================================================================================================
+Total: 22 comprobacion(es) OK, 0 falla(s), 0 observacion(es).
+Generado: 2026-11-01T18:01:04Z
+Este archivo no contiene credenciales, llaves ni secretos.

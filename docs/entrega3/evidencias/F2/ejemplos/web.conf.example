@@ -1,0 +1,17 @@
+# Ejemplo de /etc/mooc/web.conf (generado en produccion por infra/bootstrap/mooc-bootstrap.sh)
+# Permisos en la VM: 0640 (root:root). No contiene contrasenas (Nivel 1):
+# las contrasenas las lee scripts/prepare_web_env.sh desde Secret Manager con
+# la identidad adjunta `sa-web-server`.
+#
+# Los dos valores de SMTP (SMTP_FROM y SMTP_USERNAME) pertenecen al Nivel 2
+# (no secretos, pero no publicables en el repositorio porque identifican la
+# cuenta del equipo en Brevo).
+IMAGE_TAG=0000000000000000000000000000000000000000
+APP_DOMAIN=<IP_PUBLICA_BALANCEADOR>.sslip.io
+DB_PRIVATE_IP=<IP_PRIVADA_CLOUDSQL>
+QUEUE_PRIVATE_IP=<IP_PRIVADA_COLA_COMPARTIDA>
+GCP_PROJECT_ID=plataforma-mooc-entrega2
+SMTP_FROM=<REMITENTE_VERIFICADO_EN_PROVEEDOR_SMTP>
+SMTP_USERNAME=<LOGIN_DEL_PROVEEDOR_SMTP>
+NGINX_CONFIG_FILE=./nginx.web.conf
+

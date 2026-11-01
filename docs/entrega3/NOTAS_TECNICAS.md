@@ -52,6 +52,7 @@ lo reemplaza, lo continúa.
 | 50 | [Un trabajo interrumpido dejaba su carpeta de trabajo en el disco del worker, y nada la limpiaba](#50) | **E3**, C7, G4, G6 |
 | 51 | [El arnés `e2e_cloud` ya registra `X-Instance-ID` y reconcilia trabajos, y `delete-instances` devuelve antes de que acabe el drenaje](#51) | **G3, G5, G6**, I1, I4 |
 | 52 | [Ocho altas simultáneas dejaban ocho eventos de inscripción, y un envío sin clave no es un reintento](#52) | **E2**, G3, G4, I1 |
+| 53 | [Se retiró `roles/cloudsql.client` de API y workers, y `f2_identidades_y_secretos.sh` afirma las dos capas de identidad y la ausencia de secretos](#53) | **F2**, I2, I5, I6 |
 
 ---
 
@@ -2127,3 +2128,23 @@ Hallazgos y herramientas que deja cerrados **E1 (#216)** en [`scripts/e2e_cloud/
 | :--- | :--- |
 | **G3, G4** | un plan que reenvíe un quiz sin `Idempotency-Key` gasta un intento por petición y a la tercera recibe 409: dar una clave nueva a cada envío deliberado. Un plan que inscriba siempre al mismo estudiante ya no engorda `audit_logs` con una fila por petición |
 | **I1** | la prueba de «mismo envío desde dos réplicas» y sus cifras están en [`evidencias/E2/`](evidencias/E2/README.md) |
+
+<a id="53"></a>
+## 53. Se retiró `roles/cloudsql.client` de API y workers, y `f2_identidades_y_secretos.sh` afirma las dos capas de identidad y la ausencia de secretos
+
+**Afecta a:** F2 (#220), I2 (decisiones de operación y seguridad en `docs/entrega3/arquitectura.md`), I5 (verificación antes del tag `entrega-3`) e I6 (próximo `terraform apply` y cierre). Escrito el 2026-11-01.
+
+| Qué | Detalle |
+| :--- | :--- |
+| **Recorte de `roles/cloudsql.client`** | Eliminado de `local.common_roles` en [`infra/terraform/service_accounts.tf`](../../infra/terraform/service_accounts.tf), cerrando el hallazgo de B4 (nota 33). Ni la API, ni el worker, ni `scripts/migrate.sh` usan el Cloud SQL Auth Proxy ni el conector de Go (`cloudsqlconn`); todos abren TCP directo a la IP privada de Cloud SQL (`10.171.240.3:5432`) por el *peering* de VPC con `sslmode=require` y se autentican como el rol PostgreSQL `moocuser`. En ese camino **IAM no se consulta** |
+| **Las 2 destrucciones esperadas en el próximo `apply` desde `main`** | Cuando esta rama entre en `main`, `terraform plan` propondrá **2 to destroy**: `google_project_iam_member.common["web-cloudsql.client"]` y `google_project_iam_member.common["worker-cloudsql.client"]`. Son intencionadas (el objeto de F2) y no recrean ninguna VM ni plantilla |
+| **`roles/monitoring.metricWriter` en `sa-queue-server` ya está en uso** | B2 (nota 31) lo marcó como reservado para C6. Desde C6 (#209, nota 42) lo consume `/app/queue-exporter` en `mooc-queue-server` junto con `roles/artifactregistry.reader` sobre el repositorio `mooc`. Con el retiro de `roles/cloudsql.client`, **ninguna de las cuatro cuentas (`sa-web-server`, `sa-worker-server`, `sa-queue-server`, `sa-load-generator`) conserva permisos que no use** |
+| **Decisión cerrada sobre el Nivel 2 de metadata (`smtp_from`, `smtp_username`)** | Se mantiene la taxonomía de tres niveles de B4: Nivel 1 en Secret Manager (`db-password`, `smtp-password`), Nivel 2 en `infra/terraform/terraform.tfvars` local (en `.gitignore`, nota 39) → metadata → `/etc/mooc/web.conf` (`0640`), y Nivel 3 público en Git. En todas las evidencias y en [`docs/entrega3/evidencias/F2/ejemplos/`](evidencias/F2/ejemplos/) van con marcadores `<...>` |
+| **Verificador con aserciones (`scripts/f2_identidades_y_secretos.sh`)** | Siguiendo la nota 36, [`scripts/f2_identidades_y_secretos.sh`](../../scripts/f2_identidades_y_secretos.sh) comprueba y afirma 22 condiciones (código HCL, matriz de permisos de las 4 cuentas, separación de las dos capas de identidad, ejecución de `scripts/b4_barrido_secretos.sh`, `.dockerignore`, Dockerfiles multietapa, scripts de arranque, ausencia de tokens/firmas en `docs/entrega3/evidencias/` y los 6 archivos de ejemplo) y sale con código distinto de `0` si falla cualquiera |
+| **Trampa local con `render_consola.py` en Linux/WSL** | En máquinas donde `/usr/bin/python3` apunta a Python 3.12 pero los paquetes C de `numpy`/`matplotlib` de Debian están compilados para Python 3.10, `python3 scripts/render_consola.py` falla con `No module named 'numpy.core._multiarray_umath'`. Invocar explícitamente `/usr/bin/python3.10 scripts/render_consola.py ...` funciona sin tocar el entorno |
+
+| Issue | Qué tiene que saber |
+| :--- | :--- |
+| **I2** | El inventario completo de permisos por identidad, el diagrama de secuencia y la tabla comparativa que separan la **Capa 1 (Autorización Cloud / IAM)** de la **Capa 2 (Autenticación PostgreSQL como `moocuser`)** están listos para enlazar o incorporar desde [`docs/entrega3/evidencias/F2/README.md`](evidencias/F2/README.md) |
+| **I5** | Ejecutar `bash ./scripts/f2_identidades_y_secretos.sh` antes de crear el tag `entrega-3`: valida de una vez el recorte de IAM, el barrido de secretos de B4 y que ninguna evidencia nueva haya introducido tokens `Bearer` o firmas `X-Goog-Signature` sin redactar |
+| **I6** | Al aplicar desde `main` antes del cierre, las dos bajas `google_project_iam_member.common["web-cloudsql.client"]` y `["worker-cloudsql.client"]` son el recorte de F2 |
