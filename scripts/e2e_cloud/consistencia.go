@@ -524,7 +524,7 @@ func consistency(r *run, minInstancias int) {
 			break
 		}
 	}
-	nSubs, res = history(student2)
+	nSubs, _ = history(student2)
 	r.check("Agotado el cupo, el envío siguiente se rechaza", cierre, 409,
 		fmt.Sprintf("code=%q; el historial se queda en %d de 3 intentos", cierre.errorCode(), nSubs),
 		nSubs == 3)
