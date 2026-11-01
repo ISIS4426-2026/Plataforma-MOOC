@@ -29,7 +29,7 @@ Detalle y tiempos: [`D3/recorrido_profesor_nube_2026-10-31.txt`](../D3/recorrido
 ## Pendiente
 
 1. **El video corto de pantalla** del recorrido conectado, que pide el issue: lo debe grabar una persona (el movimiento es la prueba).
-2. El rechazo de un profesor sobre el curso de otro profesor, y `verify_authorization.sh` contra el balanceador (ver D4).
+2. ~~El rechazo de un profesor sobre el curso de otro~~ **Hecho** (2026-11-01): `verify_authorization.sh` contra el balanceador, 16 de 16 (ver D4).
 
 ## Nunca
 
