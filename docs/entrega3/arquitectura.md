@@ -283,6 +283,7 @@ no compitan con los de la aplicación (G1).
 | Tipo | Application Load Balancer externo **global**, esquema `EXTERNAL_MANAGED` |
 | Dirección | `mooc-lb-ip`, IPv4 global reservada |
 | Dominio y certificado | `<IP>.sslip.io`, certificado administrado por Google `mooc-lb-cert` (nota 38) |
+| Política TLS | `mooc-api-tls`: TLS 1.2 como mínimo, perfil `MODERN`. Sin ella el balanceador aceptaba TLS 1.1; lo detectó el barrido de F1 |
 | Reglas de reenvío | `mooc-api-https` (443 → proxy HTTPS) y `mooc-api-http` (80 → redirección 301 a HTTPS). Se crean solo con `lb_enabled=true` |
 | Backend | `mooc-api-backend`, HTTP por el puerto con nombre `http` (80), `timeout_sec = 60` |
 | Política de distribución | `balancing_mode = RATE`, `max_rate_per_instance = 100` pet/s: la capacidad declarada que usa el autoescalador de la API (C2) |
@@ -392,11 +393,11 @@ superficie de red verificada desde fuera, en F1
 | **Frontend** | No existía | React servido por nginx en las réplicas de la API, mismo origen, versión visible; recorridos de estudiante y profesor en la nube | D1–D5 |
 | **Persistencia** | Cloud SQL y buckets, usados por dos VMs | Los mismos servicios, compartidos por todas las réplicas; sesiones e idempotencia en la cola compartida, sin cachés locales | E1, E2, E3 |
 | **Red** | Dos VMs con IP pública | Ninguna IP pública salvo el balanceador; salida por Cloud NAT; regla interna abierta sustituida por reglas con propósito | B2, F1 |
-| **Validación** | Caracterización de capacidad, con el escenario 2 medido contra Docker Compose | Línea base de la Entrega 2 medida de nuevo contra la nube (A7) y generador externo en VM propia (G1), hechos; corridas comparativas y ciclos de escalado bajo carga, en curso | A7, G1, G3–G7 |
-| **Calidad y deuda técnica** | Sin línea base formal | Análisis automatizado con SonarQube, umbrales y primer inventario de deuda técnica, en curso | H1–H3 |
+| **Validación** | Caracterización de capacidad, con el escenario 2 medido contra Docker Compose | Hechos: línea base de la Entrega 2 medida de nuevo contra la nube (A7), generador externo en VM propia (G1), escenario 1 sobre la arquitectura elástica (G3) y ciclo de escalado de workers (G6). En curso: escenario 2 (G4), ciclo de la API (G5) e informe consolidado (G7) | A7, G1, G3–G7 |
+| **Calidad y deuda técnica** | Sin línea base formal | Hechos: SonarQube en la CI (H1) y verificación de umbrales (H2). En curso: primer documento de deuda técnica (H3) | H1–H3 |
 
 **Estado al 2026-11-01:** las ocho primeras filas están desplegadas y
-verificadas en sus evidencias. Validación y calidad están **en curso**: cuando
+verificadas en sus evidencias. Validación y calidad tienen partes **en curso**: cuando
 cierren, sus resultados quedan en el informe de capacidad (G7) y en el documento
 de deuda técnica (H3), y esta tabla se actualiza.
 
