@@ -26,7 +26,21 @@ gcloud compute ssh mooc-load-generator --zone us-east1-c --tunnel-through-iap
 
 La VM tarda unos minutos en instalar Docker y bajar la imagen de JMeter: `cat /var/log/mooc-generator-listo.txt`.
 
-## 1. En la VM: preparar
+## 1. Entregar la contraseña de la base a la VM, y preparar
+
+Si `generator_db_secret_access=true` la VM la lee sola de Secret Manager y este paso sobra. Por omisión **no** lo está
+(aplicarlo exige poder cambiar la política de IAM del secreto). La contraseña viaja por el túnel de IAP, **por la entrada
+estándar** y no en una línea de comandos, y se queda en un archivo en memoria (`/dev/shm`, solo para su dueño) que desaparece
+al apagar la VM. Desde tu máquina:
+
+```bash
+gcloud secrets versions access latest --secret=db-password |   gcloud compute ssh mooc-load-generator --zone us-east1-c --tunnel-through-iap   --command 'umask 077; tr -d "
+ " > /dev/shm/mooc-db-pw; wc -c < /dev/shm/mooc-db-pw'
+```
+
+Debe imprimir un número mayor que 0 (los caracteres guardados, no la contraseña). Al terminar la campaña: `rm -f /dev/shm/mooc-db-pw`.
+
+Después, en la VM:
 
 ```bash
 git clone https://github.com/ISIS4426-2026/Plataforma-MOOC.git && cd Plataforma-MOOC

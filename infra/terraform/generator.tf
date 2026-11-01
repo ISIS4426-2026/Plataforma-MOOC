@@ -7,9 +7,9 @@
 # Esta VM esta FUERA de los dos grupos elasticos y de la cola, en otra zona de la misma region. No tiene
 # IP publica (sale por la NAT de B2) y solo se entra por IAP, asi que no abre ningun puerto y F1 no
 # encuentra nada nuevo. Su cuenta de servicio (que tampoco existe mientras esta apagado) escribe registros y
-# metricas, y para G3 y G4 hace dos cosas mas, ambas ATADAS A `generator_enabled` y por lo tanto inexistentes
-# con la VM apagada: leer el secreto de la base (reiniciar y verificar las cuentas de carga entre corridas) y
-# abrir el 6379 de la cola (inspeccionarla durante el escenario 2). No toca los buckets y no puede firmar URLs.
+# metricas, y para G3 y G4 abre el 6379 de la cola (inspeccionarla durante el escenario 2) y, si se pide con
+# `generator_db_secret_access`, lee el secreto de la base; todo ATADO A `generator_enabled` y por lo tanto
+# inexistente con la VM apagada. No toca los buckets y no puede firmar URLs.
 #
 # APAGADA POR OMISION, como el balanceador y los autoescaladores: `generator_enabled = false` no crea
 # nada, y una VM de 4 vCPU encendida de mas cuesta dinero (~0,13 USD/h). Para una campana:
@@ -24,6 +24,15 @@
 
 variable "generator_enabled" {
   description = "true crea la VM del generador de carga. Por omision false: no existe, y no cuesta."
+  type        = bool
+  default     = false
+}
+
+variable "generator_db_secret_access" {
+  description = <<-EOT
+    true deja que la cuenta de la VM lea el secreto db-password por si misma (requiere quien aplique pueda cambiar la
+    politica de IAM de ese secreto). Por omision false: la contrasena se entrega a la VM desde la sesion de quien opera.
+  EOT
   type        = bool
   default     = false
 }
@@ -73,8 +82,13 @@ resource "google_project_iam_member" "load_generator" {
 # G3 y G4: leer la contrasena de la base. Es lo que permite reiniciar las cuentas de carga y verificar el estado
 # DESDE la VM, sin pasar la contrasena por la maquina de quien opera. Alcance: un solo secreto, solo lectura
 # (el mismo patron que `db_password_readers`), y desaparece con la VM.
+#
+# OPCIONAL (`generator_db_secret_access`, apagado por omision): aplicarlo exige poder cambiar la politica de IAM de
+# ESE secreto (`secretmanager.secrets.setIamPolicy`), que no tienen todas las cuentas del equipo que aplican
+# Terraform. Sin el, la contrasena llega a la VM por el tunel de IAP desde la sesion de quien opera y se queda
+# solo en un archivo en memoria (docs/entrega3/evidencias/G3/RUNBOOK.md, seccion 1).
 resource "google_secret_manager_secret_iam_member" "load_generator_db_password" {
-  count = var.generator_enabled ? 1 : 0
+  count = var.generator_enabled && var.generator_db_secret_access ? 1 : 0
 
   project   = var.project_id
   secret_id = data.google_secret_manager_secret.db_password.secret_id
