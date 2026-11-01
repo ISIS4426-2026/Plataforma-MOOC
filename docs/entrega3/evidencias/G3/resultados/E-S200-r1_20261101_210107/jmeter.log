@@ -1,0 +1,679 @@
+2026-11-01 22:01:09,251 INFO o.a.j.u.JMeterUtils: Setting Locale to en_EN
+2026-11-01 22:01:09,286 INFO o.a.j.JMeter: Loading user properties from: /opt/apache-jmeter-5.5/bin/user.properties
+2026-11-01 22:01:09,287 INFO o.a.j.JMeter: Loading system properties from: /opt/apache-jmeter-5.5/bin/system.properties
+2026-11-01 22:01:09,288 INFO o.a.j.JMeter: Setting System property: log4j2.formatMsgNoLookups=true
+2026-11-01 22:01:09,288 INFO o.a.j.JMeter: Setting JMeter property: users=200
+2026-11-01 22:01:09,288 INFO o.a.j.JMeter: Setting JMeter property: ramp=15
+2026-11-01 22:01:09,288 INFO o.a.j.JMeter: Setting JMeter property: sessions=3
+2026-11-01 22:01:09,289 INFO o.a.j.JMeter: Setting JMeter property: think_ms=1000
+2026-11-01 22:01:09,289 INFO o.a.j.JMeter: Setting JMeter property: think_range_ms=1000
+2026-11-01 22:01:09,289 INFO o.a.j.JMeter: Setting JMeter property: host=136.68.55.254.sslip.io
+2026-11-01 22:01:09,289 INFO o.a.j.JMeter: Setting JMeter property: port=443
+2026-11-01 22:01:09,289 INFO o.a.j.JMeter: Setting JMeter property: protocol=https
+2026-11-01 22:01:09,289 INFO o.a.j.JMeter: Setting JMeter property: origin=https://136.68.55.254.sslip.io
+2026-11-01 22:01:09,289 INFO o.a.j.JMeter: Setting JMeter property: runId=E-S200-r1_20261101_210107
+2026-11-01 22:01:09,289 INFO o.a.j.JMeter: Setting JMeter property: tokens=/jmeter/capacity/tokens.csv
+2026-11-01 22:01:09,304 INFO o.a.j.JMeter: Copyright (c) 1998-2022 The Apache Software Foundation
+2026-11-01 22:01:09,304 INFO o.a.j.JMeter: Version 5.5
+2026-11-01 22:01:09,304 INFO o.a.j.JMeter: java.version=1.8.0_275
+2026-11-01 22:01:09,304 INFO o.a.j.JMeter: java.vm.name=OpenJDK 64-Bit Server VM
+2026-11-01 22:01:09,305 INFO o.a.j.JMeter: os.name=Linux
+2026-11-01 22:01:09,305 INFO o.a.j.JMeter: os.arch=amd64
+2026-11-01 22:01:09,305 INFO o.a.j.JMeter: os.version=6.1.0-54-cloud-amd64
+2026-11-01 22:01:09,305 INFO o.a.j.JMeter: file.encoding=UTF-8
+2026-11-01 22:01:09,305 INFO o.a.j.JMeter: java.awt.headless=true
+2026-11-01 22:01:09,305 INFO o.a.j.JMeter: Max memory     =12834570240
+2026-11-01 22:01:09,305 INFO o.a.j.JMeter: Available Processors =4
+2026-11-01 22:01:09,314 INFO o.a.j.JMeter: Default Locale=English (EN)
+2026-11-01 22:01:09,315 INFO o.a.j.JMeter: JMeter  Locale=English (EN)
+2026-11-01 22:01:09,315 INFO o.a.j.JMeter: JMeterHome=/opt/apache-jmeter-5.5
+2026-11-01 22:01:09,315 INFO o.a.j.JMeter: user.dir  =/opt/apache-jmeter-5.5
+2026-11-01 22:01:09,316 INFO o.a.j.JMeter: PWD       =/opt/apache-jmeter-5.5
+2026-11-01 22:01:09,316 INFO o.a.j.JMeter: IP: 172.17.0.2 Name: 170bedc65ad2 FullName: 170bedc65ad2
+2026-11-01 22:01:09,360 INFO o.a.j.s.FileServer: Default base='/opt/apache-jmeter-5.5'
+2026-11-01 22:01:09,363 INFO o.a.j.s.FileServer: Set new base='/jmeter'
+2026-11-01 22:01:09,636 INFO o.a.j.s.SaveService: Testplan (JMX) version: 2.2. Testlog (JTL) version: 2.2
+2026-11-01 22:01:09,677 INFO o.a.j.s.SaveService: Using SaveService properties file encoding UTF-8
+2026-11-01 22:01:09,683 INFO o.a.j.s.SaveService: Using SaveService properties version 5.0
+2026-11-01 22:01:09,693 INFO o.a.j.s.SaveService: Loading file: /jmeter/escenario1.jmx
+2026-11-01 22:01:09,795 INFO o.a.j.p.h.s.HTTPSamplerBase: Parser for text/html is org.apache.jmeter.protocol.http.parser.LagartoBasedHtmlParser
+2026-11-01 22:01:09,795 INFO o.a.j.p.h.s.HTTPSamplerBase: Parser for application/xhtml+xml is org.apache.jmeter.protocol.http.parser.LagartoBasedHtmlParser
+2026-11-01 22:01:09,795 INFO o.a.j.p.h.s.HTTPSamplerBase: Parser for application/xml is org.apache.jmeter.protocol.http.parser.LagartoBasedHtmlParser
+2026-11-01 22:01:09,796 INFO o.a.j.p.h.s.HTTPSamplerBase: Parser for text/xml is org.apache.jmeter.protocol.http.parser.LagartoBasedHtmlParser
+2026-11-01 22:01:09,796 INFO o.a.j.p.h.s.HTTPSamplerBase: Parser for text/vnd.wap.wml is org.apache.jmeter.protocol.http.parser.RegexpHTMLParser
+2026-11-01 22:01:09,796 INFO o.a.j.p.h.s.HTTPSamplerBase: Parser for text/css is org.apache.jmeter.protocol.http.parser.CssParser
+2026-11-01 22:01:10,438 INFO o.a.j.JMeter: Creating summariser <summary>
+2026-11-01 22:01:10,459 INFO o.a.j.e.StandardJMeterEngine: Running the test!
+2026-11-01 22:01:10,462 INFO o.a.j.s.SampleEvent: List of sample_variables: []
+2026-11-01 22:01:10,462 INFO o.a.j.s.SampleEvent: List of sample_variables: []
+2026-11-01 22:01:10,472 INFO o.a.j.e.u.CompoundVariable: Note: Function class names must contain the string: '.functions.'
+2026-11-01 22:01:10,472 INFO o.a.j.e.u.CompoundVariable: Note: Function class names must not contain the string: '.gui.'
+2026-11-01 22:01:11,230 INFO o.a.j.JMeter: Running test (1793566871230)
+2026-11-01 22:01:11,370 INFO o.a.j.e.StandardJMeterEngine: Starting ThreadGroup: 1 : Estudiantes concurrentes
+2026-11-01 22:01:11,371 INFO o.a.j.e.StandardJMeterEngine: Starting 200 threads for group Estudiantes concurrentes.
+2026-11-01 22:01:11,371 INFO o.a.j.e.StandardJMeterEngine: Thread will continue on error
+2026-11-01 22:01:11,371 INFO o.a.j.t.ThreadGroup: Starting thread group... number=1 threads=200 ramp-up=15 delayedStart=false
+2026-11-01 22:01:11,404 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-1
+2026-11-01 22:01:11,407 INFO o.a.j.s.FileServer: Stored: /jmeter/capacity/tokens.csv
+2026-11-01 22:01:11,480 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-2
+2026-11-01 22:01:11,539 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-3
+2026-11-01 22:01:11,612 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-4
+2026-11-01 22:01:11,683 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-5
+2026-11-01 22:01:11,756 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-6
+2026-11-01 22:01:11,829 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-7
+2026-11-01 22:01:11,905 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-8
+2026-11-01 22:01:11,983 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-9
+2026-11-01 22:01:12,052 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-10
+2026-11-01 22:01:12,129 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-11
+2026-11-01 22:01:12,200 INFO o.a.j.t.ThreadGroup: Started thread group number 1
+2026-11-01 22:01:12,200 INFO o.a.j.e.StandardJMeterEngine: All thread groups have been started
+2026-11-01 22:01:12,201 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-12
+2026-11-01 22:01:12,282 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-13
+2026-11-01 22:01:12,356 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-14
+2026-11-01 22:01:12,445 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-15
+2026-11-01 22:01:12,509 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-16
+2026-11-01 22:01:12,578 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-17
+2026-11-01 22:01:12,653 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-18
+2026-11-01 22:01:12,732 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-19
+2026-11-01 22:01:12,803 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-20
+2026-11-01 22:01:12,882 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-21
+2026-11-01 22:01:12,962 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-22
+2026-11-01 22:01:13,027 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-23
+2026-11-01 22:01:13,099 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-24
+2026-11-01 22:01:13,188 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-25
+2026-11-01 22:01:13,252 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-26
+2026-11-01 22:01:13,325 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-27
+2026-11-01 22:01:13,401 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-28
+2026-11-01 22:01:13,482 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-29
+2026-11-01 22:01:13,556 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-30
+2026-11-01 22:01:13,630 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-31
+2026-11-01 22:01:13,699 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-32
+2026-11-01 22:01:13,777 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-33
+2026-11-01 22:01:13,852 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-34
+2026-11-01 22:01:13,925 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-35
+2026-11-01 22:01:13,999 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-36
+2026-11-01 22:01:14,025 INFO o.a.j.p.h.s.HTTPHCAbstractImpl: Local host = 170bedc65ad2
+2026-11-01 22:01:14,035 INFO o.a.j.p.h.s.HTTPHC4Impl: HTTP request retry count = 0
+2026-11-01 22:01:14,038 INFO o.a.j.s.SampleResult: Note: Sample TimeStamps are START times
+2026-11-01 22:01:14,038 INFO o.a.j.s.SampleResult: sampleresult.default.encoding is set to ISO-8859-1
+2026-11-01 22:01:14,038 INFO o.a.j.s.SampleResult: sampleresult.useNanoTime=true
+2026-11-01 22:01:14,038 INFO o.a.j.s.SampleResult: sampleresult.nanoThreadSleep=5000
+2026-11-01 22:01:14,076 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-37
+2026-11-01 22:01:14,155 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-38
+2026-11-01 22:01:14,232 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-39
+2026-11-01 22:01:14,247 INFO o.a.j.p.h.s.h.LazyLayeredConnectionSocketFactory: Setting up HTTPS TrustAll Socket Factory
+2026-11-01 22:01:14,258 INFO o.a.j.u.JsseSSLManager: Using default SSL protocol: TLS
+2026-11-01 22:01:14,258 INFO o.a.j.u.JsseSSLManager: SSL session context: per-thread
+2026-11-01 22:01:14,303 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-40
+2026-11-01 22:01:14,373 INFO o.a.j.u.SSLManager: JmeterKeyStore Location:  type JKS
+2026-11-01 22:01:14,379 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-41
+2026-11-01 22:01:14,382 INFO o.a.j.u.SSLManager: KeyStore created OK
+2026-11-01 22:01:14,382 WARN o.a.j.u.SSLManager: Keystore file not found, loading empty keystore
+2026-11-01 22:01:14,469 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-42
+2026-11-01 22:01:14,534 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-43
+2026-11-01 22:01:14,608 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-44
+2026-11-01 22:01:14,694 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-45
+2026-11-01 22:01:14,765 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-46
+2026-11-01 22:01:14,834 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-47
+2026-11-01 22:01:14,903 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-48
+2026-11-01 22:01:14,986 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-49
+2026-11-01 22:01:15,054 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-50
+2026-11-01 22:01:15,133 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-51
+2026-11-01 22:01:15,212 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-52
+2026-11-01 22:01:15,277 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-53
+2026-11-01 22:01:15,355 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-54
+2026-11-01 22:01:15,425 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-55
+2026-11-01 22:01:15,509 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-56
+2026-11-01 22:01:15,579 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-57
+2026-11-01 22:01:15,649 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-58
+2026-11-01 22:01:15,734 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-59
+2026-11-01 22:01:15,799 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-60
+2026-11-01 22:01:15,873 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-61
+2026-11-01 22:01:15,965 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-62
+2026-11-01 22:01:16,034 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-63
+2026-11-01 22:01:16,100 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-64
+2026-11-01 22:01:16,175 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-65
+2026-11-01 22:01:16,251 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-66
+2026-11-01 22:01:16,323 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-67
+2026-11-01 22:01:16,416 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-68
+2026-11-01 22:01:16,474 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-69
+2026-11-01 22:01:16,552 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-70
+2026-11-01 22:01:16,629 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-71
+2026-11-01 22:01:16,705 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-72
+2026-11-01 22:01:16,781 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-73
+2026-11-01 22:01:16,857 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-74
+2026-11-01 22:01:16,930 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-75
+2026-11-01 22:01:17,005 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-76
+2026-11-01 22:01:17,082 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-77
+2026-11-01 22:01:17,160 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-78
+2026-11-01 22:01:17,233 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-79
+2026-11-01 22:01:17,306 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-80
+2026-11-01 22:01:17,380 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-81
+2026-11-01 22:01:17,457 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-82
+2026-11-01 22:01:17,543 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-83
+2026-11-01 22:01:17,604 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-84
+2026-11-01 22:01:17,696 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-85
+2026-11-01 22:01:17,753 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-86
+2026-11-01 22:01:17,840 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-87
+2026-11-01 22:01:17,903 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-88
+2026-11-01 22:01:17,981 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-89
+2026-11-01 22:01:18,060 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-90
+2026-11-01 22:01:18,129 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-91
+2026-11-01 22:01:18,204 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-92
+2026-11-01 22:01:18,277 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-93
+2026-11-01 22:01:18,359 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-94
+2026-11-01 22:01:18,426 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-95
+2026-11-01 22:01:18,498 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-96
+2026-11-01 22:01:18,578 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-97
+2026-11-01 22:01:18,664 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-98
+2026-11-01 22:01:18,733 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-99
+2026-11-01 22:01:18,804 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-100
+2026-11-01 22:01:18,887 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-101
+2026-11-01 22:01:18,952 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-102
+2026-11-01 22:01:19,031 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-103
+2026-11-01 22:01:19,103 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-104
+2026-11-01 22:01:19,178 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-105
+2026-11-01 22:01:19,252 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-106
+2026-11-01 22:01:19,331 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-107
+2026-11-01 22:01:19,403 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-108
+2026-11-01 22:01:19,478 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-109
+2026-11-01 22:01:19,553 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-110
+2026-11-01 22:01:19,625 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-111
+2026-11-01 22:01:19,705 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-112
+2026-11-01 22:01:19,776 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-113
+2026-11-01 22:01:19,849 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-114
+2026-11-01 22:01:19,930 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-115
+2026-11-01 22:01:20,002 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-116
+2026-11-01 22:01:20,078 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-117
+2026-11-01 22:01:20,149 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-118
+2026-11-01 22:01:20,235 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-119
+2026-11-01 22:01:20,301 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-120
+2026-11-01 22:01:20,377 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-121
+2026-11-01 22:01:20,456 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-122
+2026-11-01 22:01:20,531 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-123
+2026-11-01 22:01:20,605 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-124
+2026-11-01 22:01:20,679 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-125
+2026-11-01 22:01:20,753 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-126
+2026-11-01 22:01:20,831 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-127
+2026-11-01 22:01:20,902 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-128
+2026-11-01 22:01:20,983 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-129
+2026-11-01 22:01:21,053 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-130
+2026-11-01 22:01:21,130 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-131
+2026-11-01 22:01:21,205 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-132
+2026-11-01 22:01:21,295 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-133
+2026-11-01 22:01:21,354 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-134
+2026-11-01 22:01:21,425 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-135
+2026-11-01 22:01:21,503 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-136
+2026-11-01 22:01:21,578 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-137
+2026-11-01 22:01:21,656 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-138
+2026-11-01 22:01:21,731 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-139
+2026-11-01 22:01:21,805 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-140
+2026-11-01 22:01:21,885 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-141
+2026-11-01 22:01:21,954 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-142
+2026-11-01 22:01:22,031 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-143
+2026-11-01 22:01:22,103 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-144
+2026-11-01 22:01:22,180 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-145
+2026-11-01 22:01:22,254 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-146
+2026-11-01 22:01:22,328 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-147
+2026-11-01 22:01:22,403 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-148
+2026-11-01 22:01:22,478 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-149
+2026-11-01 22:01:22,557 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-150
+2026-11-01 22:01:22,640 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-151
+2026-11-01 22:01:22,714 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-152
+2026-11-01 22:01:22,777 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-153
+2026-11-01 22:01:22,861 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-154
+2026-11-01 22:01:22,966 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-155
+2026-11-01 22:01:23,031 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-156
+2026-11-01 22:01:23,109 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-157
+2026-11-01 22:01:23,180 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-158
+2026-11-01 22:01:23,286 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-159
+2026-11-01 22:01:23,347 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-160
+2026-11-01 22:01:23,422 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-161
+2026-11-01 22:01:23,496 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-162
+2026-11-01 22:01:23,564 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-163
+2026-11-01 22:01:23,638 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-164
+2026-11-01 22:01:23,708 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-165
+2026-11-01 22:01:23,791 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-166
+2026-11-01 22:01:23,851 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-167
+2026-11-01 22:01:23,935 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-168
+2026-11-01 22:01:24,002 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-169
+2026-11-01 22:01:24,056 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-170
+2026-11-01 22:01:24,132 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-171
+2026-11-01 22:01:24,200 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-172
+2026-11-01 22:01:24,280 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-173
+2026-11-01 22:01:24,354 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-174
+2026-11-01 22:01:24,427 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-175
+2026-11-01 22:01:24,499 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-176
+2026-11-01 22:01:24,583 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-177
+2026-11-01 22:01:24,663 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-178
+2026-11-01 22:01:24,737 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-179
+2026-11-01 22:01:24,802 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-180
+2026-11-01 22:01:24,880 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-181
+2026-11-01 22:01:24,960 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-182
+2026-11-01 22:01:25,029 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-183
+2026-11-01 22:01:25,103 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-184
+2026-11-01 22:01:25,179 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-185
+2026-11-01 22:01:25,255 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-186
+2026-11-01 22:01:25,333 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-187
+2026-11-01 22:01:25,403 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-188
+2026-11-01 22:01:25,480 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-189
+2026-11-01 22:01:25,554 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-190
+2026-11-01 22:01:25,636 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-191
+2026-11-01 22:01:25,701 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-192
+2026-11-01 22:01:25,793 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-193
+2026-11-01 22:01:25,856 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-194
+2026-11-01 22:01:25,935 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-195
+2026-11-01 22:01:26,005 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-196
+2026-11-01 22:01:26,083 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-197
+2026-11-01 22:01:26,155 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-198
+2026-11-01 22:01:26,232 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-199
+2026-11-01 22:01:26,303 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-200
+2026-11-01 22:01:30,006 INFO o.a.j.r.Summariser: summary +   1322 in 00:00:19 =   70.4/s Avg:    44 Min:     6 Max:  1515 Err:     0 (0.00%) Active: 200 Started: 200 Finished: 0
+2026-11-01 22:02:00,006 INFO o.a.j.r.Summariser: summary +   3954 in 00:00:30 =  131.8/s Avg:    19 Min:     5 Max:   274 Err:     0 (0.00%) Active: 200 Started: 200 Finished: 0
+2026-11-01 22:02:00,007 INFO o.a.j.r.Summariser: summary =   5276 in 00:00:49 =  108.2/s Avg:    25 Min:     5 Max:  1515 Err:     0 (0.00%)
+2026-11-01 22:02:14,469 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-28
+2026-11-01 22:02:14,469 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-28
+2026-11-01 22:02:14,491 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-7
+2026-11-01 22:02:14,492 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-7
+2026-11-01 22:02:15,212 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-31
+2026-11-01 22:02:15,212 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-31
+2026-11-01 22:02:15,237 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-49
+2026-11-01 22:02:15,238 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-49
+2026-11-01 22:02:15,262 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-52
+2026-11-01 22:02:15,262 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-52
+2026-11-01 22:02:15,701 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-26
+2026-11-01 22:02:15,701 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-26
+2026-11-01 22:02:15,879 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-40
+2026-11-01 22:02:15,879 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-40
+2026-11-01 22:02:15,939 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-36
+2026-11-01 22:02:15,939 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-36
+2026-11-01 22:02:16,231 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-41
+2026-11-01 22:02:16,231 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-41
+2026-11-01 22:02:16,379 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-14
+2026-11-01 22:02:16,379 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-14
+2026-11-01 22:02:16,429 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-59
+2026-11-01 22:02:16,430 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-59
+2026-11-01 22:02:16,463 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-1
+2026-11-01 22:02:16,463 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-1
+2026-11-01 22:02:16,551 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-34
+2026-11-01 22:02:16,552 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-34
+2026-11-01 22:02:16,817 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-17
+2026-11-01 22:02:16,817 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-17
+2026-11-01 22:02:16,847 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-11
+2026-11-01 22:02:16,848 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-11
+2026-11-01 22:02:16,849 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-27
+2026-11-01 22:02:16,849 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-27
+2026-11-01 22:02:17,226 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-54
+2026-11-01 22:02:17,226 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-54
+2026-11-01 22:02:17,252 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-13
+2026-11-01 22:02:17,252 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-13
+2026-11-01 22:02:17,376 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-45
+2026-11-01 22:02:17,376 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-45
+2026-11-01 22:02:17,417 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-5
+2026-11-01 22:02:17,418 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-5
+2026-11-01 22:02:17,474 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-2
+2026-11-01 22:02:17,474 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-2
+2026-11-01 22:02:17,499 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-19
+2026-11-01 22:02:17,499 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-19
+2026-11-01 22:02:17,510 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-25
+2026-11-01 22:02:17,510 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-25
+2026-11-01 22:02:17,621 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-38
+2026-11-01 22:02:17,621 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-38
+2026-11-01 22:02:17,635 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-63
+2026-11-01 22:02:17,635 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-63
+2026-11-01 22:02:17,666 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-55
+2026-11-01 22:02:17,666 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-55
+2026-11-01 22:02:17,762 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-16
+2026-11-01 22:02:17,763 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-16
+2026-11-01 22:02:17,764 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-68
+2026-11-01 22:02:17,764 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-68
+2026-11-01 22:02:17,783 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-12
+2026-11-01 22:02:17,783 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-12
+2026-11-01 22:02:18,094 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-22
+2026-11-01 22:02:18,094 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-22
+2026-11-01 22:02:18,159 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-8
+2026-11-01 22:02:18,159 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-8
+2026-11-01 22:02:18,261 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-9
+2026-11-01 22:02:18,261 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-9
+2026-11-01 22:02:18,285 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-21
+2026-11-01 22:02:18,285 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-21
+2026-11-01 22:02:18,305 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-37
+2026-11-01 22:02:18,305 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-37
+2026-11-01 22:02:18,322 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-24
+2026-11-01 22:02:18,323 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-24
+2026-11-01 22:02:18,356 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-51
+2026-11-01 22:02:18,356 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-75
+2026-11-01 22:02:18,356 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-51
+2026-11-01 22:02:18,356 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-75
+2026-11-01 22:02:18,390 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-76
+2026-11-01 22:02:18,390 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-76
+2026-11-01 22:02:18,433 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-42
+2026-11-01 22:02:18,433 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-42
+2026-11-01 22:02:18,570 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-35
+2026-11-01 22:02:18,571 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-35
+2026-11-01 22:02:18,624 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-46
+2026-11-01 22:02:18,624 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-46
+2026-11-01 22:02:18,639 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-20
+2026-11-01 22:02:18,639 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-20
+2026-11-01 22:02:18,783 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-6
+2026-11-01 22:02:18,783 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-6
+2026-11-01 22:02:18,884 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-4
+2026-11-01 22:02:18,884 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-4
+2026-11-01 22:02:19,042 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-81
+2026-11-01 22:02:19,042 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-81
+2026-11-01 22:02:19,190 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-32
+2026-11-01 22:02:19,190 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-32
+2026-11-01 22:02:19,256 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-62
+2026-11-01 22:02:19,256 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-62
+2026-11-01 22:02:19,271 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-47
+2026-11-01 22:02:19,271 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-47
+2026-11-01 22:02:19,544 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-57
+2026-11-01 22:02:19,544 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-57
+2026-11-01 22:02:19,584 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-60
+2026-11-01 22:02:19,584 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-60
+2026-11-01 22:02:19,923 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-61
+2026-11-01 22:02:19,923 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-61
+2026-11-01 22:02:19,953 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-53
+2026-11-01 22:02:19,953 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-53
+2026-11-01 22:02:19,998 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-67
+2026-11-01 22:02:19,998 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-67
+2026-11-01 22:02:20,048 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-95
+2026-11-01 22:02:20,048 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-95
+2026-11-01 22:02:20,062 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-77
+2026-11-01 22:02:20,062 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-77
+2026-11-01 22:02:20,085 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-64
+2026-11-01 22:02:20,085 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-64
+2026-11-01 22:02:20,179 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-71
+2026-11-01 22:02:20,180 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-71
+2026-11-01 22:02:20,202 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-96
+2026-11-01 22:02:20,202 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-96
+2026-11-01 22:02:20,289 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-39
+2026-11-01 22:02:20,289 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-39
+2026-11-01 22:02:20,336 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-79
+2026-11-01 22:02:20,337 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-79
+2026-11-01 22:02:20,360 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-18
+2026-11-01 22:02:20,360 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-18
+2026-11-01 22:02:20,425 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-97
+2026-11-01 22:02:20,425 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-97
+2026-11-01 22:02:20,455 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-33
+2026-11-01 22:02:20,455 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-33
+2026-11-01 22:02:20,491 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-23
+2026-11-01 22:02:20,491 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-23
+2026-11-01 22:02:20,499 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-80
+2026-11-01 22:02:20,499 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-80
+2026-11-01 22:02:20,505 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-56
+2026-11-01 22:02:20,505 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-56
+2026-11-01 22:02:20,532 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-30
+2026-11-01 22:02:20,532 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-30
+2026-11-01 22:02:20,642 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-90
+2026-11-01 22:02:20,642 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-90
+2026-11-01 22:02:20,668 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-109
+2026-11-01 22:02:20,668 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-109
+2026-11-01 22:02:20,806 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-3
+2026-11-01 22:02:20,806 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-3
+2026-11-01 22:02:20,811 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-58
+2026-11-01 22:02:20,811 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-58
+2026-11-01 22:02:20,815 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-102
+2026-11-01 22:02:20,815 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-102
+2026-11-01 22:02:20,821 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-101
+2026-11-01 22:02:20,821 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-101
+2026-11-01 22:02:20,838 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-48
+2026-11-01 22:02:20,838 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-48
+2026-11-01 22:02:20,905 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-43
+2026-11-01 22:02:20,905 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-43
+2026-11-01 22:02:20,941 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-70
+2026-11-01 22:02:20,941 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-70
+2026-11-01 22:02:20,985 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-69
+2026-11-01 22:02:20,985 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-69
+2026-11-01 22:02:21,058 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-72
+2026-11-01 22:02:21,058 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-72
+2026-11-01 22:02:21,084 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-107
+2026-11-01 22:02:21,084 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-107
+2026-11-01 22:02:21,099 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-87
+2026-11-01 22:02:21,099 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-87
+2026-11-01 22:02:21,101 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-78
+2026-11-01 22:02:21,101 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-78
+2026-11-01 22:02:21,133 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-89
+2026-11-01 22:02:21,133 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-89
+2026-11-01 22:02:21,296 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-10
+2026-11-01 22:02:21,296 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-10
+2026-11-01 22:02:21,462 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-83
+2026-11-01 22:02:21,462 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-83
+2026-11-01 22:02:21,476 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-29
+2026-11-01 22:02:21,476 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-29
+2026-11-01 22:02:21,566 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-139
+2026-11-01 22:02:21,566 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-139
+2026-11-01 22:02:21,575 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-129
+2026-11-01 22:02:21,575 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-129
+2026-11-01 22:02:21,629 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-82
+2026-11-01 22:02:21,630 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-82
+2026-11-01 22:02:21,662 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-120
+2026-11-01 22:02:21,662 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-120
+2026-11-01 22:02:21,783 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-100
+2026-11-01 22:02:21,783 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-100
+2026-11-01 22:02:21,830 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-86
+2026-11-01 22:02:21,830 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-86
+2026-11-01 22:02:21,851 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-50
+2026-11-01 22:02:21,851 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-50
+2026-11-01 22:02:21,856 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-88
+2026-11-01 22:02:21,857 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-88
+2026-11-01 22:02:21,895 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-127
+2026-11-01 22:02:21,895 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-127
+2026-11-01 22:02:21,936 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-15
+2026-11-01 22:02:21,936 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-15
+2026-11-01 22:02:22,005 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-44
+2026-11-01 22:02:22,005 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-44
+2026-11-01 22:02:22,026 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-84
+2026-11-01 22:02:22,026 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-84
+2026-11-01 22:02:22,249 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-85
+2026-11-01 22:02:22,249 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-85
+2026-11-01 22:02:22,317 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-66
+2026-11-01 22:02:22,317 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-66
+2026-11-01 22:02:22,321 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-115
+2026-11-01 22:02:22,321 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-115
+2026-11-01 22:02:22,367 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-113
+2026-11-01 22:02:22,368 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-113
+2026-11-01 22:02:22,487 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-93
+2026-11-01 22:02:22,487 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-93
+2026-11-01 22:02:22,534 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-92
+2026-11-01 22:02:22,534 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-92
+2026-11-01 22:02:22,848 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-148
+2026-11-01 22:02:22,848 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-148
+2026-11-01 22:02:22,905 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-106
+2026-11-01 22:02:22,906 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-106
+2026-11-01 22:02:22,934 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-99
+2026-11-01 22:02:22,934 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-99
+2026-11-01 22:02:23,029 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-103
+2026-11-01 22:02:23,029 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-103
+2026-11-01 22:02:23,278 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-157
+2026-11-01 22:02:23,278 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-157
+2026-11-01 22:02:23,407 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-73
+2026-11-01 22:02:23,407 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-73
+2026-11-01 22:02:23,465 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-119
+2026-11-01 22:02:23,465 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-119
+2026-11-01 22:02:23,720 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-111
+2026-11-01 22:02:23,720 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-111
+2026-11-01 22:02:23,808 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-122
+2026-11-01 22:02:23,808 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-122
+2026-11-01 22:02:23,812 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-126
+2026-11-01 22:02:23,812 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-126
+2026-11-01 22:02:23,877 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-91
+2026-11-01 22:02:23,877 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-91
+2026-11-01 22:02:23,885 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-131
+2026-11-01 22:02:23,885 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-131
+2026-11-01 22:02:23,958 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-94
+2026-11-01 22:02:23,958 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-94
+2026-11-01 22:02:24,081 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-116
+2026-11-01 22:02:24,081 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-116
+2026-11-01 22:02:24,093 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-104
+2026-11-01 22:02:24,093 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-104
+2026-11-01 22:02:24,158 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-108
+2026-11-01 22:02:24,158 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-108
+2026-11-01 22:02:24,288 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-164
+2026-11-01 22:02:24,288 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-164
+2026-11-01 22:02:24,342 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-121
+2026-11-01 22:02:24,342 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-121
+2026-11-01 22:02:24,759 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-118
+2026-11-01 22:02:24,759 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-118
+2026-11-01 22:02:24,800 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-114
+2026-11-01 22:02:24,800 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-114
+2026-11-01 22:02:24,897 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-135
+2026-11-01 22:02:24,897 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-135
+2026-11-01 22:02:25,125 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-124
+2026-11-01 22:02:25,126 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-124
+2026-11-01 22:02:25,126 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-153
+2026-11-01 22:02:25,126 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-153
+2026-11-01 22:02:25,188 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-65
+2026-11-01 22:02:25,188 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-65
+2026-11-01 22:02:25,206 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-132
+2026-11-01 22:02:25,207 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-132
+2026-11-01 22:02:25,212 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-166
+2026-11-01 22:02:25,212 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-166
+2026-11-01 22:02:25,349 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-142
+2026-11-01 22:02:25,349 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-142
+2026-11-01 22:02:25,362 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-158
+2026-11-01 22:02:25,363 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-158
+2026-11-01 22:02:25,396 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-105
+2026-11-01 22:02:25,396 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-105
+2026-11-01 22:02:25,471 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-98
+2026-11-01 22:02:25,471 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-98
+2026-11-01 22:02:25,483 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-74
+2026-11-01 22:02:25,483 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-74
+2026-11-01 22:02:25,512 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-156
+2026-11-01 22:02:25,513 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-156
+2026-11-01 22:02:25,546 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-130
+2026-11-01 22:02:25,546 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-130
+2026-11-01 22:02:25,591 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-141
+2026-11-01 22:02:25,591 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-141
+2026-11-01 22:02:25,623 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-123
+2026-11-01 22:02:25,623 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-123
+2026-11-01 22:02:25,772 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-138
+2026-11-01 22:02:25,772 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-138
+2026-11-01 22:02:25,777 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-178
+2026-11-01 22:02:25,777 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-178
+2026-11-01 22:02:25,787 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-110
+2026-11-01 22:02:25,787 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-110
+2026-11-01 22:02:25,841 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-125
+2026-11-01 22:02:25,841 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-125
+2026-11-01 22:02:25,850 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-182
+2026-11-01 22:02:25,850 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-182
+2026-11-01 22:02:25,856 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-128
+2026-11-01 22:02:25,856 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-128
+2026-11-01 22:02:25,863 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-112
+2026-11-01 22:02:25,864 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-112
+2026-11-01 22:02:25,970 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-133
+2026-11-01 22:02:25,970 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-133
+2026-11-01 22:02:26,048 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-137
+2026-11-01 22:02:26,048 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-137
+2026-11-01 22:02:26,423 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-194
+2026-11-01 22:02:26,423 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-194
+2026-11-01 22:02:26,479 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-165
+2026-11-01 22:02:26,479 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-165
+2026-11-01 22:02:26,571 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-168
+2026-11-01 22:02:26,572 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-168
+2026-11-01 22:02:26,573 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-147
+2026-11-01 22:02:26,573 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-147
+2026-11-01 22:02:26,586 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-136
+2026-11-01 22:02:26,586 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-136
+2026-11-01 22:02:26,737 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-152
+2026-11-01 22:02:26,737 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-152
+2026-11-01 22:02:26,810 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-146
+2026-11-01 22:02:26,810 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-146
+2026-11-01 22:02:26,944 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-160
+2026-11-01 22:02:26,944 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-154
+2026-11-01 22:02:26,944 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-160
+2026-11-01 22:02:26,944 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-154
+2026-11-01 22:02:27,036 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-143
+2026-11-01 22:02:27,036 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-143
+2026-11-01 22:02:27,166 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-188
+2026-11-01 22:02:27,166 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-188
+2026-11-01 22:02:27,210 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-151
+2026-11-01 22:02:27,210 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-151
+2026-11-01 22:02:27,234 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-117
+2026-11-01 22:02:27,234 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-117
+2026-11-01 22:02:27,257 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-184
+2026-11-01 22:02:27,257 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-184
+2026-11-01 22:02:27,334 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-172
+2026-11-01 22:02:27,334 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-172
+2026-11-01 22:02:27,448 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-140
+2026-11-01 22:02:27,448 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-140
+2026-11-01 22:02:27,455 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-149
+2026-11-01 22:02:27,456 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-149
+2026-11-01 22:02:27,669 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-167
+2026-11-01 22:02:27,669 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-167
+2026-11-01 22:02:27,803 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-159
+2026-11-01 22:02:27,803 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-159
+2026-11-01 22:02:27,847 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-189
+2026-11-01 22:02:27,847 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-189
+2026-11-01 22:02:28,056 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-162
+2026-11-01 22:02:28,056 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-162
+2026-11-01 22:02:28,223 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-183
+2026-11-01 22:02:28,223 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-183
+2026-11-01 22:02:28,237 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-179
+2026-11-01 22:02:28,237 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-179
+2026-11-01 22:02:28,288 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-134
+2026-11-01 22:02:28,288 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-134
+2026-11-01 22:02:28,360 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-192
+2026-11-01 22:02:28,360 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-192
+2026-11-01 22:02:28,409 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-175
+2026-11-01 22:02:28,409 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-175
+2026-11-01 22:02:28,493 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-181
+2026-11-01 22:02:28,493 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-181
+2026-11-01 22:02:28,606 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-171
+2026-11-01 22:02:28,606 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-171
+2026-11-01 22:02:28,657 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-193
+2026-11-01 22:02:28,657 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-193
+2026-11-01 22:02:28,759 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-195
+2026-11-01 22:02:28,759 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-195
+2026-11-01 22:02:28,841 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-173
+2026-11-01 22:02:28,842 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-173
+2026-11-01 22:02:28,868 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-187
+2026-11-01 22:02:28,868 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-187
+2026-11-01 22:02:28,883 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-145
+2026-11-01 22:02:28,883 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-145
+2026-11-01 22:02:28,894 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-186
+2026-11-01 22:02:28,895 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-186
+2026-11-01 22:02:28,939 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-144
+2026-11-01 22:02:28,940 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-144
+2026-11-01 22:02:29,146 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-150
+2026-11-01 22:02:29,146 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-150
+2026-11-01 22:02:29,221 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-200
+2026-11-01 22:02:29,221 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-200
+2026-11-01 22:02:29,365 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-155
+2026-11-01 22:02:29,365 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-155
+2026-11-01 22:02:29,376 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-190
+2026-11-01 22:02:29,377 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-190
+2026-11-01 22:02:29,560 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-170
+2026-11-01 22:02:29,560 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-170
+2026-11-01 22:02:29,657 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-176
+2026-11-01 22:02:29,657 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-176
+2026-11-01 22:02:29,684 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-163
+2026-11-01 22:02:29,685 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-163
+2026-11-01 22:02:29,840 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-169
+2026-11-01 22:02:29,840 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-169
+2026-11-01 22:02:29,928 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-161
+2026-11-01 22:02:29,928 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-161
+2026-11-01 22:02:30,117 INFO o.a.j.r.Summariser: summary +   3114 in 00:00:30 =  103.4/s Avg:    20 Min:     4 Max:   132 Err:     0 (0.00%) Active: 9 Started: 200 Finished: 191
+2026-11-01 22:02:30,118 INFO o.a.j.r.Summariser: summary =   8390 in 00:01:19 =  106.4/s Avg:    23 Min:     4 Max:  1515 Err:     0 (0.00%)
+2026-11-01 22:02:30,118 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-174
+2026-11-01 22:02:30,118 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-174
+2026-11-01 22:02:30,333 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-199
+2026-11-01 22:02:30,333 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-199
+2026-11-01 22:02:30,455 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-180
+2026-11-01 22:02:30,455 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-180
+2026-11-01 22:02:30,657 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-197
+2026-11-01 22:02:30,657 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-197
+2026-11-01 22:02:30,799 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-191
+2026-11-01 22:02:30,799 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-191
+2026-11-01 22:02:31,161 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-185
+2026-11-01 22:02:31,161 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-185
+2026-11-01 22:02:31,407 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-196
+2026-11-01 22:02:31,408 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-196
+2026-11-01 22:02:31,537 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-177
+2026-11-01 22:02:31,537 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-177
+2026-11-01 22:02:31,955 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-198
+2026-11-01 22:02:31,955 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-198
+2026-11-01 22:02:31,956 INFO o.a.j.e.StandardJMeterEngine: Notifying test listeners of end of test
+2026-11-01 22:02:31,956 INFO o.a.j.s.FileServer: Close: /jmeter/capacity/tokens.csv
+2026-11-01 22:02:31,958 INFO o.a.j.r.Summariser: summary +     10 in 00:00:02 =    5.4/s Avg:    20 Min:    15 Max:    32 Err:     0 (0.00%) Active: 0 Started: 200 Finished: 200
+2026-11-01 22:02:31,958 INFO o.a.j.r.Summariser: summary =   8400 in 00:01:21 =  104.1/s Avg:    23 Min:     4 Max:  1515 Err:     0 (0.00%)

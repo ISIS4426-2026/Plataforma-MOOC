@@ -29,23 +29,39 @@ B()  { RAMPA_FIJA=15 MARGEN_CALENTAMIENTO=10 bash scripts/h3_nube.sh repetir "$@
 C()  { RAMPA_FIJA=10 MARGEN_CALENTAMIENTO=5  bash scripts/h3_nube.sh repetir "$@"; }
 S()  { PAUSA_ENTRE_CORRIDAS=10 RAMPA_FIJA=15 MARGEN_CALENTAMIENTO=10 bash scripts/h3_nube.sh repetir "$@"; }
 
-log "inicio del operando ${OPERANDO} (commit $(git rev-parse --short HEAD))"
+log "inicio del operando ${OPERANDO}${RAPIDA:+ (matriz rapida)} (commit $(git rev-parse --short HEAD))"
+# Si una serie anterior sigue corriendo (p. ej. al relanzar con RAPIDA), se espera a que termine.
+while pgrep -f "scripts/h3_nube.sh" >/dev/null; do sleep 10; done
 case "${OPERANDO}" in
   R)
-    serie "A100 x3" A 100 4000 2000 3 A100
-    serie "A200 x3" A 200 4000 2000 3 A200
-    serie "B100 x3" B 100 1000 1000 3 B100
-    serie "B200 x3" B 200 1000 1000 3 B200
-    serie "C200 x3" C 200 250 500 3 C200
+    if [ -n "${RAPIDA:-}" ]; then
+      # Lo esencial: los niveles de 200 usuarios, tres repeticiones y la serie C (A7 §2.3, recortada).
+      serie "A200 x3" A 200 4000 2000 3 A200
+      serie "B200 x3" B 200 1000 1000 3 B200
+      serie "C200 x2" C 200 250 500 2 C200
+    else
+      serie "A100 x3" A 100 4000 2000 3 A100
+      serie "A200 x3" A 200 4000 2000 3 A200
+      serie "B100 x3" B 100 1000 1000 3 B100
+      serie "B200 x3" B 200 1000 1000 3 B200
+      serie "C200 x3" C 200 250 500 3 C200
+    fi
     ;;
   E)
-    serie "escalera (1,10,25,50,100,200 + B100 y B200)" bash scripts/h3_nube.sh escalera
-    serie "A100 x2 mas" A 100 4000 2000 2 A100
-    serie "A200 x2 mas" A 200 4000 2000 2 A200
-    serie "B100 x2 mas" B 100 1000 1000 2 B100
-    serie "B200 x2 mas" B 200 1000 1000 2 B200
-    serie "C200 x3" C 200 250 500 3 C200
-    serie "S200 sostenida x12" S 200 1000 1000 12 S200
+    if [ -n "${RAPIDA:-}" ]; then
+      # La escalera y A100/A200 ya corrieron; faltan las repeticiones de B200, la serie C y la sostenida (8 corridas).
+      serie "B200 x2 mas" B 200 1000 1000 2 B200
+      serie "C200 x2" C 200 250 500 2 C200
+      serie "S200 sostenida x8" S 200 1000 1000 8 S200
+    else
+      serie "escalera (1,10,25,50,100,200 + B100 y B200)" bash scripts/h3_nube.sh escalera
+      serie "A100 x2 mas" A 100 4000 2000 2 A100
+      serie "A200 x2 mas" A 200 4000 2000 2 A200
+      serie "B100 x2 mas" B 100 1000 1000 2 B100
+      serie "B200 x2 mas" B 200 1000 1000 2 B200
+      serie "C200 x3" C 200 250 500 3 C200
+      serie "S200 sostenida x12" S 200 1000 1000 12 S200
+    fi
     ;;
   *) echo "OPERANDO debe ser R o E" >&2; exit 1 ;;
 esac

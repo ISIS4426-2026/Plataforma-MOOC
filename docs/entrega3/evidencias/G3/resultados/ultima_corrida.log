@@ -1,0 +1,49 @@
+==> R-C200-r2_20261101_215158 (escenario1.jmx): 200 usuarios contra https://136.68.55.254.sslip.io
+Nov 01, 2026 10:52:00 PM java.util.prefs.FileSystemPreferences$1 run
+INFO: Created user preferences directory.
+Creating summariser <summary>
+Created the tree successfully using /jmeter/escenario1.jmx
+Starting standalone test @ November 1, 2026 10:52:01 PM CET (1793569921012)
+Waiting for possible Shutdown/StopTestNow/HeapDump/ThreadDump message on port 4445
+summary +      1 in 00:00:04 =    0.2/s Avg:  1019 Min:  1019 Max:  1019 Err:     0 (0.00%) Active: 79 Started: 79 Finished: 0
+summary +   8027 in 00:00:24 =  332.2/s Avg:    45 Min:     5 Max:  1992 Err:     0 (0.00%) Active: 84 Started: 200 Finished: 116
+summary =   8028 in 00:00:28 =  284.2/s Avg:    45 Min:     5 Max:  1992 Err:     0 (0.00%)
+summary +    372 in 00:00:05 =   69.7/s Avg:    21 Min:     7 Max:   101 Err:     0 (0.00%) Active: 0 Started: 200 Finished: 200
+summary =   8400 in 00:00:34 =  250.1/s Avg:    44 Min:     5 Max:  1992 Err:     0 (0.00%)
+Tidying up ...    @ November 1, 2026 10:52:35 PM CET (1793569955342)
+... end of run
+END Running Jmeter on Sun Nov  1 22:52:35 CET 2026
+Destino      : https://136.68.55.254.sslip.io  [remoto]
+Entorno      : nube-entrega3
+Codigo       : ac55366
+Generador    : justb4/jmeter@sha256:088ac52b759a198a5afa5ae13d0a6306e9f2017d71ad140ff57427f6930406f7 en mooc-load-generator
+Ventana UTC  : 2026-11-01T21:51:58Z -> 2026-11-01T21:52:35Z
+
+Muestras totales: 8400  | consideradas (tras omitir 15 s de calentamiento): 4134
+Duracion de la corrida: 31 s  | hilos maximos: 200
+
+Resultado de las peticiones medidas:
+     4134  100.00%  ok
+
+Fallos reales: 0 (0.00%)  | fallos de validacion funcional: 0 (0.00%)
+
+paso                                                    n          p50          p95          p99    max  fallos
+01 GET catalogo de cursos                             218            9           27           45     67       0
+02 GET detalle del curso                              230            9           32           63    100       0
+03 POST inscripcion                                   238           23           97          168    229       0
+04 GET estado de mi inscripcion (validacion)          246           14           43          119    195       0
+05 GET modulos del curso                              255           16           55          117    130       0
+06 GET unidades del modulo                            264           18           67          164    226       0
+07 GET recursos de la unidad                          277           20           73          171    193       0
+08 GET cuestionario (vista de estudiante)             287           27           98          288    321       0
+09 POST latido de progreso 1 (recurso completado)     301           32          117          163    266       0
+09 POST latido de progreso 2 (recurso completado)     316           32          120          192    255       0
+10 POST envio del quiz                                343           59          387          528    603       0
+11 POST envio DUPLICADO del quiz (misma clave)        369           10           33           56     87       0
+12 GET avance del curso tras el quiz (validacion)     388           17           79          210    261       0
+13 GET mis envios (validacion de doble calificacio    402           21           98          239    360       0
+
+Ventana de agregacion: 16 s (medidas, sin el calentamiento)  | corrida completa: 31 s
+Global ms: p50=21 p95=101 p99=233  | rendimiento: 252.2 peticiones/s
+Timeouts: 0
+==> Resultados originales: /home/LENOVO/Plataforma-MOOC/docs/entrega3/evidencias/G3/resultados/R-C200-r2_20261101_215158/resultados.jtl

@@ -1,0 +1,227 @@
+{
+  "publicable": true,
+  "destino": {
+    "base_url": "https://136.68.55.254.sslip.io",
+    "entorno": "nube-entrega3",
+    "operando": "R",
+    "plan": "escenario1.jmx",
+    "usuarios": 200,
+    "rampa_s": 15,
+    "pausa_ms": "1000+-1000",
+    "sesiones": 3,
+    "calentamiento_omitido_s": 25,
+    "commit": "ac55366",
+    "generador": "justb4/jmeter@sha256:088ac52b759a198a5afa5ae13d0a6306e9f2017d71ad140ff57427f6930406f7 en mooc-load-generator",
+    "nucleos_generador": 4,
+    "memoria_generador_gib": 15.6,
+    "inicio_utc": "2026-11-01T21:45:47Z",
+    "fin_utc": "2026-11-01T21:47:16Z",
+    "clase": "remoto"
+  },
+  "muestras": 5833,
+  "omitidas_calentamiento_s": 25.0,
+  "duracion_corrida_s": 81.8,
+  "ventana_agregacion_s": 56.8,
+  "hilos_max": 200,
+  "fallos_reales": 0,
+  "fallos_reales_pct": 0.0,
+  "fallos_validacion": 0,
+  "rechazos_negocio": 0,
+  "timeouts": 0,
+  "ms": {
+    "p50": 17,
+    "p95": 41,
+    "p99": 60,
+    "max": 115
+  },
+  "ms_publicables": {
+    "p50": 17,
+    "p95": 41,
+    "p99": 60
+  },
+  "rps": 102.77,
+  "pasos": {
+    "03 POST inscripcion": {
+      "n": 383,
+      "p50": 19,
+      "p95": 29,
+      "p99": 45,
+      "max": 58,
+      "fallos": 0,
+      "publicables": {
+        "p50": 19,
+        "p95": 29,
+        "p99": 45
+      }
+    },
+    "02 GET detalle del curso": {
+      "n": 355,
+      "p50": 7,
+      "p95": 12,
+      "p99": 21,
+      "max": 56,
+      "fallos": 0,
+      "publicables": {
+        "p50": 7,
+        "p95": 12,
+        "p99": 21
+      }
+    },
+    "11 POST envio DUPLICADO del quiz (misma clave)": {
+      "n": 468,
+      "p50": 10,
+      "p95": 23,
+      "p99": 32,
+      "max": 58,
+      "fallos": 0,
+      "publicables": {
+        "p50": 10,
+        "p95": 23,
+        "p99": 32
+      }
+    },
+    "10 POST envio del quiz": {
+      "n": 449,
+      "p50": 46,
+      "p95": 67,
+      "p99": 96,
+      "max": 115,
+      "fallos": 0,
+      "publicables": {
+        "p50": 46,
+        "p95": 67,
+        "p99": 96
+      }
+    },
+    "13 GET mis envios (validacion de doble calificacion)": {
+      "n": 510,
+      "p50": 20,
+      "p95": 33,
+      "p99": 42,
+      "max": 65,
+      "fallos": 0,
+      "publicables": {
+        "p50": 20,
+        "p95": 33,
+        "p99": 42
+      }
+    },
+    "12 GET avance del curso tras el quiz (validacion)": {
+      "n": 493,
+      "p50": 15,
+      "p95": 28,
+      "p99": 31,
+      "max": 35,
+      "fallos": 0,
+      "publicables": {
+        "p50": 15,
+        "p95": 28,
+        "p99": 31
+      }
+    },
+    "04 GET estado de mi inscripcion (validacion)": {
+      "n": 395,
+      "p50": 11,
+      "p95": 18,
+      "p99": 26,
+      "max": 38,
+      "fallos": 0,
+      "publicables": {
+        "p50": 11,
+        "p95": 18,
+        "p99": 26
+      }
+    },
+    "09 POST latido de progreso 2 (recurso completado)": {
+      "n": 433,
+      "p50": 25,
+      "p95": 35,
+      "p99": 45,
+      "max": 65,
+      "fallos": 0,
+      "publicables": {
+        "p50": 25,
+        "p95": 35,
+        "p99": 45
+      }
+    },
+    "01 GET catalogo de cursos": {
+      "n": 329,
+      "p50": 8,
+      "p95": 13,
+      "p99": 19,
+      "max": 29,
+      "fallos": 0,
+      "publicables": {
+        "p50": 8,
+        "p95": 13,
+        "p99": 19
+      }
+    },
+    "08 GET cuestionario (vista de estudiante)": {
+      "n": 403,
+      "p50": 21,
+      "p95": 28,
+      "p99": 36,
+      "max": 60,
+      "fallos": 0,
+      "publicables": {
+        "p50": 21,
+        "p95": 28,
+        "p99": 36
+      }
+    },
+    "09 POST latido de progreso 1 (recurso completado)": {
+      "n": 415,
+      "p50": 25,
+      "p95": 34,
+      "p99": 45,
+      "max": 80,
+      "fallos": 0,
+      "publicables": {
+        "p50": 25,
+        "p95": 34,
+        "p99": 45
+      }
+    },
+    "05 GET modulos del curso": {
+      "n": 400,
+      "p50": 13,
+      "p95": 20,
+      "p99": 27,
+      "max": 41,
+      "fallos": 0,
+      "publicables": {
+        "p50": 13,
+        "p95": 20,
+        "p99": 27
+      }
+    },
+    "06 GET unidades del modulo": {
+      "n": 400,
+      "p50": 15,
+      "p95": 22,
+      "p99": 34,
+      "max": 51,
+      "fallos": 0,
+      "publicables": {
+        "p50": 15,
+        "p95": 22,
+        "p99": 34
+      }
+    },
+    "07 GET recursos de la unidad": {
+      "n": 400,
+      "p50": 16,
+      "p95": 26,
+      "p99": 37,
+      "max": 61,
+      "fallos": 0,
+      "publicables": {
+        "p50": 16,
+        "p95": 26,
+        "p99": 37
+      }
+    }
+  }
+}
