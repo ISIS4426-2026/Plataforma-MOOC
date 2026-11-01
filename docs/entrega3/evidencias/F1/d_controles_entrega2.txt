@@ -1,0 +1,32 @@
+# d) Controles de la Entrega 2 repetidos sobre la arquitectura elastica
+# Generado: 2026-11-01T23:08:30Z por scripts/f1_superficie_red.sh (solo lectura), desde MINGW64_NT-10.0-26300 fuera de la VPC
+# Proyecto: plataforma-mooc-entrega2   Balanceador: https://136.68.55.254.sslip.io
+
+== HTTP en el 80 ==
+   HTTP/1.1 301 Moved Permanently
+   Location: https://136.68.55.254.sslip.io:443/
+OK     el 80 redirige a HTTPS
+== HTTPS ==
+   HTTP/1.1 200 OK
+   x-content-type-options: nosniff
+   x-frame-options: DENY
+   content-security-policy: default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: https://storage.googleapis.com; media-src 'self' blob: https://storage.googleapis.com; connect-src 'self' https://storage.googleapis.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self'
+OK     el 443 sirve con un certificado valido (curl verifica la cadena)
+OBS    sin Strict-Transport-Security (observacion heredada de la Entrega 2, no es falla)
+   cliente limitado a TLS 1.0-1.1: rechazado (control con TLSv1.2 correcto)
+OK     TLS 1.0 y 1.1 rechazados por el balanceador (rechazado (control con TLSv1.2 correcto))
+== CSRF: POST con cookie de sesion segun el origen ==
+   origen ajeno: 403   sin origen: 403   origen propio: 401
+   (403 = rechazado por CSRF; el propio pasa el filtro y falla despues porque la cookie es falsa)
+OK     CSRF: origen ajeno y ausente rechazados (403), el propio pasa el filtro (401)
+== Buckets: derivados publicos, originales privados, sin firmar ==
+   leer manifiesto HLS sin firmar: 200
+OK     derivado HLS legible sin firmar (por diseno)
+   leer original sin firmar: 403
+OK     original NO legible sin firmar (403)
+   escritura anonima en plataforma-mooc-entrega2-hls: 403
+OK     escritura anonima rechazada en plataforma-mooc-entrega2-hls (403)
+   escritura anonima en plataforma-mooc-entrega2-media: 403
+OK     escritura anonima rechazada en plataforma-mooc-entrega2-media (403)
+   listar plataforma-mooc-entrega2-media sin firmar: 401
+OK     el bucket privado no se puede listar sin firmar (401)

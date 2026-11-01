@@ -1,0 +1,22 @@
+
+# Retiro de reglas sobrantes - 2026-11-01T22:54:46Z - scripts/f1_retirar_reglas_sobrantes.sh
+# Proyecto: plataforma-mooc-entrega2
+
+== Reglas encontradas ==
+   SOBRANTE   default-allow-icmp (default) INGRESS icmp desde 0.0.0.0/0 hacia toda la red
+   SOBRANTE   default-allow-internal (default) INGRESS tcp:0-65535,udp:0-65535,icmp desde 10.128.0.0/9 hacia toda la red
+   se queda   mooc-allow-internal-icmp (mooc-vpc) INGRESS icmp desde 10.0.1.0/24 hacia toda la red
+   se queda   mooc-allow-lb-health (mooc-vpc) INGRESS tcp:80 desde 130.211.0.0/22,35.191.0.0/16 hacia mooc-api-node
+   se queda   mooc-allow-queue (mooc-vpc) INGRESS tcp:6379 desde - hacia toda la red
+   se queda   mooc-allow-ssh-iap (mooc-vpc) INGRESS tcp:22 desde 35.235.240.0/20 hacia allow-iap-ssh
+   se queda   mooc-allow-worker-health (mooc-vpc) INGRESS tcp:9090 desde 130.211.0.0/22,35.191.0.0/16 hacia mooc-worker-node
+
+== 2 regla(s) sobrante(s). Se pregunta una por una ==
+   2026-11-01T22:55:51Z BORRADA   default-allow-icmp (confirmado en la terminal)
+   2026-11-01T22:56:24Z BORRADA   default-allow-internal (confirmado en la terminal)
+
+== Red default ==
+   2026-11-01T22:57:57Z BORRADA   red default (confirmado en la terminal)
+
+Reglas borradas en esta pasada: 2. Comprobacion: bash ./scripts/f1_superficie_red.sh
+Este archivo no contiene credenciales, llaves ni secretos.
