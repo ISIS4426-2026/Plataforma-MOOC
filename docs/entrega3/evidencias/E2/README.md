@@ -23,13 +23,21 @@ La prueba corre contra la nube con **dos réplicas de API** y mira, después de 
 
 Todo lo demás pasó. Está en la sección 1.
 
-**Corrida después de la corrección:** se añade en cuanto la corrección esté desplegada (ver 2).
+**Corrida después de la corrección** — 2026-11-01, 17:37 UTC, con la imagen del commit `97120ca` desplegada y dos réplicas (`7b298f27807b` y `fe5bcec9c229`, 23 y 21 peticiones), [`corrida_consistencia.txt`](./corrida_consistencia.txt) · [`resultados.md`](./resultados.md): **44 pasos, 0 fallos**. Las mismas 8 inscripciones simultáneas dejan ahora **1 fila y 1 evento** (y sigue en 1 tras reintentar).
+
+| Captura | Qué muestra |
+| :--- | :--- |
+| [`2026-11-01_envio-duplicado-calificado-una-vez-y-repetido-en-otra-replica.png`](./capturas/2026-11-01_envio-duplicado-calificado-una-vez-y-repetido-en-otra-replica.png) | Seis envíos simultáneos con la misma clave: las respuestas de cada uno (cinco `409 idempotency_in_progress` y un `200` con la nota), el reenvío atendido por la otra réplica con el mismo `submission_id`, y el estado final: un envío en el historial, un `quiz.submitted` en la auditoría |
+| [`2026-11-01_inscripcion-simultanea-una-fila-y-un-solo-evento.png`](./capturas/2026-11-01_inscripcion-simultanea-una-fila-y-un-solo-evento.png) | Ocho inscripciones simultáneas repartidas entre las dos réplicas: la misma inscripción, una fila en el censo y **una** entrada de auditoría (antes eran 8) |
+| [`2026-11-01_progreso-simultaneo-una-insignia-y-cache-etag.png`](./capturas/2026-11-01_progreso-simultaneo-una-insignia-y-cache-etag.png) | Dieciséis latidos simultáneos: avance 3/3, una insignia, un `progress.course_completed`; el `ETag` del curso lo reconocen las dos réplicas (304) |
+
+Las capturas son la salida real de la consola dibujada con [`scripts/render_consola.py`](../../../../scripts/render_consola.py); el pie de cada una nombra el archivo y las líneas de donde salió. En la corrida «después» el envío sin clave aceptó 2 de 6 (intentos 1 y 2), mientras que en la de «antes» aceptó 1: depende de cómo se crucen las solicitudes, y lo que se verifica no cambia (ningún número de intento se repite y lo registrado coincide con lo aceptado).
 
 ---
 
 ## 1. Qué se probó y qué dio
 
-Las 7 áreas, con la réplica que atendió cada petición en el log (`inst=`):
+Las 7 áreas, con la réplica que atendió cada petición en el log (`inst=`). La columna de resultados es la corrida **antes** de la corrección; la de después es igual salvo en las inscripciones:
 
 | Área | Prueba | Resultado (antes de la corrección) |
 | :--- | :--- | :--- |
@@ -38,7 +46,7 @@ Las 7 áreas, con la réplica que atendió cada petición en el log (`inst=`):
 | **Envío duplicado, otra réplica** | Se reenvía la misma clave hasta que la atiende una réplica distinta de la que calificó | mismo `submission_id`, mismo intento, misma nota; historial = 1 envío; auditoría = 1 `quiz.submitted` |
 | **Clave reutilizada con otro cuerpo** | Misma clave, solo la primera respuesta | `422 idempotency_key_reused`: no se reinterpreta |
 | **Envío duplicado, sin clave** | 6 `POST /submissions` simultáneos de otro estudiante, sin `Idempotency-Key` | 1 aceptado (intento 1) y 5 `409 quiz_conflict`: ninguno repitió número de intento; historial = 1 y auditoría = 1. Enviando después uno a uno sin clave se gastan los otros dos intentos y el siguiente es `409` con el historial en 3 de 3 |
-| **Inscripción repetida** | 8 simultáneas sin clave; 8 con la misma clave de otro estudiante; reinscripción secuencial | 1 fila por estudiante y el censo en 2 filas. Con clave: 1 evento. **Sin clave: 8 eventos (el defecto)** |
+| **Inscripción repetida** | 8 simultáneas sin clave; 8 con la misma clave de otro estudiante; reinscripción secuencial | 1 fila por estudiante y el censo en 2 filas. Con clave: 1 evento. **Sin clave: 8 eventos (el defecto); después de la corrección, 1** |
 | **Progreso repetido** | 16 latidos simultáneos (8 por lectura) que, el último de ellos, completan el curso | 16×`200`; avance 3/3 (no más); 1 `progress.course_completed`; **1** insignia; mismo avance en las dos réplicas |
 
 Dos filas que conviene leer despacio:

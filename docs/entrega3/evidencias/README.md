@@ -73,7 +73,7 @@ que el resto del equipo deba saber.
 | Issue | | Responsable | Captura |
 | :--- | :--- | :--- | :--- |
 | [`E1`](./E1/) | [#216](https://github.com/ISIS4426-2026/Plataforma-MOOC/issues/216) Continuidad de sesion y retiro o reemplazo de instancias sin perdida | @DiegoOrtizRuiz | **la sesion atendida por dos instancias distintas** |
-| [`E2`](./E2/) | [#217](https://github.com/ISIS4426-2026/Plataforma-MOOC/issues/217) Consistencia de operaciones academicas y envio duplicado sin doble calificacion | @CrispisCas9 | — |
+| [`E2`](./E2/) | [#217](https://github.com/ISIS4426-2026/Plataforma-MOOC/issues/217) Consistencia de operaciones academicas y envio duplicado sin doble calificacion | @CrispisCas9 | **el mismo envío calificado una sola vez y repetido por la otra réplica** |
 | [`E3`](./E3/) | [#218](https://github.com/ISIS4426-2026/Plataforma-MOOC/issues/218) Estado externo: objetos y estado de trabajos accesibles desde cualquier instancia | @DiegoOrtizRuiz | — |
 
 ## F - Seguridad, operacion y costos
