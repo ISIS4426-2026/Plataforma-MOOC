@@ -45,9 +45,26 @@ borrar cursos. Aviso para la corrida en la nube: ejecutarlo **una sola vez** y a
 rechazo (403) de un profesor sobre el curso de otro profesor. Además, con la sesión de un estudiante en el navegador:
 [`autorizacion_negativa_nube_2026-10-31.txt`](./autorizacion_negativa_nube_2026-10-31.txt).
 
+## 2b. Capturas de los estados, en la nube (2026-10-31)
+
+Tomadas con la sesión de un estudiante en `https://136.68.55.254.sslip.io` (versión `f6aa76e5988c`):
+
+| Estado | Captura |
+| :--- | :--- |
+| Cargando | [`nube-estado-cargando`](./capturas/2026-10-31_nube-estado-cargando.png) |
+| Vacío (búsqueda sin resultados) | [`nube-estado-vacio-busqueda-sin-resultados`](./capturas/2026-10-31_nube-estado-vacio-busqueda-sin-resultados.png) |
+| Recurso o curso que no existe | [`nube-estado-curso-no-existe`](./capturas/2026-10-31_nube-estado-curso-no-existe.png) |
+| Sin permiso (403) con el aviso global | [`nube-estado-sin-permiso-403`](./capturas/2026-10-31_nube-estado-sin-permiso-403.png) |
+| Error con «Reintentar» | [`nube-estado-error-con-reintento`](./capturas/2026-10-31_nube-estado-error-con-reintento.png) |
+| Éxito y procesamiento (profesor) | [D3](../D3/capturas/) y [D2](../D2/capturas/) |
+
+El estado de error se **simuló** haciendo que el navegador no pueda conectar con `/api/v1/courses` (sin tocar la nube): aparece «No hay
+conexión con el servidor» y «Reintentar»; al quitar el fallo y pulsarlo, el catálogo se carga (12 cursos). «Sesión vencida»: ver
+[D1](../D1/capturas/2026-10-26_sesion-vencida-aviso-global.png) (captura local).
+
 ## Pendiente
 
-1. Capturas de pantalla de los estados de interfaz (la de «No tienes permiso» se vio, pero no se guardó al disco).
+Nada de este issue.
 
 ## Nunca
 
