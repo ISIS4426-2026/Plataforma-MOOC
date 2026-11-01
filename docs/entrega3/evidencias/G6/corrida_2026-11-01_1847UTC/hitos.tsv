@@ -1,0 +1,8 @@
+timestamp_utc	hito	detalle
+2026-11-01T18:50:48Z	PREFLIGHT_OK	Autoscaler ACTIVE (mode=ON, min=1, max=3) y MIG con targetSize=1
+2026-11-01T18:57:25Z	SCALE_OUT_DECISION	Autoscaler incrementa capacidad: targetSize 1->2, recommendedSize 1->2 (cm_outstanding=4, redis_outstanding=4)
+2026-11-01T18:59:17Z	SCALE_OUT_DECISION	Autoscaler incrementa capacidad: targetSize 2->3, recommendedSize 2->3 (cm_outstanding=6, redis_outstanding=4)
+2026-11-01T19:02:39Z	COLA_DRENADA_CERO	Cola completamente drenada tras el pico: redis_pending=0, redis_active=0, cm_outstanding=0, retry=0
+2026-11-01T19:11:42Z	SCALE_IN_DECISION	Autoscaler reduce el grupo: targetSize 3->2, recommendedSize 3->2
+2026-11-01T19:26:49Z	SCALE_IN_DECISION	Autoscaler reduce el grupo: targetSize 2->1, recommendedSize 2->1
+2026-11-01T19:26:49Z	CICLO_COMPLETO_ESTABLE	Grupo reducido de vuelta a 1 worker operativo con cola en 0

@@ -1,0 +1,21 @@
+{
+  "escenario": "3B - Ciclo de escalamiento automatico de workers (G6)",
+  "project_id": "plataforma-mooc-entrega2",
+  "zone": "us-east1-b",
+  "worker_mig": "mooc-worker-group",
+  "worker_autoscaler": "mooc-worker-autoscaler",
+  "metric_signal": "custom.googleapis.com/mooc/queue/outstanding",
+  "single_instance_assignment": 2,
+  "min_replicas": 1,
+  "max_replicas": 3,
+  "cooldown_period_s": 420,
+  "scale_in_window_s": 900,
+  "insumo_video_perfil": "video_corto_120s_720p",
+  "insumo_video_bytes": 2702399,
+  "insumo_video_sha256": "9984319182801870ca72a6393b93b65355cb34da613e5b714eee3e52cfc0498d",
+  "etapa1_jobs": 2,
+  "etapa2_jobs": 4,
+  "etapa3_jobs": 2,
+  "total_jobs_planificados": 8,
+  "inicio_utc": "2026-11-01T18:53:07Z"
+}
