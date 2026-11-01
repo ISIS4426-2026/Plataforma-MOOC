@@ -3,7 +3,7 @@
 | Criterio de aceptación | Estado | Dónde |
 | :--- | :---: | :--- |
 | Tablero o exportaciones que cubran todas las métricas exigidas por el enunciado | ✅ | §1 · [`ejemplo_ventana_del_despliegue/`](./ejemplo_ventana_del_despliegue/) · [gráfica del tablero](./capturas/2026-10-31_tablero-ventana-del-despliegue.png) |
-| Generador externo verificado como no limitante | ⏳ herramienta lista y probada; falta encender la VM y la primera corrida | §2, §3 |
+| Generador externo verificado como no limitante | ✅ calibración desde la VM: **NO LIMITA** | §5 · [`calibracion_desde_la_vm/`](./calibracion_desde_la_vm/) |
 | Toda corrida de la Entrega 3 pasa las comprobaciones de A6 antes de publicarse | ✅ el paso quedó en el posproceso | §4 |
 | Una respuesta HTTP exitosa no sustituye la validación del resultado de negocio | ✅ ya lo hacen los planes (3 envíos por estudiante, sin duplicados, en la base) y A6 | §4 |
 | Anotado en `NOTAS_TECNICAS.md` | ✅ nota 49 | |
@@ -73,37 +73,47 @@ Reúne las métricas de cada corrida y comprueba el generador. Una corrida `LIMI
 (percentiles monótonos, destino declarado, métricas no derivadas de una constante) ya corren dentro de
 `capacity_resumen_jtl.py`.
 
-## 5. Primera prueba real del comprobante, y un hallazgo abierto (2026-11-01)
+## 5. Calibración real del generador (2026-11-01)
 
-Una corrida de humo del plan de calibración (`capacity-planning/calibracion_generador.jmx`, 5 usuarios, 60 s, solo lecturas)
-**desde un portátil** contra el balanceador, y después el posproceso: [`calibracion_humo_desde_portatil/`](./calibracion_humo_desde_portatil/).
+Plan de solo lectura (`capacity-planning/calibracion_generador.jmx`: el catálogo y la sonda de disponibilidad, sin cuentas ni escrituras),
+**20 usuarios, 3 minutos**, entrando por el balanceador `https://136.68.55.254.sslip.io`. Dos corridas del mismo plan:
 
-| Señal | Resultado |
-| :--- | :--- |
-| CPU y memoria del generador | holgadas: p95 6 % de un núcleo, 5,6 % de la memoria |
-| Brecha de latencia, p50 | generador 87 ms, balanceador 6 ms: **81 ms** (red Colombia → `us-east1`), dentro del umbral de 150 ms |
-| **Solicitudes contadas** | JMeter 170 en total (136 tras el calentamiento); el balanceador contó **136**, 80 % de las 170 → **LIMITADO** |
+| | Desde la VM del generador | Desde un portátil (prueba de humo) |
+| :--- | :--- | :--- |
+| Carpeta | [`calibracion_desde_la_vm/`](./calibracion_desde_la_vm/) | [`calibracion_humo_desde_portatil/`](./calibracion_humo_desde_portatil/) |
+| Usuarios · duración | 20 · 3 min | 5 · 1 min |
+| Latencia p50 / p95 (generador) | **7 / 12 ms** | 87 / 183 ms |
+| Latencia p50 / p95 (balanceador) | 5,9 / 10,4 ms | 6,2 / 9,7 ms |
+| Brecha p50 | **1,1 ms** | 81 ms (la distancia Colombia → Virginia) |
+| CPU del generador (p95) | 34 % de **un** núcleo de 4 (límite 280 %) | 6 % |
+| Memoria del generador | 4,1 % | 5,6 % |
+| Solicitudes: generador → balanceador | 2189 → 2223 (**102 %**) | 170 → 136 (**80 %**) |
+| Errores | 0 | 0 |
+| **Veredicto** | **NO LIMITA** | **LIMITADO** |
 
-El comprobante hizo lo que debe: **no dio la corrida por buena**. Pero la causa de las 34 solicitudes que el balanceador no cuenta
-**no está explicada**, y no se va a esconder bajando el umbral:
+[Gráfica del tablero de la corrida desde la VM](./capturas/2026-11-01_tablero-calibracion-20-usuarios-desde-la-vm.png).
 
-- El conteo del balanceador no cambia al volver a leerlo 9 minutos después, ni con otra alineación (`ALIGN_SUM`/`ALIGN_DELTA`).
-- Todas las 170 respuestas fueron `200`; ninguna falló en JMeter.
-- Los minutos no coinciden: JMeter 78 y 92 por minuto, el balanceador 51 y 85. Faltan más en el primer minuto (la rampa y la apertura de conexiones).
-- El entorno es **compartido**: en el mismo rato el balanceador contó 128 solicitudes desde Colombia cuando este equipo envió 40 (un experimento
-  aparte con `curl`), o sea que alguien más estaba generando tráfico. Con tráfico ajeno no se puede cerrar la igualdad, solo el *mínimo*.
+**Qué dice esto:**
+- El generador de la VM no limita: usa un tercio de un núcleo de cuatro, su latencia coincide con la del balanceador salvo 1 ms, y el
+  balanceador cuenta todo lo que envió (de más, porque cuenta también el tráfico de otros).
+- **La causa del hallazgo anterior parece estar en el portátil.** La misma comprobación desde el portátil pierde el 20 % de las
+  solicitudes (170 enviadas, 136 contadas) con todas las respuestas `200`: algo entre el portátil y el balanceador atiende parte de las
+  lecturas (la hipótesis de un proxy o antivirus que inspecciona el HTTPS). No se ha demostrado qué es, pero **desde la VM no ocurre**, y es
+  un argumento de peso para que G3 y G4 salgan de la VM. La línea base de A7 salió de un portátil: hay que declararlo en G7.
 
-Hipótesis, por orden de lo que cuesta descartarla: (a) algo entre el portátil y el balanceador atiende parte de las lecturas (un proxy o
-antivirus con inspección de HTTPS); (b) retrasos de ingesta de Monitoring que no vuelven a llenarse; (c) un efecto de la rampa. **La
-corrida de calibración desde la VM del generador (misma región, sin intermediarios) las separa**: si ahí cuenta ≥ 95 %, la causa es el
-portátil, y es un argumento más para que G3 y G4 salgan de la VM.
+**Dos errores de medición que esta corrida destapó y están corregidos** (y con pruebas que los impiden):
+1. El conteo del balanceador se leía **sin margen** en los bordes de la ventana: Cloud Monitoring entrega un punto por minuto y descarta los
+   que cruzan el borde, así que se perdía el primer y el último minuto (1950 de 2223). Ahora se lee con 2 minutos de margen antes y 4 después.
+2. El comprobante comparaba el conteo del balanceador con las solicitudes **de la tabla** (tras omitir el calentamiento) y no con las
+   **enviadas**: el balanceador cuenta el calentamiento también. Ahora compara contra todas las del `.jtl`.
+
+El balanceador cuenta el tráfico de **todos**, no solo el del generador: la comparación es una **cota inferior**. En el entorno compartido, quien
+vaya a medir debe avisar al equipo para no mezclar el tráfico.
 
 ## Pendiente
 
-1. **Encender el generador** (`apply` con `generator_enabled=true`) y hacer una **corrida de calibración** a baja carga para
-   comprobar en vivo que el generador no limita; guardar su `contraste_generador.json` aquí. Lo aplica quien lleve el entorno.
-2. ~~Captura del tablero~~ **Hecho** como gráfica exportada del CSV (arriba). La del tablero de la consola de Google queda opcional.
-3. Confirmar con Diego (responsable del issue) que no tenía trabajo adelantado.
+Nada de este issue. (Para G3 y G4: `terraform apply -var generator_enabled=true` con los `-var` del entorno encendido; el generador se
+apagó al terminar la calibración. Ver nota 49.)
 
 ## Nunca
 

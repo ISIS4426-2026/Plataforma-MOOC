@@ -58,7 +58,17 @@ def memoria_gib(texto):
     return a_gib(partes[0]), a_gib(partes[1])
 
 
-def evaluar(resumen, generador_filas, metricas, nucleos, memoria_total_gib=None):
+def contar_muestras(directorio):
+    """Todas las peticiones que envio el generador, CALENTAMIENTO incluido: el balanceador las cuenta todas. El
+    `muestras` de resumen.json son solo las que se consideran tras omitir el calentamiento."""
+    ruta = os.path.join(directorio, "resultados.jtl")
+    if not os.path.exists(ruta):
+        return None
+    with open(ruta, encoding="utf-8", newline="") as f:
+        return sum(1 for fila in csv.DictReader(f) if not fila.get("label", "").startswith("_"))
+
+
+def evaluar(resumen, generador_filas, metricas, nucleos, memoria_total_gib=None, enviadas_total=None):
     """Devuelve (veredicto, razones, medidas). Pura: la usan la autoprueba y las corridas."""
     razones, medidas = [], {}
 
@@ -102,8 +112,9 @@ def evaluar(resumen, generador_filas, metricas, nucleos, memoria_total_gib=None)
     else:
         razones.append("falta la latencia del balanceador o del generador: no se puede contrastar")
 
-    # 3. solicitudes contadas
-    enviadas = resumen.get("muestras")
+    # 3. solicitudes contadas: el balanceador cuenta TODAS, calentamiento incluido y de cualquier cliente, asi que
+    #    es una cota inferior de lo enviado; ver `ventana_del_conteo` en metricas_gcp.json
+    enviadas = enviadas_total or resumen.get("muestras")
     contadas = (metricas.get("balanceador") or {}).get("solicitudes_totales")
     if enviadas and contadas is not None:
         ratio = contadas / enviadas
@@ -138,7 +149,7 @@ def procesar(directorio, nucleos, memoria):
     if not nucleos:
         print(f"LIMITADO   {os.path.basename(os.path.normpath(directorio))}  <- la corrida no registra los nucleos del generador (destino.json) y no se paso --nucleos")
         return False
-    veredicto, razones, medidas = evaluar(resumen, filas, metricas, nucleos, memoria)
+    veredicto, razones, medidas = evaluar(resumen, filas, metricas, nucleos, memoria, enviadas_total=contar_muestras(directorio))
     salida = {"veredicto": veredicto, "razones": razones, "medidas": medidas, "nucleos_del_generador": nucleos}
     with open(os.path.join(directorio, "contraste_generador.json"), "w", encoding="utf-8", newline="\n") as f:
         json.dump(salida, f, indent=2, ensure_ascii=False)
@@ -170,6 +181,13 @@ def autoprueba():
     perdido = {"balanceador": {"solicitudes_totales": 600, "latencia_total_ms": {"p50_por_minuto": {"media": 40}, "p95_por_minuto": {"media": 200}}}}
     v, r, _ = evaluar(resumen, filas_sanas, perdido, nucleos=4)
     check(v == "LIMITADO" and any("solicitudes" in x for x in r), "si el balanceador conto el 60 %, hay perdidas antes de salir")
+    # El balanceador cuenta TODAS las solicitudes, calentamiento incluido: la base es el total enviado, no el de la tabla.
+    con_calentamiento = {"muestras": 1774, "ms_publicables": {"p50": 90, "p95": 300}}
+    lb_tantas = {"balanceador": {"solicitudes_totales": 2223, "latencia_total_ms": {"p50_por_minuto": {"media": 40}, "p95_por_minuto": {"media": 200}}}}
+    v, r, _ = evaluar(con_calentamiento, filas_sanas, lb_tantas, nucleos=4, enviadas_total=2189)
+    check(v == "NO LIMITA", "el balanceador cuenta el calentamiento: 2223 contra 2189 enviadas pasa, aunque la tabla tenga 1774")
+    v, r, _ = evaluar(con_calentamiento, filas_sanas, {"balanceador": {**lb_tantas["balanceador"], "solicitudes_totales": 1950}}, nucleos=4, enviadas_total=2189)
+    check(v == "LIMITADO", "1950 de 2189 (89 %) no pasa: no se compara con las 1774 de la tabla para que parezca bien")
     v, r, _ = evaluar(resumen, [], lb, nucleos=4)
     check(v == "LIMITADO", "sin muestras de CPU no se demuestra nada, y no se da por bueno")
     check(memoria_gib("532.2MiB / 7.701GiB")[0] and abs(memoria_gib("532.2MiB / 7.701GiB")[0] - 0.52) < 0.01, "la memoria se lee en GiB")
