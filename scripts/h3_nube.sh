@@ -16,20 +16,40 @@
 # Antes: gcloud con sesion, Docker abierto y el equipo enchufado y sin suspender
 # (la escalera dura ~1 hora). La contrasena de las cuentas de carga se pide una vez.
 # MODO=local corre lo mismo contra docker compose (para ensayar el script).
+#
+# MODO=vm es el de la Entrega 3 (G3, #223): corre DESDE la VM generadora, contra el balanceador, con la base
+# alcanzada desde la propia VM (scripts/sql_nube_vm.sh; exige DB_HOST). Es una medicion de la nube igual que
+# MODO=nube, pero:
+#   * la evidencia va a docs/entrega3/evidencias/G3/resultados (la de la Entrega 2 esta congelada),
+#   * OPERANDO=R|E rotula cada corrida: R es la API fija en 1 instancia, E es la elastica
+#     (capacity-planning/entrega3_g3_g4.md, seccion 1), y queda tambien en destino.json,
+#   * JMETER_IMAGE debe venir fijada por digest (infra/terraform/generator.tf).
 
 set -uo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
 ROOT="$(pwd)"
 
 MODO="${MODO:-nube}"
+es_nube() { [ "$MODO" = "nube" ] || [ "$MODO" = "vm" ]; }
 # En modo nube no hay destino por omision (A6, issue #198): heredar una IP de
 # la entrega anterior es medir un entorno y publicar otro.
-if [ "$MODO" = "nube" ]; then
+if es_nube; then
   export BASE_URL="${BASE_URL:?En modo nube hay que declarar el destino: BASE_URL=https://<host> ...}"
   export EXIGIR_NUBE=1
+  if [ "$MODO" = "vm" ]; then
+    : "${OPERANDO:?En MODO=vm declara el operando medido: OPERANDO=R (API fija en 1) o OPERANDO=E (elastica)}"
+    case "$OPERANDO" in R|E) ;; *) echo "OPERANDO debe ser R o E, no '$OPERANDO'" >&2; exit 1 ;; esac
+    : "${DB_HOST:?En MODO=vm declara DB_HOST, la IP privada de la base (terraform output -raw db_private_ip)}"
+    : "${JMETER_IMAGE:?En MODO=vm fija JMETER_IMAGE por digest, la de infra/terraform/generator.tf}"
+    export OPERANDO DB_HOST JMETER_IMAGE
+  fi
 else export BASE_URL="${BASE_URL:-http://host.docker.internal:8080}"; fi
 export ENTORNO="${ENTORNO:-${MODO}}"
-export RESULTS_ROOT="${RESULTS_ROOT:-${ROOT}/docs/entrega2/evidencias/H3/resultados}"
+if [ "$MODO" = "vm" ]; then
+  export RESULTS_ROOT="${RESULTS_ROOT:-${ROOT}/docs/entrega3/evidencias/G3/resultados}"
+else
+  export RESULTS_ROOT="${RESULTS_ROOT:-${ROOT}/docs/entrega2/evidencias/H3/resultados}"
+fi
 mkdir -p "${RESULTS_ROOT}"
 
 NIVELES_A="${NIVELES_A:-1 10 25 50 100 200}"
@@ -43,7 +63,9 @@ log() { echo "[$(date +%H:%M:%S)] $*"; }
 
 # ---------- acceso a la base (reinicio y verificacion) ----------
 sql() { # $1 = archivo .sql ; imprime la salida de psql
-  if [ "$MODO" = "nube" ]; then
+  if [ "$MODO" = "vm" ]; then
+    bash scripts/sql_nube_vm.sh "$1" 2>&1
+  elif [ "$MODO" = "nube" ]; then
     bash scripts/cargar_cuentas_carga_nube.sh "$1" 2>&1
   else
     docker compose exec -T postgres psql -U moocuser -d moocdb < "$1" 2>&1
@@ -107,7 +129,7 @@ declare -a CORRIDAS=()
 SATURADO=0; PARADA=0
 
 corrida() { # $1=usuarios $2=think $3=rango $4=rampa $5=etiqueta
-  local n="$1" think="$2" rango="$3" rampa="$4" etiqueta="$5"
+  local n="$1" think="$2" rango="$3" rampa="$4" etiqueta="${OPERANDO:+${OPERANDO}-}$5"
   esperar_tokens "$n" || { PARADA=1; return 1; }
   log ">>> ${etiqueta}: reiniciando cuentas"; reiniciar_cuentas
   log ">>> ${etiqueta}: corriendo ${n} usuarios (pausa ${think}+${rango} ms, rampa ${rampa} s)"
@@ -167,7 +189,7 @@ case "${1:-}" in
     # limitador de login no entre en la medicion (escenario1.md, seccion 4).
     # Solo se usa cuando los tokens son de este entorno y de hace menos de 24 h;
     # si no, mas vale rehacerlos, que es lo que hace el camino por omision.
-    if [ "$MODO" = "nube" ]; then
+    if es_nube; then
       if [ -n "${REUSAR_TOKENS:-}" ]; then tokens_o_reusar "$maximo"
       else preparar_tokens "$maximo"; fi
     else log "MODO=local: se usan los tokens que ya existan en capacity-planning/datos/tokens.csv"; fi
@@ -185,7 +207,7 @@ case "${1:-}" in
     fi
     fin="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
     echo "${inicio} ${fin}" > "${RESULTS_ROOT}/ventana_escalera.txt"
-    if [ "$MODO" = "nube" ] && [ "$PARADA" = "0" ]; then
+    if es_nube && [ "$PARADA" = "0" ]; then
       log "Variante separada: rafaga de login (20 cuentas)"
       VARIANT=login bash scripts/run_escenario1.sh 20 "login-rafaga" > "${RESULTS_ROOT}/login_rafaga.log" 2>&1 || true
     fi
@@ -194,7 +216,7 @@ case "${1:-}" in
     ;;
   repetir)
     n="${2:?usuarios}"; think="${3:?think_ms}"; rango="${4:?rango_ms}"; veces="${5:?veces}"; etiqueta="${6:-repeticion-nivel${n}}"
-    if [ "$MODO" = "nube" ]; then tokens_o_reusar "$n"; fi
+    if es_nube; then tokens_o_reusar "$n"; fi
     for i in $(seq 1 "$veces"); do
       corrida "$n" "$think" "$rango" "$(rampa_para "$n")" "${etiqueta}-r${i}" || break
       [ "$PARADA" = "1" ] && { log "PARADA en la repeticion ${i}."; break; }
@@ -207,7 +229,7 @@ case "${1:-}" in
     # lectura/escritura). Cada usuario solo puede hacer 3 sesiones (3 intentos de quiz), asi que a
     # menor pausa la corrida es mas corta: la rampa es de 10 s y se omiten 15 s. Se detiene en el primer nivel que satura: ahi esta el punto de degradacion.
     n="${2:?usuarios}"; shift 2; pares="${*:?pares think:rango, p. ej. 1000:1000 400:400}"
-    if [ "$MODO" = "nube" ]; then tokens_o_reusar "$n"; fi
+    if es_nube; then tokens_o_reusar "$n"; fi
     for par in $pares; do
       think="${par%%:*}"; rango="${par##*:}"
       MARGEN_CALENTAMIENTO=5 corrida "$n" "$think" "$rango" "${RAMPA_FIJA:-10}" "B-u${n}-pausa${think}" || break

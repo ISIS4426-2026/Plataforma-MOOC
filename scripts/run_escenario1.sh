@@ -15,6 +15,8 @@
 #   WARMUP_SKIP_SECONDS (45) segundos iniciales que el resumen omite
 #   ENTORNO      etiqueta del entorno medido, p. ej. nube-entrega3 o compose-local.
 #                Queda en destino.json junto a los datos crudos (A6).
+#   OPERANDO     R (API fija en 1 instancia) o E (elastica): el operando de la Entrega 3 que se mide
+#                (capacity-planning/entrega3_g3_g4.md, seccion 1). Queda en destino.json.
 #   EXIGIR_NUBE  cualquier valor hace que el resumen falle si el destino es
 #                local. Toda corrida que se vaya a publicar como medicion de la
 #                nube debe llevarlo.
@@ -103,6 +105,7 @@ cat > "${OUT}/destino.json" <<JSON
 {
   "base_url": "${BASE_URL}",
   "entorno": "${ENTORNO:-sin declarar}",
+  "operando": "${OPERANDO:-sin declarar}",
   "plan": "${PLAN}",
   "usuarios": ${USERS},
   "rampa_s": ${RAMP_SECONDS:-30},

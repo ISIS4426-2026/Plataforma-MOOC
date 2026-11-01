@@ -6,8 +6,10 @@
 #
 # Esta VM esta FUERA de los dos grupos elasticos y de la cola, en otra zona de la misma region. No tiene
 # IP publica (sale por la NAT de B2) y solo se entra por IAP, asi que no abre ningun puerto y F1 no
-# encuentra nada nuevo. Su cuenta de servicio (que tampoco existe mientras esta apagado) solo escribe registros y metricas: no toca la base, la cola
-# ni los buckets, y no puede firmar URLs.
+# encuentra nada nuevo. Su cuenta de servicio (que tampoco existe mientras esta apagado) escribe registros y
+# metricas, y para G3 y G4 hace dos cosas mas, ambas ATADAS A `generator_enabled` y por lo tanto inexistentes
+# con la VM apagada: leer el secreto de la base (reiniciar y verificar las cuentas de carga entre corridas) y
+# abrir el 6379 de la cola (inspeccionarla durante el escenario 2). No toca los buckets y no puede firmar URLs.
 #
 # APAGADA POR OMISION, como el balanceador y los autoescaladores: `generator_enabled = false` no crea
 # nada, y una VM de 4 vCPU encendida de mas cuesta dinero (~0,13 USD/h). Para una campana:
@@ -66,6 +68,37 @@ resource "google_project_iam_member" "load_generator" {
   project = var.project_id
   role    = each.value
   member  = "serviceAccount:${google_service_account.load_generator[0].email}"
+}
+
+# G3 y G4: leer la contrasena de la base. Es lo que permite reiniciar las cuentas de carga y verificar el estado
+# DESDE la VM, sin pasar la contrasena por la maquina de quien opera. Alcance: un solo secreto, solo lectura
+# (el mismo patron que `db_password_readers`), y desaparece con la VM.
+resource "google_secret_manager_secret_iam_member" "load_generator_db_password" {
+  count = var.generator_enabled ? 1 : 0
+
+  project   = var.project_id
+  secret_id = data.google_secret_manager_secret.db_password.secret_id
+  role      = "roles/secretmanager.secretAccessor"
+  member    = "serviceAccount:${google_service_account.load_generator[0].email}"
+}
+
+# G4: la campana del escenario 2 inspecciona la cola de asynq para medir espera, profundidad y drenaje por
+# trabajo. El 6379 solo lo abren la API y el worker (`allow_queue_internal`); esta regla anade UNA cuenta mas, la
+# del generador, y existe solo mientras exista la VM. Destino por cuenta de servicio, como la regla original.
+resource "google_compute_firewall" "allow_queue_from_generator" {
+  count = var.generator_enabled ? 1 : 0
+
+  name        = "mooc-allow-queue-generator"
+  network     = google_compute_network.vpc.id
+  description = "6379 de la cola solo desde la cuenta del generador de carga (G4); existe mientras exista la VM"
+
+  allow {
+    protocol = "tcp"
+    ports    = ["6379"]
+  }
+
+  source_service_accounts = [google_service_account.load_generator[0].email]
+  target_service_accounts = [google_service_account.queue_server.email]
 }
 
 resource "google_compute_instance" "load_generator" {
