@@ -7,19 +7,17 @@ local (`docker compose --profile frontend up`, `http://localhost:8081`).
 
 | Flujo obligatorio | Ruta | Estado local | Cloud |
 | :--- | :--- | :---: | :---: |
-| Iniciar sesión | `/login` | ✅ | ⏳ |
-| Ver el catálogo de cursos publicados | `/catalogo` | ✅ | ⏳ |
-| Inscribirse (con protección contra doble clic) | `/catalogo`, `/cursos/:id` | ✅ | ⏳ |
-| Ver «mis cursos» y progreso | `/mis-cursos`, `/` | ✅ | ⏳ |
-| Entrar al aula: módulos, lecciones, recursos | `/cursos/:id/:recurso?` | ✅ | ⏳ |
-| Reproducir un video procesado (HLS) | aula | ✅ ([captura](./capturas/2026-10-26_estudiante-aula-video-hls.png)) | ⏳ |
-| Marcar un recurso de texto como completado | aula | ✅ ([captura](./capturas/2026-10-26_estudiante-aula-texto-completado.png)) | ⏳ |
-| Resolver un cuestionario: abrir intento, guardar parcial, enviar | aula | ✅ ([captura](./capturas/2026-10-26_estudiante-quiz-intentos-anteriores.png)) | ⏳ |
-| Progreso visible en el inicio | `/` | ✅ ([captura](./capturas/2026-10-26_estudiante-inicio-con-progreso.png)) | ⏳ |
+| Iniciar sesión | `/login` | ✅ | ✅ |
+| Ver el catálogo de cursos publicados | `/catalogo` | ✅ | ✅ |
+| Inscribirse (con protección contra doble clic) | `/catalogo`, `/cursos/:id` | ✅ | ✅ |
+| Ver «mis cursos» y progreso | `/mis-cursos`, `/` | ✅ | ✅ |
+| Entrar al aula: módulos, lecciones, recursos | `/cursos/:id/:recurso?` | ✅ | ✅ |
+| Reproducir un video procesado (HLS) | aula | ✅ ([captura](./capturas/2026-10-26_estudiante-aula-video-hls.png)) | ✅ |
+| Marcar un recurso de texto como completado | aula | ✅ ([captura](./capturas/2026-10-26_estudiante-aula-texto-completado.png)) | ✅ |
+| Resolver un cuestionario: abrir intento, guardar parcial, enviar | aula | ✅ ([captura](./capturas/2026-10-26_estudiante-quiz-intentos-anteriores.png)) | ✅ |
+| Progreso visible en el inicio | `/` | ✅ ([captura](./capturas/2026-10-26_estudiante-inicio-con-progreso.png)) | ✅ |
 
-**Para cerrar el issue falta la corrida en la nube** (los criterios piden el flujo contra el despliegue real): la
-dependencia es C3 (balanceador) y el frontend desplegado (D1). Con eso: repetir el recorrido, tomar las capturas
-con la URL del balanceador visible y registrar el `X-Instance-ID` de las respuestas.
+**Corrida en la nube hecha el 2026-10-31** (`https://136.68.55.254.sslip.io`, versión `f6aa76e5988c`): [`recorrido_estudiante_nube_2026-10-31.txt`](./recorrido_estudiante_nube_2026-10-31.txt) y las capturas `2026-10-31_nube-*` de `capturas/`. Inscripción, texto, video HLS, cuestionario (nota 100, «Curso aprobado») y la descarga de un PDF (nota 48).
 
 ## Lo que se verificó y cómo
 
@@ -35,9 +33,7 @@ con la URL del balanceador visible y registrar el `X-Instance-ID` de las respues
 
 ## Pendiente
 
-1. Corrida en la nube con capturas (arriba).
-2. Capturas locales de más estados (catálogo, mis cursos, error de red) si el revisor las pide; las existentes cubren
-   el recorrido principal.
+Nada de este issue.
 
 ## Nunca
 
