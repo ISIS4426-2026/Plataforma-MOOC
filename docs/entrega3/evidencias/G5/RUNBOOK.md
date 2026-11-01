@@ -66,11 +66,20 @@ python scripts/g5_linea_de_tiempo.py --autoprueba        # tiene que acabar en "
 
 ## 2. Imagen · *tu máquina* · sin coste
 
-La corrección de E2 (#279) cambió `internal/postgres`, así que la imagen de
-`main` es nueva (nota 34). Si alguien ya la publicó para la corrida de E2, el
-`publish_images.sh` lo detecta y no la repite.
+Lo normal es **no publicar**: reutilizar la imagen que ya corre en la plantilla
+del grupo, siempre que sea de un commit de `main`. `publish_images.sh` reconstruye
+y sube las tres imágenes siempre (necesita Docker), así que solo se corre si hace
+falta código nuevo en las instancias. Para leer la etiqueta actual y comprobarla:
 
 ```bash
+T="$(gcloud compute instance-groups managed describe mooc-api-group --zone=us-east1-b \
+  --format='value(instanceTemplate.basename())' | tr -d '\r')"
+gcloud compute instance-templates describe "$T" --format=json   # metadata: mooc-image-tag
+git merge-base --is-ancestor <esa etiqueta> HEAD && echo "commit de main"
+```
+
+```bash
+# solo si hace falta una imagen nueva
 bash ./scripts/publish_images.sh            # exige el árbol limpio
 export IMAGE_TAG="$(git rev-parse HEAD)"
 ```
