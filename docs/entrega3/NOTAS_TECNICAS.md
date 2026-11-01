@@ -60,6 +60,7 @@ lo reemplaza, lo continúa.
 | 58 | [G3: la arquitectura elástica no se distingue de la de una instancia por debajo de ~110 pet./s, y escalar tarda minutos](#58) | **G3, G5**, G6, G7, I1, I4 |
 | 59 | [El Entregable 6 (`docs/entrega3/deuda-tecnica.md`) consolida 8 correcciones cerradas en el sprint, 12 ítems de deuda con los 8 campos obligatorios en las 5 dimensiones, el desglose individual de los 33 `MAJOR` (`go:S2077`) y la exportación del commit final](#59) | **H3**, I1, I2, I3, I4, I5, I6 |
 | 60 | [`arquitectura.md` lo escriben dos issues, y sus tablas copian valores de Terraform](#60) | **I2**, I3, I4, cualquiera que cambie `infra/terraform/` |
+| 61 | [Aparcado, la dirección del balanceador sí factura, y Cloud SQL cuesta 0,0676 USD/h, no 0,0855](#61) | **I2, I6**, G7, F3, quien estime el coste de una sesión |
 
 ---
 
@@ -2303,3 +2304,16 @@ Cifras medidas en la corrida completa del **Escenario 3B (ciclo de escalamiento 
 | **La topología omite a propósito dos flechas** | la salida por Cloud NAT y el acceso por IAP valen para todas las máquinas; dibujarlas para cada una hacía ilegible el diagrama. Lo dice el texto bajo el dibujo; si I2 añade nodos, que siga ese criterio |
 | **Permisos de IAM: no se duplican** | el §3.7 solo nombra las cuentas de servicio y enlaza a F2 para los roles, porque F2 los está recortando. Si se copian aquí, se desfasan con el siguiente cambio de F2 |
 | **Para I3 e I4** | el README ya enlaza el documento. Los diagramas del §2.1 y §3.1 son los que sirven para abrir el vídeo |
+
+<a id="61"></a>
+## 61. Aparcado, la dirección del balanceador sí factura, y Cloud SQL cuesta 0,0676 USD/h, no 0,0855
+
+**Afecta a:** I2 (#232), I6 (#236), G7, F3, y a quien estime el coste de una sesión. Escrito el 2026-11-01 en F3 (#221).
+
+| Qué | Detalle |
+| :--- | :--- |
+| **La IP reservada sin regla paga** | La nota 38 dice que al aparcar se conservan «dirección, certificado, mapas y proxies, que no tienen coste por hora». Certificado, mapas y proxies, no; **la dirección sí**: una IP externa estática reservada **sin uso** se factura a **0,01 USD/h**, y deja de estar en uso justo al borrar las reglas de reenvío. Son 0,24 USD/día, el 72 % del entorno aparcado con la cola parada. Conservarla sigue siendo correcto (rehacerla cambia el dominio), pero hay que contarla. [Precios de VPC](https://cloud.google.com/vpc/network-pricing) |
+| **La cola es la otra mitad** | `mooc-queue-server` no es de ningún grupo y el `resize --size=0` no la toca. Encendida, el aparcado pasa de 0,33 a 0,74 USD/día |
+| **Cloud SQL: 0,0676 USD/h** | `C1/coste_sesion.txt` usa 0,0855 USD/h. La tarifa de lista de 1 vCPU (0,0413) y 3,75 GiB (0,007/GiB) en Enterprise zonal es **0,0676 USD/h**, la misma que dio los 49,31 USD/mes de la Entrega 2. El 0,0855 sobrestima un 27 % |
+| **De dónde sale cada cifra** | [`scripts/f3_estimacion_costos.py`](../../scripts/f3_estimacion_costos.py), con los precios y su fuente declarados al principio y una autoprueba que reproduce las cifras de la Entrega 2. Para I2 y G7: citad sus tablas en vez de recalcular a mano |
+| **Lo que cuesta escalar** | cada instancia extra de cualquiera de los dos grupos son 0,055 USD/h. Lo caro de la arquitectura elástica es mantener la entrada: las dos reglas de reenvío son 36,50 USD/mes, más que cualquiera de los grupos a 1 instancia |
