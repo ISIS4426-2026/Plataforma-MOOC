@@ -8,6 +8,7 @@
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "test": "vitest run",
+    "test:coverage": "NODE_V8_COVERAGE=coverage/v8 vitest run && node scripts/v8-to-lcov.mjs",
     "typecheck": "tsc --noEmit",
     "check:bundle": "node scripts/check-bundle.mjs"
   },

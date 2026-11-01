@@ -1,0 +1,18 @@
+# a) Verificacion de alcance (API, workers, frontend) y exclusiones en sonar-project.properties (H1, #228)
+# Generado: 2026-11-01T20:37:20Z por scripts/h1_verificar_y_exportar_sonar.sh
+# Commit  : ceecb0181216eef755796f2d77584510f80168b4
+
+OK     sonar.sources cubre API, workers y frontend completos: api,cmd,internal,frontend/src
+OK     sonar.tests declara las suites de Go, migraciones y frontend: internal,migrations,frontend/src
+OK     Las 12 exclusiones de sonar.exclusions estan justificadas y ninguna excluye codigo de aplicacion
+OK     sonar.go.coverage.reportPaths apunta a coverage.out
+OK     sonar.javascript.lcov.reportPaths apunta a frontend/coverage/lcov.info
+
+--- Inventario de archivos y lineas bajo el alcance del analizador ---
+  Go (api/)          :  1 archivo(s) productivos |    14 lineas
+  Go (cmd/)          :  4 archivo(s) productivos |  1479 lineas (api, worker, queue-exporter, seed-media)
+  Go (internal/)     : 95 archivo(s) productivos | 16463 lineas | 58 archivos de test (14092 lineas)
+  Go (migrations/)   :  0 archivo(s) productivos |     0 lineas |  1 archivos de test (  197 lineas)
+  Frontend (src/)    : 35 archivo(s) productivos |  3726 lineas |  4 archivos de test (  196 lineas)
+  TOTAL PRODUCTIVO   : 135 archivos             | 21682 lineas
+  TOTAL TESTS        : 63 archivos             | 14485 lineas

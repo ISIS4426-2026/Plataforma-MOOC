@@ -1,0 +1,9 @@
+# c) Verificacion de generador LCOV del frontend y reporte de cobertura (H1, #228)
+# Generado: 2026-11-01T20:37:20Z por scripts/h1_verificar_y_exportar_sonar.sh
+# Commit  : ceecb0181216eef755796f2d77584510f80168b4
+
+OK     frontend/coverage/lcov.info indexa 33 archivos bajo el prefijo 'frontend/src/'
+OK     0 lineas DA fuera de rango en frontend/coverage/lcov.info (100 % compatible con SonarJS)
+
+--- Exportacion desde la Web API de SonarQube Cloud (ISIS4426-2026_Plataforma-MOOC) ---
+OK     Exportacion verificable guardada en docs/entrega3/evidencias/H1/reporte_sonarcloud.json (403 hallazgos)

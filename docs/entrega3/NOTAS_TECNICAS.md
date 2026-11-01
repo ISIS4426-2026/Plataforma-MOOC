@@ -54,6 +54,7 @@ lo reemplaza, lo continúa.
 | 52 | [Ocho altas simultáneas dejaban ocho eventos de inscripción, y un envío sin clave no es un reintento](#52) | **E2**, G3, G4, I1 |
 | 53 | [Se retiró `roles/cloudsql.client` de API y workers, y `f2_identidades_y_secretos.sh` afirma las dos capas de identidad y la ausencia de secretos](#53) | **F2**, I2, I5, I6 |
 | 54 | [En el escenario 3B el autoescalador reacciona en 26,3 s, el worker empieza a consumir en 99,4 s (60 s antes de figurar `HEALTHY`), y sus logs locales se pierden al reducir si no se extraen en vivo](#54) | **G6**, G7, I1, I2, I4 |
+| 55 | [SonarQube falla con `can't be indexed twice` si los tests conviven con el código y no se excluyen de `sonar.sources`, y requiere desactivar *Automatic Analysis* para recibir cobertura de CI](#55) | **H1, H2, H3**, I3, I5 |
 
 ---
 
@@ -305,6 +306,10 @@ lo detecta la CI.
 
 <a id="15"></a>
 ## 15. La CI avisa de dos obsolescencias con fecha
+
+> **Resuelta en H1 (#228).** En `.github/workflows/ci.yml` se fijaron los cuatro
+> jobs en `ubuntu-24.04` y se actualizaron `actions/checkout@v5` y
+> `hashicorp/setup-terraform@v4` (nota 55).
 
 En toda ejecución de `.github/workflows/ci.yml`:
 
@@ -2175,4 +2180,25 @@ Cifras medidas en la corrida completa del **Escenario 3B (ciclo de escalamiento 
 | **G7** | En la tabla comparativa del Escenario 3B deben reportarse por separado el **tiempo de reacción del autoescalador (`26,3 s`)**, el **tiempo de arranque e incorporación a consumo (`99,4 s`)** y el **tiempo hasta el primer lote completado (`263,2 s`)**, sin mezclarlos ni usar `primera_healthy_utc` (`160 s`) como instante de inicio de consumo. Las series crudas están en [`docs/entrega3/evidencias/G6/corrida_2026-11-01_1847UTC/`](evidencias/G6/corrida_2026-11-01_1847UTC/) |
 | **I1, I2** | La calibración real del arranque del worker (`98,7 s` hasta `arranque.json`, `60 s` de `mooc-bootstrap.sh`, frente a `initial_delay_sec = 420` y `cooldown_period = 420`) y el contraste entre el `scale-in` natural con cola drenada (G6) y el retiro forzado con tarea activa en vuelo (E1, `requeue` tras `90,3 s`) están documentados en [`docs/entrega3/evidencias/G6/README.md`](evidencias/G6/README.md) §3 y §5 |
 | **I4** | Las 7 capturas requeridas de la línea de tiempo, la cola drenando, el consumo efectivo por `mooc-worker-9td8` y la reconciliación final sin pérdidas están listas para el vídeo de sustentación en [`docs/entrega3/evidencias/G6/capturas/`](evidencias/G6/capturas/) |
+
+<a id="55"></a>
+## 55. SonarQube falla con `can't be indexed twice` si los tests conviven con el código y no se excluyen de `sonar.sources`, y requiere desactivar *Automatic Analysis* para recibir cobertura de CI
+
+**Afecta a:** H1 (#228), H2 (#229), H3 (#230), I3 (README con enlaces de evidencia) e I5 (commit evaluado del tag `entrega-3`). Escrito el 2026-11-01.
+
+| Qué | Detalle |
+| :--- | :--- |
+| **Alcance completo en `sonar-project.properties`** | `sonar.sources=api,cmd,internal,frontend/src` cubre los **135 archivos productivos (21 682 líneas)** de API (`api/`, `cmd/api`, `internal/http`), workers (`cmd/worker`, `cmd/queue-exporter`, `cmd/seed-media`, `internal/worker`, `internal/transcode`, `internal/media`), dominio/persistencia (`internal/*`) y frontend React + TypeScript (`frontend/src/`), junto con los **63 archivos de prueba (14 485 líneas)** en `sonar.tests=internal,migrations,frontend/src` |
+| **Trampa de doble indexación (`File can't be indexed twice`)** | En Go (`internal/**/*_test.go`) y en React/Vitest (`frontend/src/**/*.test.ts(x)`) los archivos de prueba viven en los mismos directorios que el código productivo. Si un directorio figura a la vez en `sonar.sources` y en `sonar.tests`, el scanner aborta salvo que los patrones de `sonar.test.inclusions` (`**/*_test.go,frontend/src/**/*.test.ts,frontend/src/**/*.test.tsx`) figuren también en `sonar.exclusions` (que solo excluye de `sonar.sources`, no de `sonar.tests`) |
+| **Cobertura LCOV del frontend sin tocar `package-lock.json`** | Para no alterar `npm ci --no-audit --no-fund` del job `frontend` (D1), `npm run test:coverage` ejecuta `NODE_V8_COVERAGE=coverage/v8 vitest run && node scripts/v8-to-lcov.mjs`. El script [`frontend/scripts/v8-to-lcov.mjs`](../../frontend/scripts/v8-to-lcov.mjs) emite rutas `SF:frontend/src/...` relativas a la raíz del repositorio y acota `DA:<línea>,<hits>` al conteo real de líneas de cada archivo para que el sensor `SonarJS` no descarte el reporte por líneas fuera de rango |
+| **Desactivar *Automatic Analysis* en SonarQube Cloud** | Al importar el repositorio en SonarCloud hay que apagar *Administration → Analysis Method → Automatic Analysis*; de lo contrario SonarCloud rechaza la ejecución desde `SonarSource/sonarqube-scan-action@v5` en GitHub Actions y se perdería la ingesta de `coverage.out` y `frontend/coverage/lcov.info` |
+| **Cierre de las obsolescencias de la Nota Técnica #15** | Al tocar `.github/workflows/ci.yml` en H1 se fijaron los 4 jobs en `ubuntu-24.04` y se subieron `actions/checkout@v5` y `hashicorp/setup-terraform@v4`. En H3 debe registrarse en la sección de *Correcciones realizadas durante el ejercicio* y no como deuda abierta |
+| **Verificador y exportador para H2 y H3** | [`scripts/h1_verificar_y_exportar_sonar.sh`](../../scripts/h1_verificar_y_exportar_sonar.sh) valida 27 condiciones locales (`27 OK · 0 FALLA`) y con `--exportar-sonar` descarga desde la Web API de SonarCloud las métricas (`duplicated_lines_density`, `sqale_rating`, `sqale_index`, `coverage`, `bugs`, `vulnerabilities`, `code_smells`), el Quality Gate y el inventario completo de hallazgos abiertos en `docs/entrega3/evidencias/H1/reporte_sonarcloud.json` sin exponer tokens |
+
+| Issue | Qué tiene que saber |
+| :--- | :--- |
+| **H2** | Ejecutar `bash ./scripts/h1_verificar_y_exportar_sonar.sh --exportar-sonar` tras cada corrida del pipeline para obtener `reporte_sonarcloud.json`, verificar los umbrales ($\le 20\%$ duplicación, mantenibilidad `A`/`B`/`C`, deuda técnica total en minutos/horas) e identificar hallazgos `Blocker`, `Critical` y `Major` |
+| **H3** | Usar `reporte_sonarcloud.json` como fuente trazable para el resumen de la medición inicial y el inventario de deuda de código en `docs/entrega3/deuda-tecnica.md`, cruzándolo con los hallazgos de arquitectura, pruebas y operación de este documento (notas 13, 20, 24, 25, 44, 52) |
+| **I5** | Antes de crear el tag `entrega-3`, confirmar que la última ejecución del job `sonarqube` en `.github/workflows/ci.yml` corresponda al commit evaluado y re-ejecutar `bash ./scripts/h1_verificar_y_exportar_sonar.sh --exportar-sonar` |
+
 
