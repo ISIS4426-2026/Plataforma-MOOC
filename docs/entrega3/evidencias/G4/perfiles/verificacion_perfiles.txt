@@ -1,0 +1,34 @@
+==> ffmpeg desde Docker (jrottenberg/ffmpeg:6.1-alpine)
+==> Generando corto: 120s a 1280x720
+Unable to find image 'jrottenberg/ffmpeg:6.1-alpine' locally
+6.1-alpine: Pulling from jrottenberg/ffmpeg
+1cde70e8f87a: Pulling fs layer
+bbfef8dc9bb7: Pulling fs layer
+a4f516a07289: Pulling fs layer
+01d036902a3c: Pulling fs layer
+63ed0fd84e0e: Pulling fs layer
+5178144d6f63: Pulling fs layer
+a4f516a07289: Download complete
+63ed0fd84e0e: Download complete
+5178144d6f63: Download complete
+01d036902a3c: Download complete
+1cde70e8f87a: Download complete
+01d036902a3c: Pull complete
+1cde70e8f87a: Pull complete
+63ed0fd84e0e: Pull complete
+5178144d6f63: Pull complete
+a4f516a07289: Pull complete
+bbfef8dc9bb7: Download complete
+bbfef8dc9bb7: Pull complete
+Digest: sha256:4641478865a2387bb1d180dd9263e7226dab887c0789e02fa077fe919ef543df
+Status: Downloaded newer image for jrottenberg/ffmpeg:6.1-alpine
+==> Generando medio: 600s a 1280x720
+==> Generando largo: 1800s a 1280x720
+
+==> Verificando contra el perfil declarado
+    ok  corto   120s  1280x720  h264/aac  2 MiB
+    ok  medio   600s  1280x720  h264/aac  12 MiB
+    ok  largo  1800s  1280x720  h264/aac  37 MiB
+
+==> Los 3 perfil(es) coinciden campo por campo.
+    Salidas de ffprobe en scratch/video_*.ffprobe.json
