@@ -1,0 +1,15 @@
+2026/11/01 18:58:36 Starting Plataforma MOOC Background Worker [Env: production]
+{"time":"2026-11-01T18:58:36.681945663Z","level":"INFO","msg":"[Worker Engine] Starting background worker processor...","env":"production","redis_url":"<IP_PRIVADA_REDACTADA>:6379","concurrency":2,"drenaje":"1m30s"}
+{"time":"2026-11-01T18:58:36.682073639Z","level":"INFO","msg":"Starting processing"}
+2026/11/01 18:58:36 Derivatives bucket: plataforma-mooc-entrega2-hls
+2026/11/01 18:58:36 Media ladder: 360:800:96,720:2500:128
+2026/11/01 18:58:36 Worker concurrency: 2, work dir: /tmp/mooc-media, max original size: 2048 MB
+2026/11/01 18:58:36 Plazo de drenaje: 1m30s (al vencer, lo que siga en curso vuelve a la cola)
+{"time":"2026-11-01T18:58:36.693427083Z","level":"INFO","msg":"job media:process started","id":"media-originals/f8aeee24-c12e-4e2e-a80b-6145c13f3402/f4eac3c1-11c9-460c-b1bf-6a3394843b9d.mp4","tipo":"media:process","estado":"started"}
+{"time":"2026-11-01T18:58:36.694766115Z","level":"INFO","msg":"job media:process started","id":"media-originals/d1208a19-6aab-489c-85c8-ea786635ca2e/4332fb2c-78cf-4079-be49-350333721900.mp4","tipo":"media:process","estado":"started"}
+2026/11/01 19:01:19 INFO media rendered to HLS resource_id=c0e76f4a-6986-4944-b4ca-392d165d87fe hls_prefix=hls/d1208a19-6aab-489c-85c8-ea786635ca2e renditions=2 ladder=360p,720p files_uploaded=37 original_bytes=2702399 source_width=1280 source_height=720 duration_seconds=120
+2026/11/01 19:01:19 INFO media job completed resource_id=c0e76f4a-6986-4944-b4ca-392d165d87fe object_key=originals/d1208a19-6aab-489c-85c8-ea786635ca2e/4332fb2c-78cf-4079-be49-350333721900.mp4 took=2m43.064094187s
+{"time":"2026-11-01T19:01:19.760321498Z","level":"INFO","msg":"job media:process completed","id":"media-originals/d1208a19-6aab-489c-85c8-ea786635ca2e/4332fb2c-78cf-4079-be49-350333721900.mp4","tipo":"media:process","estado":"completed","duración":"2m43.06429243s","duración_ms":163064}
+2026/11/01 19:01:20 INFO media rendered to HLS resource_id=7e0c8444-0f34-42b5-9e3a-750ff06cf953 hls_prefix=hls/f8aeee24-c12e-4e2e-a80b-6145c13f3402 renditions=2 ladder=360p,720p files_uploaded=37 original_bytes=2702399 source_width=1280 source_height=720 duration_seconds=120
+2026/11/01 19:01:20 INFO media job completed resource_id=7e0c8444-0f34-42b5-9e3a-750ff06cf953 object_key=originals/f8aeee24-c12e-4e2e-a80b-6145c13f3402/f4eac3c1-11c9-460c-b1bf-6a3394843b9d.mp4 took=2m43.783075158s
+{"time":"2026-11-01T19:01:20.476993862Z","level":"INFO","msg":"job media:process completed","id":"media-originals/f8aeee24-c12e-4e2e-a80b-6145c13f3402/f4eac3c1-11c9-460c-b1bf-6a3394843b9d.mp4","tipo":"media:process","estado":"completed","duración":"2m43.783570165s","duración_ms":163783}

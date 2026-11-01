@@ -1,0 +1,9 @@
+{
+  "rol": "worker",
+  "commit": "97120ca17a0ee3ef901b7dfde1e837198a5f3448",
+  "listo": true,
+  "segundos_hasta_listo": 90,
+  "medido_desde": "inicio de mooc-bootstrap.sh, no desde la creacion de la instancia",
+  "sonda": "contenedor en marcha + GET /metrics",
+  "instante_utc": "2026-11-01T17:27:42Z"
+}

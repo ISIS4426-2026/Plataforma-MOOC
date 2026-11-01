@@ -1,0 +1,7 @@
+2026/11/01 19:00:36 Starting Plataforma MOOC Background Worker [Env: production]
+2026/11/01 19:00:36 Derivatives bucket: plataforma-mooc-entrega2-hls
+2026/11/01 19:00:36 Media ladder: 360:800:96,720:2500:128
+2026/11/01 19:00:36 Worker concurrency: 2, work dir: /tmp/mooc-media, max original size: 2048 MB
+2026/11/01 19:00:36 Plazo de drenaje: 1m30s (al vencer, lo que siga en curso vuelve a la cola)
+{"time":"2026-11-01T19:00:36.277114958Z","level":"INFO","msg":"[Worker Engine] Starting background worker processor...","env":"production","redis_url":"<IP_PRIVADA_REDACTADA>:6379","concurrency":2,"drenaje":"1m30s"}
+{"time":"2026-11-01T19:00:36.277258554Z","level":"INFO","msg":"Starting processing"}
