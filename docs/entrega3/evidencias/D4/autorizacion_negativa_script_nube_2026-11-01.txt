@@ -1,0 +1,29 @@
+Salida de scripts/verify_authorization.sh contra la NUBE, a través del balanceador
+(transcrita de la terminal de Tania Díaz; el script no imprime contraseñas)
+Versión desplegada: f6aa76e5988c · cuentas de la semilla: profesor A, profesor B y estudiante1
+
+== Origen: https://136.68.55.254.sslip.io  (2026-11-01T00:52:00Z)
+Curso de prueba del profesor A: <curso-A> (borrador)
+
+-- 1. El dueno SI puede (control positivo)
+  OK     Profesor A edita su propio curso (PUT /courses/<curso-A>)      -> 200
+  OK     Profesor A agrega un modulo a su curso                         -> 201
+  OK     Profesor A lista sus cursos (GET /me/courses)                  -> 200
+-- 2. Un profesor NO puede tocar el curso de otro profesor
+  OK     Profesor B edita el curso de A (PUT)                           -> 403 forbidden
+  OK     Profesor B agrega un modulo al curso de A (POST)               -> 403 forbidden
+  OK     Profesor B publica el curso de A (POST publish)                -> 403 forbidden
+  OK     Profesor B despublica el curso de A (POST unpublish)           -> 403 forbidden
+  OK     Profesor B lista la estructura del curso de A (GET modules)    -> 403 forbidden
+  OK     El curso de A NO aparece en «mis cursos» del profesor B
+-- 3. Un estudiante NO puede ejecutar acciones reservadas al profesor
+  OK     Estudiante crea un curso (POST /courses)                       -> 403 forbidden
+  OK     Estudiante agrega un modulo al curso de A                      -> 403 forbidden
+  OK     Estudiante publica el curso de A                               -> 403 forbidden
+  OK     Estudiante edita el curso de A (PUT)                           -> 403 forbidden
+  OK     Estudiante pide los cursos de autor (GET /me/courses)          -> 403 forbidden
+-- 4. Sin sesion
+  OK     Sin sesion: GET /me/courses                                    -> 401 unauthorized
+  OK     Sin sesion: POST /courses                                      -> 401 unauthorized
+
+RESULTADO: todas las comprobaciones pasaron

@@ -38,10 +38,16 @@ borrar cursos. Aviso para la corrida en la nube: ejecutarlo **una sola vez** y a
 | Sin respuesta de red | `status 0` con mensaje de conexión |
 | Validación (422) | Lista de razones por campo (publicación, formularios) |
 
+## 1b. En la nube, a través del balanceador (2026-11-01)
+
+[`autorizacion_negativa_script_nube_2026-11-01.txt`](./autorizacion_negativa_script_nube_2026-11-01.txt): las mismas
+16 comprobaciones contra `https://136.68.55.254.sslip.io` (versión `f6aa76e5988c`) → **todas pasaron**, incluido el
+rechazo (403) de un profesor sobre el curso de otro profesor. Además, con la sesión de un estudiante en el navegador:
+[`autorizacion_negativa_nube_2026-10-31.txt`](./autorizacion_negativa_nube_2026-10-31.txt).
+
 ## Pendiente
 
-1. Repetir el script contra el balanceador y guardar la salida junto a la de local.
-2. Capturas de los estados (la de «No tienes permiso» se vio en pantalla pero no se guardó al disco).
+1. Capturas de pantalla de los estados de interfaz (la de «No tienes permiso» se vio, pero no se guardó al disco).
 
 ## Nunca
 
