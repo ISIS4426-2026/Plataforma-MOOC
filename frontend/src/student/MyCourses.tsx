@@ -1,6 +1,7 @@
 import { Award } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Badge, EmptyState, ErrorState, PageTitle, ProgressBar, Spinner, gradiente } from "../components/ui";
+import { plural } from "../lib/names";
 import { useStudentData } from "./StudentData";
 
 export default function MyCourses() {
@@ -12,7 +13,7 @@ export default function MyCourses() {
       {state.status === "loading" && <Spinner label="Cargando tus cursos…" />}
       {state.status === "error" && <ErrorState error={state.error} onRetry={refresh} />}
       {state.status === "ok" &&
-        (state.mine.length === 0 ? (
+        (state.mine.filter((m) => m.course).length === 0 && state.mine.length === 0 ? (
           <div className="panel">
             <EmptyState title="Aún no estás inscrito en ningún curso">
               <Link to="/catalogo" className="btn small">
@@ -21,8 +22,9 @@ export default function MyCourses() {
             </EmptyState>
           </div>
         ) : (
+          <>
           <div className="cards wide">
-            {state.mine.map((m, i) => (
+            {state.mine.filter((m) => m.course).map((m, i) => (
               <Link key={m.enrollment.id} to={m.course ? `/cursos/${m.course.id}` : "#"} className={`course-card ${gradiente(i)}`} aria-disabled={!m.course}>
                 <strong>{m.course?.title ?? "Curso no disponible"}</strong>
                 <span>{m.course ? m.course.description : "Este curso ya no está publicado."}</span>
@@ -38,6 +40,12 @@ export default function MyCourses() {
               </Link>
             ))}
           </div>
+          {state.mine.some((m) => !m.course) && (
+            <p className="muted">
+              {plural(state.mine.filter((m) => !m.course).length, "inscripción", "inscripciones")} en cursos que ya no están publicados; no se pueden abrir.
+            </p>
+          )}
+          </>
         ))}
     </>
   );

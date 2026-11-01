@@ -34,9 +34,9 @@ export default function ProfessorDashboard() {
         {state.status === "loading" && <Spinner label="Cargando tus cursos…" />}
         {state.status === "error" && <ErrorState error={state.error} onRetry={refresh} />}
         {state.status === "ok" &&
-          (state.courses.length === 0 ? (
+          (state.courses.filter((c) => c.status === "published").length === 0 ? (
             <div className="panel">
-              <EmptyState title="Todavía no has creado ningún curso">
+              <EmptyState title="Todavía no tienes cursos publicados">
                 <Link to="/profesor/cursos/nuevo" className="btn small">
                   Crear mi primer curso
                 </Link>
@@ -44,7 +44,8 @@ export default function ProfessorDashboard() {
             </div>
           ) : (
             <div className="cards">
-              {state.courses.slice(0, 4).map((c, i) => (
+              {/* El inicio muestra lo publicado; borradores y despublicados estan en «Mis cursos» y en «Por terminar». */}
+              {state.courses.filter((c) => c.status === "published").slice(0, 4).map((c, i) => (
                 <Link key={c.id} to={`/profesor/cursos/${c.id}`} className={`course-card ${gradiente(i)}`}>
                   <strong>{c.title}</strong>
                   <span>{c.description || "Sin descripción"}</span>

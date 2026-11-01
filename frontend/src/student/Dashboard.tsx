@@ -35,13 +35,14 @@ export default function Dashboard() {
         {state.status === "loading" && <Spinner label="Cargando tus cursos…" />}
         {state.status === "error" && <ErrorState error={state.error} onRetry={refresh} />}
         {state.status === "ok" &&
-          (state.mine.length === 0 ? (
+          (state.mine.filter((m) => m.course).length === 0 ? (
             <div className="panel">
               <EmptyState title="Aún no estás inscrito en ningún curso">Busca uno en el catálogo y pulsa «Inscribirme».</EmptyState>
             </div>
           ) : (
             <div className="cards">
-              {state.mine.slice(0, 5).map((m, i) => (
+              {/* Un curso despublicado ya no se puede abrir: no ocupa una tarjeta del inicio. */}
+              {state.mine.filter((m) => m.course).slice(0, 5).map((m, i) => (
                 <Link key={m.enrollment.id} to={m.course ? `/cursos/${m.course.id}` : "/mis-cursos"} className={`course-card ${gradiente(i)}`}>
                   <strong>{m.course?.title ?? "Curso no disponible"}</strong>
                   <span>

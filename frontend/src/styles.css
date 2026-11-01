@@ -221,3 +221,5 @@ button.link { background: none; border: 0; color: inherit; font-size: 1.2rem; cu
 .quiz-editor ol { padding-left: 20px; }
 .quiz-editor li.correct { color: var(--ok); font-weight: 700; }
 .notice.info { background: var(--accent-soft); color: var(--accent); }
+
+.filters { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 12px; }
