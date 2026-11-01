@@ -59,6 +59,7 @@ lo reemplaza, lo continúa.
 | 57 | [El NAT reparte 64 puertos por VM, y un generador dentro de la nube los agota con 100 usuarios](#57) | **G3, G4, G5, G6**, G7, F1 |
 | 58 | [G3: la arquitectura elástica no se distingue de la de una instancia por debajo de ~110 pet./s, y escalar tarda minutos](#58) | **G3, G5**, G6, G7, I1, I4 |
 | 59 | [El Entregable 6 (`docs/entrega3/deuda-tecnica.md`) consolida 8 correcciones cerradas en el sprint, 12 ítems de deuda con los 8 campos obligatorios en las 5 dimensiones, el desglose individual de los 33 `MAJOR` (`go:S2077`) y la exportación del commit final](#59) | **H3**, I1, I2, I3, I4, I5, I6 |
+| 60 | [`arquitectura.md` lo escriben dos issues, y sus tablas copian valores de Terraform](#60) | **I2**, I3, I4, cualquiera que cambie `infra/terraform/` |
 
 ---
 
@@ -2288,3 +2289,17 @@ Cifras medidas en la corrida completa del **Escenario 3B (ciclo de escalamiento 
 | **I3** | En la tabla de entregables del `README.md` principal, enlazar el **Entregable 6** a [`docs/entrega3/deuda-tecnica.md`](deuda-tecnica.md), la exportación verificable a [`docs/entrega3/evidencias/H3/reporte_sonarcloud_commit_final.json`](evidencias/H3/reporte_sonarcloud_commit_final.json) y las evidencias de H1, H2 y H3 a `docs/entrega3/evidencias/{H1,H2,H3}/README.md`. |
 | **I4** | Para el bloque de calidad y deuda técnica del vídeo de sustentación, mostrar las 3 capturas de [`docs/entrega3/evidencias/H3/capturas/`](evidencias/H3/capturas/) junto con las de H1 y H2, destacando que la duplicación está en `0,0 %` en código de aplicación (`0,8 %` global), la mantenibilidad en `A` (`0 min` de deuda `CODE_SMELL` en aplicación tras resolver los hallazgos en H2) y el contraste entre deuda detectada por SonarQube (`TD-COD-01`, `TD-COD-02`) y deuda arquitectónica/operativa medida experimentalmente (`TD-ARQ-01/02`, `TD-INF-01/02`, `TD-OPE-01`). |
 | **I5, I6** | Antes de crear el tag `entrega-3` en `main` (y tras aplicar en `main` el paso 1 de `TD-INF-03` en `infra/terraform/outputs.tf:138`), ejecutar `bash ./scripts/h3_verificar_deuda_tecnica.sh` para que `evaluated_head_commit` dentro de `docs/entrega3/evidencias/H3/reporte_sonarcloud_commit_final.json` quede actualizado con el SHA final de cierre. |
+
+<a id="60"></a>
+## 60. `arquitectura.md` lo escriben dos issues, y sus tablas copian valores de Terraform
+
+**Afecta a:** I2 (#232), I3, I4, y a quien cambie `infra/terraform/`. Escrito el 2026-11-01 en I1 (#231).
+
+| Qué | Detalle |
+| :--- | :--- |
+| **Un archivo, dos dueños** | I1 escribió las secciones 1 a 4 de [`arquitectura.md`](arquitectura.md) (servicios, componentes, despliegue, cambios frente a la Entrega 2) y dejó **5, 6 y 7 como marcadores para I2** con los títulos que pide el enunciado. I2 los rellena en el mismo archivo; los enlaces de la tabla del principio ya apuntan a esos anclajes, así que **no cambies los títulos** de esas secciones (nota 14: una raya o una barra en un título rompen el ancla) |
+| **Las tablas del §3 son copia de Terraform** | tipo de máquina, retrasos de autohealing, parámetros de las comprobaciones de salud, reglas de firewall, configuración de Cloud SQL. Están verificadas contra `main` del 2026-11-01. Quien cambie uno de esos valores en `infra/terraform/` tiene que cambiar también su fila, o el documento deja de describir lo desplegado, que es lo que pide el criterio |
+| **Los diagramas se comprobaron renderizados** | los tres bloques Mermaid pasan el analizador de Mermaid 11 y se renderizaron con `mermaid-cli`. Para repetirlo: `npx -y @mermaid-js/mermaid-cli -i docs/entrega3/arquitectura.md -o arquitectura.svg`. Saltos de línea con `<br/>`, nunca `\n` |
+| **La topología omite a propósito dos flechas** | la salida por Cloud NAT y el acceso por IAP valen para todas las máquinas; dibujarlas para cada una hacía ilegible el diagrama. Lo dice el texto bajo el dibujo; si I2 añade nodos, que siga ese criterio |
+| **Permisos de IAM: no se duplican** | el §3.7 solo nombra las cuentas de servicio y enlaza a F2 para los roles, porque F2 los está recortando. Si se copian aquí, se desfasan con el siguiente cambio de F2 |
+| **Para I3 e I4** | el README ya enlaza el documento. Los diagramas del §2.1 y §3.1 son los que sirven para abrir el vídeo |
