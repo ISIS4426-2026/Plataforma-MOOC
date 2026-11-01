@@ -1,0 +1,24 @@
+OK     Umbral 1 cumplido — Duplicacion de codigo: 0.8% < 20.0% (751 lineas duplicadas en 48 bloques)
+OK     Umbral 2 cumplido — Mantenibilidad (sqale_rating): Calificacion A (1.0 <= 3.0 [C], sqale_debt_ratio=0.0%)
+OK     Deuda tecnica de referencia (sqale_index): 664 minutos (11 h 04 min | 1 jornada(s) de 8 h y 3 h 04 min)
+OK     Desglose alcance de aplicacion (api,cmd,internal,frontend/src): 39 hallazgos iniciales | deuda CODE_SMELL=60 min (reducida a 0 min en H2) | esfuerzo total remediacion=785 min (13 h 05 min)
+OK     [BLOCKER RESUELTO] secrets:S8215 en internal/auth/service.go:23 -> dummyHash generado con bcrypt.DefaultCost en arranque (commit 868e43d)
+OK     [PRUEBA ANADIDA] TestLoginUnknownEmailRunsTimingShieldWithoutHardcodedHash en internal/auth/service_test.go
+OK     [MAJOR BUG RESUELTO] typescript:S9383 en frontend/src/student/StudentData.tsx:35 -> promesa marcada con 'void' (commit bde3686)
+OK     [MAJOR CODE_SMELL RESUELTO] typescript:S8786 en frontend/src/config.ts:6 -> stripTrailingSlashes lineal O(n) (commit bde3686)
+OK     [MAJOR CODE_SMELL RESUELTO] typescript:S8786 en frontend/src/runtime.ts:24 -> stripTrailingSlashes lineal O(n) (commit bde3686)
+OK     [MAJOR CODE_SMELL RESUELTO] typescript:S8786 en frontend/src/lib/markdown.tsx:52 -> parseHeading y parseListItem lineales O(n) (commit bde3686)
+OK     [PRUEBAS ANADIDAS] Casos unitarios de stripTrailingSlashes y parseHeading/parseListItem en runtime.test.ts y lib.test.tsx
+OK     [BLOCKER RESUELTO] githubactions:S8482 en .github/workflows/ci.yml:85 -> instalacion verificada con go install @v1.64.8 (commit 28967df)
+OK     [CRITICAL RESUELTO] python:S5443 en scripts/g6_linea_de_tiempo.py:41 -> directorio seguro con tempfile.mkdtemp (commit 28967df)
+OK     [4 CRITICAL RESUELTOS] go:S4830 y go:S5527 en scripts/capacity_escenario2 y pilot_escenario2 -> validacion TLS 1.2 activa por defecto (commit 28967df)
+OK     [BLOCKER RESUELTO] secrets:S6698 en scripts/migrate.sh:48 -> marcador <DB_PASSWORD> en comentario de uso (commit 28967df)
+OK     [SPECTRAL RESUELTO] 0 operaciones sin description en api/openapi.yaml (PUT /modules/{module_id} y PUT /units/{unit_id}, commit d469eb6)
+OK     Matriz auditable generada en docs/entrega3/evidencias/H2/reporte_h2_estado_hallazgos.json (0 Blocker/Critical sin resolver ni sin plan explicito)
+OK     gofmt: 0 archivos desformateados en cmd/, internal/, api/, migrations/
+OK     go vet ./...: 0 advertencias
+OK     golangci-lint run ./...: 0 hallazgos en todos los paquetes Go
+OK     make build: bin/api y bin/worker compilados exitosamente
+OK     go test (API, dominio, auth, postgres, worker/handler, worker/task, migrations): 20 paquetes en PASS
+OK     frontend: 4 suites / 32 tests en PASS, lcov.info generado, tsc --noEmit + vite build OK y 0 secretos en bundle
+OK     cobertura LCOV en codigo nuevo de H2 >= 80% (Quality Gate): frontend/src/config.ts=6/6 (100%), frontend/src/runtime.ts=17/17 (100%), frontend/src/lib/markdown.tsx=72/72 (100%)

@@ -45,7 +45,7 @@
 #
 # USO
 #
-#   export DATABASE_URL='postgres://moocuser:CONTRASENA@10.x.x.x:5432/moocdb?sslmode=require'
+#   export DATABASE_URL='postgres://moocuser:<DB_PASSWORD>@10.x.x.x:5432/moocdb?sslmode=require'
 #   bash ./scripts/migrate.sh            # aplica las pendientes
 #   bash ./scripts/migrate.sh --status   # solo informa, no toca nada
 #   bash ./scripts/migrate.sh --verify   # comprueba el esquema resultante

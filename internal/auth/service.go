@@ -17,11 +17,6 @@ import (
 // MinPasswordBytes is the shortest password accepted at registration.
 const MinPasswordBytes = 8
 
-// dummyHash is compared against when no user matches, so a login attempt for an
-// unknown address costs the same bcrypt work as one for a real account. Without
-// it, response time alone reveals which addresses are registered.
-const dummyHash = "$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy"
-
 // ErrEmailNotVerified is returned when the credentials are correct but the
 // account has not completed email verification.
 //

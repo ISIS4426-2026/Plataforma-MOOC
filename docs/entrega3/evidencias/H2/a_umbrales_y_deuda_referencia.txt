@@ -1,0 +1,16 @@
+# a) Verificacion de umbrales (< 20% duplicacion, mantenibilidad <= C) y deuda tecnica de referencia (H2, #229)
+# Generado: 2026-11-01T21:38:44Z por scripts/h2_verificar_umbrales_y_hallazgos.sh
+# Commit  : d8a70920c7f96d5a73fd25fcb5efef8fb5a59d61
+
+OK     Umbral 1 cumplido — Duplicacion de codigo: 0.8% < 20.0% (751 lineas duplicadas en 48 bloques)
+OK     Umbral 2 cumplido — Mantenibilidad (sqale_rating): Calificacion A (1.0 <= 3.0 [C], sqale_debt_ratio=0.0%)
+OK     Deuda tecnica de referencia (sqale_index): 664 minutos (11 h 04 min | 1 jornada(s) de 8 h y 3 h 04 min)
+OK     Desglose alcance de aplicacion (api,cmd,internal,frontend/src): 39 hallazgos iniciales | deuda CODE_SMELL=60 min (reducida a 0 min en H2) | esfuerzo total remediacion=785 min (13 h 05 min)
+
+--- Resumen de la primera medicion de referencia (SonarQube Cloud) ---
+  Proyecto                  : ISIS4426-2026_Plataforma-MOOC (organizacion: isis4426-2026)
+  Analisis base             : f71d5be9-b319-4e64-95ec-5983d83e8997 (2026-11-01T20:31:09+0000)
+  Duplicacion de codigo     : 0.8% (requisito Entrega 3: < 20.0%) -> CUMPLE
+  Calificacion mantenib.    : A (sqale_rating=1.0, sqale_debt_ratio=0.0% <= 5.0%) -> CUMPLE (requisito: A, B o C)
+  Deuda tecnica (sqale_index): 664 min = 11 h 04 min (global inicial) | 60 min -> 0 min en codigo de aplicacion tras H2
+  Esfuerzo total remediacion: 785 min (13 h 05 min) en aplicacion (incluyendo Bug + Code Smell + Vulnerability) -> 690 min tras H2

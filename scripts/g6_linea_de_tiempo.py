@@ -38,7 +38,7 @@ def _ensure_matplotlib_python() -> None:
         if py310 and os.environ.get("_G6_REEXEC_PY310") != "1":
             env = dict(os.environ)
             env["_G6_REEXEC_PY310"] = "1"
-            env.setdefault("MPLCONFIGDIR", "/tmp/matplotlib-g6")
+            env.setdefault("MPLCONFIGDIR", tempfile.mkdtemp(prefix="matplotlib-g6-"))
             os.execve(py310, [py310, *sys.argv], env)
 
 

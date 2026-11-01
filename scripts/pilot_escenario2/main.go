@@ -102,7 +102,10 @@ type httpClient struct {
 func newHTTPClient(baseURL string) *httpClient {
 	jar, _ := cookiejar.New(nil)
 	tr := &http.Transport{
-		TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, // for self-signed or staging certs
+		TLSClientConfig: &tls.Config{
+			MinVersion:         tls.VersionTLS12,
+			InsecureSkipVerify: os.Getenv("MOOC_TLS_INSECURE") == "1",
+		},
 	}
 	return &httpClient{
 		client:  &http.Client{Jar: jar, Transport: tr, Timeout: 60 * time.Second},

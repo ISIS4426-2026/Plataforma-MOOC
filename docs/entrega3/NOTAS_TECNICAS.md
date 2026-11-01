@@ -55,6 +55,7 @@ lo reemplaza, lo continúa.
 | 53 | [Se retiró `roles/cloudsql.client` de API y workers, y `f2_identidades_y_secretos.sh` afirma las dos capas de identidad y la ausencia de secretos](#53) | **F2**, I2, I5, I6 |
 | 54 | [En el escenario 3B el autoescalador reacciona en 26,3 s, el worker empieza a consumir en 99,4 s (60 s antes de figurar `HEALTHY`), y sus logs locales se pierden al reducir si no se extraen en vivo](#54) | **G6**, G7, I1, I2, I4 |
 | 55 | [SonarQube falla con `can't be indexed twice` si los tests conviven con el código y no se excluyen de `sonar.sources`, y requiere desactivar *Automatic Analysis* para recibir cobertura de CI](#55) | **H1, H2, H3**, I3, I5 |
+| 56 | [La primera línea base de SonarQube registra `0,8 %` de duplicación, mantenibilidad `A` (`664 min` global / `60 min → 0 min` en aplicación), se resolvieron los Blockers/Criticals en 4 commits y `go:S2077` se audita como constantes SQL seguras para H3](#56) | **H2, H3**, I3, I4, I5, I6 |
 
 ---
 
@@ -272,6 +273,12 @@ siendo el entorno frágil de este repositorio.
 
 <a id="13"></a>
 ## 13. El contrato de la API arrastra dos avisos de Spectral
+
+> **Resuelta en H2 (#229, commit `d469eb6`).** Se completaron las propiedades
+> `description` de `PUT /modules/{module_id}` (`updateModule`) y
+> `PUT /units/{unit_id}` (`updateUnit`) en `api/openapi.yaml`, dejando `0`
+> operaciones sin descripción (nota 56). En H3 debe registrarse en la sección de
+> *Correcciones realizadas durante este ejercicio*.
 
 ```
 api/openapi.yaml
@@ -2200,5 +2207,25 @@ Cifras medidas en la corrida completa del **Escenario 3B (ciclo de escalamiento 
 | **H2** | Ejecutar `bash ./scripts/h1_verificar_y_exportar_sonar.sh --exportar-sonar` tras cada corrida del pipeline para obtener `reporte_sonarcloud.json`, verificar los umbrales ($\le 20\%$ duplicación, mantenibilidad `A`/`B`/`C`, deuda técnica total en minutos/horas) e identificar hallazgos `Blocker`, `Critical` y `Major` |
 | **H3** | Usar `reporte_sonarcloud.json` como fuente trazable para el resumen de la medición inicial y el inventario de deuda de código en `docs/entrega3/deuda-tecnica.md`, cruzándolo con los hallazgos de arquitectura, pruebas y operación de este documento (notas 13, 20, 24, 25, 44, 52) |
 | **I5** | Antes de crear el tag `entrega-3`, confirmar que la última ejecución del job `sonarqube` en `.github/workflows/ci.yml` corresponda al commit evaluado y re-ejecutar `bash ./scripts/h1_verificar_y_exportar_sonar.sh --exportar-sonar` |
+
+<a id="56"></a>
+## 56. La primera línea base de SonarQube registra `0,8 %` de duplicación, mantenibilidad `A` (`664 min` global / `60 min → 0 min` en aplicación), se resolvieron los Blockers/Criticals en 4 commits y `go:S2077` se audita como constantes SQL seguras para H3
+
+**Afecta a:** H2 (#229), H3 (#230, primer documento de deuda técnica en `docs/entrega3/deuda-tecnica.md`), I3 (README principal), I4 (vídeo de sustentación), I5 (tag `entrega-3`) e I6 (cierre de infraestructura en `main`). Escrito el 2026-11-01.
+
+| Qué | Detalle |
+| :--- | :--- |
+| **Verificación de los dos umbrales obligatorios** | 1) **Duplicación de código (`duplicated_lines_density`)**: **`0,8 %`** (`751` líneas duplicadas en `48` bloques; **`0,0 %`** dentro de `api,cmd,internal,frontend/src`), cumpliendo con `19,2 pp` de holgura el umbral `< 20 %`.<br>2) **Mantenibilidad (`sqale_rating`)**: **Calificación `A` (`1.0`, `sqale_debt_ratio = 0,0 %` $\le 5 \%$)**, cumpliendo el umbral de calificación `C` o mejor (`A`, `B` o `C`). |
+| **Deuda técnica total estimada (`sqale_index`) e interpretación** | En SonarQube el indicador `sqale_index` se expresa en **minutos** (`60 min = 1 h`, **`480 min = 1 jornada laboral de 8 h`**) y suma exclusivamente el esfuerzo de remediación de `CODE_SMELL` (mantenibilidad):<br>- **Barrido global inicial (`ceecb01`)**: **`664 min` (`11 h 04 min` / `1 d 3 h 04 min`)**, de los cuales `604 min` (`91 %`) provenían de `shell:S7688` en `scripts/` (excluidos en `sonar-project.properties` en H1) y **`60 min` (`9 %`)** provenían de los únicos 3 `CODE_SMELL` del código de aplicación (`typescript:S8786` en `frontend/src/`).<br>- **Tras las correcciones de H2**: la deuda de mantenibilidad (`CODE_SMELL`) en el código de aplicación baja de **`60 min` a `0 min`**, y el esfuerzo total de remediación (sumando `CODE_SMELL + BUG + VULNERABILITY` en `sonar.sources`) baja de **`785 min` (`13 h 05 min`) a `690 min` (`11 h 30 min`)**. |
+| **Cuatro commits atómicos de corrección en H2 (para registrar en H3 como correcciones realizadas)** | 1) **`868e43d`** (`secrets:S8215`, `BLOCKER` en `internal/auth/service.go:23`): se eliminó el literal bcrypt estático `$2a$10$...` de `dummyHash` y se sustituyó por `mustGenerateDummyHash()` en `internal/auth/password.go` con `bcrypt.DefaultCost`, igualando además el factor de trabajo con el de usuarios reales + test `TestLoginUnknownEmailRunsTimingShieldWithoutHardcodedHash`.<br>2) **`bde3686`** (`typescript:S9383` `MAJOR BUG` en `frontend/src/student/StudentData.tsx:35` + 3 `typescript:S8786` `MAJOR CODE_SMELL` en `frontend/src/{config.ts,runtime.ts,lib/markdown.tsx}`): promesa marcada con `void` y funciones lineales $O(n)$ `stripTrailingSlashes`, `parseHeading` y `parseListItem` sin *backtracking* + pruebas en `runtime.test.ts` y `lib.test.tsx`.<br>3) **`28967df`** (`githubactions:S8482` `BLOCKER` en `.github/workflows/ci.yml:85`, `python:S5443` `CRITICAL` en `scripts/g6_linea_de_tiempo.py:41`, 4 `CRITICAL` `go:S4830`/`go:S5527` en `scripts/capacity_escenario2/main.go:333` y `scripts/pilot_escenario2/main.go:105`, y `secrets:S6698` `BLOCKER` en `scripts/migrate.sh:48`): instalación con `go install ...@v1.64.8`, `tempfile.mkdtemp`, validación TLS 1.2 activa por defecto y marcador `<DB_PASSWORD>`.<br>4) **`d469eb6`** (`BUG-DOC-008` / Nota Técnica #13 en `api/openapi.yaml`): completadas las `description` de `PUT /modules/{module_id}` y `PUT /units/{unit_id}`. |
+| **Diagnóstico de `go:S2077` (33 `MAJOR`) y `go:S5332` (1 `MINOR`) para el inventario de H3** | Las 33 alertas de `go:S2077` en `internal/postgres/*.go` concatenan constantes de paquete en tiempo de compilación (`userColumns`, `courseColumns`, `moduleColumns`, `unitColumns`, `resourceColumns`, `snapshotExpr`) mientras el 100 % de los valores de entrada viaja parametrizado en `args...` con `$1..$n` (cero inyección SQL). La alerta `go:S5332` en `internal/mailer/smtp.go:89` corresponde a la conexión local sin credenciales hacia `mailpit`; cuando `m.username != ""` (producción) el código exige TLS/STARTTLS (issue #126). |
+| **Trampa de cobertura `0 %` en workers de Vitest (`v8.takeCoverage()`)** | En Node.js, los *worker threads* que Vitest abre con `tinypool` se cierran con `worker.terminate()` y **no vuelcan `NODE_V8_COVERAGE` a disco** salvo que cada worker ejecute `v8.takeCoverage()` en `afterAll`. Sin [`frontend/scripts/vitest-v8-setup.mjs`](../../frontend/scripts/vitest-v8-setup.mjs) en `test.setupFiles` de [`frontend/vite.config.ts`](../../frontend/vite.config.ts), `coverage/v8` solo contiene los módulos del proceso padre de Vitest (`node_modules`) y `lcov.info` reporta `0 %` en `frontend/src/*`, haciendo fallar el Quality Gate de PR (`Coverage on New Code >= 80 %`). Con `setupFiles: ["./scripts/vitest-v8-setup.mjs"]`, `config.ts`, `runtime.ts` y `lib/markdown.tsx` reportan `100 %` de líneas cubiertas en `lcov.info`. |
+| **Verificador automatizado de H2** | [`scripts/h2_verificar_umbrales_y_hallazgos.sh`](../../scripts/h2_verificar_umbrales_y_hallazgos.sh) comprueba 24 aserciones (`24 OK · 0 FALLA · 0 OBS`) y genera la matriz auditable [`docs/entrega3/evidencias/H2/reporte_h2_estado_hallazgos.json`](evidencias/H2/reporte_h2_estado_hallazgos.json). |
+
+| Issue | Qué tiene que saber |
+| :--- | :--- |
+| **H3** | En `docs/entrega3/deuda-tecnica.md`: 1) distinguir en la sección *Correcciones realizadas durante este ejercicio* los 5 cambios cerrados en H1/H2 (Nota 15 en CI + los 4 commits `868e43d`, `bde3686`, `28967df`, `d469eb6` de H2) frente a los pendientes que integran la línea base final; 2) incluir en el inventario los hallazgos `MAJOR` abiertos de SonarQube (`go:S2077` consolidado por repositorio en `internal/postgres/*.go`, `go:S5332` en `internal/mailer/smtp.go:89`) junto con la deuda arquitectónica, de pruebas y operativa de este documento (notas 20, 23, 24, 25, 27, 44, 52, 54). |
+| **I6** | Al ejecutar el cierre en `main`, sustituir el marcador literal `:CONTRASENA@` por `<DB_PASSWORD>` en `infra/terraform/outputs.tf:138` según el plan `TD-SEC-FP-01` de [`docs/entrega3/evidencias/H2/README.md`](evidencias/H2/README.md). |
+
 
 
