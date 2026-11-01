@@ -51,6 +51,7 @@ lo reemplaza, lo continúa.
 | 49 | [El generador de carga sale de una VM propia, y lo que mide el balanceador contrasta lo que mide JMeter](#49) | **G1**, G3, G4, G5, G6, G7 |
 | 50 | [Un trabajo interrumpido dejaba su carpeta de trabajo en el disco del worker, y nada la limpiaba](#50) | **E3**, C7, G4, G6 |
 | 51 | [El arnés `e2e_cloud` ya registra `X-Instance-ID` y reconcilia trabajos, y `delete-instances` devuelve antes de que acabe el drenaje](#51) | **G3, G5, G6**, I1, I4 |
+| 52 | [Ocho altas simultáneas dejaban ocho eventos de inscripción, y un envío sin clave no es un reintento](#52) | **E2**, G3, G4, I1 |
 
 ---
 
@@ -2099,10 +2100,30 @@ Hallazgos y herramientas que deja cerrados **E1 (#216)** en [`scripts/e2e_cloud/
    - `gcloud compute instance-groups managed list-instances --format="value(instance.scope())"` no sirve para `instances describe`; usar `instance.basename()`.
    - `archived` en asynq no está a 0 (hay 3 de pruebas previas): comparar contra la línea base, no contra 0.
    - `scratch/` no incluye `docs/media/clase.mp4`: pasar `-video scratch/video_corto.mp4` al arnés.
-   - **Desde Windows**, `scripts/e1_integridad_y_retiro.sh` necesita `jq` y `ffmpeg` (`winget install jqlang.jq Gyan.FFmpeg`) y no funciona con `gcloud.cmd`: `cmd.exe` rompe los argumentos con espacios (`--filter="a=1 AND b=2"`) y cada línea sale con ``, así que `instances describe` rechaza el nombre. Se resuelve con un `gcloud` de envoltura que llame al Python incluido (`platform/bundledpython/python.exe lib/gcloud.py`) y pase la salida por `tr -d ''`. Corrió así el 2026-11-01.
+   - **Desde Windows**, `scripts/e1_integridad_y_retiro.sh` necesita `jq` y `ffmpeg` (`winget install jqlang.jq Gyan.FFmpeg`) y no funciona con `gcloud.cmd`: `cmd.exe` rompe los argumentos con espacios (`--filter="a=1 AND b=2"`) y cada línea sale con `\r`, así que `instances describe` rechaza el nombre. Se resuelve con un `gcloud` de envoltura que llame al Python incluido (`platform/bundledpython/python.exe lib/gcloud.py`) y pase la salida por `tr -d '\r'`. Corrió así el 2026-11-01.
 
 | Issue | Qué tiene que saber |
 | :--- | :--- |
 | **G3** | Ejecutar `go run ./scripts/e2e_cloud -salida docs/entrega3/evidencias/G3 -min-instancias 2 -video scratch/video_corto.mp4`: ya genera automáticamente las tablas de reparto por `X-Instance-ID`, continuidad/revocación entre réplicas y reconciliación de trabajos |
 | **G5, G6** | Las retiradas deterministas con `delete-instances` de E1 complementan —y no sustituyen— el ciclo automático de `scale-out` y `scale-in` por carga que deben medir G5 (600 s de estabilización en API) y G6 (900 s de estabilización + 90 s de drenaje en workers) |
 | **I1, I4** | Las tres defensas contra duplicados (1.ª API `ConfirmUpload`, 2.ª Worker `idempotency:worker:` + guarda `completed`, 3.ª prefijo determinista `hls/<stable_id>/`) están documentadas y probadas en [`docs/entrega3/evidencias/E1/README.md`](evidencias/E1/README.md) |
+
+<a id="52"></a>
+## 52. Ocho altas simultáneas dejaban ocho eventos de inscripción, y un envío sin clave no es un reintento
+
+**Afecta a:** E2 (#217), G3 y G4 (cualquier plan de carga que inscriba o envíe quizzes), I1 (documento de arquitectura y operación). Escrito el 2026-11-01.
+
+| Qué | Detalle |
+| :--- | :--- |
+| El defecto | `EnrollmentRepository.Enroll` tomaba `FOR UPDATE` sobre la inscripción para decidir si el evento era `enrollment.created` o `enrollment.reactivated`. En la **primera** inscripción no hay fila que bloquear: ocho solicitudes simultáneas del mismo estudiante leían todas «no existía», una insertaba y las demás esperaban en el índice único para después actualizar lo mismo. La tabla quedaba bien (1 fila) pero el rastro de auditoría tenía **8** `enrollment.created`. Medido en la nube con dos réplicas: [`E2/antes_de_la_correccion/`](evidencias/E2/antes_de_la_correccion/corrida_consistencia.txt) |
+| El arreglo | `pg_advisory_xact_lock(hashtext('enrollment:<estudiante>:<curso>'))` al empezar la transacción. Se suelta al terminar; quien espera relee la fila ya confirmada y no registra nada. Prueba: `TestEnrollmentRepositoryConcurrentFirstEnrollmentIsOneRowAndOneEvent` (necesita `DATABASE_URL`; sin la corrección falla, con ella pasa) |
+| Lo que ya estaba bien | envío del quiz con la misma `Idempotency-Key` (una nota, un intento, un `quiz.submitted`, también reenviado a otra réplica); latidos simultáneos (un avance, una insignia, un `progress.course_completed`); inscripción con clave; lecturas tras escritura iguales en las dos réplicas |
+| **Sin `Idempotency-Key`, dos envíos no son un duplicado** | el servidor no puede distinguir un reintento de un segundo intento deliberado: cada `POST` sin clave consume un intento (3 por defecto). Lo que sí garantiza la base es que **dos simultáneos nunca repiten número de intento** (restricción única; el que pierde recibe `409 quiz_conflict`) y que el historial y la auditoría coinciden con lo aceptado. La interfaz del estudiante siempre manda la clave |
+| El `409 quiz_conflict` es ambiguo | el mismo código y el mismo mensaje cubren «perdiste la carrera por el número de intento» y «no quedan intentos». Un cliente que reintente a ciegas no distingue uno de otro |
+| El catálogo no tiene `ETag` | `api/openapi.yaml` dice que `GET /courses` admite `If-None-Match` y responde 304, pero el manejador no lo implementa; solo el detalle del curso lleva `ETag`. No afecta a la consistencia (no hay nada que pueda servirse viejo) pero la documentación promete más de lo que hay |
+| Cachés locales | ninguna sirve datos de negocio: la sesión y la idempotencia viven en Redis (nota 3), no hay `Cache-Control` en la API ni CDN en el balanceador, y el único mapa en memoria de producción es el almacén de idempotencia del worker, que solo se usa si Redis no responde al arrancar (nota 23, C7) |
+
+| Issue | Qué tiene que saber |
+| :--- | :--- |
+| **G3, G4** | un plan que reenvíe un quiz sin `Idempotency-Key` gasta un intento por petición y a la tercera recibe 409: dar una clave nueva a cada envío deliberado. Un plan que inscriba siempre al mismo estudiante ya no engorda `audit_logs` con una fila por petición |
+| **I1** | la prueba de «mismo envío desde dos réplicas» y sus cifras están en [`evidencias/E2/`](evidencias/E2/README.md) |

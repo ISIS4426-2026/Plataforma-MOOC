@@ -67,6 +67,8 @@ type run struct {
 	jobs    []mediaJob
 	flow    string
 	started time.Time
+	// title encabeza la tabla de resultados; vacio deja el de G3/E1.
+	title string
 }
 
 func (r *run) flowIs(name string) {
@@ -202,7 +204,11 @@ func (r *run) informational() int {
 // writeTable renders the flow -> result -> evidence table the issue asks for.
 func (r *run) writeTable(path, base string) error {
 	var b strings.Builder
-	fmt.Fprintf(&b, "# G3 / E1 — Resultados de la corrida E2E en la nube\n\n")
+	heading := r.title
+	if heading == "" {
+		heading = "G3 / E1 — Resultados de la corrida E2E en la nube"
+	}
+	fmt.Fprintf(&b, "# %s\n\n", heading)
 	fmt.Fprintf(&b, "Generado por `scripts/e2e_cloud` el %s contra `%s`.\n",
 		r.started.Format("2006-01-02 15:04:05 MST"), base)
 	fmt.Fprintf(&b, "No editar a mano: se reescribe en cada corrida.\n\n")
