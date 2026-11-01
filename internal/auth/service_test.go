@@ -380,6 +380,20 @@ func TestLoginRejectsUnknownEmailIndistinguishably(t *testing.T) {
 	}
 }
 
+func TestLoginUnknownEmailRunsTimingShieldWithoutHardcodedHash(t *testing.T) {
+	h := newHarness(t, auth.Config{})
+
+	for _, candidate := range []string{"", "wrong-password", "mooc-timing-shield-not-a-secret"} {
+		_, err := h.service.Login(context.Background(), auth.LoginInput{
+			Email:    "no-registrado@example.test",
+			Password: candidate,
+		})
+		if !errors.Is(err, domain.ErrUnauthorized) {
+			t.Fatalf("expected domain.ErrUnauthorized for password %q, got %v", candidate, err)
+		}
+	}
+}
+
 func TestLoginRejectsSuspendedAccount(t *testing.T) {
 	h := newHarness(t, auth.Config{})
 	user := registerTestUser(t, h)
