@@ -265,10 +265,14 @@
     "trabajos_fallidos_por_s": null
   },
   "balanceador": {
-    "solicitudes_por_clase": {
-      "200": 51
+    "ventana_del_conteo": {
+      "inicio": "2026-11-01T04:47:18Z",
+      "fin": "2026-11-01T04:54:31Z"
     },
-    "solicitudes_totales": 51,
+    "solicitudes_por_clase": {
+      "200": 136
+    },
+    "solicitudes_totales": 136,
     "latencia_total_ms": {
       "p50_por_minuto": {
         "n": 1,

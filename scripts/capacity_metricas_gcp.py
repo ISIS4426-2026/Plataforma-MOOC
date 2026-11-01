@@ -56,6 +56,16 @@ def grupo_de(nombre):
     return "otro"
 
 
+MARGEN_CONTEO_S = 120
+
+
+def desplazar(t, segundos):
+    """'2026-11-01T05:13:02Z' + segundos -> el mismo formato."""
+    from datetime import datetime, timedelta, timezone
+    d = datetime.strptime(t, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc) + timedelta(seconds=segundos)
+    return d.strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
 def minuto(t):
     """'2026-11-01T02:13:00Z' -> '2026-11-01T02:13'. Todas las series se alinean al minuto."""
     return t[:16]
@@ -203,6 +213,8 @@ def autoprueba():
     check(resumen([1.0] * 5)["p95"] is None, "con 5 puntos no se presenta un p95")
     check(resumen([float(i) for i in range(1, 41)])["p95"] is not None, "con 40 puntos si")
     check(minuto("2026-11-01T02:13:00Z") == "2026-11-01T02:13", "alineacion al minuto")
+    check(desplazar("2026-11-01T05:13:02Z", -120) == "2026-11-01T05:11:02Z" and desplazar("2026-11-01T23:59:00Z", 120) == "2026-11-02T00:01:00Z",
+          "el margen de la ventana cruza minutos y dias")
     print("\nTodas las reglas se cumplen." if ok else "\nHay reglas que fallan.")
     return 0 if ok else 1
 
@@ -315,9 +327,15 @@ def recolectar(start, end):
             tabla[t][f"cola_{clave}"] = round(v, 4)
 
     # ---- balanceador: solicitudes por clase y latencia vista desde el balanceador ----
+    # El conteo se lee con MARGEN: Cloud Monitoring entrega un punto por minuto y los que cruzan el borde de la
+    # ventana se descartan, asi que sin margen se pierde el primer y el ultimo minuto de trafico (en la primera
+    # calibracion, 1950 de 2223 solicitudes). Es un conteo de TODO el trafico del balanceador en ese rato: sirve
+    # como cota inferior de lo que envio el generador, no como igualdad (el entorno es compartido).
+    margen_ini, margen_fin = desplazar(start, -MARGEN_CONTEO_S), desplazar(end, MARGEN_CONTEO_S + 120)
+    res["balanceador"]["ventana_del_conteo"] = {"inicio": margen_ini, "fin": margen_fin}
     por_clase = defaultdict(float)
     por_clase_min = defaultdict(lambda: defaultdict(float))
-    for lab, pts in series('metric.type="loadbalancing.googleapis.com/https/request_count"', start, end, aligner="ALIGN_SUM"):
+    for lab, pts in series('metric.type="loadbalancing.googleapis.com/https/request_count"', margen_ini, margen_fin, aligner="ALIGN_SUM"):
         clase = lab.get("response_code_class", "?")
         for t, v in pts:
             por_clase[clase] += v

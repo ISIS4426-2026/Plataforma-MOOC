@@ -1,7 +1,7 @@
 {
   "veredicto": "LIMITADO",
   "razones": [
-    "el balanceador conto 51 de 136 solicitudes (38%): se perdieron antes de salir"
+    "el balanceador conto 136 de 170 solicitudes (80%): se perdieron antes de salir"
   ],
   "medidas": {
     "generador_cpu_pct_de_un_nucleo": {
@@ -25,9 +25,9 @@
       "brecha_p95_ms": 173.3
     },
     "solicitudes": {
-      "enviadas_por_el_generador": 136,
-      "contadas_por_el_balanceador": 51,
-      "ratio": 0.375,
+      "enviadas_por_el_generador": 170,
+      "contadas_por_el_balanceador": 136,
+      "ratio": 0.8,
       "minimo": 0.95
     }
   },
