@@ -50,6 +50,7 @@ lo reemplaza, lo continúa.
 | 48 | [Un estudiante inscrito no puede abrir un PDF, una imagen ni un archivo descargable](#48) | **D2, D5**, G1, A5 |
 | 49 | [El generador de carga sale de una VM propia, y lo que mide el balanceador contrasta lo que mide JMeter](#49) | **G1**, G3, G4, G5, G6, G7 |
 | 50 | [Un trabajo interrumpido dejaba su carpeta de trabajo en el disco del worker, y nada la limpiaba](#50) | **E3**, C7, G4, G6 |
+| 51 | [El arnés `e2e_cloud` ya registra `X-Instance-ID` y reconcilia trabajos, y `delete-instances` devuelve antes de que acabe el drenaje](#51) | **G3, G5, G6**, I1, I4 |
 
 ---
 
@@ -2075,3 +2076,33 @@ ninguna ruta de lectura para el estudiante**, y el enunciado pide «consumir con
 | La suposición | el directorio de trabajo es de **un** worker. Si algún día dos contenedores comparten volumen, el barrido de uno borraría el trabajo en curso del otro |
 | Para G4 y G6 | un video largo procesado con un drenaje corto es exactamente el caso que lo provoca. Si una corrida mata workers, el log del siguiente arranque dice cuántas carpetas y cuántos MB se liberaron |
 | Lo que no cambia | no hay ninguna copia local que sea la única fuente de un dato de negocio: el original está en el bucket y las renditions se regeneran |
+
+<a id="51"></a>
+## 51. El arnés `e2e_cloud` ya registra `X-Instance-ID` y reconcilia trabajos, y `delete-instances` devuelve antes de que acabe el drenaje
+
+**Afecta a:** G3 (recorrido extremo a extremo contra la arquitectura elástica), G5 y G6 (ciclo elástico bajo carga de API y workers), I1 (documento de arquitectura y operación) e I4 (vídeo de sustentación).
+
+Hallazgos y herramientas que deja cerrados **E1 (#216)** en [`scripts/e2e_cloud/`](../../scripts/e2e_cloud/main.go), [`scripts/e1_integridad_y_retiro.sh`](../../scripts/e1_integridad_y_retiro.sh) y [`docs/entrega3/evidencias/E1/README.md`](evidencias/E1/README.md):
+
+1. **`scripts/e2e_cloud` registra `X-Instance-ID` y `X-Request-ID` en cada petición y soporta `-min-instancias`**:
+   - Cada fila de `resultados.md` incluye las columnas `Instancia (X-Instance-ID)` y `X-Request-ID`, además de una tabla resumen inicial con el reparto de peticiones por réplica y una tabla final de **Reconciliación de trabajos multimedia aceptados** (cruzando cada `202 Accepted` de `POST /api/v1/media/uploads/{id}/complete` con su estado final y sus derivados en GCS).
+   - La bandera `-min-instancias` vale `1` por omisión (para no fallar si alguien corre el arnés contra una sola réplica), pero en **E1** y **G3** debe invocarse con `-min-instancias 2` cuando `mooc-api-group` tiene dos o más instancias activas.
+2. **Presupuesto del limitador de login (10 intentos/min/IP) en pruebas multi-réplica**:
+   - El Flujo 1 de `scripts/e2e_cloud` ya consume 5 inicios de sesión. Para probar continuidad de sesión, `logout` y suspensión entre réplicas en el Flujo 7 sin disparar `429 Too Many Requests` del limitador por IP, el arnés reutiliza las sesiones ya abiertas de `student` y `professor2` y solo realiza **un** login adicional con `estudiante2@plataforma-mooc.test` (`c0000000-0000-0000-0000-000000000002`), dejando la cuenta reactivada (`status="active"`) al terminar.
+3. **`gcloud compute instance-groups managed delete-instances` retorna en ~4 s, no al terminar el drenaje**:
+   - Al retirar un worker con trabajo activo (`delete-instances mooc-worker-group --instances=<nombre>`), la llamada a la API de GCP devuelve `SUCCESS` en ~4 s mientras la VM permanece en estado `DELETING` durante ~102 s ejecutando los 90 s de `WORKER_DRAIN_TIMEOUT`.
+   - Un guion que deje de muestrear Redis cuando `gcloud` termina nunca verá el `requeue`: hay que seguir sondeando `mooc-queue-server` (`redis-cli -n 0`, que corre como servicio del sistema en esa VM y no dentro de Docker) durante ~105–150 s hasta observar que la tarea pasa de `asynq:{default}:active` a `asynq:{default}:pending` con `retry=0` (y `ZCARD asynq:{default}:retry == 0`).
+
+4. **Trampas descubiertas al ejecutar `scripts/e1_integridad_y_retiro.sh` (reutilizables en G5, G6 y G3)**:
+   - Las cuentas sembradas son `estudiante1@` y `profesor1@` (no `estudiante@`). Rutas reales: `GET /api/v1/me/enrollments` (no hay `/my/…` ni endpoint de certificados), `POST /api/v1/media/presigned-url` (`filename`, `mime_type`, `file_size_bytes`) y `POST /api/v1/media/uploads/{resourceID}/complete` **con** cuerpo `{"object_key": …}`; los recursos se crean con `type`, no `kind`.
+   - Con `api_min_replicas=1`, restaurar el mínimo tras fijar 2 hace que el autoescalador borre una réplica de inmediato, aunque `scale_in_control` diga 600 s (nota 43): una corrida fallida deja una VM en `DELETING` que la siguiente cuenta como sana. El script espera instancias `RUNNING` con `currentAction=NONE` y restaura el mínimo con `trap EXIT`.
+   - `gcloud compute instance-groups managed list-instances --format="value(instance.scope())"` no sirve para `instances describe`; usar `instance.basename()`.
+   - `archived` en asynq no está a 0 (hay 3 de pruebas previas): comparar contra la línea base, no contra 0.
+   - `scratch/` no incluye `docs/media/clase.mp4`: pasar `-video scratch/video_corto.mp4` al arnés.
+   - **Desde Windows**, `scripts/e1_integridad_y_retiro.sh` necesita `jq` y `ffmpeg` (`winget install jqlang.jq Gyan.FFmpeg`) y no funciona con `gcloud.cmd`: `cmd.exe` rompe los argumentos con espacios (`--filter="a=1 AND b=2"`) y cada línea sale con ``, así que `instances describe` rechaza el nombre. Se resuelve con un `gcloud` de envoltura que llame al Python incluido (`platform/bundledpython/python.exe lib/gcloud.py`) y pase la salida por `tr -d ''`. Corrió así el 2026-11-01.
+
+| Issue | Qué tiene que saber |
+| :--- | :--- |
+| **G3** | Ejecutar `go run ./scripts/e2e_cloud -salida docs/entrega3/evidencias/G3 -min-instancias 2 -video scratch/video_corto.mp4`: ya genera automáticamente las tablas de reparto por `X-Instance-ID`, continuidad/revocación entre réplicas y reconciliación de trabajos |
+| **G5, G6** | Las retiradas deterministas con `delete-instances` de E1 complementan —y no sustituyen— el ciclo automático de `scale-out` y `scale-in` por carga que deben medir G5 (600 s de estabilización en API) y G6 (900 s de estabilización + 90 s de drenaje en workers) |
+| **I1, I4** | Las tres defensas contra duplicados (1.ª API `ConfirmUpload`, 2.ª Worker `idempotency:worker:` + guarda `completed`, 3.ª prefijo determinista `hls/<stable_id>/`) están documentadas y probadas en [`docs/entrega3/evidencias/E1/README.md`](evidencias/E1/README.md) |

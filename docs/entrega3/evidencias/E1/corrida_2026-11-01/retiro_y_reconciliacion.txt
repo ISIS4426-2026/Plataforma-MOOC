@@ -1,0 +1,138 @@
+[2026-11-01T08:16:12Z] ======================================================================
+[2026-11-01T08:16:12Z] E1 (#216) — Integridad de estado compartido, continuidad y retiro bajo tráfico
+[2026-11-01T08:16:12Z] Proyecto: plataforma-mooc-entrega2 | Zona: us-east1-b | URL: https://136.68.55.254.sslip.io
+[2026-11-01T08:16:12Z] Directorio de evidencia: docs/entrega3/evidencias/E1/corrida_2026-11-01
+[2026-11-01T08:16:12Z] ======================================================================
+[2026-11-01T08:16:13Z] --- Fase 0: Comprobación de afinidad de sesión e inventario inicial ---
+[2026-11-01T08:16:38Z] OK: El backend service mooc-api-backend tiene sessionAffinity=NONE (NONE)
+[2026-11-01T08:16:39Z] OK: El backend service mooc-api-backend tiene connection_draining_timeout_sec=60 (60)
+[2026-11-01T08:16:52Z] El grupo mooc-api-group tiene 1 instancia(s); ajustando min-num-replicas=2 en el autoescalador para E1...
+Updated [https://www.googleapis.com/compute/v1/projects/plataforma-mooc-entrega2/zones/us-east1-b/autoscalers/mooc-api-autoscaler].
+---
+autoscalingPolicy:
+  coolDownPeriodSec: 300
+  loadBalancingUtilization:
+    utilizationTarget: 0.8
+  maxNumReplicas: 3
+  minNumReplicas: 2
+  mode: ON
+  scaleInControl:
+    maxScaledInReplicas:
+      fixed: 1
+    timeWindowSec: 600
+creationTimestamp: '2026-10-29T12:11:58.672-07:00'
+description: Autoescalado de la API por peticiones por instancia (C2)
+id: '3799576940651619473'
+kind: compute#autoscaler
+name: mooc-api-autoscaler
+selfLink: https://www.googleapis.com/compute/v1/projects/plataforma-mooc-entrega2/zones/us-east1-b/autoscalers/mooc-api-autoscaler
+status: ACTIVE
+target: https://www.googleapis.com/compute/v1/projects/plataforma-mooc-entrega2/zones/us-east1-b/instanceGroupManagers/mooc-api-group
+zone: https://www.googleapis.com/compute/v1/projects/plataforma-mooc-entrega2/zones/us-east1-b
+[2026-11-01T08:17:00Z] Esperando a que la segunda réplica de mooc-api-group esté RUNNING y atienda tráfico en el balanceador...
+[2026-11-01T08:19:15Z] OK: Dos instancias distintas responden ya en https://136.68.55.254.sslip.io/api/v1/ready
+[2026-11-01T08:19:15Z] OK: Réplicas RUNNING en mooc-api-group (2 >= 2)
+[2026-11-01T08:19:15Z] Inventario inicial de mooc-api-group:
+[2026-11-01T08:19:23Z]   API VM: name=mooc-api-211d id=8170015814293609935 creationTimestamp=2026-10-31T23:58:40.622-07:00
+[2026-11-01T08:19:31Z]   API VM: name=mooc-api-4q78 id=3569431874009516906 creationTimestamp=2026-11-01T01:17:10.050-07:00
+[2026-11-01T08:19:31Z] Inventario inicial de mooc-worker-group:
+[2026-11-01T08:19:38Z] OK: Réplicas RUNNING en mooc-worker-group (1 >= 1)
+[2026-11-01T08:19:43Z]   Worker VM: name=mooc-worker-55d2 id=895532445523992037 creationTimestamp=2026-10-31T23:58:18.686-07:00
+[2026-11-01T08:19:43Z] --- Fase 1: Ejecución de scripts/e2e_cloud con registro de X-Instance-ID ---
+[2026-11-01T08:21:17Z] OK: scripts/e2e_cloud completó los 8 flujos sin fallos (ver docs/entrega3/evidencias/E1/corrida_2026-11-01/resultados.md y docs/entrega3/evidencias/E1/corrida_2026-11-01/corrida_e2e_cloud.txt)
+[2026-11-01T08:21:17Z] --- Fase 2: Retiro determinista de una instancia de API bajo tráfico ---
+[2026-11-01T08:21:32Z] Instancia de API seleccionada para retiro: mooc-api-211d (id=8170015814293609935, creationTimestamp=2026-10-31T23:58:40.622-07:00)
+[2026-11-01T08:21:37Z] Estado de negocio ANTES del retiro de mooc-api-211d: cursos_publicados=13, inscripciones_estudiante=13, curso_testigo_pre=676bbff8-f3a0-4ef5-bdea-9483c9f5613d
+[2026-11-01T08:21:37Z] Enviando 10 peticiones previas al retiro para registrar reparto inicial...
+[2026-11-01T08:21:57Z] Ejecutando retiro determinista de la instancia de API mooc-api-211d bajo tráfico...
+Updated [https://www.googleapis.com/compute/v1/projects/plataforma-mooc-entrega2/zones/us-east1-b/instanceGroupManagers/mooc-api-group].
+[2026-11-01T08:22:12Z] Escritura de negocio en pleno retiro de mooc-api-211d: course_id=2e78937f-0a01-42da-8594-75694b932d3e
+PROJECT                   ZONE        INSTANCE       STATUS
+plataforma-mooc-entrega2  us-east1-b  mooc-api-211d  SUCCESS
+[2026-11-01T08:23:33Z] Comando delete-instances sobre mooc-api-211d retornó 0. Esperando reemplazo en mooc-api-group para mantener 2 réplicas...
+[2026-11-01T08:24:00Z] OK: Instancia de reemplazo en mooc-api-group: name=mooc-api-7xnx id=2888537321161574440 creationTimestamp=2026-11-01T01:22:31.484-07:00 (reemplazó a mooc-api-211d id=8170015814293609935)
+[2026-11-01T08:24:00Z] Sondeando peticiones post-reemplazo hasta que la nueva instancia (mooc-api-7xnx) atienda tráfico...
+[2026-11-01T08:26:23Z] Resumen de tráfico durante retiro y reemplazo de API: 85/85 respuestas 200 OK. Distribución por X-Instance-ID:      63 7cd19d976ef6;     15 b3677a6a89f1;      7 c8f5675e6b41
+[2026-11-01T08:26:23Z] OK: 100% de las peticiones en vuelo durante el retiro de API respondieron 200 OK sin cortes (85)
+[2026-11-01T08:26:26Z] OK: Conteo de catálogo público intacto tras retiro de API (13)
+[2026-11-01T08:26:26Z] OK: Inscripciones del estudiante intactas tras retiro de API (13)
+[2026-11-01T08:26:26Z] OK: Curso testigo pre-retiro persistido sin pérdida (676bbff8-f3a0-4ef5-bdea-9483c9f5613d)
+[2026-11-01T08:26:27Z] OK: Curso testigo creado en vuelo durante retiro persistido sin pérdida (2e78937f-0a01-42da-8594-75694b932d3e)
+[2026-11-01T08:26:27Z] --- Fase 3: Retiro de un worker con trabajo activo bajo tráfico y reconciliación en Redis ---
+[2026-11-01T08:26:42Z] OK: Al menos un worker RUNNING antes de la prueba de retiro (1 >= 1)
+[2026-11-01T08:26:52Z] Worker seleccionado para retiro con trabajo activo: mooc-worker-55d2 (id=895532445523992037, creationTimestamp=2026-10-31T23:58:18.686-07:00)
+[2026-11-01T08:26:55Z] Recursos creados para reconciliación bajo retiro de worker:
+[2026-11-01T08:26:55Z]   Video E1-A: id=d0acd1c8-6e7f-480c-bd3f-e4102e1b0354 stable_id=295e2687-dd55-4900-8c7d-4f82fb1eee1a
+[2026-11-01T08:26:55Z]   Video E1-B: id=3336f3b7-b01a-4d3b-aa2a-69838516ea89 stable_id=7ec10cd3-0124-4d40-9308-12f420906ccd
+[2026-11-01T08:26:56Z] Generando scratch/video_e1_drenaje.mp4 (240 s a 1280x720)...
+[2026-11-01T08:28:04Z] OK: Confirmación de subida de Video E1-A (240s) aceptada (202) por b3677a6a89f1 (req=499a3f08-cc9d-4ebd-bb0d-f5a23d6f9cc8) (202)
+[2026-11-01T08:28:04Z] OK: Confirmación de subida de Video E1-B (8s) aceptada (202) por b3677a6a89f1 (req=ad50cf8c-0700-4f79-a2f7-5895d10de638) (202)
+[2026-11-01T08:28:21Z] Redis pre-retiro: active=1 pending=0 retry=0 archived=3 idempotency_keys=11
+[2026-11-01T08:28:21Z] OK: El worker mooc-worker-55d2 tiene un trabajo activo en vuelo (asynq:{default}:active >= 1) (1 >= 1)
+[2026-11-01T08:28:22Z] Ejecutando retiro determinista del worker mooc-worker-55d2 con trabajo activo...
+Updated [https://www.googleapis.com/compute/v1/projects/plataforma-mooc-entrega2/zones/us-east1-b/instanceGroupManagers/mooc-worker-group].
+PROJECT                   ZONE        INSTANCE          STATUS
+plataforma-mooc-entrega2  us-east1-b  mooc-worker-55d2  SUCCESS
+[2026-11-01T08:28:33Z] Solicitud delete-instances aceptada por el MIG. Sondeando Redis cada 5 s durante la ventana de drenaje (~90-105 s)...
+[2026-11-01T08:28:50Z] Redis durante drenaje (29s): active=1 pending=0 retry=0 archived=3 idemp=11
+[2026-11-01T08:29:09Z] Redis durante drenaje (48s): active=1 pending=0 retry=0 archived=3 idemp=11
+[2026-11-01T08:29:28Z] Redis durante drenaje (67s): active=1 pending=0 retry=0 archived=3 idemp=11
+[2026-11-01T08:29:47Z] Redis durante drenaje (86s): active=1 pending=0 retry=0 archived=3 idemp=11
+[2026-11-01T08:30:05Z] Redis durante drenaje (104s): active=1 pending=0 retry=0 archived=3 idemp=11
+[2026-11-01T08:30:24Z] Redis durante drenaje (123s): active=0 pending=1 retry=0 archived=3 idemp=11
+[2026-11-01T08:30:24Z] OK: Tarea en vuelo devuelta a asynq:{default}:pending con retry=0 a los 123s del delete-instances
+[2026-11-01T08:30:24Z] OK: Ninguna tarea cayó en asynq:{default}:retry por muerte súbita (drenaje limpio requeue -> pending con retry=0) (0)
+[2026-11-01T08:30:24Z] OK: Ninguna tarea nueva cayó en asynq:{default}:archived (línea base 3) (3)
+[2026-11-01T08:30:24Z] OK: La tarea activa regresó a asynq:{default}:pending con retry=0 tras el drenaje (1)
+[2026-11-01T08:30:24Z] Esperando a que el worker de reemplazo en mooc-worker-group arranque y complete los trabajos reencolados...
+[2026-11-01T08:30:51Z] Redis post-reemplazo: active=1 pending=0 retry=0 archived=3 idemp=11 (worker_nuevo=mooc-worker-6l1m id=831034625287210710)
+[2026-11-01T08:31:22Z] Redis post-reemplazo: active=1 pending=0 retry=0 archived=3 idemp=11 (worker_nuevo=mooc-worker-6l1m id=831034625287210710)
+[2026-11-01T08:32:02Z] Redis post-reemplazo: active=1 pending=0 retry=0 archived=3 idemp=11 (worker_nuevo=mooc-worker-6l1m id=831034625287210710)
+[2026-11-01T08:32:40Z] Redis post-reemplazo: active=1 pending=0 retry=0 archived=3 idemp=11 (worker_nuevo=mooc-worker-6l1m id=831034625287210710)
+[2026-11-01T08:33:30Z] Redis post-reemplazo: active=1 pending=0 retry=0 archived=3 idemp=11 (worker_nuevo=mooc-worker-6l1m id=831034625287210710)
+[2026-11-01T08:34:13Z] Redis post-reemplazo: active=1 pending=0 retry=0 archived=3 idemp=11 (worker_nuevo=mooc-worker-6l1m id=831034625287210710)
+[2026-11-01T08:34:50Z] Redis post-reemplazo: active=0 pending=0 retry=0 archived=3 idemp=12 (worker_nuevo=mooc-worker-6l1m id=831034625287210710)
+[2026-11-01T08:34:50Z] OK: Worker de reemplazo verificado: name=mooc-worker-6l1m id=831034625287210710 creationTimestamp=2026-11-01T01:28:41.233-07:00 (reemplazó a mooc-worker-55d2 id=895532445523992037)
+[2026-11-01T08:34:50Z] OK: Cola active vacía tras completar el lote en el worker de reemplazo (0)
+[2026-11-01T08:34:50Z] OK: Cola pending vacía tras completar el lote en el worker de reemplazo (0)
+[2026-11-01T08:34:50Z] OK: Cola retry en 0 durante toda la recuperación (0)
+[2026-11-01T08:34:50Z] OK: Cola archived sin aumentar (cero pérdidas; línea base 3) (3)
+[2026-11-01T08:34:50Z] --- Fase 4: Verificación de las tres defensas contra efectos duplicados y reconciliación ---
+[2026-11-01T08:34:52Z] OK: Video E1-A (d0acd1c8-6e7f-480c-bd3f-e4102e1b0354) alcanzó processing_status=completed (completed)
+[2026-11-01T08:34:52Z] OK: Video E1-B (3336f3b7-b01a-4d3b-aa2a-69838516ea89) alcanzó processing_status=completed (completed)
+[2026-11-01T08:35:21Z] OK: Defensa 1 (API ConfirmUpload): POST /complete repetido devuelve processing_status=completed sin mutar estado (completed)
+[2026-11-01T08:35:21Z] OK: Defensa 1 (API ConfirmUpload): POST /complete repetido no encola tarea nueva en asynq:{default}:pending (0)
+[2026-11-01T08:35:21Z] OK: Defensa 2 (Worker idempotency): llaves idempotency:worker:* registradas en Redis compartido (12 >= 2)
+[2026-11-01T08:36:22Z] OK: Defensa 3 (Prefijo HLS determinista): único master.m3u8 en gs://plataforma-mooc-entrega2-hls/hls/295e2687-dd55-4900-8c7d-4f82fb1eee1a/ (1)
+[2026-11-01T08:36:22Z] OK: Defensa 3 (Prefijo HLS determinista): único master.m3u8 en gs://plataforma-mooc-entrega2-hls/hls/7ec10cd3-0124-4d40-9308-12f420906ccd/ (1)
+[2026-11-01T08:36:23Z] Objetos HLS reconciliados en GCS: hls/295e2687-dd55-4900-8c7d-4f82fb1eee1a/=71 objetos, hls/7ec10cd3-0124-4d40-9308-12f420906ccd/=4 objetos
+[2026-11-01T08:36:23Z] ======================================================================
+[2026-11-01T08:36:23Z] RESULTADO GLOBAL E1 (#216): TODAS LAS COMPROBACIONES SUPERADAS
+[2026-11-01T08:36:23Z]   - sessionAffinity=NONE verificada en mooc-api-backend
+[2026-11-01T08:36:23Z]   - Continuidad de sesión, logout y suspensión probadas entre réplicas (ver docs/entrega3/evidencias/E1/corrida_2026-11-01/resultados.md)
+[2026-11-01T08:36:24Z]   - Retiro de instancia API (mooc-api-211d id=8170015814293609935 -> mooc-api-7xnx id=2888537321161574440): 85/85 200 OK, 0 pérdida de datos
+[2026-11-01T08:36:24Z]   - Retiro de worker activo (mooc-worker-55d2 id=895532445523992037 -> mooc-worker-6l1m id=831034625287210710): drenaje en 123s, requeue a pending con retry=0, 0 pérdidas y 0 duplicados
+[2026-11-01T08:36:24Z] ======================================================================
+[2026-11-01T08:36:24Z] Restaurando min-num-replicas=1 en mooc-api-group (valor de Terraform)
+Updated [https://www.googleapis.com/compute/v1/projects/plataforma-mooc-entrega2/zones/us-east1-b/autoscalers/mooc-api-autoscaler].
+---
+autoscalingPolicy:
+  coolDownPeriodSec: 300
+  loadBalancingUtilization:
+    utilizationTarget: 0.8
+  maxNumReplicas: 3
+  minNumReplicas: 1
+  mode: ON
+  scaleInControl:
+    maxScaledInReplicas:
+      fixed: 1
+    timeWindowSec: 600
+creationTimestamp: '2026-10-29T12:11:58.672-07:00'
+description: Autoescalado de la API por peticiones por instancia (C2)
+id: '3799576940651619473'
+kind: compute#autoscaler
+name: mooc-api-autoscaler
+selfLink: https://www.googleapis.com/compute/v1/projects/plataforma-mooc-entrega2/zones/us-east1-b/autoscalers/mooc-api-autoscaler
+status: ACTIVE
+target: https://www.googleapis.com/compute/v1/projects/plataforma-mooc-entrega2/zones/us-east1-b/instanceGroupManagers/mooc-api-group
+zone: https://www.googleapis.com/compute/v1/projects/plataforma-mooc-entrega2/zones/us-east1-b

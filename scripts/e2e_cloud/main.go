@@ -23,6 +23,7 @@ package main
 
 import (
 	"bytes"
+	"cmp"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -47,6 +48,8 @@ const (
 	professorEmail  = "profesor1@plataforma-mooc.test"
 	professor2Email = "profesor2@plataforma-mooc.test"
 	studentEmail    = "estudiante1@plataforma-mooc.test"
+	student2Email   = "estudiante2@plataforma-mooc.test"
+	student2ID      = "c0000000-0000-0000-0000-000000000002"
 )
 
 func main() {
@@ -60,8 +63,9 @@ func main() {
 		// La evidencia de la Entrega 2 esta congelada: es el registro que se
 		// califico. Una corrida de hoy tiene mas pasos que aquella, asi que
 		// escribe en la entrega en curso y no sobre docs/entrega2/evidencias/G3.
-		outDir = flag.String("salida", "docs/entrega3/evidencias/correcciones-entrega1", "directorio donde se escribe la evidencia")
-		wait   = flag.Duration("espera", 4*time.Minute, "cuánto esperar a que el worker termine la transcodificación")
+		outDir        = flag.String("salida", "docs/entrega3/evidencias/correcciones-entrega1", "directorio donde se escribe la evidencia")
+		wait          = flag.Duration("espera", 4*time.Minute, "cuánto esperar a que el worker termine la transcodificación")
+		minInstancias = flag.Int("min-instancias", 1, "mínimo de instancias distintas (X-Instance-ID) que deben atender una misma sesión (2 para E1/C4)")
 	)
 	flag.Parse()
 
@@ -120,12 +124,13 @@ func main() {
 		started: time.Now(),
 	}
 
-	fmt.Fprintf(r.log, "G3 — E2E de flujos críticos en la nube\n")
+	fmt.Fprintf(r.log, "G3 / E1 — E2E de flujos críticos e integridad en la nube\n")
 	fmt.Fprintf(r.log, "Origen  : %s\n", origin)
 	fmt.Fprintf(r.log, "Bucket  : %s\n", *bucket)
+	fmt.Fprintf(r.log, "Réplicas: mín. %d exigida(s)\n", *minInstancias)
 	fmt.Fprintf(r.log, "Inicio  : %s\n", r.started.Format(time.RFC3339))
 
-	journey(r, *bucket, *hlsBucket, video, doc, img, *wait)
+	journey(r, *bucket, *hlsBucket, video, doc, img, *wait, *minInstancias)
 
 	tablePath := filepath.Join(root, filepath.FromSlash(*outDir), "resultados.md")
 	if err := r.writeTable(tablePath, origin); err != nil {
@@ -133,6 +138,13 @@ func main() {
 	}
 
 	fmt.Fprintf(r.log, "\n===============================================\n")
+	if stats := r.instanceCounts(); len(stats) > 0 {
+		var parts []string
+		for _, st := range stats {
+			parts = append(parts, fmt.Sprintf("%s:%d", st.ID, st.Count))
+		}
+		fmt.Fprintf(r.log, "Instancias observadas (X-Instance-ID): %s\n", strings.Join(parts, " · "))
+	}
 	fmt.Fprintf(r.log, "Pasos verificados: %d · fallos: %d · fuera de alcance: %d · duración: %s\n",
 		len(r.steps)-r.informational(), r.failed(), r.informational(),
 		time.Since(r.started).Round(time.Second))
@@ -144,9 +156,9 @@ func main() {
 	}
 }
 
-// journey walks the six flows in the order a real course lives through them, so
+// journey walks the flows in the order a real course lives through them, so
 // each one inherits the state the previous one left behind.
-func journey(r *run, bucket, hlsBucket string, video, doc, img []byte, wait time.Duration) {
+func journey(r *run, bucket, hlsBucket string, video, doc, img []byte, wait time.Duration, minInstancias int) {
 	bucketOrigin := "https://storage.googleapis.com/" + bucket
 	// Los derivados viven en su propio bucket, que es el unico publico (#167).
 	hlsOrigin := "https://storage.googleapis.com/" + hlsBucket
@@ -461,6 +473,8 @@ func journey(r *run, bucket, hlsBucket string, video, doc, img []byte, wait time
 	res = r.api.do("POST", "/api/v1/media/uploads/"+videoRes.ID+"/complete", professor,
 		map[string]any{"object_key": presigned.ObjectKey}, nil)
 	_ = res.into(&confirmed)
+	videoCompleteInst := res.instanceID()
+	videoCompleteReq := res.requestID()
 	r.check("Confirmar la carga registra el objeto y encola el procesamiento", res, 202,
 		fmt.Sprintf("processing_status=%q object_key registrado", confirmed.ProcessingStatus),
 		confirmed.ObjectKey == presigned.ObjectKey && confirmed.ProcessingStatus == "pending")
@@ -520,9 +534,23 @@ func journey(r *run, bucket, hlsBucket string, video, doc, img []byte, wait time
 	master := hlsOrigin + "/" + storage.HLSMasterKey(videoRes.StableID)
 	res = r.api.absolute("GET", master, nil, nil)
 	body := string(res.body)
+	hlsOK := res.err == nil && res.status == 200 && strings.Contains(body, "#EXT-X-STREAM-INF")
 	r.check("Un reproductor consume el manifiesto HLS sin firma", res, 200,
 		"el maestro declara sus variantes por ruta relativa",
 		strings.Contains(body, "#EXT-X-STREAM-INF"))
+
+	r.recordJob(mediaJob{
+		ResourceID:  videoRes.ID,
+		StableID:    videoRes.StableID,
+		Kind:        "video",
+		ObjectKey:   presigned.ObjectKey,
+		Instance:    videoCompleteInst,
+		RequestID:   videoCompleteReq,
+		FinalStatus: final,
+		Elapsed:     elapsed,
+		Derivatives: fmt.Sprintf("HLS %s (200=%v)", storage.HLSMasterKey(videoRes.StableID), hlsOK),
+		Reconciled:  final == "completed" && hlsOK,
+	})
 
 	// ---- documentos e imágenes ---------------------------------------------
 	//
@@ -587,6 +615,8 @@ func journey(r *run, bucket, hlsBucket string, video, doc, img []byte, wait time
 		res = r.api.do("POST", "/api/v1/media/uploads/"+recurso.ID+"/complete", professor,
 			map[string]any{"object_key": firma.ObjectKey}, nil)
 		_ = res.into(&confirmado)
+		docCompleteInst := res.instanceID()
+		docCompleteReq := res.requestID()
 		r.check(fmt.Sprintf("Confirmar la carga del %s encola su procesamiento", d.etiqueta), res, 202,
 			fmt.Sprintf("processing_status=%q", confirmado.ProcessingStatus),
 			confirmado.ProcessingStatus == "pending")
@@ -604,21 +634,36 @@ func journey(r *run, bucket, hlsBucket string, video, doc, img []byte, wait time
 		}
 		res = r.api.do("GET", "/api/v1/media/resources/"+recurso.ID+"/download-url", professor, nil, nil)
 		_ = res.into(&descarga)
+		leidoOK := false
 		if r.check(fmt.Sprintf("El autor obtiene URL firmada de lectura del %s", d.etiqueta), res, 200,
 			"la URL lleva firma V4", strings.Contains(descarga.DownloadURL, "X-Goog-Signature")) &&
 			descarga.DownloadURL != "" {
 
 			res = r.api.absolute("GET", descarga.DownloadURL, nil, nil)
+			leidoOK = res.err == nil && res.status == 200 && res.header.Get("Content-Length") == fmt.Sprint(len(d.bytes))
 			r.check(fmt.Sprintf("El %s se lee con la firma y devuelve los bytes subidos", d.etiqueta),
 				res, 200,
 				fmt.Sprintf("Content-Length=%s frente a %d subidos",
 					res.header.Get("Content-Length"), len(d.bytes)),
-				res.header.Get("Content-Length") == fmt.Sprint(len(d.bytes)))
+				leidoOK)
 		}
 
 		res = r.api.absolute("GET", bucketOrigin+"/"+firma.ObjectKey, nil, nil)
 		r.check(fmt.Sprintf("El mismo %s sin firma es inaccesible", d.etiqueta), res, 403,
 			fmt.Sprintf("el prefijo %s no es legible de forma anónima", d.prefijo), res.err == nil)
+
+		r.recordJob(mediaJob{
+			ResourceID:  recurso.ID,
+			StableID:    recurso.StableID,
+			Kind:        d.tipo,
+			ObjectKey:   firma.ObjectKey,
+			Instance:    docCompleteInst,
+			RequestID:   docCompleteReq,
+			FinalStatus: estado,
+			Elapsed:     tardo,
+			Derivatives: fmt.Sprintf("objeto verificado (%d B, lectura=%v)", len(d.bytes), leidoOK),
+			Reconciled:  estado == "completed" && leidoOK,
+		})
 	}
 
 	// ---- publicación -------------------------------------------------------
@@ -907,6 +952,120 @@ func journey(r *run, bucket, hlsBucket string, video, doc, img []byte, wait time
 	res = r.api.do("GET", "/api/v1/badges/verify/00000000-0000-0000-0000-000000000000", "", nil, nil)
 	r.check("Un código inexistente no confirma ni niega nada más que el 404", res, 404,
 		fmt.Sprintf("code=%q", res.errorCode()), res.errorCode() == "not_found")
+
+	// ---- 7. continuidad de sesion, revocacion y suspension (E1) ------------
+
+	r.flowIs("7. Continuidad de sesión, revocación y suspensión entre réplicas (E1)")
+
+	// 7.1 Peticiones sucesivas de una misma sesion atendidas por instancias
+	// distintas funcionan sin reautenticar.
+	studentInsts, lastStudentRes, allStudentOK := probeSessionAcrossInstances(r, student, minInstancias, 30)
+	r.check("Peticiones sucesivas de la misma sesión atendidas por instancias distintas sin reautenticar",
+		lastStudentRes, 200,
+		fmt.Sprintf("%d instancia(s) distinta(s) atendieron la sesión: %s (mín. exigido=%d)",
+			len(studentInsts), formatInstanceMap(studentInsts), minInstancias),
+		allStudentOK && len(studentInsts) >= minInstancias)
+
+	// 7.2 Logout en una instancia invalida la sesion en todas las demas.
+	// Reutilizamos la sesion de professor2 ya emitida en el flujo 1 (ahorra
+	// presupuesto del limitador de login de 10 intentos/min/IP). Primero
+	// calentamos la sesion en las replicas activas para demostrar que no se
+	// queda cacheada en ninguna tras el logout.
+	warmProf2Insts, warmProf2Res, allWarmProf2OK := probeSessionAcrossInstances(r, professor2, minInstancias, 30)
+	r.check("La sesión de profesor2 opera y calienta caché en las réplicas antes del logout",
+		warmProf2Res, 200,
+		fmt.Sprintf("200 en %d instancia(s): %s", len(warmProf2Insts), formatInstanceMap(warmProf2Insts)),
+		allWarmProf2OK && len(warmProf2Insts) >= minInstancias)
+
+	res = r.api.do("POST", "/api/v1/auth/logout", professor2, nil, nil)
+	logoutInst := res.instanceID()
+	r.check("Logout revoca la sesión en la instancia que lo recibe y en la caché compartida",
+		res, 204,
+		fmt.Sprintf("204 procesado por X-Instance-ID=%q", logoutInst),
+		true)
+
+	postLogoutInsts, postLogoutRes, allLogout401, totalLogoutProbes := probeRevokedAcrossInstances(r, professor2, warmProf2Insts, minInstancias, 30)
+	r.check("El logout invalida la sesión de inmediato en todas las instancias en la siguiente petición",
+		postLogoutRes, 401,
+		fmt.Sprintf("401 (code=%q) en el 100%% de %d peticiones repartidas en: %s",
+			postLogoutRes.errorCode(), totalLogoutProbes, formatInstanceMap(postLogoutInsts)),
+		allLogout401 && len(postLogoutInsts) >= minInstancias)
+
+	// 7.3 Suspender un usuario corta sus sesiones en todas las instancias.
+	// Usamos estudiante2 (cuenta sembrada que no participa en los flujos 1-6)
+	// y la reactivamos al terminar para que la corrida sea idempotente.
+	res = r.api.do("PATCH", "/api/v1/admin/users/"+student2ID+"/status", admin,
+		map[string]any{"status": "active"}, nil)
+	r.check("El administrador asegura que estudiante2 está activo antes de la prueba",
+		res, 200, "status=\"active\"", true)
+
+	student2 := login(r, student2Email, "estudiante")
+	if student2 != "" {
+		warmSuspInsts, warmSuspRes, allWarmSuspOK := probeSessionAcrossInstances(r, student2, minInstancias, 30)
+		r.check("La sesión de estudiante2 es atendida por las réplicas antes de suspender",
+			warmSuspRes, 200,
+			fmt.Sprintf("200 en %d instancia(s): %s", len(warmSuspInsts), formatInstanceMap(warmSuspInsts)),
+			allWarmSuspOK && len(warmSuspInsts) >= minInstancias)
+
+		var suspended struct {
+			User struct {
+				Status string `json:"status"`
+			} `json:"user"`
+		}
+		res = r.api.do("PATCH", "/api/v1/admin/users/"+student2ID+"/status", admin,
+			map[string]any{"status": "suspended"}, nil)
+		_ = res.into(&suspended)
+		suspendInst := res.instanceID()
+		r.check("El administrador suspende la cuenta de estudiante2",
+			res, 200,
+			fmt.Sprintf("status=%q procesado por X-Instance-ID=%q", suspended.User.Status, suspendInst),
+			suspended.User.Status == "suspended")
+
+		postSuspInsts, postSuspRes, allSusp401, totalSuspProbes := probeRevokedAcrossInstances(r, student2, warmSuspInsts, minInstancias, 30)
+		r.check("Suspender al usuario corta sus sesiones en todas las instancias en la siguiente petición",
+			postSuspRes, 401,
+			fmt.Sprintf("401 (code=%q) en el 100%% de %d peticiones repartidas en: %s",
+				postSuspRes.errorCode(), totalSuspProbes, formatInstanceMap(postSuspInsts)),
+			allSusp401 && len(postSuspInsts) >= minInstancias)
+
+		var reactivated struct {
+			User struct {
+				Status string `json:"status"`
+			} `json:"user"`
+		}
+		res = r.api.do("PATCH", "/api/v1/admin/users/"+student2ID+"/status", admin,
+			map[string]any{"status": "active"}, nil)
+		_ = res.into(&reactivated)
+		r.check("El administrador reactiva estudiante2 para dejar la base idempotente",
+			res, 200,
+			fmt.Sprintf("status=%q restaurado", reactivated.User.Status),
+			reactivated.User.Status == "active")
+
+		res = r.api.do("GET", "/api/v1/auth/sessions", student2, nil, nil)
+		r.check("La sesión previa a la suspensión sigue revocada incluso tras reactivar la cuenta",
+			res, 401,
+			fmt.Sprintf("code=%q en X-Instance-ID=%q", res.errorCode(), res.instanceID()),
+			res.errorCode() == "unauthorized")
+	}
+
+	// ---- 8. reconciliacion de trabajos aceptados (E1) ----------------------
+
+	r.flowIs("8. Reconciliación de trabajos multimedia aceptados (E1)")
+
+	reconciliados := 0
+	var resumenJobs []string
+	for _, j := range r.jobs {
+		if j.Reconciled {
+			reconciliados++
+		}
+		resumenJobs = append(resumenJobs, fmt.Sprintf("%s:%s(%s)", j.Kind, j.FinalStatus, short(j.ResourceID)))
+	}
+	r.note("Todos los trabajos aceptados alcanzaron su estado final sin pérdidas ni duplicados",
+		"reconciliación POST /complete (202) -> worker -> PostgreSQL + GCS",
+		fmt.Sprintf("%d/%d trabajos reconciliados en completed [%s]",
+			reconciliados, len(r.jobs), strings.Join(resumenJobs, ", ")),
+		reconciliados == len(r.jobs) && len(r.jobs) >= 3,
+		"algún trabajo aceptado no alcanzó completed o sus derivados no cuadraron")
 }
 
 // ---- auxiliares ------------------------------------------------------------
@@ -1043,6 +1202,104 @@ func correctAnswers(quiz authorQuiz) []map[string]string {
 		}
 	}
 	return out
+}
+
+// probeSessionAcrossInstances sends consecutive authenticated requests with the
+// same Bearer token until at least minInstances distinct X-Instance-ID headers
+// have responded with HTTP 200 (or maxAttempts is reached).
+func probeSessionAcrossInstances(r *run, token string, minInstances, maxAttempts int) (map[string]int, *response, bool) {
+	seen := make(map[string]int)
+	var lastRes *response
+	allOK := true
+	for i := 1; i <= maxAttempts; i++ {
+		res := r.api.do("GET", "/api/v1/auth/sessions", token, nil, nil)
+		lastRes = res
+		inst := res.instanceID()
+		hasInst := inst != "" && inst != "—"
+		if !hasInst {
+			inst = "(sin cabecera)"
+			allOK = false
+		} else {
+			seen[inst]++
+		}
+		if res.status != http.StatusOK {
+			allOK = false
+			r.check(fmt.Sprintf("Sondeo de continuidad #%d en %s", i, inst),
+				res, http.StatusOK, "fallo inesperado de continuidad", false)
+			break
+		}
+		if hasInst && seen[inst] == 1 {
+			r.check(fmt.Sprintf("Sesión activa atendida por instancia %s (intento #%d)", inst, i),
+				res, http.StatusOK,
+				fmt.Sprintf("X-Instance-ID=%q X-Request-ID=%q", inst, res.requestID()),
+				hasInst)
+		}
+		if len(seen) >= minInstances && i >= minInstances*2 {
+			break
+		}
+	}
+	return seen, lastRes, allOK
+}
+
+// probeRevokedAcrossInstances verifies that a revoked or suspended token receives
+// HTTP 401 across at least minInstances distinct API instances (and covers all
+// warmInsts when possible).
+func probeRevokedAcrossInstances(r *run, token string, warmInsts map[string]int, minInstances, maxAttempts int) (map[string]int, *response, bool, int) {
+	seen := make(map[string]int)
+	var lastRes *response
+	all401 := true
+	total := 0
+	for i := 1; i <= maxAttempts; i++ {
+		res := r.api.do("GET", "/api/v1/auth/sessions", token, nil, nil)
+		lastRes = res
+		total++
+		inst := res.instanceID()
+		hasInst := inst != "" && inst != "—"
+		if !hasInst {
+			inst = "(sin cabecera)"
+			all401 = false
+		} else {
+			seen[inst]++
+		}
+		if res.status != http.StatusUnauthorized || res.errorCode() != "unauthorized" {
+			all401 = false
+			r.check(fmt.Sprintf("Sondeo post-revocación #%d en %s", i, inst),
+				res, http.StatusUnauthorized,
+				fmt.Sprintf("code=%q (se esperaba 401 unauthorized)", res.errorCode()),
+				false)
+			break
+		}
+		if hasInst && seen[inst] == 1 {
+			r.check(fmt.Sprintf("Rechazo inmediato (401) en instancia %s (intento #%d)", inst, i),
+				res, http.StatusUnauthorized,
+				fmt.Sprintf("code=%q X-Instance-ID=%q", res.errorCode(), inst),
+				hasInst)
+		}
+		coveredWarm := true
+		for k := range warmInsts {
+			if seen[k] == 0 {
+				coveredWarm = false
+				break
+			}
+		}
+		if len(seen) >= minInstances && coveredWarm && i >= minInstances*2 {
+			break
+		}
+	}
+	return seen, lastRes, all401, total
+}
+
+func formatInstanceMap(m map[string]int) string {
+	keys := make([]string, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+	slices.SortFunc(keys, cmp.Compare)
+	parts := make([]string, 0, len(keys))
+	for _, k := range keys {
+		parts = append(parts, fmt.Sprintf("%s=%d", k, m[k]))
+	}
+	return strings.Join(parts, ", ")
 }
 
 func short(s string) string {
