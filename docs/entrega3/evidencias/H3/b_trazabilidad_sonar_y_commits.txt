@@ -1,0 +1,9 @@
+# b) Trazabilidad contra SonarQube Cloud, 33 hallazgos Major go:S2077, commits H1/H2 y reporte final (H3, #230)
+# Generado: 2026-11-01T22:23:46Z por scripts/h3_verificar_deuda_tecnica.sh
+# Commit  : 91f7a1241c45738ee8d66df5007bb13bdd59721b
+
+OK     Los 33 hallazgos MAJOR abiertos de go:S2077 estan registrados individualmente con su clave, archivo, linea, impacto y motivo de aplazamiento
+OK     Los 6 commits de correccion del ejercicio (90647b0, 868e43d, bde3686, 28967df, d469eb6, 48a304a) existen en Git y estan distinguidos de los pendientes en §3
+OK     Resumen de medicion inicial incluye duplicacion (0.8% / 0.0%), mantenibilidad (A) y deuda estimada (664 min / 60 min -> 0 min; 785 -> 690 min) con unidades e interpretacion
+OK     Ningun requisito obligatorio de la Entrega 3 aparece registrado como deuda en lugar de cumplirse
+OK     Exportacion verificable del commit final generada en docs/entrega3/evidencias/H3/reporte_sonarcloud_commit_final.json

@@ -1,0 +1,18 @@
+OK     Entregable 6 presente en la ruta exigida: docs/entrega3/deuda-tecnica.md (523 lineas)
+OK     Seccion obligatoria presente: '## 1. Alcance y método del diagnóstico' (Alcance y metodo del diagnostico)
+OK     Seccion obligatoria presente: '## 2. Resumen de la medición inicial y línea base verificable' (Resumen de la medicion inicial y linea base)
+OK     Seccion obligatoria presente: '## 3. Correcciones realizadas durante este ejercicio' (Correcciones realizadas distinguidas de pendientes)
+OK     Seccion obligatoria presente: '## 4. Inventario de deuda técnica identificada' (Inventario de deuda de codigo, arquitectura, infra, pruebas y operacion)
+OK     Seccion obligatoria presente: '## 5. Registro completo de hallazgos Major o superiores abiertos' (Registro de todo hallazgo Major o superior abierto)
+OK     Seccion obligatoria presente: '## 6. Priorización y plan de tratamiento' (Priorizacion y plan de tratamiento)
+OK     Seccion obligatoria presente: '## 7. Reporte verificable del commit final y enlaces al pipeline' (Reporte verificable del commit final y enlace al pipeline)
+OK     Inventario completo con 12 elementos en las 5 dimensiones (Codigo, Arquitectura, Infraestructura, Pruebas, Operacion)
+OK     Los 12 elementos del inventario registran completos los 8 campos obligatorios del enunciado
+OK     Nota Tecnica 14 verificada: 35 enlaces internos (#ancla) resuelven sin anclas rotas
+OK     Los 33 hallazgos MAJOR abiertos de go:S2077 estan registrados individualmente con su clave, archivo, linea, impacto y motivo de aplazamiento
+OK     Los 6 commits de correccion del ejercicio (90647b0, 868e43d, bde3686, 28967df, d469eb6, 48a304a) existen en Git y estan distinguidos de los pendientes en §3
+OK     Resumen de medicion inicial incluye duplicacion (0.8% / 0.0%), mantenibilidad (A) y deuda estimada (664 min / 60 min -> 0 min; 785 -> 690 min) con unidades e interpretacion
+OK     Ningun requisito obligatorio de la Entrega 3 aparece registrado como deuda en lugar de cumplirse
+OK     Exportacion verificable del commit final generada en docs/entrega3/evidencias/H3/reporte_sonarcloud_commit_final.json
+OK     0 credenciales, llaves ni tokens en docs/entrega3/deuda-tecnica.md y 6 archivos de docs/entrega3/evidencias/H3/
+OK     0 direcciones IP privadas expuestas en docs/entrega3/deuda-tecnica.md ni en docs/entrega3/evidencias/H3/

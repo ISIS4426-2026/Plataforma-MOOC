@@ -1,0 +1,650 @@
+{
+  "report_title": "Exportacion verificable de SonarQube Cloud y Linea Base Final de Deuda Tecnica — Entrega 3 (H3, #230)",
+  "generated_at_utc": "2026-11-01T22:23:46Z",
+  "evaluated_branch": "H3-Primer-documento-de-deuda-tecnica",
+  "evaluated_head_commit": "91f7a1241c45738ee8d66df5007bb13bdd59721b",
+  "sonarcloud_project": {
+    "organization": "isis4426-2026",
+    "project_key": "ISIS4426-2026_Plataforma-MOOC",
+    "dashboard_url": "https://sonarcloud.io/project/overview?id=ISIS4426-2026_Plataforma-MOOC",
+    "ci_workflow_url": "https://github.com/ISIS4426-2026/Plataforma-MOOC/actions/workflows/ci.yml",
+    "quality_profiles": {
+      "go": "Sonar way",
+      "typescript_javascript": "Sonar way",
+      "css": "Sonar way"
+    },
+    "scope": {
+      "sonar_sources": "api,cmd,internal,frontend/src",
+      "sonar_tests": "internal,migrations,frontend/src",
+      "productive_files": 135,
+      "productive_lines": 21682,
+      "test_files": 63,
+      "test_lines": 14485
+    }
+  },
+  "baseline_metrics": {
+    "initial_global_scan_commit": "ceecb0181216eef755796f2d77584510f80168b4",
+    "initial_analysis_key": "f71d5be9-b319-4e64-95ec-5983d83e8997",
+    "initial_analysis_date": "2026-11-01T20:31:09+0000",
+    "duplicated_lines_density_global_pct": 0.8,
+    "duplicated_lines_density_app_sources_pct": 0.0,
+    "duplication_threshold_max_pct": 20.0,
+    "duplication_passes": true,
+    "maintainability_sqale_rating": "A",
+    "maintainability_sqale_rating_numeric": 1.0,
+    "maintainability_threshold_worst_allowed": "C (3.0)",
+    "maintainability_passes": true,
+    "sqale_debt_ratio_pct": 0.0,
+    "sqale_index_minutes_initial_global": 664,
+    "sqale_index_minutes_initial_app_sources": 60,
+    "sqale_index_minutes_final_app_sources": 0,
+    "remediation_effort_all_types_minutes_initial_app_sources": 785,
+    "remediation_effort_all_types_minutes_final_app_sources": 690,
+    "unit": "minutes (1 h = 60 min, 1 workday = 8 h = 480 min)"
+  },
+  "corrections_completed_in_exercise": [
+    {
+      "id": "CORR-H1-01",
+      "origin": "Nota Tecnica #15 (.github/workflows/ci.yml)",
+      "commit": "90647b0",
+      "summary": "Fijacion de runners en ubuntu-24.04 y actualizacion a actions/checkout@v5 y hashicorp/setup-terraform@v4"
+    },
+    {
+      "id": "H2-FIX-01",
+      "rule": "secrets:S8215",
+      "sonar_severity": "BLOCKER",
+      "sonar_type": "VULNERABILITY",
+      "project_severity": "CRITICA (Blocker / P0)",
+      "location": "internal/auth/service.go:23 -> internal/auth/password.go:30",
+      "commit": "868e43d",
+      "status": "RESUELTO",
+      "verification_test": "TestLoginUnknownEmailRunsTimingShieldWithoutHardcodedHash (internal/auth/service_test.go)"
+    },
+    {
+      "id": "H2-FIX-02",
+      "rule": "typescript:S9383",
+      "sonar_severity": "MAJOR",
+      "sonar_type": "BUG",
+      "project_severity": "ALTA (Major / P1)",
+      "location": "frontend/src/student/StudentData.tsx:35",
+      "commit": "bde3686",
+      "status": "RESUELTO",
+      "verification_test": "npm run test:coverage && npm run build (tsc --noEmit)"
+    },
+    {
+      "id": "H2-FIX-03",
+      "rule": "typescript:S8786 (x3)",
+      "sonar_severity": "MAJOR",
+      "sonar_type": "CODE_SMELL",
+      "project_severity": "ALTA (Major / P1)",
+      "location": "frontend/src/config.ts:6, frontend/src/runtime.ts:24, frontend/src/lib/markdown.tsx:52",
+      "commit": "bde3686",
+      "status": "RESUELTO",
+      "verification_test": "frontend/src/runtime.test.ts + frontend/src/lib/lib.test.tsx"
+    },
+    {
+      "id": "H2-FIX-04",
+      "rule": "githubactions:S8482",
+      "sonar_severity": "BLOCKER",
+      "sonar_type": "VULNERABILITY",
+      "project_severity": "CRITICA (Blocker / P0)",
+      "location": ".github/workflows/ci.yml:85",
+      "commit": "28967df",
+      "status": "RESUELTO",
+      "verification_test": "scripts/h1_verificar_y_exportar_sonar.sh"
+    },
+    {
+      "id": "H2-FIX-05",
+      "rule": "python:S5443, go:S4830 (x2), go:S5527 (x2), secrets:S6698",
+      "sonar_severity": "CRITICAL / BLOCKER",
+      "sonar_type": "VULNERABILITY",
+      "project_severity": "CRITICA (Blocker / P0)",
+      "location": "scripts/g6_linea_de_tiempo.py:41, scripts/capacity_escenario2/main.go:333, scripts/pilot_escenario2/main.go:105, scripts/migrate.sh:48",
+      "commit": "28967df",
+      "status": "RESUELTO",
+      "verification_test": "python3.10 scripts/g6_linea_de_tiempo.py --autoprueba && go vet ./scripts/..."
+    },
+    {
+      "id": "H2-FIX-06",
+      "rule": "Spectral operation-description (BUG-DOC-008 / Nota Tecnica 13)",
+      "sonar_severity": "MINOR (Warning)",
+      "sonar_type": "CODE_SMELL",
+      "project_severity": "BAJA (Minor / P3)",
+      "location": "api/openapi.yaml:1092, api/openapi.yaml:1231",
+      "commit": "d469eb6",
+      "status": "RESUELTO",
+      "verification_test": "Validacion de 0 operaciones sin description en api/openapi.yaml"
+    },
+    {
+      "id": "CORR-H2-07",
+      "origin": "Nota Tecnica #56 (frontend/scripts/vitest-v8-setup.mjs)",
+      "commit": "48a304a",
+      "summary": "Volcado explicito de cobertura V8 (v8.takeCoverage()) en worker threads de Vitest para alcanzar 100% LCOV en archivos modificados"
+    }
+  ],
+  "final_baseline_inventory_summary": [
+    {
+      "id": "TD-COD-01",
+      "category": "Codigo",
+      "priority": "P2 (Media)",
+      "order": 7,
+      "owner": "@DiegoOrtizRuiz",
+      "target": "Entrega 4 (2026-11-20)",
+      "status": "Pendiente"
+    },
+    {
+      "id": "TD-COD-02",
+      "category": "Codigo",
+      "priority": "P3 (Baja)",
+      "order": 12,
+      "owner": "@DiegoOrtizRuiz",
+      "target": "Entrega 4 (2026-11-25)",
+      "status": "Aceptado temporalmente"
+    },
+    {
+      "id": "TD-COD-03",
+      "category": "Codigo y Contrato API",
+      "priority": "P2 (Media)",
+      "order": 9,
+      "owner": "@fredyxander / @tmichelldiaz",
+      "target": "Entrega 4 (2026-11-22)",
+      "status": "Pendiente"
+    },
+    {
+      "id": "TD-COD-04",
+      "category": "Codigo Multimedia",
+      "priority": "P3 (Baja)",
+      "order": 11,
+      "owner": "@fredyxander",
+      "target": "Entrega 4 (2026-11-25)",
+      "status": "Pendiente"
+    },
+    {
+      "id": "TD-ARQ-01",
+      "category": "Arquitectura",
+      "priority": "P1 (Alta)",
+      "order": 3,
+      "owner": "@fredyxander / @DiegoOrtizRuiz",
+      "target": "Entrega 4 (2026-11-15)",
+      "status": "En tratamiento"
+    },
+    {
+      "id": "TD-ARQ-02",
+      "category": "Arquitectura",
+      "priority": "P1 (Alta)",
+      "order": 5,
+      "owner": "@fredyxander / @CrispisCas9",
+      "target": "Entrega 4 (2026-11-18)",
+      "status": "Pendiente"
+    },
+    {
+      "id": "TD-INF-01",
+      "category": "Infraestructura",
+      "priority": "P1 (Alta)",
+      "order": 4,
+      "owner": "@DiegoOrtizRuiz",
+      "target": "Entrega 4 (2026-11-16)",
+      "status": "En tratamiento"
+    },
+    {
+      "id": "TD-INF-02",
+      "category": "Infraestructura",
+      "priority": "P2 (Media)",
+      "order": 6,
+      "owner": "@fredyxander / @DiegoOrtizRuiz",
+      "target": "Entrega 4 (2026-11-19)",
+      "status": "Pendiente"
+    },
+    {
+      "id": "TD-INF-03",
+      "category": "Infraestructura y Configuracion",
+      "priority": "P1 (Alta)",
+      "order": 1,
+      "owner": "@DiegoOrtizRuiz / @fredyxander",
+      "target": "Cierre Entrega 3 (2026-11-04, I6)",
+      "status": "En tratamiento"
+    },
+    {
+      "id": "TD-PRU-01",
+      "category": "Pruebas",
+      "priority": "P2 (Media)",
+      "order": 10,
+      "owner": "@tmichelldiaz / @DiegoOrtizRuiz",
+      "target": "Entrega 4 (2026-11-22)",
+      "status": "Pendiente"
+    },
+    {
+      "id": "TD-OPE-01",
+      "category": "Operacion y Observabilidad",
+      "priority": "P1 (Alta)",
+      "order": 2,
+      "owner": "@DiegoOrtizRuiz / @CrispisCas9",
+      "target": "Entrega 4 (2026-11-14)",
+      "status": "En tratamiento"
+    },
+    {
+      "id": "TD-OPE-02",
+      "category": "Operacion",
+      "priority": "P3 (Baja)",
+      "order": 12,
+      "owner": "@CrispisCas9 / @fredyxander",
+      "target": "Entrega 4 (2026-11-25)",
+      "status": "En tratamiento"
+    }
+  ],
+  "open_major_or_higher_in_app_sources": {
+    "blocker_count": 0,
+    "critical_count": 0,
+    "major_count": 33,
+    "major_issues": [
+      {
+        "index": 1,
+        "key": "AaGYz7mmYJKVmQ5dynOR",
+        "rule": "go:S2077",
+        "severity": "MAJOR",
+        "type": "VULNERABILITY",
+        "file": "internal/postgres/admin_repository.go",
+        "line": 68,
+        "effort": "20min",
+        "status": "OPEN (Auditado en H2/H3 como concatenacion de constante de columnas en tiempo de compilacion + placeholders $1..$n)",
+        "inventory_id": "TD-COD-01"
+      },
+      {
+        "index": 2,
+        "key": "AaGYz7mmYJKVmQ5dynOS",
+        "rule": "go:S2077",
+        "severity": "MAJOR",
+        "type": "VULNERABILITY",
+        "file": "internal/postgres/admin_repository.go",
+        "line": 101,
+        "effort": "20min",
+        "status": "OPEN (Auditado en H2/H3 como concatenacion de constante de columnas en tiempo de compilacion + placeholders $1..$n)",
+        "inventory_id": "TD-COD-01"
+      },
+      {
+        "index": 3,
+        "key": "AaGYz7mmYJKVmQ5dynOT",
+        "rule": "go:S2077",
+        "severity": "MAJOR",
+        "type": "VULNERABILITY",
+        "file": "internal/postgres/admin_repository.go",
+        "line": 255,
+        "effort": "20min",
+        "status": "OPEN (Auditado en H2/H3 como concatenacion de constante de columnas en tiempo de compilacion + placeholders $1..$n)",
+        "inventory_id": "TD-COD-01"
+      },
+      {
+        "index": 4,
+        "key": "AaGYz7moYJKVmQ5dynOU",
+        "rule": "go:S2077",
+        "severity": "MAJOR",
+        "type": "VULNERABILITY",
+        "file": "internal/postgres/audit_repository.go",
+        "line": 95,
+        "effort": "20min",
+        "status": "OPEN (Auditado en H2/H3 como concatenacion de constante de columnas en tiempo de compilacion + placeholders $1..$n)",
+        "inventory_id": "TD-COD-01"
+      },
+      {
+        "index": 5,
+        "key": "AaGYz7mwYJKVmQ5dynOa",
+        "rule": "go:S2077",
+        "severity": "MAJOR",
+        "type": "VULNERABILITY",
+        "file": "internal/postgres/course_repository.go",
+        "line": 71,
+        "effort": "20min",
+        "status": "OPEN (Auditado en H2/H3 como concatenacion de constante de columnas en tiempo de compilacion + placeholders $1..$n)",
+        "inventory_id": "TD-COD-01"
+      },
+      {
+        "index": 6,
+        "key": "AaGYz7mwYJKVmQ5dynOb",
+        "rule": "go:S2077",
+        "severity": "MAJOR",
+        "type": "VULNERABILITY",
+        "file": "internal/postgres/course_repository.go",
+        "line": 86,
+        "effort": "20min",
+        "status": "OPEN (Auditado en H2/H3 como concatenacion de constante de columnas en tiempo de compilacion + placeholders $1..$n)",
+        "inventory_id": "TD-COD-01"
+      },
+      {
+        "index": 7,
+        "key": "AaGYz7mwYJKVmQ5dynOc",
+        "rule": "go:S2077",
+        "severity": "MAJOR",
+        "type": "VULNERABILITY",
+        "file": "internal/postgres/course_repository.go",
+        "line": 142,
+        "effort": "20min",
+        "status": "OPEN (Auditado en H2/H3 como concatenacion de constante de columnas en tiempo de compilacion + placeholders $1..$n)",
+        "inventory_id": "TD-COD-01"
+      },
+      {
+        "index": 8,
+        "key": "AaGYz7mwYJKVmQ5dynOd",
+        "rule": "go:S2077",
+        "severity": "MAJOR",
+        "type": "VULNERABILITY",
+        "file": "internal/postgres/course_repository.go",
+        "line": 204,
+        "effort": "20min",
+        "status": "OPEN (Auditado en H2/H3 como concatenacion de constante de columnas en tiempo de compilacion + placeholders $1..$n)",
+        "inventory_id": "TD-COD-01"
+      },
+      {
+        "index": 9,
+        "key": "AaGYz7mwYJKVmQ5dynOe",
+        "rule": "go:S2077",
+        "severity": "MAJOR",
+        "type": "VULNERABILITY",
+        "file": "internal/postgres/course_repository.go",
+        "line": 241,
+        "effort": "20min",
+        "status": "OPEN (Auditado en H2/H3 como concatenacion de constante de columnas en tiempo de compilacion + placeholders $1..$n)",
+        "inventory_id": "TD-COD-01"
+      },
+      {
+        "index": 10,
+        "key": "AaGYz7mwYJKVmQ5dynOf",
+        "rule": "go:S2077",
+        "severity": "MAJOR",
+        "type": "VULNERABILITY",
+        "file": "internal/postgres/course_repository.go",
+        "line": 263,
+        "effort": "20min",
+        "status": "OPEN (Auditado en H2/H3 como concatenacion de constante de columnas en tiempo de compilacion + placeholders $1..$n)",
+        "inventory_id": "TD-COD-01"
+      },
+      {
+        "index": 11,
+        "key": "AaGYz7mFYJKVmQ5dynOB",
+        "rule": "go:S2077",
+        "severity": "MAJOR",
+        "type": "VULNERABILITY",
+        "file": "internal/postgres/enrollment_repository.go",
+        "line": 82,
+        "effort": "20min",
+        "status": "OPEN (Auditado en H2/H3 como concatenacion de constante de columnas en tiempo de compilacion + placeholders $1..$n)",
+        "inventory_id": "TD-COD-01"
+      },
+      {
+        "index": 12,
+        "key": "AaGYz7mFYJKVmQ5dynOC",
+        "rule": "go:S2077",
+        "severity": "MAJOR",
+        "type": "VULNERABILITY",
+        "file": "internal/postgres/enrollment_repository.go",
+        "line": 126,
+        "effort": "20min",
+        "status": "OPEN (Auditado en H2/H3 como concatenacion de constante de columnas en tiempo de compilacion + placeholders $1..$n)",
+        "inventory_id": "TD-COD-01"
+      },
+      {
+        "index": 13,
+        "key": "AaGYz7mtYJKVmQ5dynOV",
+        "rule": "go:S2077",
+        "severity": "MAJOR",
+        "type": "VULNERABILITY",
+        "file": "internal/postgres/quiz_repository.go",
+        "line": 290,
+        "effort": "20min",
+        "status": "OPEN (Auditado en H2/H3 como concatenacion de constante de columnas en tiempo de compilacion + placeholders $1..$n)",
+        "inventory_id": "TD-COD-01"
+      },
+      {
+        "index": 14,
+        "key": "AaGYz7mtYJKVmQ5dynOW",
+        "rule": "go:S2077",
+        "severity": "MAJOR",
+        "type": "VULNERABILITY",
+        "file": "internal/postgres/quiz_repository.go",
+        "line": 555,
+        "effort": "20min",
+        "status": "OPEN (Auditado en H2/H3 como concatenacion de constante de columnas en tiempo de compilacion + placeholders $1..$n)",
+        "inventory_id": "TD-COD-01"
+      },
+      {
+        "index": 15,
+        "key": "AaGYz7mtYJKVmQ5dynOX",
+        "rule": "go:S2077",
+        "severity": "MAJOR",
+        "type": "VULNERABILITY",
+        "file": "internal/postgres/quiz_repository.go",
+        "line": 586,
+        "effort": "20min",
+        "status": "OPEN (Auditado en H2/H3 como concatenacion de constante de columnas en tiempo de compilacion + placeholders $1..$n)",
+        "inventory_id": "TD-COD-01"
+      },
+      {
+        "index": 16,
+        "key": "AaGYz7mtYJKVmQ5dynOY",
+        "rule": "go:S2077",
+        "severity": "MAJOR",
+        "type": "VULNERABILITY",
+        "file": "internal/postgres/quiz_repository.go",
+        "line": 613,
+        "effort": "20min",
+        "status": "OPEN (Auditado en H2/H3 como concatenacion de constante de columnas en tiempo de compilacion + placeholders $1..$n)",
+        "inventory_id": "TD-COD-01"
+      },
+      {
+        "index": 17,
+        "key": "AaGYz7mtYJKVmQ5dynOZ",
+        "rule": "go:S2077",
+        "severity": "MAJOR",
+        "type": "VULNERABILITY",
+        "file": "internal/postgres/quiz_repository.go",
+        "line": 638,
+        "effort": "20min",
+        "status": "OPEN (Auditado en H2/H3 como concatenacion de constante de columnas en tiempo de compilacion + placeholders $1..$n)",
+        "inventory_id": "TD-COD-01"
+      },
+      {
+        "index": 18,
+        "key": "AaGYz7m0YJKVmQ5dynOg",
+        "rule": "go:S2077",
+        "severity": "MAJOR",
+        "type": "VULNERABILITY",
+        "file": "internal/postgres/session_repository.go",
+        "line": 53,
+        "effort": "20min",
+        "status": "OPEN (Auditado en H2/H3 como concatenacion de constante de columnas en tiempo de compilacion + placeholders $1..$n)",
+        "inventory_id": "TD-COD-01"
+      },
+      {
+        "index": 19,
+        "key": "AaGYz7m0YJKVmQ5dynOh",
+        "rule": "go:S2077",
+        "severity": "MAJOR",
+        "type": "VULNERABILITY",
+        "file": "internal/postgres/session_repository.go",
+        "line": 71,
+        "effort": "20min",
+        "status": "OPEN (Auditado en H2/H3 como concatenacion de constante de columnas en tiempo de compilacion + placeholders $1..$n)",
+        "inventory_id": "TD-COD-01"
+      },
+      {
+        "index": 20,
+        "key": "AaGYz7mgYJKVmQ5dynOD",
+        "rule": "go:S2077",
+        "severity": "MAJOR",
+        "type": "VULNERABILITY",
+        "file": "internal/postgres/structure_repository.go",
+        "line": 87,
+        "effort": "20min",
+        "status": "OPEN (Auditado en H2/H3 como concatenacion de constante de columnas en tiempo de compilacion + placeholders $1..$n)",
+        "inventory_id": "TD-COD-01"
+      },
+      {
+        "index": 21,
+        "key": "AaGYz7mgYJKVmQ5dynOE",
+        "rule": "go:S2077",
+        "severity": "MAJOR",
+        "type": "VULNERABILITY",
+        "file": "internal/postgres/structure_repository.go",
+        "line": 99,
+        "effort": "20min",
+        "status": "OPEN (Auditado en H2/H3 como concatenacion de constante de columnas en tiempo de compilacion + placeholders $1..$n)",
+        "inventory_id": "TD-COD-01"
+      },
+      {
+        "index": 22,
+        "key": "AaGYz7mgYJKVmQ5dynOF",
+        "rule": "go:S2077",
+        "severity": "MAJOR",
+        "type": "VULNERABILITY",
+        "file": "internal/postgres/structure_repository.go",
+        "line": 128,
+        "effort": "20min",
+        "status": "OPEN (Auditado en H2/H3 como concatenacion de constante de columnas en tiempo de compilacion + placeholders $1..$n)",
+        "inventory_id": "TD-COD-01"
+      },
+      {
+        "index": 23,
+        "key": "AaGYz7mgYJKVmQ5dynOG",
+        "rule": "go:S2077",
+        "severity": "MAJOR",
+        "type": "VULNERABILITY",
+        "file": "internal/postgres/structure_repository.go",
+        "line": 269,
+        "effort": "20min",
+        "status": "OPEN (Auditado en H2/H3 como concatenacion de constante de columnas en tiempo de compilacion + placeholders $1..$n)",
+        "inventory_id": "TD-COD-01"
+      },
+      {
+        "index": 24,
+        "key": "AaGYz7mgYJKVmQ5dynOH",
+        "rule": "go:S2077",
+        "severity": "MAJOR",
+        "type": "VULNERABILITY",
+        "file": "internal/postgres/structure_repository.go",
+        "line": 281,
+        "effort": "20min",
+        "status": "OPEN (Auditado en H2/H3 como concatenacion de constante de columnas en tiempo de compilacion + placeholders $1..$n)",
+        "inventory_id": "TD-COD-01"
+      },
+      {
+        "index": 25,
+        "key": "AaGYz7mgYJKVmQ5dynOI",
+        "rule": "go:S2077",
+        "severity": "MAJOR",
+        "type": "VULNERABILITY",
+        "file": "internal/postgres/structure_repository.go",
+        "line": 310,
+        "effort": "20min",
+        "status": "OPEN (Auditado en H2/H3 como concatenacion de constante de columnas en tiempo de compilacion + placeholders $1..$n)",
+        "inventory_id": "TD-COD-01"
+      },
+      {
+        "index": 26,
+        "key": "AaGYz7mgYJKVmQ5dynOJ",
+        "rule": "go:S2077",
+        "severity": "MAJOR",
+        "type": "VULNERABILITY",
+        "file": "internal/postgres/structure_repository.go",
+        "line": 454,
+        "effort": "20min",
+        "status": "OPEN (Auditado en H2/H3 como concatenacion de constante de columnas en tiempo de compilacion + placeholders $1..$n)",
+        "inventory_id": "TD-COD-01"
+      },
+      {
+        "index": 27,
+        "key": "AaGYz7mgYJKVmQ5dynOK",
+        "rule": "go:S2077",
+        "severity": "MAJOR",
+        "type": "VULNERABILITY",
+        "file": "internal/postgres/structure_repository.go",
+        "line": 466,
+        "effort": "20min",
+        "status": "OPEN (Auditado en H2/H3 como concatenacion de constante de columnas en tiempo de compilacion + placeholders $1..$n)",
+        "inventory_id": "TD-COD-01"
+      },
+      {
+        "index": 28,
+        "key": "AaGYz7mgYJKVmQ5dynOL",
+        "rule": "go:S2077",
+        "severity": "MAJOR",
+        "type": "VULNERABILITY",
+        "file": "internal/postgres/structure_repository.go",
+        "line": 499,
+        "effort": "20min",
+        "status": "OPEN (Auditado en H2/H3 como concatenacion de constante de columnas en tiempo de compilacion + placeholders $1..$n)",
+        "inventory_id": "TD-COD-01"
+      },
+      {
+        "index": 29,
+        "key": "AaGYz7mgYJKVmQ5dynOM",
+        "rule": "go:S2077",
+        "severity": "MAJOR",
+        "type": "VULNERABILITY",
+        "file": "internal/postgres/structure_repository.go",
+        "line": 576,
+        "effort": "20min",
+        "status": "OPEN (Auditado en H2/H3 como concatenacion de constante de columnas en tiempo de compilacion + placeholders $1..$n)",
+        "inventory_id": "TD-COD-01"
+      },
+      {
+        "index": 30,
+        "key": "AaGYz7mgYJKVmQ5dynON",
+        "rule": "go:S2077",
+        "severity": "MAJOR",
+        "type": "VULNERABILITY",
+        "file": "internal/postgres/structure_repository.go",
+        "line": 616,
+        "effort": "20min",
+        "status": "OPEN (Auditado en H2/H3 como concatenacion de constante de columnas en tiempo de compilacion + placeholders $1..$n)",
+        "inventory_id": "TD-COD-01"
+      },
+      {
+        "index": 31,
+        "key": "AaGYz7miYJKVmQ5dynOO",
+        "rule": "go:S2077",
+        "severity": "MAJOR",
+        "type": "VULNERABILITY",
+        "file": "internal/postgres/verification_token_repository.go",
+        "line": 50,
+        "effort": "20min",
+        "status": "OPEN (Auditado en H2/H3 como concatenacion de constante de columnas en tiempo de compilacion + placeholders $1..$n)",
+        "inventory_id": "TD-COD-01"
+      },
+      {
+        "index": 32,
+        "key": "AaGYz7miYJKVmQ5dynOP",
+        "rule": "go:S2077",
+        "severity": "MAJOR",
+        "type": "VULNERABILITY",
+        "file": "internal/postgres/verification_token_repository.go",
+        "line": 84,
+        "effort": "20min",
+        "status": "OPEN (Auditado en H2/H3 como concatenacion de constante de columnas en tiempo de compilacion + placeholders $1..$n)",
+        "inventory_id": "TD-COD-01"
+      },
+      {
+        "index": 33,
+        "key": "AaGYz7miYJKVmQ5dynOQ",
+        "rule": "go:S2077",
+        "severity": "MAJOR",
+        "type": "VULNERABILITY",
+        "file": "internal/postgres/verification_token_repository.go",
+        "line": 117,
+        "effort": "20min",
+        "status": "OPEN (Auditado en H2/H3 como concatenacion de constante de columnas en tiempo de compilacion + placeholders $1..$n)",
+        "inventory_id": "TD-COD-01"
+      }
+    ]
+  },
+  "open_minor_in_app_sources": [
+    {
+      "key": "AaGYz7mvYJKVmQ5dynOZ",
+      "rule": "go:S5332",
+      "severity": "MINOR",
+      "type": "VULNERABILITY",
+      "file": "internal/mailer/smtp.go",
+      "line": 89,
+      "effort": "30min",
+      "inventory_id": "TD-COD-02"
+    }
+  ]
+}
