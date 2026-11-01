@@ -1,0 +1,28 @@
+OK     sonar.sources cubre API, workers y frontend completos: api,cmd,internal,frontend/src
+OK     sonar.tests declara las suites de Go, migraciones y frontend: internal,migrations,frontend/src
+OK     Las 12 exclusiones de sonar.exclusions estan justificadas y ninguna excluye codigo de aplicacion
+OK     sonar.go.coverage.reportPaths apunta a coverage.out
+OK     sonar.javascript.lcov.reportPaths apunta a frontend/coverage/lcov.info
+OK     Job 'terraform' presente en .github/workflows/ci.yml
+OK     Job 'ci' presente en .github/workflows/ci.yml
+OK     Job 'frontend' presente en .github/workflows/ci.yml
+OK     Job 'sonarqube' presente en .github/workflows/ci.yml
+OK     Paso conservado en CI: 'make lint' (Linting Go + OpenAPI Spectral)
+OK     Paso conservado en CI: 'make build' (Compilacion de cmd/api y cmd/worker)
+OK     Paso conservado en CI: 'make test-migrations' (Ejecucion de migraciones sobre PostgreSQL limpio)
+OK     Paso conservado en CI: 'make test' (Pruebas unitarias de Go con perfil de cobertura)
+OK     Paso conservado en CI: 'make check' (Verificacion integral make check)
+OK     Paso conservado en CI: 'npm ci --no-audit --no-fund' (Instalacion determinista del frontend)
+OK     Paso conservado en CI: 'npm run test:coverage' (Pruebas unitarias de frontend con generacion LCOV)
+OK     Paso conservado en CI: 'npm run build' (Typecheck y empaquetado Vite del frontend)
+OK     Paso conservado en CI: 'npm run check:bundle' (Auditoria de ausencia de secretos en el bundle)
+OK     Nota Tecnica 15 atendida: runners fijados en ubuntu-24.04 (sin ubuntu-latest)
+OK     Nota Tecnica 15 atendida: actions/checkout@v5 y hashicorp/setup-terraform@v4 actualizados
+OK     Job sonarqube utiliza SonarSource/sonarqube-scan-action@v5
+OK     Job sonarqube hace checkout con fetch-depth: 0 para blame completo
+OK     Job sonarqube espera a [ci, frontend] y reutiliza sus artefactos de cobertura
+OK     SONAR_TOKEN se inyecta exclusivamente desde ${{ secrets.SONAR_TOKEN }}
+OK     0 tokens o credenciales literales en .github/workflows/ci.yml y sonar-project.properties
+OK     frontend/coverage/lcov.info indexa 33 archivos bajo el prefijo 'frontend/src/'
+OK     0 lineas DA fuera de rango en frontend/coverage/lcov.info (100 % compatible con SonarJS)
+OK     Exportacion verificable guardada en docs/entrega3/evidencias/H1/reporte_sonarcloud.json (403 hallazgos)

@@ -78,3 +78,7 @@ __pycache__/
 # D1 (#211): frontend
 frontend/node_modules/
 frontend/dist/
+frontend/coverage/
+
+# H1 (#228): cache local del scanner de SonarQube
+.scannerwork/

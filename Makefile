@@ -22,8 +22,8 @@ lint:
 	@./scripts/lint.sh
 
 test:
-	@echo "==> Running unit tests..."
-	@go test -v ./...
+	@echo "==> Running unit tests (with coverage profile coverage.out)..."
+	@go test -v -coverprofile=coverage.out -covermode=atomic ./...
 
 test-migrations:
 	@echo "==> Testing database migrations..."
