@@ -1093,6 +1093,9 @@ paths:
       tags:
         - Modules
       summary: Rename a module
+      description: >
+        Updates the title of an existing module while its parent course is in
+        draft status. Returns 409 Conflict if the course is published.
       operationId: updateModule
       security:
         - bearerAuth: []
@@ -1229,6 +1232,9 @@ paths:
       tags:
         - Modules
       summary: Rename a unit
+      description: >
+        Updates the title of an existing unit while its parent course is in
+        draft status. Returns 409 Conflict if the course is published.
       operationId: updateUnit
       security:
         - bearerAuth: []
