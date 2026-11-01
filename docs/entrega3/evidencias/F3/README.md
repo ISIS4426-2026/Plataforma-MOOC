@@ -194,9 +194,12 @@ desglosan: **0,33 USD/día** con la cola parada, **0,74 USD/día** encendida.
 > a reaprovisionar el certificado, hasta una hora—, pero hay que contarla: es
 > **el 72 %** del costo aparcado con la cola parada.
 
-Lo que no está en la tabla porque falta medirlo: **las imágenes de Artifact
-Registry** (0,10 USD/GiB-mes por encima de 0,5 GiB gratis). Cada commit
-publicado sube tres imágenes, y la del worker lleva FFmpeg. Se mide con:
+Lo que no está en las tablas por ser marginal: **las imágenes de Artifact
+Registry**. Medido el 2026-11-01: el repositorio `mooc` ocupa **1 287 MB**, con
+40 versiones de `api`, 39 de `worker` y 12 de `web`. Por encima de los 0,5 GiB
+gratuitos, a 0,10 USD/GiB-mes, son **unos 0,07 USD/mes**, aparcado o encendido.
+Crece unos 30 MB por cada commit publicado; no merece una política de limpieza
+antes de I6, que lo borra todo.
 
 ```bash
 gcloud artifacts repositories describe mooc --location=us-east1 \
@@ -227,7 +230,10 @@ explicar:
 
 ## 6. Alertas de presupuesto
 
-*Pendiente de comprobar en la consola.* La configuración que se estableció en la
+*Pendiente de comprobar en la consola.* No se puede leer por línea de comandos:
+`gcloud billing budgets list` exige la *Cloud Billing Budget API*, que no está
+habilitada en el proyecto, y habilitarla es un cambio de configuración que no se
+hizo solo para leer. La configuración que se estableció en la
 Entrega 2
 ([`CONFIGURACION_Y_COSTOS.md` §5](../../../entrega2/CONFIGURACION_Y_COSTOS.md)):
 50 USD en un **rango personalizado** —no mensual, porque el cupón no se reinicia
