@@ -1,0 +1,27 @@
+{
+  "veredicto": "LIMITADO",
+  "razones": [
+    "falta la latencia del balanceador o del generador: no se puede contrastar"
+  ],
+  "medidas": {
+    "generador_cpu_pct_de_un_nucleo": {
+      "muestras": 3,
+      "p95": 248.4,
+      "max": 248.4,
+      "limite": 280.0
+    },
+    "generador_memoria_pct": {
+      "max_gib": 2.03,
+      "total_gib": 15.6,
+      "max_pct": 13.0,
+      "limite": 80.0
+    },
+    "solicitudes": {
+      "enviadas_por_el_generador": 8400,
+      "contadas_por_el_balanceador": 15352,
+      "ratio": 1.828,
+      "minimo": 0.95
+    }
+  },
+  "nucleos_del_generador": 4
+}

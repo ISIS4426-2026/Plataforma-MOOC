@@ -1,0 +1,140 @@
+[20:43:38] inicio del operando E (matriz rapida) (commit ac55366)
+[20:48:49] === E: B200 x2 mas
+[20:48:49] Se reusan los tokens de capacity-planning/datos/tokens.csv (duran 24 h)
+[20:48:49] >>> E-B200-r1: reiniciando cuentas
+[20:48:50] >>> E-B200-r1: corriendo 200 usuarios (pausa 1000+1000 ms, rampa 15 s)
+[20:50:19] >>> E-B200-r1: verificando estado en la base
+estado en la base: 200 estudiantes con envios (min 3, max 3, total 600), 200 inscripciones, 0 duplicados -> OK
+[20:50:19] >>> E-B200-r1: p95=40ms reales=0.0% validacion=0 rps=103.88
+[20:50:19] pausa de 120 s
+[20:52:19] >>> E-B200-r2: reiniciando cuentas
+[20:52:20] >>> E-B200-r2: corriendo 200 usuarios (pausa 1000+1000 ms, rampa 15 s)
+[20:53:47] >>> E-B200-r2: verificando estado en la base
+estado en la base: 200 estudiantes con envios (min 3, max 3, total 600), 200 inscripciones, 0 duplicados -> OK
+[20:53:47] >>> E-B200-r2: p95=64ms reales=0.0% validacion=0 rps=108.53
+[20:53:47] pausa de 120 s
+[20:55:47] TERMINADO. Resumen:
+corrida                                       usr  pausa      n     rps   p50    p95    p99  real  t/o  val  bd
+E-A-nivel1_20261101_193743                      1 4.0-6.0s     33     0.2    26     69     75     0    0    0  OK
+E-A-nivel10_20261101_194321                    10 4.0-6.0s    351     1.9    22     50     73     0    0    0  OK
+E-A-nivel25_20261101_194926                    25 4.0-6.0s    878     4.7    19     47     68     0    0    0  OK
+E-A-nivel50_20261101_195531                    50 4.0-6.0s   1763     9.2    18     44     60     0    0    0  OK
+E-A-nivel100_20261101_200141                  100 4.0-6.0s   3230    16.3    17     43     60     0    0    0  OK
+E-A-nivel200_20261101_200826                  200 4.0-6.0s   6470    32.7    18     42     63     0    0    0  OK
+E-B-nivel100_20261101_201511                  100 1.0-2.0s   2920    55.2    16     41     51     0    0    0  OK
+E-B-nivel200_20261101_201838                  200 1.0-2.0s   5847   110.2    15     44     62     0    0    0  OK
+E-A100-r1_20261101_202205                     100 4.0-6.0s   3237    17.0    20     48     65     0    0    0  OK
+E-A100-r2_20261101_202843                     100 4.0-6.0s   3226    16.9    18     46     62     0    0    0  OK
+E-A200-r1_20261101_203521                     200 4.0-6.0s   6460    32.9    17     41     59     0    0    0  OK
+E-A200-r2_20261101_204204                     200 4.0-6.0s   6486    33.3    18     45     67     0    0    0  OK
+E-B200-r1_20261101_204850                     200 1.0-2.0s   5862   103.9    15     40     54     0    0    0  OK
+E-B200-r2_20261101_205220                     200 1.0-2.0s   5851   108.5    20     64    111     0    0    0  OK
+[20:55:47] === E: C200 x2
+[20:55:47] Se reusan los tokens de capacity-planning/datos/tokens.csv (duran 24 h)
+[20:55:47] >>> E-C200-r1: reiniciando cuentas
+[20:55:48] >>> E-C200-r1: corriendo 200 usuarios (pausa 250+500 ms, rampa 10 s)
+[20:56:26] >>> E-C200-r1: verificando estado en la base
+estado en la base: 200 estudiantes con envios (min 3, max 3, total 600), 200 inscripciones, 0 duplicados -> OK
+[20:56:26] >>> E-C200-r1: p95=131ms reales=0.024% validacion=0 rps=267.92
+[20:56:26] pausa de 120 s
+[20:58:26] >>> E-C200-r2: reiniciando cuentas
+[20:58:27] >>> E-C200-r2: corriendo 200 usuarios (pausa 250+500 ms, rampa 10 s)
+[20:59:05] >>> E-C200-r2: verificando estado en la base
+estado en la base: 200 estudiantes con envios (min 3, max 3, total 600), 200 inscripciones, 0 duplicados -> OK
+[20:59:06] >>> E-C200-r2: p95=195ms reales=0.0% validacion=0 rps=253.16
+[20:59:06] pausa de 120 s
+[21:01:06] TERMINADO. Resumen:
+corrida                                       usr  pausa      n     rps   p50    p95    p99  real  t/o  val  bd
+E-A-nivel1_20261101_193743                      1 4.0-6.0s     33     0.2    26     69     75     0    0    0  OK
+E-A-nivel10_20261101_194321                    10 4.0-6.0s    351     1.9    22     50     73     0    0    0  OK
+E-A-nivel25_20261101_194926                    25 4.0-6.0s    878     4.7    19     47     68     0    0    0  OK
+E-A-nivel50_20261101_195531                    50 4.0-6.0s   1763     9.2    18     44     60     0    0    0  OK
+E-A-nivel100_20261101_200141                  100 4.0-6.0s   3230    16.3    17     43     60     0    0    0  OK
+E-A-nivel200_20261101_200826                  200 4.0-6.0s   6470    32.7    18     42     63     0    0    0  OK
+E-B-nivel100_20261101_201511                  100 1.0-2.0s   2920    55.2    16     41     51     0    0    0  OK
+E-B-nivel200_20261101_201838                  200 1.0-2.0s   5847   110.2    15     44     62     0    0    0  OK
+E-A100-r1_20261101_202205                     100 4.0-6.0s   3237    17.0    20     48     65     0    0    0  OK
+E-A100-r2_20261101_202843                     100 4.0-6.0s   3226    16.9    18     46     62     0    0    0  OK
+E-A200-r1_20261101_203521                     200 4.0-6.0s   6460    32.9    17     41     59     0    0    0  OK
+E-A200-r2_20261101_204204                     200 4.0-6.0s   6486    33.3    18     45     67     0    0    0  OK
+E-B200-r1_20261101_204850                     200 1.0-2.0s   5862   103.9    15     40     54     0    0    0  OK
+E-B200-r2_20261101_205220                     200 1.0-2.0s   5851   108.5    20     64    111     0    0    0  OK
+E-C200-r1_20261101_205548                     200 0.2-0.8s   4153   267.9    20    131    258     1    0    0  OK
+E-C200-r2_20261101_205827                     200 0.2-0.8s   4227   253.2    19    195    388     0    0    0  OK
+[21:01:06] === E: S200 sostenida x8
+[21:01:06] Se reusan los tokens de capacity-planning/datos/tokens.csv (duran 24 h)
+[21:01:06] >>> E-S200-r1: reiniciando cuentas
+[21:01:07] >>> E-S200-r1: corriendo 200 usuarios (pausa 1000+1000 ms, rampa 15 s)
+[21:02:32] >>> E-S200-r1: verificando estado en la base
+estado en la base: 200 estudiantes con envios (min 3, max 3, total 600), 200 inscripciones, 0 duplicados -> OK
+[21:02:33] >>> E-S200-r1: p95=46ms reales=0.0% validacion=0 rps=111.53
+[21:02:33] pausa de 10 s
+[21:02:43] >>> E-S200-r2: reiniciando cuentas
+[21:02:44] >>> E-S200-r2: corriendo 200 usuarios (pausa 1000+1000 ms, rampa 15 s)
+[21:04:10] >>> E-S200-r2: verificando estado en la base
+estado en la base: 200 estudiantes con envios (min 3, max 3, total 600), 200 inscripciones, 0 duplicados -> OK
+[21:04:11] >>> E-S200-r2: p95=50ms reales=0.0% validacion=0 rps=107.64
+[21:04:11] pausa de 10 s
+[21:04:21] >>> E-S200-r3: reiniciando cuentas
+[21:04:22] >>> E-S200-r3: corriendo 200 usuarios (pausa 1000+1000 ms, rampa 15 s)
+[21:05:52] >>> E-S200-r3: verificando estado en la base
+estado en la base: 200 estudiantes con envios (min 3, max 3, total 600), 200 inscripciones, 0 duplicados -> OK
+[21:05:53] >>> E-S200-r3: p95=46ms reales=0.0% validacion=0 rps=100.87
+[21:05:53] pausa de 10 s
+[21:06:03] >>> E-S200-r4: reiniciando cuentas
+[21:06:04] >>> E-S200-r4: corriendo 200 usuarios (pausa 1000+1000 ms, rampa 15 s)
+[21:07:30] >>> E-S200-r4: verificando estado en la base
+estado en la base: 200 estudiantes con envios (min 3, max 3, total 600), 200 inscripciones, 0 duplicados -> OK
+[21:07:31] >>> E-S200-r4: p95=47ms reales=0.0% validacion=0 rps=107.28
+[21:07:31] pausa de 10 s
+[21:07:41] >>> E-S200-r5: reiniciando cuentas
+[21:07:42] >>> E-S200-r5: corriendo 200 usuarios (pausa 1000+1000 ms, rampa 15 s)
+[21:09:09] >>> E-S200-r5: verificando estado en la base
+estado en la base: 200 estudiantes con envios (min 3, max 3, total 600), 200 inscripciones, 0 duplicados -> OK
+[21:09:10] >>> E-S200-r5: p95=47ms reales=0.0% validacion=0 rps=106.67
+[21:09:10] pausa de 10 s
+[21:09:20] >>> E-S200-r6: reiniciando cuentas
+[21:09:20] >>> E-S200-r6: corriendo 200 usuarios (pausa 1000+1000 ms, rampa 15 s)
+[21:10:47] >>> E-S200-r6: verificando estado en la base
+estado en la base: 200 estudiantes con envios (min 3, max 3, total 600), 200 inscripciones, 0 duplicados -> OK
+[21:10:48] >>> E-S200-r6: p95=49ms reales=0.0% validacion=0 rps=106.71
+[21:10:48] pausa de 10 s
+[21:10:58] >>> E-S200-r7: reiniciando cuentas
+[21:10:59] >>> E-S200-r7: corriendo 200 usuarios (pausa 1000+1000 ms, rampa 15 s)
+[21:12:24] >>> E-S200-r7: verificando estado en la base
+estado en la base: 200 estudiantes con envios (min 3, max 3, total 600), 200 inscripciones, 0 duplicados -> OK
+[21:12:25] >>> E-S200-r7: p95=46ms reales=0.0% validacion=0 rps=110.66
+[21:12:25] pausa de 10 s
+[21:12:35] >>> E-S200-r8: reiniciando cuentas
+[21:12:36] >>> E-S200-r8: corriendo 200 usuarios (pausa 1000+1000 ms, rampa 15 s)
+[21:14:01] >>> E-S200-r8: verificando estado en la base
+estado en la base: 200 estudiantes con envios (min 3, max 3, total 600), 200 inscripciones, 0 duplicados -> OK
+[21:14:02] >>> E-S200-r8: p95=46ms reales=0.0% validacion=0 rps=109.78
+[21:14:02] pausa de 10 s
+[21:14:12] TERMINADO. Resumen:
+corrida                                       usr  pausa      n     rps   p50    p95    p99  real  t/o  val  bd
+E-A-nivel1_20261101_193743                      1 4.0-6.0s     33     0.2    26     69     75     0    0    0  OK
+E-A-nivel10_20261101_194321                    10 4.0-6.0s    351     1.9    22     50     73     0    0    0  OK
+E-A-nivel25_20261101_194926                    25 4.0-6.0s    878     4.7    19     47     68     0    0    0  OK
+E-A-nivel50_20261101_195531                    50 4.0-6.0s   1763     9.2    18     44     60     0    0    0  OK
+E-A-nivel100_20261101_200141                  100 4.0-6.0s   3230    16.3    17     43     60     0    0    0  OK
+E-A-nivel200_20261101_200826                  200 4.0-6.0s   6470    32.7    18     42     63     0    0    0  OK
+E-B-nivel100_20261101_201511                  100 1.0-2.0s   2920    55.2    16     41     51     0    0    0  OK
+E-B-nivel200_20261101_201838                  200 1.0-2.0s   5847   110.2    15     44     62     0    0    0  OK
+E-A100-r1_20261101_202205                     100 4.0-6.0s   3237    17.0    20     48     65     0    0    0  OK
+E-A100-r2_20261101_202843                     100 4.0-6.0s   3226    16.9    18     46     62     0    0    0  OK
+E-A200-r1_20261101_203521                     200 4.0-6.0s   6460    32.9    17     41     59     0    0    0  OK
+E-A200-r2_20261101_204204                     200 4.0-6.0s   6486    33.3    18     45     67     0    0    0  OK
+E-B200-r1_20261101_204850                     200 1.0-2.0s   5862   103.9    15     40     54     0    0    0  OK
+E-B200-r2_20261101_205220                     200 1.0-2.0s   5851   108.5    20     64    111     0    0    0  OK
+E-C200-r1_20261101_205548                     200 0.2-0.8s   4153   267.9    20    131    258     1    0    0  OK
+E-C200-r2_20261101_205827                     200 0.2-0.8s   4227   253.2    19    195    388     0    0    0  OK
+E-S200-r1_20261101_210107                     200 1.0-2.0s   5884   111.5    17     46     60     0    0    0  OK
+E-S200-r2_20261101_210244                     200 1.0-2.0s   5857   107.6    18     50     73     0    0    0  OK
+E-S200-r3_20261101_210422                     200 1.0-2.0s   5874   100.9    17     46     66     0    0    0  OK
+E-S200-r4_20261101_210604                     200 1.0-2.0s   5851   107.3    17     47     66     0    0    0  OK
+E-S200-r5_20261101_210742                     200 1.0-2.0s   5837   106.7    17     47     65     0    0    0  OK
+E-S200-r6_20261101_210920                     200 1.0-2.0s   5865   106.7    18     49     68     0    0    0  OK
+E-S200-r7_20261101_211059                     200 1.0-2.0s   5858   110.7    17     46     68     0    0    0  OK
+E-S200-r8_20261101_211236                     200 1.0-2.0s   5864   109.8    16     46     68     0    0    0  OK
+[21:14:12] fin del operando E

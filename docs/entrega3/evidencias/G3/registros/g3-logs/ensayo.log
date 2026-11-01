@@ -1,0 +1,10 @@
+[18:40:42] Se reusan los tokens de capacity-planning/datos/tokens.csv (duran 24 h)
+[18:40:42] >>> E-ensayo-r1: reiniciando cuentas
+[18:40:43] >>> E-ensayo-r1: corriendo 3 usuarios (pausa 4000+2000 ms, rampa 30 s)
+[18:44:40] >>> E-ensayo-r1: verificando estado en la base
+estado en la base: 3 estudiantes con envios (min 3, max 3, total 9), 3 inscripciones, 0 duplicados -> OK
+[18:44:40] >>> E-ensayo-r1: p95=55ms reales=0.0% validacion=0 rps=0.58
+[18:44:40] pausa de 1 s
+[18:44:41] TERMINADO. Resumen:
+corrida                                       usr  pausa      n     rps   p50    p95    p99  real  t/o  val  bd
+E-ensayo-r1_20261101_184043                     3 4.0-6.0s    102     0.6    22     55    118     0    0    0  OK

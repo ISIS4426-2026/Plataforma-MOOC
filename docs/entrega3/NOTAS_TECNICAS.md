@@ -56,6 +56,8 @@ lo reemplaza, lo continúa.
 | 54 | [En el escenario 3B el autoescalador reacciona en 26,3 s, el worker empieza a consumir en 99,4 s (60 s antes de figurar `HEALTHY`), y sus logs locales se pierden al reducir si no se extraen en vivo](#54) | **G6**, G7, I1, I2, I4 |
 | 55 | [SonarQube falla con `can't be indexed twice` si los tests conviven con el código y no se excluyen de `sonar.sources`, y requiere desactivar *Automatic Analysis* para recibir cobertura de CI](#55) | **H1, H2, H3**, I3, I5 |
 | 56 | [La primera línea base de SonarQube registra `0,8 %` de duplicación, mantenibilidad `A` (`664 min` global / `60 min → 0 min` en aplicación), se resolvieron los Blockers/Criticals en 4 commits y `go:S2077` se audita como constantes SQL seguras para H3](#56) | **H2, H3**, I3, I4, I5, I6 |
+| 57 | [El NAT reparte 64 puertos por VM, y un generador dentro de la nube los agota con 100 usuarios](#57) | **G3, G4, G5, G6**, G7, F1 |
+| 58 | [G3: la arquitectura elástica no se distingue de la de una instancia por debajo de ~110 pet./s, y escalar tarda minutos](#58) | **G3, G5**, G6, G7, I1, I4 |
 
 ---
 
@@ -2227,5 +2229,44 @@ Cifras medidas en la corrida completa del **Escenario 3B (ciclo de escalamiento 
 | **H3** | En `docs/entrega3/deuda-tecnica.md`: 1) distinguir en la sección *Correcciones realizadas durante este ejercicio* los 5 cambios cerrados en H1/H2 (Nota 15 en CI + los 4 commits `868e43d`, `bde3686`, `28967df`, `d469eb6` de H2) frente a los pendientes que integran la línea base final; 2) incluir en el inventario los hallazgos `MAJOR` abiertos de SonarQube (`go:S2077` consolidado por repositorio en `internal/postgres/*.go`, `go:S5332` en `internal/mailer/smtp.go:89`) junto con la deuda arquitectónica, de pruebas y operativa de este documento (notas 20, 23, 24, 25, 27, 44, 52, 54). |
 | **I6** | Al ejecutar el cierre en `main`, sustituir el marcador literal `:CONTRASENA@` por `<DB_PASSWORD>` en `infra/terraform/outputs.tf:138` según el plan `TD-SEC-FP-01` de [`docs/entrega3/evidencias/H2/README.md`](evidencias/H2/README.md). |
 
+<a id="57"></a>
+## 57. El NAT reparte 64 puertos por VM, y un generador dentro de la nube los agota con 100 usuarios
 
+**Afecta a:** G3 (#223), G4, G5, G6, G7. Escrito el 2026-11-01.
 
+| Qué | Detalle |
+| :--- | :--- |
+| El síntoma | la primera corrida válida de G3 (operando R, 100 usuarios) dio **2 012 `ConnectTimeoutException` de 4 200 peticiones** y 244 `500`, con latencias medias de 4 a 5 s en todos los pasos. Parecía la plataforma; no lo era |
+| La causa | Cloud NAT de B2 reservaba por omisión **64 puertos por VM**, y cada conexión simultánea hacia la **misma IP y puerto** (el balanceador) ocupa uno; las cerradas lo retienen durante el `TIME_WAIT` (120 s). `router.googleapis.com/nat/dropped_sent_packets_count` con motivo `OUT_OF_RESOURCES` marcó **4 351 paquetes** en la ventana |
+| Por qué A7 no lo vio | su generador era un portátil: no pasa por el NAT de la VPC. Es una diferencia más entre la línea base y la Entrega 3 que no está en el plan de A7 |
+| El arreglo | `min_ports_per_vm = 2048` en `google_compute_router_nat.nat` (`network.tf`). Con ~8 VMs sale de una sola IP de NAT. La sonda de 100 usuarios de solo lectura, después: 10 578 peticiones, **todas 200**, media 8 ms |
+| La trampa | el síntoma son timeouts de **conexión** y `500` en cascada, no latencia del servidor. Antes de culpar a la API, mirar `nat/dropped_sent_packets_count` y `nat/port_usage` |
+| Cómo se vio | la columna `responseCode` del `.jtl` trae `Non HTTP response code: ...ConnectTimeoutException`; un resumen que solo cuente `4xx/5xx` y no ese caso los cuenta como «fallos reales» igual, pero sin decir por qué |
+
+| Issue | Qué tiene que saber |
+| :--- | :--- |
+| **G3, G4** | cualquier generador **dentro** de la VPC pasa por el NAT. Con menos de ~2 000 conexiones simultáneas por VM ya no hay agotamiento; si algún día se sube más, ampliar `min_ports_per_vm` o poner `enable_dynamic_port_allocation` |
+| **G5, G6** | el generador de G5 (carga escalonada sobre la API) tiene el mismo límite que tuvo el de G3: el cambio ya está en `main` |
+| **G7** | la línea base de A7 (portátil) y la Entrega 3 (VM en la región) difieren también en el camino de red; hay que decirlo junto con la diferencia de generador |
+| **F1, I1** | la configuración del NAT cambió en `network.tf`; no abre nada nuevo: afecta a las conexiones de **salida** |
+
+<a id="58"></a>
+## 58. G3: la arquitectura elástica no se distingue de la de una instancia por debajo de ~110 pet./s, y escalar tarda minutos
+
+**Afecta a:** G3 (#223), G5, G6, G7, I1, I4. Escrito el 2026-11-01. Detalle en [`evidencias/G3/README.md`](evidencias/G3/README.md).
+
+| Qué | Detalle |
+| :--- | :--- |
+| El resultado | 32 corridas, 153 113 peticiones, 0 timeouts, 0 fallos de validación, 1 fallo real (un 503 de 3 ms) y el estado de la base correcto en las 32. **R** (API fija en 1) y **E** (1 a 3) rinden igual a 33 y a 108 pet./s, con latencias dentro de una desviación estándar. A ~255 pet./s el rendimiento también coincide y el p95 de E es peor mientras suma instancias |
+| Qué no se encontró | **el límite**. La API no pasó de 51 % de CPU en un minuto y PostgreSQL no pasó de 52 %; con 200 cuentas y 3 intentos por cuenta el escenario no empuja mucho más de ~260 pet./s. Para G7: «el límite se desplaza hacia la base» **no está demostrado** por G3; es una hipótesis razonable (1 vCPU, `max_connections = 100`) |
+| Un dato inesperado | con 3 instancias de API, la CPU de PostgreSQL fue de 47–52 % para ~108 pet./s; con 1 instancia, 29–36 % para lo mismo. Sin causa medida: pools por instancia, `DELETE` de los reinicios de cuentas o crecimiento de `audit_logs` |
+| El escalamiento | tarda **de 3 a 8 minutos** en verse tras empezar la carga: una corrida de 3–4 min no lo alcanza. Para ver el efecto de la elasticidad hay que sostener la carga (serie S) |
+| Cómo se midió | operando R fijando `min = max = 1` en el autoescalador con `gcloud` (no con Terraform) y restaurándolo. **Una sonda de lectura de 100 usuarios ya dispara el escalamiento**: las primeras corridas de E partieron con 2 instancias |
+| Lo que se recortó | por pedido del equipo, R solo a 200 usuarios, B100 una vez y la serie S de 8 en vez de 12; `R-C200-r2` no se publica (ventana de 37 s sin latencia del balanceador). Todo declarado en el README |
+
+| Issue | Qué tiene que saber |
+| :--- | :--- |
+| **G5** | el escalamiento de la API tarda 3 a 8 minutos desde que empieza la carga; planificar la ventana de observación con ese margen. Un `max = 1` del autoescalador se pone con `gcloud` y **vuelve solo a 3 con el siguiente `apply`** |
+| **G6** | los workers no participaron en este escenario (la cola quedó en 0 durante toda la campaña) |
+| **G7** | declarar el cambio de generador y de camino de red (notas 49 y 57) y que a estos niveles la elástica no mejora lo que no está saturado |
+| **I1, I4** | la gráfica de la campaña ([`G3/capturas/`](evidencias/G3/capturas/2026-11-01_campana-completa-instancias-cpu-balanceador.png)) muestra los escalones 1 → 2 → 3 → 2 → 1 de la API |

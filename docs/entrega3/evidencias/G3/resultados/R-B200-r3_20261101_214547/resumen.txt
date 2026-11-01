@@ -1,0 +1,33 @@
+Destino      : https://136.68.55.254.sslip.io  [remoto]
+Entorno      : nube-entrega3
+Codigo       : ac55366
+Generador    : justb4/jmeter@sha256:088ac52b759a198a5afa5ae13d0a6306e9f2017d71ad140ff57427f6930406f7 en mooc-load-generator
+Ventana UTC  : 2026-11-01T21:45:47Z -> 2026-11-01T21:47:16Z
+
+Muestras totales: 8400  | consideradas (tras omitir 25 s de calentamiento): 5833
+Duracion de la corrida: 82 s  | hilos maximos: 200
+
+Resultado de las peticiones medidas:
+     5833  100.00%  ok
+
+Fallos reales: 0 (0.00%)  | fallos de validacion funcional: 0 (0.00%)
+
+paso                                                    n          p50          p95          p99    max  fallos
+01 GET catalogo de cursos                             329            8           13           19     29       0
+02 GET detalle del curso                              355            7           12           21     56       0
+03 POST inscripcion                                   383           19           29           45     58       0
+04 GET estado de mi inscripcion (validacion)          395           11           18           26     38       0
+05 GET modulos del curso                              400           13           20           27     41       0
+06 GET unidades del modulo                            400           15           22           34     51       0
+07 GET recursos de la unidad                          400           16           26           37     61       0
+08 GET cuestionario (vista de estudiante)             403           21           28           36     60       0
+09 POST latido de progreso 1 (recurso completado)     415           25           34           45     80       0
+09 POST latido de progreso 2 (recurso completado)     433           25           35           45     65       0
+10 POST envio del quiz                                449           46           67           96    115       0
+11 POST envio DUPLICADO del quiz (misma clave)        468           10           23           32     58       0
+12 GET avance del curso tras el quiz (validacion)     493           15           28           31     35       0
+13 GET mis envios (validacion de doble calificacio    510           20           33           42     65       0
+
+Ventana de agregacion: 57 s (medidas, sin el calentamiento)  | corrida completa: 82 s
+Global ms: p50=17 p95=41 p99=60  | rendimiento: 102.8 peticiones/s
+Timeouts: 0
