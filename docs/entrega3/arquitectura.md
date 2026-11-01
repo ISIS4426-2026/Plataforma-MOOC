@@ -273,7 +273,7 @@ no compitan con los de la aplicación (G1).
 | VPC | `mooc-vpc`, modo personalizado | Un solo espacio privado para todos los componentes |
 | Subred | `mooc-subnet`, `10.0.1.0/24`, Private Google Access activado | Las instancias sin IP pública llegan a Artifact Registry, Secret Manager, Storage y Monitoring |
 | Rango para servicios administrados | `mooc-private-ip-alloc`, `/20`, peering de Service Networking | La IP privada de Cloud SQL |
-| Salida a internet | `mooc-router` + `mooc-nat`, IP automáticas | Paquetes del sistema, GitHub, Brevo; ninguna instancia tiene IP externa |
+| Salida a internet | `mooc-router` + `mooc-nat`, IP automáticas, `min_ports_per_vm = 2048` | Paquetes del sistema, GitHub, Brevo y el tráfico del generador hacia el balanceador; ninguna instancia tiene IP externa. Los 2 048 puertos por VM vienen de G3: con los 64 por omisión el generador agotaba el NAT (nota 57) |
 | IP interna fija de la cola | `mooc-queue-ip` | La cola no cambia de dirección al reiniciarse; las plantillas la llevan en su metadata |
 
 ### 3.3 Balanceador y verificaciones de salud
