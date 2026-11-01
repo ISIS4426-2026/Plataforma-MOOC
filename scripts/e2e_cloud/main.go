@@ -66,8 +66,22 @@ func main() {
 		outDir        = flag.String("salida", "docs/entrega3/evidencias/correcciones-entrega1", "directorio donde se escribe la evidencia")
 		wait          = flag.Duration("espera", 4*time.Minute, "cuánto esperar a que el worker termine la transcodificación")
 		minInstancias = flag.Int("min-instancias", 1, "mínimo de instancias distintas (X-Instance-ID) que deben atender una misma sesión (2 para E1/C4)")
+		escenario     = flag.String("escenario", "recorrido", "recorrido (G3/E1, el recorrido continuo) o consistencia (E2, #217: duplicados y lecturas entre réplicas)")
 	)
 	flag.Parse()
+
+	if *escenario != "recorrido" && *escenario != "consistencia" {
+		fatal(fmt.Errorf("escenario %q desconocido: usa recorrido o consistencia", *escenario))
+	}
+	consistencia := *escenario == "consistencia"
+	if consistencia {
+		// E2 no sube medios, y su evidencia vive en su propia carpeta salvo que se pida otra.
+		explicito := false
+		flag.Visit(func(f *flag.Flag) { explicito = explicito || f.Name == "salida" })
+		if !explicito {
+			*outDir = "docs/entrega3/evidencias/E2"
+		}
+	}
 
 	root, err := repoRoot()
 	if err != nil {
@@ -83,22 +97,29 @@ func main() {
 	}
 	origin = strings.TrimRight(origin, "/")
 
-	video, err := os.ReadFile(filepath.Join(root, filepath.FromSlash(*videoPath)))
-	if err != nil {
-		fatal(fmt.Errorf("leer el video de prueba: %w", err))
+	var video, doc, img []byte
+	if !consistencia {
+		video, err = os.ReadFile(filepath.Join(root, filepath.FromSlash(*videoPath)))
+		if err != nil {
+			fatal(fmt.Errorf("leer el video de prueba: %w", err))
+		}
+
+		doc, err = os.ReadFile(filepath.Join(root, filepath.FromSlash(*docPath)))
+		if err != nil {
+			fatal(fmt.Errorf("leer el documento de prueba: %w", err))
+		}
+
+		img, err = os.ReadFile(filepath.Join(root, filepath.FromSlash(*imgPath)))
+		if err != nil {
+			fatal(fmt.Errorf("leer la imagen de prueba: %w", err))
+		}
 	}
 
-	doc, err := os.ReadFile(filepath.Join(root, filepath.FromSlash(*docPath)))
-	if err != nil {
-		fatal(fmt.Errorf("leer el documento de prueba: %w", err))
+	logName := "corrida_e2e_cloud.txt"
+	if consistencia {
+		logName = "corrida_consistencia.txt"
 	}
-
-	img, err := os.ReadFile(filepath.Join(root, filepath.FromSlash(*imgPath)))
-	if err != nil {
-		fatal(fmt.Errorf("leer la imagen de prueba: %w", err))
-	}
-
-	logPath := filepath.Join(root, filepath.FromSlash(*outDir), "corrida_e2e_cloud.txt")
+	logPath := filepath.Join(root, filepath.FromSlash(*outDir), logName)
 	if err := os.MkdirAll(filepath.Dir(logPath), 0o755); err != nil {
 		fatal(err)
 	}
@@ -124,13 +145,22 @@ func main() {
 		started: time.Now(),
 	}
 
-	fmt.Fprintf(r.log, "G3 / E1 — E2E de flujos críticos e integridad en la nube\n")
+	if consistencia {
+		r.title = "E2 — Consistencia de operaciones académicas entre réplicas"
+		fmt.Fprintf(r.log, "E2 (#217) — consistencia de operaciones académicas y envío duplicado\n")
+	} else {
+		fmt.Fprintf(r.log, "G3 / E1 — E2E de flujos críticos e integridad en la nube\n")
+		fmt.Fprintf(r.log, "Bucket  : %s\n", *bucket)
+	}
 	fmt.Fprintf(r.log, "Origen  : %s\n", origin)
-	fmt.Fprintf(r.log, "Bucket  : %s\n", *bucket)
 	fmt.Fprintf(r.log, "Réplicas: mín. %d exigida(s)\n", *minInstancias)
 	fmt.Fprintf(r.log, "Inicio  : %s\n", r.started.Format(time.RFC3339))
 
-	journey(r, *bucket, *hlsBucket, video, doc, img, *wait, *minInstancias)
+	if consistencia {
+		consistency(r, *minInstancias)
+	} else {
+		journey(r, *bucket, *hlsBucket, video, doc, img, *wait, *minInstancias)
+	}
 
 	tablePath := filepath.Join(root, filepath.FromSlash(*outDir), "resultados.md")
 	if err := r.writeTable(tablePath, origin); err != nil {
@@ -1075,9 +1105,17 @@ func journey(r *run, bucket, hlsBucket string, video, doc, img []byte, wait time
 // meet a 429 that says nothing about the flow under test: it is waited out once
 // rather than reported as a failure.
 func login(r *run, email, wantRole string) string {
+	token, _ := loginID(r, email, wantRole)
+	return token
+}
+
+// loginID es login y ademas devuelve el id de la cuenta, que E2 necesita para
+// filtrar la auditoria por actor.
+func loginID(r *run, email, wantRole string) (string, string) {
 	var out struct {
 		Token string `json:"token"`
 		User  struct {
+			ID     string `json:"id"`
 			Role   string `json:"role"`
 			Status string `json:"status"`
 		} `json:"user"`
@@ -1096,7 +1134,7 @@ func login(r *run, email, wantRole string) string {
 	r.check("Inicia sesión "+wantRole+" ("+local(email)+")", res, 200,
 		fmt.Sprintf("role=%q status=%q, sesión emitida", out.User.Role, out.User.Status),
 		out.Token != "" && out.User.Role == wantRole && out.User.Status == "active")
-	return out.Token
+	return out.Token, out.User.ID
 }
 
 type node struct {

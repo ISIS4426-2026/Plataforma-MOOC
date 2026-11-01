@@ -36,7 +36,7 @@ de la salida real de la consola con [`scripts/render_consola.py`](../../../../sc
 
 Lo que cambió respecto a la corrida del 30 de octubre, dicho para no mezclarlo: el drenaje midió **123 s** (la vez anterior 96 s; C7 midió 90,56 s): el retiro por el grupo no es instantáneo
 y esta vez el trabajo de 240 s tardó más en soltarse. El reparto de la sesión fue `7cd19d976ef6` 50 y `c8f5675e6b41` 45 peticiones en el recorrido. Quien repita esto desde **Windows** necesita `jq`, `ffmpeg`
-y un adaptador para `gcloud` (ver la nota 51, punto 4): `gcloud.cmd` rompe los argumentos con espacios y agrega `` a cada línea.
+y un adaptador para `gcloud` (ver la nota 51, punto 4): `gcloud.cmd` rompe los argumentos con espacios y agrega `\r` a cada línea.
 
 ---
 

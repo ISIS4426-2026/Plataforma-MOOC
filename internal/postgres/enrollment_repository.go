@@ -41,6 +41,20 @@ func (r *EnrollmentRepository) Enroll(ctx context.Context, studentID, courseStab
 	}
 	defer func() { _ = tx.Rollback() }()
 
+	// Serializa las inscripciones del mismo estudiante en el mismo curso (E2, #217).
+	//
+	// FOR UPDATE de abajo no basta en la primera inscripcion: no hay fila que
+	// bloquear, asi que ocho solicitudes simultaneas leen todas "no existia",
+	// una inserta y las demas esperan en el indice unico para despues actualizar
+	// lo mismo --y las ocho registraban «enrollment.created». La fila quedaba
+	// bien; el rastro de auditoria, con ocho altas de una sola. El candado se
+	// suelta con la transaccion, y quien espera relee ya la fila confirmada.
+	if _, err := tx.ExecContext(ctx,
+		`SELECT pg_advisory_xact_lock(hashtext($1))`, "enrollment:"+studentID+":"+courseStableID,
+	); err != nil {
+		return nil, fmt.Errorf("lock enrollment: %w", err)
+	}
+
 	// Whether this is a first enrollment or a return changes the audit action,
 	// so the prior state is read before it is overwritten.
 	var previous domain.EnrollmentStatus
