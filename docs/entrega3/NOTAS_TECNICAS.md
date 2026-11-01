@@ -56,7 +56,8 @@ lo reemplaza, lo continúa.
 | 54 | [En el escenario 3B el autoescalador reacciona en 26,3 s, el worker empieza a consumir en 99,4 s (60 s antes de figurar `HEALTHY`), y sus logs locales se pierden al reducir si no se extraen en vivo](#54) | **G6**, G7, I1, I2, I4 |
 | 55 | [SonarQube falla con `can't be indexed twice` si los tests conviven con el código y no se excluyen de `sonar.sources`, y requiere desactivar *Automatic Analysis* para recibir cobertura de CI](#55) | **H1, H2, H3**, I3, I5 |
 | 56 | [La primera línea base de SonarQube registra `0,8 %` de duplicación, mantenibilidad `A` (`664 min` global / `60 min → 0 min` en aplicación), se resolvieron los Blockers/Criticals en 4 commits y `go:S2077` se audita como constantes SQL seguras para H3](#56) | **H2, H3**, I3, I4, I5, I6 |
-| 57 | [El Entregable 6 (`docs/entrega3/deuda-tecnica.md`) consolida 8 correcciones cerradas en el sprint, 12 ítems de deuda con los 8 campos obligatorios en las 5 dimensiones, el desglose individual de los 33 `MAJOR` (`go:S2077`) y la exportación del commit final](#57) | **H3**, I1, I2, I3, I4, I5, I6 |
+| 57 | [El NAT reparte 64 puertos por VM, y un generador dentro de la nube los agota con 100 usuarios](#57) | **G3, G4, G5, G6**, G7, F1 |
+| 58 | [G3: la arquitectura elástica no se distingue de la de una instancia por debajo de ~110 pet./s, y escalar tarda minutos](#58) | **G3, G5**, G6, G7, I1, I4 |
 
 ---
 
@@ -2229,22 +2230,43 @@ Cifras medidas en la corrida completa del **Escenario 3B (ciclo de escalamiento 
 | **I6** | Al ejecutar el cierre en `main`, sustituir el marcador literal `:CONTRASENA@` por `<DB_PASSWORD>` en `infra/terraform/outputs.tf:138` según el plan `TD-SEC-FP-01` de [`docs/entrega3/evidencias/H2/README.md`](evidencias/H2/README.md). |
 
 <a id="57"></a>
-## 57. El Entregable 6 (`docs/entrega3/deuda-tecnica.md`) consolida 8 correcciones cerradas en el sprint, 12 ítems de deuda con los 8 campos obligatorios en las 5 dimensiones, el desglose individual de los 33 `MAJOR` (`go:S2077`) y la exportación del commit final
+## 57. El NAT reparte 64 puertos por VM, y un generador dentro de la nube los agota con 100 usuarios
 
-**Afecta a:** H3 (#230), I1 (documento de arquitectura), I2 (documento de operación y elasticidad), I3 (README principal con enlaces), I4 (vídeo de sustentación), I5 (commit evaluado del tag `entrega-3`) e I6 (cierre en `main`). Escrito el 2026-11-01.
+**Afecta a:** G3 (#223), G4, G5, G6, G7. Escrito el 2026-11-01.
 
 | Qué | Detalle |
 | :--- | :--- |
-| **Entregable 6 y estructura verificada** | [`docs/entrega3/deuda-tecnica.md`](deuda-tecnica.md) cubre las 7 secciones exigidas por el enunciado: 1) Alcance y método del diagnóstico (`135` archivos productivos / `21 682` líneas + `63` archivos de prueba / `14 485` líneas + `21` archivos HCL, herramientas y 5 actividades del equipo); 2) Resumen de la medición inicial y línea base (duplicación `0.8 %` global / `0.0 %` en aplicación, mantenibilidad `A` / `1.0`, `sqale_index = 664 min` inicial global / `60 min → 0 min` en `CODE_SMELL` de aplicación y `785 min → 690 min` de esfuerzo total de remediación); 3) Las **8 correcciones realizadas en este ejercicio** (`CORR-H1-01` en `90647b0` y `CORR-H2-01`..`07` en `868e43d`, `bde3686`, `28967df`, `d469eb6`, `48a304a`) distinguidas de los pendientes; 4) Inventario de **12 elementos** en las 5 categorías (**Código**: `TD-COD-01`..`04`, **Arquitectura**: `TD-ARQ-01`..`02`, **Infraestructura**: `TD-INF-01`..`03`, **Pruebas**: `TD-PRU-01`, **Operación**: `TD-OPE-01`..`02`), cada uno con los **8 campos obligatorios**; 5) Registro individual de las **33 ocurrencias `MAJOR` abiertas** (`go:S2077`, claves `AaGYz7mFYJKVmQ5dynOB` a `AaGYz7mwYJKVmQ5dynOf`); 6) Plan de tratamiento priorizado (Orden `#1` a `#12`); y 7) Enlaces al pipeline y exportación verificable en [`docs/entrega3/evidencias/H3/reporte_sonarcloud_commit_final.json`](evidencias/H3/reporte_sonarcloud_commit_final.json). |
-| **Verificador automatizado de H3** | [`scripts/h3_verificar_deuda_tecnica.sh`](../../scripts/h3_verificar_deuda_tecnica.sh) valida 18 controles (`18 OK · 0 FALLA · 0 OBS`): presencia de las 7 secciones, cobertura de las 5 dimensiones, presencia exacta de los 8 campos obligatorios en los 12 ítems, validez de las 35 anclas Markdown internas (Nota Técnica #14), registro de las 33 claves `go:S2077`, existencia de los 6 commits de corrección en Git, regeneración de `reporte_sonarcloud_commit_final.json` y ausencia de credenciales, tokens o IPs privadas en `deuda-tecnica.md` y en `docs/entrega3/evidencias/H3/`. |
+| El síntoma | la primera corrida válida de G3 (operando R, 100 usuarios) dio **2 012 `ConnectTimeoutException` de 4 200 peticiones** y 244 `500`, con latencias medias de 4 a 5 s en todos los pasos. Parecía la plataforma; no lo era |
+| La causa | Cloud NAT de B2 reservaba por omisión **64 puertos por VM**, y cada conexión simultánea hacia la **misma IP y puerto** (el balanceador) ocupa uno; las cerradas lo retienen durante el `TIME_WAIT` (120 s). `router.googleapis.com/nat/dropped_sent_packets_count` con motivo `OUT_OF_RESOURCES` marcó **4 351 paquetes** en la ventana |
+| Por qué A7 no lo vio | su generador era un portátil: no pasa por el NAT de la VPC. Es una diferencia más entre la línea base y la Entrega 3 que no está en el plan de A7 |
+| El arreglo | `min_ports_per_vm = 2048` en `google_compute_router_nat.nat` (`network.tf`). Con ~8 VMs sale de una sola IP de NAT. La sonda de 100 usuarios de solo lectura, después: 10 578 peticiones, **todas 200**, media 8 ms |
+| La trampa | el síntoma son timeouts de **conexión** y `500` en cascada, no latencia del servidor. Antes de culpar a la API, mirar `nat/dropped_sent_packets_count` y `nat/port_usage` |
+| Cómo se vio | la columna `responseCode` del `.jtl` trae `Non HTTP response code: ...ConnectTimeoutException`; un resumen que solo cuente `4xx/5xx` y no ese caso los cuenta como «fallos reales» igual, pero sin decir por qué |
 
 | Issue | Qué tiene que saber |
 | :--- | :--- |
-| **I1, I2** | Al redactar la sección de *Limitaciones residuales y mejoras priorizadas* en `docs/entrega3/arquitectura-elastica.md` (I1) y `docs/entrega3/operacion-y-elasticidad.md` (I2), referenciar directamente los identificadores del inventario (`TD-ARQ-01`, `TD-ARQ-02`, `TD-INF-01`, `TD-INF-02`, `TD-OPE-01`, `TD-OPE-02`) de [`docs/entrega3/deuda-tecnica.md`](deuda-tecnica.md) para mantener numeración, responsables y plazos idénticos entre los entregables 1, 2 y 6. |
-| **I3** | En la tabla de entregables del `README.md` principal, enlazar el **Entregable 6** a [`docs/entrega3/deuda-tecnica.md`](deuda-tecnica.md), la exportación verificable a [`docs/entrega3/evidencias/H3/reporte_sonarcloud_commit_final.json`](evidencias/H3/reporte_sonarcloud_commit_final.json) y las evidencias de H1, H2 y H3 a `docs/entrega3/evidencias/{H1,H2,H3}/README.md`. |
-| **I4** | Para el bloque de calidad y deuda técnica del vídeo de sustentación, mostrar las 3 capturas de [`docs/entrega3/evidencias/H3/capturas/`](evidencias/H3/capturas/) junto con las de H1 y H2, destacando que la duplicación está en `0,0 %` en código de aplicación (`0,8 %` global), la mantenibilidad en `A` (`0 min` de deuda `CODE_SMELL` en aplicación tras resolver los hallazgos en H2) y el contraste entre deuda detectada por SonarQube (`TD-COD-01`, `TD-COD-02`) y deuda arquitectónica/operativa medida experimentalmente (`TD-ARQ-01/02`, `TD-INF-01/02`, `TD-OPE-01`). |
-| **I5, I6** | Antes de crear el tag `entrega-3` en `main` (y tras aplicar en `main` el paso 1 de `TD-INF-03` en `infra/terraform/outputs.tf:138`), ejecutar `bash ./scripts/h3_verificar_deuda_tecnica.sh` para que `evaluated_head_commit` dentro de `docs/entrega3/evidencias/H3/reporte_sonarcloud_commit_final.json` quede actualizado con el SHA final de cierre. |
+| **G3, G4** | cualquier generador **dentro** de la VPC pasa por el NAT. Con menos de ~2 000 conexiones simultáneas por VM ya no hay agotamiento; si algún día se sube más, ampliar `min_ports_per_vm` o poner `enable_dynamic_port_allocation` |
+| **G5, G6** | el generador de G5 (carga escalonada sobre la API) tiene el mismo límite que tuvo el de G3: el cambio ya está en `main` |
+| **G7** | la línea base de A7 (portátil) y la Entrega 3 (VM en la región) difieren también en el camino de red; hay que decirlo junto con la diferencia de generador |
+| **F1, I1** | la configuración del NAT cambió en `network.tf`; no abre nada nuevo: afecta a las conexiones de **salida** |
 
+<a id="58"></a>
+## 58. G3: la arquitectura elástica no se distingue de la de una instancia por debajo de ~110 pet./s, y escalar tarda minutos
 
+**Afecta a:** G3 (#223), G5, G6, G7, I1, I4. Escrito el 2026-11-01. Detalle en [`evidencias/G3/README.md`](evidencias/G3/README.md).
 
+| Qué | Detalle |
+| :--- | :--- |
+| El resultado | 32 corridas, 153 113 peticiones, 0 timeouts, 0 fallos de validación, 1 fallo real (un 503 de 3 ms) y el estado de la base correcto en las 32. **R** (API fija en 1) y **E** (1 a 3) rinden igual a 33 y a 108 pet./s, con latencias dentro de una desviación estándar. A ~255 pet./s el rendimiento también coincide y el p95 de E es peor mientras suma instancias |
+| Qué no se encontró | **el límite**. La API no pasó de 51 % de CPU en un minuto y PostgreSQL no pasó de 52 %; con 200 cuentas y 3 intentos por cuenta el escenario no empuja mucho más de ~260 pet./s. Para G7: «el límite se desplaza hacia la base» **no está demostrado** por G3; es una hipótesis razonable (1 vCPU, `max_connections = 100`) |
+| Un dato inesperado | con 3 instancias de API, la CPU de PostgreSQL fue de 47–52 % para ~108 pet./s; con 1 instancia, 29–36 % para lo mismo. Sin causa medida: pools por instancia, `DELETE` de los reinicios de cuentas o crecimiento de `audit_logs` |
+| El escalamiento | tarda **de 3 a 8 minutos** en verse tras empezar la carga: una corrida de 3–4 min no lo alcanza. Para ver el efecto de la elasticidad hay que sostener la carga (serie S) |
+| Cómo se midió | operando R fijando `min = max = 1` en el autoescalador con `gcloud` (no con Terraform) y restaurándolo. **Una sonda de lectura de 100 usuarios ya dispara el escalamiento**: las primeras corridas de E partieron con 2 instancias |
+| Lo que se recortó | por pedido del equipo, R solo a 200 usuarios, B100 una vez y la serie S de 8 en vez de 12; `R-C200-r2` no se publica (ventana de 37 s sin latencia del balanceador). Todo declarado en el README |
 
+| Issue | Qué tiene que saber |
+| :--- | :--- |
+| **G5** | el escalamiento de la API tarda 3 a 8 minutos desde que empieza la carga; planificar la ventana de observación con ese margen. Un `max = 1` del autoescalador se pone con `gcloud` y **vuelve solo a 3 con el siguiente `apply`** |
+| **G6** | los workers no participaron en este escenario (la cola quedó en 0 durante toda la campaña) |
+| **G7** | declarar el cambio de generador y de camino de red (notas 49 y 57) y que a estos niveles la elástica no mejora lo que no está saturado |
+| **I1, I4** | la gráfica de la campaña ([`G3/capturas/`](evidencias/G3/capturas/2026-11-01_campana-completa-instancias-cpu-balanceador.png)) muestra los escalones 1 → 2 → 3 → 2 → 1 de la API |

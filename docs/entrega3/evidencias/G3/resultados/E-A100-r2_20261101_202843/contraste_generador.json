@@ -1,0 +1,33 @@
+{
+  "veredicto": "NO LIMITA",
+  "razones": [],
+  "medidas": {
+    "generador_cpu_pct_de_un_nucleo": {
+      "muestras": 23,
+      "p95": 31.8,
+      "max": 72.2,
+      "limite": 280.0
+    },
+    "generador_memoria_pct": {
+      "max_gib": 1.38,
+      "total_gib": 15.6,
+      "max_pct": 8.8,
+      "limite": 80.0
+    },
+    "latencia": {
+      "generador_p50_ms": 18,
+      "balanceador_p50_ms_media_por_minuto": 15.7,
+      "brecha_p50_ms": 2.3,
+      "generador_p95_ms": 46,
+      "balanceador_p95_ms_media_por_minuto": 38.1,
+      "brecha_p95_ms": 7.9
+    },
+    "solicitudes": {
+      "enviadas_por_el_generador": 4200,
+      "contadas_por_el_balanceador": 6866,
+      "ratio": 1.635,
+      "minimo": 0.95
+    }
+  },
+  "nucleos_del_generador": 4
+}

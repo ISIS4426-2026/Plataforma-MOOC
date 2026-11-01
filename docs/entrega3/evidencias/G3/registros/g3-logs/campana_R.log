@@ -1,0 +1,14 @@
+[19:05:28] inicio del operando R (commit d9f1d22)
+[19:05:28] === R: A100 x3
+[19:05:28] Se reusan los tokens de capacity-planning/datos/tokens.csv (duran 24 h)
+[19:05:28] >>> R-A100-r1: reiniciando cuentas
+[19:05:29] >>> R-A100-r1: corriendo 100 usuarios (pausa 4000+2000 ms, rampa 60 s)
+[19:15:12] >>> R-A100-r1: verificando estado en la base
+estado en la base: 80 estudiantes con envios (min 1, max 3, total 138), 98 inscripciones, 0 duplicados -> NO CUADRA (esperado 3 envios por estudiante y 0 duplicados)
+[19:15:13] >>> R-A100-r1: p95=10011ms reales=63.411% validacion=175 rps=6.8
+[19:15:13] ATENCION: el estado en la base no cuadra en R-A100-r1
+[19:15:13] pausa de 120 s
+[19:17:13] PARADA en la repeticion 1.
+[19:17:13] TERMINADO. Resumen:
+corrida                                       usr  pausa      n     rps   p50    p95    p99  real  t/o  val  bd
+R-A100-r1_20261101_190529                     100 4.0-6.0s   3389     6.8 10007  10011  10012  2149 1905  175  NO

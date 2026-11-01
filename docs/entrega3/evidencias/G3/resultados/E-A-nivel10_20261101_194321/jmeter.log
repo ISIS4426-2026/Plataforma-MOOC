@@ -1,0 +1,119 @@
+2026-11-01 20:43:23,532 INFO o.a.j.u.JMeterUtils: Setting Locale to en_EN
+2026-11-01 20:43:23,563 INFO o.a.j.JMeter: Loading user properties from: /opt/apache-jmeter-5.5/bin/user.properties
+2026-11-01 20:43:23,564 INFO o.a.j.JMeter: Loading system properties from: /opt/apache-jmeter-5.5/bin/system.properties
+2026-11-01 20:43:23,564 INFO o.a.j.JMeter: Setting System property: log4j2.formatMsgNoLookups=true
+2026-11-01 20:43:23,564 INFO o.a.j.JMeter: Setting JMeter property: users=10
+2026-11-01 20:43:23,564 INFO o.a.j.JMeter: Setting JMeter property: ramp=30
+2026-11-01 20:43:23,565 INFO o.a.j.JMeter: Setting JMeter property: sessions=3
+2026-11-01 20:43:23,565 INFO o.a.j.JMeter: Setting JMeter property: think_ms=4000
+2026-11-01 20:43:23,565 INFO o.a.j.JMeter: Setting JMeter property: think_range_ms=2000
+2026-11-01 20:43:23,565 INFO o.a.j.JMeter: Setting JMeter property: host=136.68.55.254.sslip.io
+2026-11-01 20:43:23,565 INFO o.a.j.JMeter: Setting JMeter property: port=443
+2026-11-01 20:43:23,565 INFO o.a.j.JMeter: Setting JMeter property: protocol=https
+2026-11-01 20:43:23,565 INFO o.a.j.JMeter: Setting JMeter property: origin=https://136.68.55.254.sslip.io
+2026-11-01 20:43:23,565 INFO o.a.j.JMeter: Setting JMeter property: runId=E-A-nivel10_20261101_194321
+2026-11-01 20:43:23,565 INFO o.a.j.JMeter: Setting JMeter property: tokens=/jmeter/capacity/tokens.csv
+2026-11-01 20:43:23,578 INFO o.a.j.JMeter: Copyright (c) 1998-2022 The Apache Software Foundation
+2026-11-01 20:43:23,578 INFO o.a.j.JMeter: Version 5.5
+2026-11-01 20:43:23,578 INFO o.a.j.JMeter: java.version=1.8.0_275
+2026-11-01 20:43:23,578 INFO o.a.j.JMeter: java.vm.name=OpenJDK 64-Bit Server VM
+2026-11-01 20:43:23,578 INFO o.a.j.JMeter: os.name=Linux
+2026-11-01 20:43:23,578 INFO o.a.j.JMeter: os.arch=amd64
+2026-11-01 20:43:23,579 INFO o.a.j.JMeter: os.version=6.1.0-54-cloud-amd64
+2026-11-01 20:43:23,579 INFO o.a.j.JMeter: file.encoding=UTF-8
+2026-11-01 20:43:23,579 INFO o.a.j.JMeter: java.awt.headless=true
+2026-11-01 20:43:23,579 INFO o.a.j.JMeter: Max memory     =12851347456
+2026-11-01 20:43:23,579 INFO o.a.j.JMeter: Available Processors =4
+2026-11-01 20:43:23,587 INFO o.a.j.JMeter: Default Locale=English (EN)
+2026-11-01 20:43:23,588 INFO o.a.j.JMeter: JMeter  Locale=English (EN)
+2026-11-01 20:43:23,588 INFO o.a.j.JMeter: JMeterHome=/opt/apache-jmeter-5.5
+2026-11-01 20:43:23,588 INFO o.a.j.JMeter: user.dir  =/opt/apache-jmeter-5.5
+2026-11-01 20:43:23,588 INFO o.a.j.JMeter: PWD       =/opt/apache-jmeter-5.5
+2026-11-01 20:43:23,588 INFO o.a.j.JMeter: IP: 172.17.0.2 Name: c69c072535a2 FullName: c69c072535a2
+2026-11-01 20:43:23,627 INFO o.a.j.s.FileServer: Default base='/opt/apache-jmeter-5.5'
+2026-11-01 20:43:23,629 INFO o.a.j.s.FileServer: Set new base='/jmeter'
+2026-11-01 20:43:23,822 INFO o.a.j.s.SaveService: Testplan (JMX) version: 2.2. Testlog (JTL) version: 2.2
+2026-11-01 20:43:23,854 INFO o.a.j.s.SaveService: Using SaveService properties file encoding UTF-8
+2026-11-01 20:43:23,862 INFO o.a.j.s.SaveService: Using SaveService properties version 5.0
+2026-11-01 20:43:23,873 INFO o.a.j.s.SaveService: Loading file: /jmeter/escenario1.jmx
+2026-11-01 20:43:23,963 INFO o.a.j.p.h.s.HTTPSamplerBase: Parser for text/html is org.apache.jmeter.protocol.http.parser.LagartoBasedHtmlParser
+2026-11-01 20:43:23,963 INFO o.a.j.p.h.s.HTTPSamplerBase: Parser for application/xhtml+xml is org.apache.jmeter.protocol.http.parser.LagartoBasedHtmlParser
+2026-11-01 20:43:23,964 INFO o.a.j.p.h.s.HTTPSamplerBase: Parser for application/xml is org.apache.jmeter.protocol.http.parser.LagartoBasedHtmlParser
+2026-11-01 20:43:23,964 INFO o.a.j.p.h.s.HTTPSamplerBase: Parser for text/xml is org.apache.jmeter.protocol.http.parser.LagartoBasedHtmlParser
+2026-11-01 20:43:23,964 INFO o.a.j.p.h.s.HTTPSamplerBase: Parser for text/vnd.wap.wml is org.apache.jmeter.protocol.http.parser.RegexpHTMLParser
+2026-11-01 20:43:23,964 INFO o.a.j.p.h.s.HTTPSamplerBase: Parser for text/css is org.apache.jmeter.protocol.http.parser.CssParser
+2026-11-01 20:43:24,505 INFO o.a.j.JMeter: Creating summariser <summary>
+2026-11-01 20:43:24,531 INFO o.a.j.e.StandardJMeterEngine: Running the test!
+2026-11-01 20:43:24,532 INFO o.a.j.s.SampleEvent: List of sample_variables: []
+2026-11-01 20:43:24,532 INFO o.a.j.s.SampleEvent: List of sample_variables: []
+2026-11-01 20:43:24,541 INFO o.a.j.e.u.CompoundVariable: Note: Function class names must contain the string: '.functions.'
+2026-11-01 20:43:24,541 INFO o.a.j.e.u.CompoundVariable: Note: Function class names must not contain the string: '.gui.'
+2026-11-01 20:43:25,259 INFO o.a.j.JMeter: Running test (1793562205258)
+2026-11-01 20:43:25,399 INFO o.a.j.e.StandardJMeterEngine: Starting ThreadGroup: 1 : Estudiantes concurrentes
+2026-11-01 20:43:25,400 INFO o.a.j.e.StandardJMeterEngine: Starting 10 threads for group Estudiantes concurrentes.
+2026-11-01 20:43:25,400 INFO o.a.j.e.StandardJMeterEngine: Thread will continue on error
+2026-11-01 20:43:25,400 INFO o.a.j.t.ThreadGroup: Starting thread group... number=1 threads=10 ramp-up=30 delayedStart=false
+2026-11-01 20:43:25,430 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-1
+2026-11-01 20:43:25,433 INFO o.a.j.s.FileServer: Stored: /jmeter/capacity/tokens.csv
+2026-11-01 20:43:25,452 INFO o.a.j.t.ThreadGroup: Started thread group number 1
+2026-11-01 20:43:25,452 INFO o.a.j.e.StandardJMeterEngine: All thread groups have been started
+2026-11-01 20:43:28,432 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-2
+2026-11-01 20:43:31,406 INFO o.a.j.p.h.s.HTTPHCAbstractImpl: Local host = c69c072535a2
+2026-11-01 20:43:31,415 INFO o.a.j.p.h.s.HTTPHC4Impl: HTTP request retry count = 0
+2026-11-01 20:43:31,417 INFO o.a.j.s.SampleResult: Note: Sample TimeStamps are START times
+2026-11-01 20:43:31,418 INFO o.a.j.s.SampleResult: sampleresult.default.encoding is set to ISO-8859-1
+2026-11-01 20:43:31,418 INFO o.a.j.s.SampleResult: sampleresult.useNanoTime=true
+2026-11-01 20:43:31,418 INFO o.a.j.s.SampleResult: sampleresult.nanoThreadSleep=5000
+2026-11-01 20:43:31,433 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-3
+2026-11-01 20:43:31,573 INFO o.a.j.p.h.s.h.LazyLayeredConnectionSocketFactory: Setting up HTTPS TrustAll Socket Factory
+2026-11-01 20:43:31,583 INFO o.a.j.u.JsseSSLManager: Using default SSL protocol: TLS
+2026-11-01 20:43:31,583 INFO o.a.j.u.JsseSSLManager: SSL session context: per-thread
+2026-11-01 20:43:31,663 INFO o.a.j.u.SSLManager: JmeterKeyStore Location:  type JKS
+2026-11-01 20:43:31,670 INFO o.a.j.u.SSLManager: KeyStore created OK
+2026-11-01 20:43:31,670 WARN o.a.j.u.SSLManager: Keystore file not found, loading empty keystore
+2026-11-01 20:43:32,081 INFO o.a.j.r.Summariser: summary +      1 in 00:00:07 =    0.1/s Avg:   484 Min:   484 Max:   484 Err:     0 (0.00%) Active: 3 Started: 3 Finished: 0
+2026-11-01 20:43:34,431 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-4
+2026-11-01 20:43:37,409 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-5
+2026-11-01 20:43:40,410 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-6
+2026-11-01 20:43:43,406 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-7
+2026-11-01 20:43:46,418 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-8
+2026-11-01 20:43:49,418 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-9
+2026-11-01 20:43:52,414 INFO o.a.j.t.JMeterThread: Thread started: Estudiantes concurrentes 1-10
+2026-11-01 20:44:00,056 INFO o.a.j.r.Summariser: summary +     36 in 00:00:28 =    1.3/s Avg:    23 Min:    10 Max:    75 Err:     0 (0.00%) Active: 10 Started: 10 Finished: 0
+2026-11-01 20:44:00,057 INFO o.a.j.r.Summariser: summary =     37 in 00:00:35 =    1.1/s Avg:    35 Min:    10 Max:   484 Err:     0 (0.00%)
+2026-11-01 20:44:31,218 INFO o.a.j.r.Summariser: summary +     60 in 00:00:31 =    1.9/s Avg:    25 Min:    10 Max:    91 Err:     0 (0.00%) Active: 10 Started: 10 Finished: 0
+2026-11-01 20:44:31,218 INFO o.a.j.r.Summariser: summary =     97 in 00:01:06 =    1.5/s Avg:    29 Min:    10 Max:   484 Err:     0 (0.00%)
+2026-11-01 20:45:00,014 INFO o.a.j.r.Summariser: summary +     60 in 00:00:29 =    2.1/s Avg:    23 Min:     9 Max:   119 Err:     0 (0.00%) Active: 10 Started: 10 Finished: 0
+2026-11-01 20:45:00,015 INFO o.a.j.r.Summariser: summary =    157 in 00:01:35 =    1.7/s Avg:    27 Min:     9 Max:   484 Err:     0 (0.00%)
+2026-11-01 20:45:30,334 INFO o.a.j.r.Summariser: summary +     62 in 00:00:30 =    2.0/s Avg:    20 Min:     9 Max:    36 Err:     0 (0.00%) Active: 10 Started: 10 Finished: 0
+2026-11-01 20:45:30,335 INFO o.a.j.r.Summariser: summary =    219 in 00:02:05 =    1.8/s Avg:    25 Min:     9 Max:   484 Err:     0 (0.00%)
+2026-11-01 20:46:00,261 INFO o.a.j.r.Summariser: summary +     60 in 00:00:30 =    2.0/s Avg:    32 Min:    10 Max:   134 Err:     0 (0.00%) Active: 10 Started: 10 Finished: 0
+2026-11-01 20:46:00,261 INFO o.a.j.r.Summariser: summary =    279 in 00:02:35 =    1.8/s Avg:    26 Min:     9 Max:   484 Err:     0 (0.00%)
+2026-11-01 20:46:30,035 INFO o.a.j.r.Summariser: summary +     57 in 00:00:30 =    1.9/s Avg:    19 Min:     9 Max:    35 Err:     0 (0.00%) Active: 10 Started: 10 Finished: 0
+2026-11-01 20:46:30,035 INFO o.a.j.r.Summariser: summary =    336 in 00:03:05 =    1.8/s Avg:    25 Min:     9 Max:   484 Err:     0 (0.00%)
+2026-11-01 20:46:58,555 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-2
+2026-11-01 20:46:58,555 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-2
+2026-11-01 20:47:00,004 INFO o.a.j.r.Summariser: summary +     61 in 00:00:30 =    2.0/s Avg:    28 Min:    10 Max:    62 Err:     0 (0.00%) Active: 9 Started: 10 Finished: 1
+2026-11-01 20:47:00,006 INFO o.a.j.r.Summariser: summary =    397 in 00:03:35 =    1.8/s Avg:    25 Min:     9 Max:   484 Err:     0 (0.00%)
+2026-11-01 20:47:04,475 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-1
+2026-11-01 20:47:04,475 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-1
+2026-11-01 20:47:05,579 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-4
+2026-11-01 20:47:05,579 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-4
+2026-11-01 20:47:06,503 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-3
+2026-11-01 20:47:06,504 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-3
+2026-11-01 20:47:06,641 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-6
+2026-11-01 20:47:06,641 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-6
+2026-11-01 20:47:09,352 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-7
+2026-11-01 20:47:09,353 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-7
+2026-11-01 20:47:11,471 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-8
+2026-11-01 20:47:11,471 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-8
+2026-11-01 20:47:12,103 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-5
+2026-11-01 20:47:12,103 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-5
+2026-11-01 20:47:18,180 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-10
+2026-11-01 20:47:18,180 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-10
+2026-11-01 20:47:24,218 INFO o.a.j.t.JMeterThread: Thread is done: Estudiantes concurrentes 1-9
+2026-11-01 20:47:24,218 INFO o.a.j.t.JMeterThread: Thread finished: Estudiantes concurrentes 1-9
+2026-11-01 20:47:24,219 INFO o.a.j.e.StandardJMeterEngine: Notifying test listeners of end of test
+2026-11-01 20:47:24,219 INFO o.a.j.s.FileServer: Close: /jmeter/capacity/tokens.csv
+2026-11-01 20:47:24,221 INFO o.a.j.r.Summariser: summary +     23 in 00:00:24 =    0.9/s Avg:    25 Min:    12 Max:    72 Err:     0 (0.00%) Active: 0 Started: 10 Finished: 10
+2026-11-01 20:47:24,221 INFO o.a.j.r.Summariser: summary =    420 in 00:03:59 =    1.8/s Avg:    25 Min:     9 Max:   484 Err:     0 (0.00%)

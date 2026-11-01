@@ -1,0 +1,378 @@
+{
+  "ventana": {
+    "inicio": "2026-11-01T20:42:04Z",
+    "fin": "2026-11-01T20:46:44Z"
+  },
+  "proyecto": "plataforma-mooc-entrega2",
+  "grupos": {
+    "api": {
+      "cpu_ocupada_pct_media_del_grupo": {
+        "n": 5,
+        "min": 1.39,
+        "media": 9.17,
+        "max": 15.54,
+        "p95": null
+      },
+      "cpu_ocupada_pct_max_de_una_instancia": {
+        "n": 5,
+        "min": 1.39,
+        "media": 9.17,
+        "max": 15.54,
+        "p95": null
+      },
+      "instancias_operativas": {
+        "n": 5,
+        "min": 1.0,
+        "media": 1.0,
+        "max": 1.0,
+        "p95": null
+      },
+      "memoria_usada_pct_media_del_grupo": {
+        "n": 5,
+        "min": 28.16,
+        "media": 28.8,
+        "max": 29.41,
+        "p95": null
+      },
+      "conexiones_tcp_del_grupo": {
+        "n": 5,
+        "min": 24.0,
+        "media": 26.0,
+        "max": 32.0,
+        "p95": null
+      },
+      "instancias_existentes": {
+        "n": 5,
+        "min": 1.0,
+        "media": 1.0,
+        "max": 1.0,
+        "p95": null
+      }
+    },
+    "cola": {
+      "cpu_ocupada_pct_media_del_grupo": {
+        "n": 5,
+        "min": 0.99,
+        "media": 1.4,
+        "max": 1.77,
+        "p95": null
+      },
+      "cpu_ocupada_pct_max_de_una_instancia": {
+        "n": 5,
+        "min": 0.99,
+        "media": 1.4,
+        "max": 1.77,
+        "p95": null
+      },
+      "instancias_operativas": {
+        "n": 5,
+        "min": 1.0,
+        "media": 1.0,
+        "max": 1.0,
+        "p95": null
+      },
+      "memoria_usada_pct_media_del_grupo": {
+        "n": 5,
+        "min": 27.4,
+        "media": 27.62,
+        "max": 27.72,
+        "p95": null
+      },
+      "conexiones_tcp_del_grupo": {
+        "n": 5,
+        "min": 40.0,
+        "media": 40.4,
+        "max": 41.0,
+        "p95": null
+      }
+    },
+    "worker": {
+      "cpu_ocupada_pct_media_del_grupo": {
+        "n": 5,
+        "min": 0.6,
+        "media": 1.28,
+        "max": 3.92,
+        "p95": null
+      },
+      "cpu_ocupada_pct_max_de_una_instancia": {
+        "n": 5,
+        "min": 0.6,
+        "media": 1.28,
+        "max": 3.92,
+        "p95": null
+      },
+      "instancias_operativas": {
+        "n": 5,
+        "min": 1.0,
+        "media": 1.0,
+        "max": 1.0,
+        "p95": null
+      },
+      "memoria_usada_pct_media_del_grupo": {
+        "n": 5,
+        "min": 28.06,
+        "media": 28.34,
+        "max": 28.45,
+        "p95": null
+      },
+      "conexiones_tcp_del_grupo": {
+        "n": 5,
+        "min": 23.0,
+        "media": 24.4,
+        "max": 30.0,
+        "p95": null
+      },
+      "instancias_existentes": {
+        "n": 5,
+        "min": 1.0,
+        "media": 1.0,
+        "max": 1.0,
+        "p95": null
+      }
+    }
+  },
+  "vm": {
+    "mooc-api-93l6": {
+      "cpu_ocupada_pct": {
+        "n": 5,
+        "min": 1.39,
+        "media": 9.17,
+        "max": 15.54,
+        "p95": null
+      },
+      "memoria_usada_pct": {
+        "n": 5,
+        "min": 28.16,
+        "media": 28.8,
+        "max": 29.41,
+        "p95": null
+      },
+      "conexiones_tcp": {
+        "n": 5,
+        "min": 24.0,
+        "media": 26.0,
+        "max": 32.0,
+        "p95": null
+      }
+    },
+    "mooc-queue-server": {
+      "cpu_ocupada_pct": {
+        "n": 5,
+        "min": 0.99,
+        "media": 1.4,
+        "max": 1.77,
+        "p95": null
+      },
+      "memoria_usada_pct": {
+        "n": 5,
+        "min": 27.4,
+        "media": 27.62,
+        "max": 27.72,
+        "p95": null
+      },
+      "conexiones_tcp": {
+        "n": 5,
+        "min": 40.0,
+        "media": 40.4,
+        "max": 41.0,
+        "p95": null
+      }
+    },
+    "mooc-worker-wxgc": {
+      "cpu_ocupada_pct": {
+        "n": 5,
+        "min": 0.6,
+        "media": 1.28,
+        "max": 3.92,
+        "p95": null
+      },
+      "memoria_usada_pct": {
+        "n": 5,
+        "min": 28.06,
+        "media": 28.34,
+        "max": 28.45,
+        "p95": null
+      },
+      "conexiones_tcp": {
+        "n": 5,
+        "min": 23.0,
+        "media": 24.4,
+        "max": 30.0,
+        "p95": null
+      }
+    }
+  },
+  "cloudsql": {
+    "cpu_pct": {
+      "n": 5,
+      "min": 12.89,
+      "media": 23.31,
+      "max": 35.78,
+      "p95": null
+    },
+    "memoria_pct": {
+      "n": 5,
+      "min": 27.46,
+      "media": 28.06,
+      "max": 28.36,
+      "p95": null
+    },
+    "conexiones_abiertas": {
+      "n": 5,
+      "min": 4.0,
+      "media": 6.0,
+      "max": 7.0,
+      "p95": null
+    },
+    "transacciones_por_segundo": {
+      "n": 5,
+      "min": 5.95,
+      "media": 228.39,
+      "max": 361.05,
+      "p95": null
+    }
+  },
+  "cola": {
+    "pendientes": {
+      "n": 5,
+      "min": 0.0,
+      "media": 0.0,
+      "max": 0.0,
+      "p95": null
+    },
+    "activas": {
+      "n": 5,
+      "min": 0.0,
+      "media": 0.0,
+      "max": 0.0,
+      "p95": null
+    },
+    "total_en_cola": {
+      "n": 5,
+      "min": 0.0,
+      "media": 0.0,
+      "max": 0.0,
+      "p95": null
+    },
+    "antiguedad_del_mas_viejo_s": {
+      "n": 5,
+      "min": 0.0,
+      "media": 0.0,
+      "max": 0.0,
+      "p95": null
+    },
+    "trabajos_completados_por_s": null,
+    "trabajos_fallidos_por_s": null
+  },
+  "balanceador": {
+    "ventana_del_conteo": {
+      "inicio": "2026-11-01T20:40:04Z",
+      "fin": "2026-11-01T20:50:44Z"
+    },
+    "solicitudes_por_clase": {
+      "200": 16010
+    },
+    "solicitudes_totales": 16010,
+    "latencia_total_ms": {
+      "p50_por_minuto": {
+        "n": 4,
+        "min": 13.57,
+        "media": 14.48,
+        "max": 15.44,
+        "p95": null
+      },
+      "p95_por_minuto": {
+        "n": 4,
+        "min": 29.78,
+        "media": 38.84,
+        "max": 45.38,
+        "p95": null
+      },
+      "p99_por_minuto": {
+        "n": 4,
+        "min": 41.83,
+        "media": 60.85,
+        "max": 76.39,
+        "p95": null
+      }
+    },
+    "latencia_del_backend_ms": {
+      "p50_por_minuto": {
+        "n": 4,
+        "min": 11.92,
+        "media": 13.39,
+        "max": 14.52,
+        "p95": null
+      },
+      "p95_por_minuto": {
+        "n": 4,
+        "min": 27.82,
+        "media": 37.68,
+        "max": 45.38,
+        "p95": null
+      },
+      "p99_por_minuto": {
+        "n": 4,
+        "min": 39.12,
+        "media": 59.25,
+        "max": 76.39,
+        "p95": null
+      }
+    }
+  },
+  "autoescalador": {
+    "mooc-api-autoscaler": {
+      "utilizacion": {
+        "n": 5,
+        "min": 0.0,
+        "media": 0.14,
+        "max": 0.4,
+        "p95": null
+      },
+      "tamano_recomendado": {
+        "n": 5,
+        "min": 1.0,
+        "media": 1.0,
+        "max": 1.0,
+        "p95": null
+      }
+    },
+    "mooc-worker-autoscaler": {
+      "utilizacion": {
+        "n": 5,
+        "min": 0.0,
+        "media": 0.0,
+        "max": 0.0,
+        "p95": null
+      },
+      "tamano_recomendado": {
+        "n": 5,
+        "min": 1.0,
+        "media": 1.0,
+        "max": 1.0,
+        "p95": null
+      }
+    }
+  },
+  "api": {
+    "latencia_p50_s_por_minuto": null,
+    "latencia_p95_s_por_minuto": null,
+    "latencia_p99_s_por_minuto": null
+  },
+  "cola_y_api": {
+    "cola_pending": {
+      "n": 5,
+      "min": 0.0,
+      "media": 0.0,
+      "max": 0.0,
+      "p95": null
+    },
+    "cola_antiguedad_s": {
+      "n": 5,
+      "min": 0.0,
+      "media": 0.0,
+      "max": 0.0,
+      "p95": null
+    }
+  }
+}

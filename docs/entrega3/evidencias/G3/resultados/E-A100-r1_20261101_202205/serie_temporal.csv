@@ -1,0 +1,11 @@
+minuto_utc,api_autoescalador_recomendado,api_autoescalador_utilizacion,api_cpu_media_pct,api_existentes,api_operativas,cola_activas,cola_antiguedad_del_mas_viejo_s,cola_cpu_media_pct,cola_operativas,cola_pendientes,cola_total_en_cola,db_conexiones,db_cpu_pct,lb_5xx,lb_p50_ms,lb_p95_ms,lb_p99_ms,lb_solicitudes,worker_autoescalador_recomendado,worker_autoescalador_utilizacion,worker_cpu_media_pct,worker_existentes,worker_operativas
+2026-11-01T20:20,,,,,,,,,,,,,,0,,,,5786,,,,,
+2026-11-01T20:21,,,,,,,,,,,,,,0,,,,1204,,,,,
+2026-11-01T20:22,2,0.366,25.23,2,2,0.0,0.0,0.89,1,0.0,0.0,11,15.07,,,,,,1,0.0,0.69,1,1
+2026-11-01T20:23,2,0.0,2.47,2,2,0.0,0.0,0.88,1,0.0,0.0,12,14.37,0,15.8,29.4,63.5,350,1,0.0,0.67,1,1
+2026-11-01T20:24,2,0.037,4.32,2,2,0.0,0.0,1.18,1,0.0,0.0,7,17.96,0,17.3,36.4,54.9,1004,1,0.0,0.66,1,1
+2026-11-01T20:25,2,0.097,6.29,2,2,0.0,0.0,1.23,1,0.0,0.0,8,21.8,0,17.5,45.9,56.1,1177,1,0.0,0.56,1,1
+2026-11-01T20:26,2,0.097,6.12,2,2,0.0,0.0,1.2,1,0.0,0.0,8,21.91,0,16.9,44.5,63.6,1057,1,0.0,4.74,1,1
+2026-11-01T20:27,,,,,,,,,,,,,,0,,,,491,,,,,
+2026-11-01T20:28,,,,,,,,,,,,,,0,,,,27,,,,,
+2026-11-01T20:30,,,,,,,,,,,,,,0,,,,690,,,,,

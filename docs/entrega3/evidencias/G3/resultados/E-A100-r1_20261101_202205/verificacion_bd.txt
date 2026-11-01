@@ -1,0 +1,25 @@
+ estudiantes_con_envios | min_envios | max_envios | envios_totales 
+------------------------+------------+------------+----------------
+                    100 |          3 |          3 |            300
+(1 row)
+
+ inscripciones_activas 
+-----------------------
+                   100
+(1 row)
+
+ insignias_emitidas 
+--------------------
+                100
+(1 row)
+
+ envios_duplicados_mismo_intento 
+---------------------------------
+                               0
+(1 row)
+
+ cuentas_de_carga 
+------------------
+              200
+(1 row)
+

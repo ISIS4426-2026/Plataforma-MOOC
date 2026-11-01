@@ -1,0 +1,22 @@
+filas 4200
+codigos [('Non HTTP response code: org.apache.http.conn.ConnectTimeoutException', 2012), ('200', 1825), ('500', 244), ('400', 112), ('403', 7)]
+01 GET catalogo de cursos            n=  300 err=  160 media=5352ms
+02 GET detalle del curso             n=  300 err=  156 media=5298ms
+03 POST inscripcion                  n=  300 err=  159 media=5339ms
+04 GET estado de mi inscripcion (v   n=  300 err=  156 media=5295ms
+05 GET modulos del curso             n=  300 err=  160 media=5473ms
+06 GET unidades del modulo           n=  300 err=  169 media=5231ms
+07 GET recursos de la unidad         n=  300 err=  176 media=5003ms
+08 GET cuestionario (vista de estu   n=  300 err=  151 media=4993ms
+09 POST latido de progreso 1 (recu   n=  300 err=  192 media=4768ms
+09 POST latido de progreso 2 (recu   n=  300 err=  197 media=4507ms
+10 POST envio del quiz               n=  300 err=  162 media=4018ms
+11 POST envio DUPLICADO del quiz (   n=  300 err=  165 media=3472ms
+12 GET avance del curso tras el qu   n=  300 err=  136 media=4605ms
+13 GET mis envios (validacion de d   n=  300 err=  236 media=5325ms
+fallos:
+  2012 ('Non HTTP response code: org.apache.http.conn.ConnectTimeoutException', 'Non HTTP response message: Connect to 136.68.55.25', 'Test failed: code expected to equal /\n\n****** received  : [[')
+  244 ('500', 'Internal Server Error', 'Test failed: code expected to equal /\n\n****** received  : [[')
+  112 ('400', 'Bad Request', 'Test failed: code expected to equal /\n\n****** received  : [[')
+  7 ('403', 'Forbidden', 'Test failed: code expected to equal /\n\n****** received  : [[')
+duracion s 573
