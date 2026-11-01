@@ -1,9 +1,15 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { hlsManifestUrl, loadRuntimeConfig } from "./runtime";
+import { hlsManifestUrl, loadRuntimeConfig, stripTrailingSlashes } from "./runtime";
 
 describe("configuracion de entorno", () => {
   beforeEach(() => vi.stubGlobal("fetch", vi.fn()));
   afterEach(() => vi.unstubAllGlobals());
+
+  it("stripTrailingSlashes recorta multiples barras finales en tiempo lineal", () => {
+    expect(stripTrailingSlashes("https://almacen.example/bucket///")).toBe("https://almacen.example/bucket");
+    expect(stripTrailingSlashes("///")).toBe("");
+    expect(stripTrailingSlashes("https://almacen.example/a/b")).toBe("https://almacen.example/a/b");
+  });
 
   it("el manifiesto HLS se arma con la base publica y el id estable", async () => {
     vi.mocked(fetch).mockResolvedValue(

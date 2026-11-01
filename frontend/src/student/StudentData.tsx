@@ -32,7 +32,7 @@ export function StudentDataProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let cancelled = false;
-    (async () => {
+    void (async () => {
       try {
         const [enrollments, catalog] = await Promise.all([myEnrollments(), courseIndex(tick > 0)]);
         const activos = enrollments.filter((e) => e.status === "active");

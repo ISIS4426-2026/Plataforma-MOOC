@@ -21,6 +21,37 @@ function inline(texto: string, clave: string): ReactNode[] {
   return partes;
 }
 
+function parseHeading(line: string): { level: 1 | 2 | 3; text: string } | null {
+  let hashes = 0;
+  while (hashes < line.length && hashes < 4 && line.charCodeAt(hashes) === 35) {
+    hashes++;
+  }
+  if (hashes < 1 || hashes > 3 || hashes >= line.length) {
+    return null;
+  }
+  const next = line[hashes];
+  if (next !== " " && next !== "\t") {
+    return null;
+  }
+  return {
+    level: hashes as 1 | 2 | 3,
+    text: line.slice(hashes).trimStart(),
+  };
+}
+
+function parseListItem(line: string): string | null {
+  const trimmed = line.trimStart();
+  if (trimmed.length < 2) {
+    return null;
+  }
+  const marker = trimmed[0];
+  const sep = trimmed[1];
+  if ((marker !== "-" && marker !== "*") || (sep !== " " && sep !== "\t")) {
+    return null;
+  }
+  return trimmed.slice(1).trimStart();
+}
+
 export function Markdown({ texto }: { texto: string }) {
   // Algunos textos sembrados traen el salto de linea escapado ("\\n") en lugar del caracter real.
   const lineas = texto.replace(/\\n/g, "\n").split("\n");
@@ -49,16 +80,16 @@ export function Markdown({ texto }: { texto: string }) {
 
   for (const crudo of lineas) {
     const l = crudo.trimEnd();
-    const h = /^(#{1,3})\s+(.*)$/.exec(l);
+    const h = parseHeading(l);
+    const item = h ? null : parseListItem(l);
     if (h) {
       cerrarLista();
       cerrarParrafo();
-      const nivel = h[1].length;
-      const Tag = (`h${nivel + 1}`) as "h2" | "h3" | "h4";
-      bloques.push(<Tag key={`h${bloques.length}`}>{inline(h[2], `h${bloques.length}`)}</Tag>);
-    } else if (/^\s*[-*]\s+/.test(l)) {
+      const Tag = (`h${h.level + 1}`) as "h2" | "h3" | "h4";
+      bloques.push(<Tag key={`h${bloques.length}`}>{inline(h.text, `h${bloques.length}`)}</Tag>);
+    } else if (item !== null) {
       cerrarParrafo();
-      lista.push(l.replace(/^\s*[-*]\s+/, ""));
+      lista.push(item);
     } else if (l.trim() === "") {
       cerrarLista();
       cerrarParrafo();

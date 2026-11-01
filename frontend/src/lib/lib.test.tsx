@@ -45,4 +45,12 @@ describe("Markdown seguro", () => {
     expect(h).not.toContain("<img");
     expect(h).toContain("&lt;script&gt;");
   });
+  it("procesa encabezados h1-h3, ignora >>>> de 3 numerales y soporta listas con asterisco", () => {
+    const h = html("## Subtitulo\n### Seccion\n#### NoEsEncabezado\n  * item-a\n\t- item-b");
+    expect(h).toContain("<h3>Subtitulo</h3>");
+    expect(h).toContain("<h4>Seccion</h4>");
+    expect(h).toContain("<p>#### NoEsEncabezado</p>");
+    expect(h).toContain("<li>item-a</li>");
+    expect(h).toContain("<li>item-b</li>");
+  });
 });

@@ -20,7 +20,15 @@ export async function loadRuntimeConfig(): Promise<void> {
 
 export const runtimeConfig = (): RuntimeConfig => config;
 
+export function stripTrailingSlashes(value: string): string {
+  let end = value.length;
+  while (end > 0 && value.charCodeAt(end - 1) === 47) {
+    end--;
+  }
+  return value.slice(0, end);
+}
+
 export function hlsManifestUrl(resourceStableId: string): string | null {
-  const base = config.hlsBaseUrl?.replace(/\/+$/, "");
+  const base = config.hlsBaseUrl ? stripTrailingSlashes(config.hlsBaseUrl) : "";
   return base ? `${base}/hls/${resourceStableId}/master.m3u8` : null;
 }
