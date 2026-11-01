@@ -249,7 +249,7 @@ habría durado 8 s, la captura habría salido «bien» y nadie lo habría notado
 | Reencolado seguro de asynq | **cumplido** — `pending=1`, `retry=0`, `archived=0` |
 | Reintentos sin efectos duplicados | **cumplido** — §6.2 |
 | El plazo configurado y justificado | **cumplido** — y ahora medido, §6.3 |
-| **El drenaje capturado mientras ocurre** | **cumplido** — [`drenaje_29oct2026.txt`](drenaje_29oct2026.txt) |
+| **El drenaje capturado mientras ocurre** | **cumplido** — [`drenaje_29oct2026.txt`](drenaje_29oct2026.txt), y su render como captura de consola en [`capturas/2026-10-29_drenaje-worker-con-trabajo-activo.png`](capturas/2026-10-29_drenaje-worker-con-trabajo-activo.png) (`scripts/render_consola.py`, sin editar el texto; se omite la línea con la IP privada de la cola) |
 | Límites y puntos únicos de falla documentados | **cumplido** — §4 |
 
 ### 6.1 El reencolado, leído en Redis y no en el código
