@@ -21,7 +21,7 @@
 | Las reglas de cortafuegos efectivas están inventariadas y cada una tiene una razón | `b_reglas_firewall.txt`: **todas** las reglas del proyecto, en todas las redes, comparadas **por contenido** con las cinco del código (no por nombre). Las que sobran o difieren fallan | ⏳ |
 | Los controles de la Entrega 2 siguen vigentes, comprobados sobre el despliegue nuevo | `c_acceso_minimo.txt` (qué reglas alcanzan de verdad a cada instancia, Cloud SQL privada y cifrada, IAP) y `d_controles_entrega2.txt` (HTTP → HTTPS, TLS 1.1 rechazado, CSRF por origen, buckets en los dos sentidos) | ⏳ |
 | **Bloquea el cierre:** captura del barrido externo, con la fecha | `capturas/AAAA-MM-DD_barrido-externo.png` y dos más (§4 del runbook) | ✅ |
-| Lo que el equipo debe saber, en `NOTAS_TECNICAS.md` | la nota 61: la política TLS, la red `default` retirada y las trampas del guion en Windows | ✅ |
+| Lo que el equipo debe saber, en `NOTAS_TECNICAS.md` | la nota 63: la política TLS, la red `default` retirada y las trampas del guion en Windows | ✅ |
 
 ## Qué cambia respecto a la verificación de la Entrega 2
 
@@ -68,7 +68,7 @@ Corrida del **2026-11-01, 23:05–23:09 UTC**, desde el portátil (fuera de la V
 | Controles de la Entrega 2 | HTTP → HTTPS, certificado válido, **TLS 1.0/1.1 rechazados**, CSRF por origen (403 el ajeno y el ausente), buckets público/privado en los dos sentidos |
 | Observación | sin `Strict-Transport-Security` (heredada, no es falla) |
 
-**Lo que la primera pasada encontró y se corrigió en esta sesión** (detalle en la nota 61):
+**Lo que la primera pasada encontró y se corrigió en esta sesión** (detalle en la nota 63):
 
 1. **El balanceador aceptaba TLS 1.0/1.1** (real). Se añadió una política SSL con mínimo TLS 1.2 (`load_balancer.tf`) y se aplicó; el control sale OK.
 2. **La red `default` y sus dos reglas heredadas de la Entrega 2** (real): retiradas con confirmación; registro en [`retiro_reglas.txt`](./retiro_reglas.txt).

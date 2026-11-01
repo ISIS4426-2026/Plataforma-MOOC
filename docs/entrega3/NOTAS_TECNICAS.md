@@ -59,8 +59,10 @@ lo reemplaza, lo continúa.
 | 57 | [El NAT reparte 64 puertos por VM, y un generador dentro de la nube los agota con 100 usuarios](#57) | **G3, G4, G5, G6**, G7, F1 |
 | 58 | [G3: la arquitectura elástica no se distingue de la de una instancia por debajo de ~110 pet./s, y escalar tarda minutos](#58) | **G3, G5**, G6, G7, I1, I4 |
 | 59 | [El Entregable 6 (`docs/entrega3/deuda-tecnica.md`) consolida 8 correcciones cerradas en el sprint, 12 ítems de deuda con los 8 campos obligatorios en las 5 dimensiones, el desglose individual de los 33 `MAJOR` (`go:S2077`) y la exportación del commit final](#59) | **H3**, I1, I2, I3, I4, I5, I6 |
-| 60 | [`arquitectura.md` lo escriben dos issues, y sus tablas copian valores de Terraform](#60) | **I2**, I3, I4, cualquiera que cambie `infra/terraform/` |
-| 61 | [F1 encontró que el balanceador aceptaba TLS 1.0/1.1, y su guion daba cinco falsas FALLA en Windows](#61) | **F1**, F2, G5, I1, I2, I6 |
+| 60 | [`arquitectura.md` lo escriben dos issues, y sus tablas copian valores de Terraform](#60) | **I1, I2**, I3, I4, cualquiera que cambie `infra/terraform/` |
+| 61 | [Aparcado, la dirección del balanceador sí factura, y Cloud SQL cuesta 0,0676 USD/h, no 0,0855](#61) | **F3, I2, I6**, G7, quien estime el coste de una sesión |
+| 62 | [`docs/entrega3/arquitectura.md` completo (§1–§8) consolida las decisiones de escalamiento, el runbook reproducible de operación/aparcado/retiro y el cruce de capacidad, costos y SPOF con `scripts/i2_verificar_arquitectura.sh`](#62) | **I2**, I3, I4, I5, I6, G7 |
+| 63 | [F1 encontró que el balanceador aceptaba TLS 1.0/1.1, y su guion daba cinco falsas FALLA en Windows](#63) | **F1**, F2, G5, I1, I2, I6 |
 
 ---
 
@@ -2294,19 +2296,51 @@ Cifras medidas en la corrida completa del **Escenario 3B (ciclo de escalamiento 
 <a id="60"></a>
 ## 60. `arquitectura.md` lo escriben dos issues, y sus tablas copian valores de Terraform
 
-**Afecta a:** I2 (#232), I3, I4, y a quien cambie `infra/terraform/`. Escrito el 2026-11-01 en I1 (#231).
+**Afecta a:** I1 (#231), I2 (#232), I3, I4, y a quien cambie `infra/terraform/`. Escrito el 2026-11-01 en I1 (#231) e integrado con I2 (#232).
 
 | Qué | Detalle |
 | :--- | :--- |
-| **Un archivo, dos dueños** | I1 escribió las secciones 1 a 4 de [`arquitectura.md`](arquitectura.md) (servicios, componentes, despliegue, cambios frente a la Entrega 2) y dejó **5, 6 y 7 como marcadores para I2** con los títulos que pide el enunciado. I2 los rellena en el mismo archivo; los enlaces de la tabla del principio ya apuntan a esos anclajes, así que **no cambies los títulos** de esas secciones (nota 14: una raya o una barra en un título rompen el ancla) |
-| **Las tablas del §3 son copia de Terraform** | tipo de máquina, retrasos de autohealing, parámetros de las comprobaciones de salud, reglas de firewall, configuración de Cloud SQL. Están verificadas contra `main` del 2026-11-01. Quien cambie uno de esos valores en `infra/terraform/` tiene que cambiar también su fila, o el documento deja de describir lo desplegado, que es lo que pide el criterio |
+| **Un archivo, dos dueños** | I1 escribió las secciones 1 a 4 y 8 de [`arquitectura.md`](arquitectura.md) (servicios, componentes, despliegue, cambios frente a la Entrega 2 y fuentes Mermaid) e I2 completó las secciones **5, 6 y 7** en el mismo archivo manteniendo los títulos y anclajes exactos que pide el enunciado (nota 14) |
+| **Las tablas del §3 y §5 son copia verificada de Terraform** | tipo de máquina, retrasos de autohealing, parámetros de las comprobaciones de salud, políticas de ambos autoescaladores, reglas de firewall y configuración de Cloud SQL están verificados contra `infra/terraform/*.tf` mediante `scripts/i2_verificar_arquitectura.sh`. Quien cambie uno de esos valores en `infra/terraform/` tiene que cambiar también su fila |
 | **Los diagramas se comprobaron renderizados** | los tres bloques Mermaid pasan el analizador de Mermaid 11 y se renderizaron con `mermaid-cli`. Para repetirlo: `npx -y @mermaid-js/mermaid-cli -i docs/entrega3/arquitectura.md -o arquitectura.svg`. Saltos de línea con `<br/>`, nunca `\n` |
-| **La topología omite a propósito dos flechas** | la salida por Cloud NAT y el acceso por IAP valen para todas las máquinas; dibujarlas para cada una hacía ilegible el diagrama. Lo dice el texto bajo el dibujo; si I2 añade nodos, que siga ese criterio |
-| **Permisos de IAM: no se duplican** | el §3.7 solo nombra las cuentas de servicio y enlaza a F2 para los roles, porque F2 los está recortando. Si se copian aquí, se desfasan con el siguiente cambio de F2 |
-| **Para I3 e I4** | el README ya enlaza el documento. Los diagramas del §2.1 y §3.1 son los que sirven para abrir el vídeo |
+| **La topología omite a propósito dos flechas** | la salida por Cloud NAT y el acceso por IAP valen para todas las máquinas; dibujarlas para cada una hacía ilegible el diagrama. Lo dice el texto bajo el dibujo |
+| **Permisos de IAM: no se duplican** | el §3.7 y el §6.1 nombran las cuentas de servicio, separan las dos capas de identidad (IAM de GCP vs usuario `moocuser` en PostgreSQL) y enlazan a [`evidencias/F2/`](evidencias/F2/README.md) para el inventario completo de roles |
+| **Para I3 e I4** | el `README.md` principal ya enlaza el documento completo. Los diagramas del §2.1 y §3.1 y las tablas de escalamiento y SPOF (§5.3 y §7.3) sirven directamente para el vídeo de sustentación |
 
 <a id="61"></a>
-## 61. F1 encontró que el balanceador aceptaba TLS 1.0/1.1, y su guion daba cinco falsas FALLA en Windows
+## 61. Aparcado, la dirección del balanceador sí factura, y Cloud SQL cuesta 0,0676 USD/h, no 0,0855
+
+**Afecta a:** F3 (#221), I2 (#232), I6 (#236), G7, y a quien estime el coste de una sesión. Escrito el 2026-11-01 en F3 (#221).
+
+| Qué | Detalle |
+| :--- | :--- |
+| **La IP reservada sin regla paga** | La nota 38 dice que al aparcar se conservan «dirección, certificado, mapas y proxies, que no tienen coste por hora». Certificado, mapas y proxies, no; **la dirección sí**: una IP externa estática reservada **sin uso** se factura a **0,01 USD/h**, y deja de estar en uso justo al borrar las reglas de reenvío (`lb_enabled=false`). Son 0,24 USD/día, el 72 % del entorno aparcado con la cola parada (`0,33 USD/día`). Conservarla sigue siendo correcto (rehacerla cambia el dominio `sslip.io` y obliga a reaprovisionar `mooc-lb-cert`), pero hay que contarla. [Precios de VPC](https://cloud.google.com/vpc/network-pricing) |
+| **La cola es la otra mitad** | `mooc-queue-server` no es de ningún grupo y el `resize --size=0` no la toca. Encendida, el aparcado pasa de 0,33 a 0,74 USD/día |
+| **Cloud SQL: 0,0676 USD/h** | `C1/coste_sesion.txt` usa 0,0855 USD/h. La tarifa de lista de 1 vCPU (0,0413) y 3,75 GiB (0,007/GiB) en Enterprise zonal es **0,0676 USD/h**, la misma que dio los 49,31 USD/mes de la Entrega 2. El 0,0855 sobrestima un 27 % |
+| **De dónde sale cada cifra** | [`scripts/f3_estimacion_costos.py`](../../scripts/f3_estimacion_costos.py), con los precios y su fuente declarados al principio y una autoprueba (`--autoprueba`) que reproduce las cifras de la Entrega 2 (`183,29 USD/mes` a 1 instancia/grupo, `343,83 USD/mes` a 3 instancias/grupo, `0,78 USD` por sesión de 2 h). Para I2 y G7: citar sus tablas en vez de recalcular a mano |
+| **Lo que cuesta escalar** | cada instancia extra de cualquiera de los dos grupos son 0,055 USD/h. Lo caro de la arquitectura elástica es mantener la entrada: las dos reglas de reenvío son 36,50 USD/mes, más que cualquiera de los grupos a 1 instancia |
+
+<a id="62"></a>
+## 62. `docs/entrega3/arquitectura.md` completo (§1–§8) consolida las decisiones de escalamiento, el runbook reproducible de operación/aparcado/retiro y el cruce de capacidad, costos y SPOF con `scripts/i2_verificar_arquitectura.sh`
+
+**Afecta a:** I2 (#232), I3 (#233), I4 (#234), I5 (#235), I6 (#236) y G7 (#227). Escrito el 2026-11-01.
+
+| Qué | Detalle |
+| :--- | :--- |
+| **Qué cierra I2 en `docs/entrega3/arquitectura.md`** | Completa las secciones **§5 (Decisiones de escalamiento)**, **§6 (Operación y recuperación)** y **§7 (Capacidad, costo y limitaciones)** sobre la base de §1–§4 y §8 de I1 (#231), y actualiza §3.2 (`min_ports_per_vm = 2048` en Cloud NAT de G3), §3.3 (política `mooc-api-tls` TLS 1.2 de F1) y §4 (estado de G3, G6 y H1–H3). |
+| **Parámetros efectivos del proveedor y trampas documentadas** | §5 documenta con nombres exactos de HCL/GCP las dos plantillas (`create_before_destroy`, `PROACTIVE`/`REPLACE`/`SUBSTITUTE`, `max_surge_fixed = 1`, `max_unavailable_fixed = 0`), el contrato de metadata hacia `mooc-bootstrap.sh` y el *advisory lock* `4426202603` de `mooc-migrate.sh`, los dos autoescaladores (`RATE` `0.8 × 100 = 80 req/s`, `cooldown = 300s`, ventana `600s` en API; métrica `outstanding` en `generic_node` con `single_instance_assignment = 2`, `cooldown = 420s`, ventana `900s` en worker), la diferencia entre exclusión del LB (~30 s) y recreación por autohealing (`300s`/`420s` de gracia inicial, `152s` medidos en C4), y el drenaje de workers (`90s < 120s < 180s`, `requeue()` con `retry=0` vs `handleFailedMessage()`, y las 3 capas de idempotencia de E3). |
+| **Operación reproducible, aparcado y trampa de `google_sql_user.app` en `I6`** | §6 consolida las dos capas de identidad (IAM de GCP sin `roles/cloudsql.client` vs usuario PostgreSQL `moocuser`, F2), los 3 niveles de configuración/secretos (B4), los comandos exactos para desplegar desde cero o desaparcar (encendiendo siempre `mooc-db-1` y `mooc-queue-server` **antes** que los grupos), los 8 controles de verificación post-despliegue, el aparcado en 5 pasos y el retiro final para **I6** (`terraform state rm google_sql_user.app` antes de `terraform destroy` para evitar el bloqueo por dependencias de `moocuser` en PostgreSQL). |
+| **SPOF nombrados sin omisiones y trazabilidad a pruebas y deuda técnica** | §7 integra las tablas de `F3` (`183,29` y `343,83 USD/mes`, `0,78 USD` por sesión de 2 h, `0,33` y `0,74 USD/día` aparcado), nombra explícitamente los **4 puntos únicos de falla restantes** (`mooc-queue-server` Redis/exportador, Cloud SQL `mooc-db-1` zonal sin *standby*, concentración en la zona única `us-east1-b` y relay SMTP externo Brevo) y conecta los resultados de `G3`, `G5`, `G6`, `C4`, `C7`, `E1` y `E2` con los ítems `TD-ARQ-01/02`, `TD-INF-01/02` y `TD-OPE-01/02` de [`docs/entrega3/deuda-tecnica.md`](deuda-tecnica.md). |
+| **Verificador automatizado de I2** | [`scripts/i2_verificar_arquitectura.sh`](../../scripts/i2_verificar_arquitectura.sh) ejecuta 15 controles automatizados en 10 bloques con salida distinta de cero ante cualquier fallo (`15 OK · 0 FALLA · 0 OBS`, Nota Técnica #36): presencia de las 8 secciones y subsecciones, paridad de parámetros con `infra/terraform/*.tf`, presencia de los 4 SPOF y de los 6 `TD-*`, validez de todos los enlaces relativos y anclas Markdown (Nota Técnica #14), autoprueba de costos (`f3_estimacion_costos.py --autoprueba`) y ausencia de secretos, llaves o IPs privadas de instancias. |
+
+| Issue | Qué tiene que saber |
+| :--- | :--- |
+| **I3** | El entregable 3 ya está completo en [`docs/entrega3/arquitectura.md`](arquitectura.md) y enlazado en el `README.md` principal; las evidencias de I1, I2 y F3 están en `docs/entrega3/evidencias/{I1,I2,F3}/README.md`. |
+| **I5** | Incluir `bash ./scripts/i2_verificar_arquitectura.sh` en la batería de verificación previa al tag `entrega-3`. |
+| **I6** | Seguir el orden exacto de §6.5.B (para retiro definitivo con `terraform state rm google_sql_user.app`) o §6.5.A (para aparcado tras pruebas), verificando al final con los comandos de facturación cero. |
+
+<a id="63"></a>
+## 63. F1 encontró que el balanceador aceptaba TLS 1.0/1.1, y su guion daba cinco falsas FALLA en Windows
 
 **Afecta a:** F1 (#219), F2, G5, I1, I2, I6. Escrito el 2026-11-01.
 

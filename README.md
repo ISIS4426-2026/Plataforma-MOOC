@@ -38,11 +38,11 @@ Desde la **Entrega 2** incluye además el despliegue en **Google Cloud Platform*
 | Backlog | [44 issues, #193–#236](https://github.com/ISIS4426-2026/Plataforma-MOOC/issues?q=is%3Aissue+label%3Aentrega-3), milestone *Entrega 3 - Aplicacion elastica IaaS* |
 | Notas técnicas | [`docs/entrega3/NOTAS_TECNICAS.md`](docs/entrega3/NOTAS_TECNICAS.md) — **leer antes de empezar un issue, anotar antes de cerrarlo** |
 | Evidencias | [`docs/entrega3/evidencias/`](docs/entrega3/evidencias/) — un directorio por issue |
-| Documento de arquitectura | [`docs/entrega3/arquitectura.md`](docs/entrega3/arquitectura.md) — componentes, despliegue y cambios frente a la Entrega 2 *(I1)*; decisiones, operación y capacidad *(I2, en curso)* |
+| Documento de arquitectura | [`docs/entrega3/arquitectura.md`](docs/entrega3/arquitectura.md) — componentes, despliegue y cambios frente a la Entrega 2 *(I1)*; decisiones de escalamiento, operación, capacidad, costos y limitaciones *(I2)* |
 | Criterios de medición | [`capacity-planning/criterios_de_medicion.md`](capacity-planning/criterios_de_medicion.md) — **qué puede publicarse como cifra**; se comprueba con `python scripts/capacity_criterios.py --autoprueba` |
 | Informe de capacidad | `capacity-planning/pruebas_de_carga_entrega3.md` *(G7)* |
-| Deuda técnica | `docs/entrega3/deuda-tecnica.md` *(H3)* |
-| URL del frontend | *(pendiente, D1)* |
+| Deuda técnica | [`docs/entrega3/deuda-tecnica.md`](docs/entrega3/deuda-tecnica.md) *(H3)* |
+| URL del frontend | <https://136.68.55.254.sslip.io> *(mismo origen en el balanceador, D1)* |
 | URL del balanceador de la API | <https://136.68.55.254.sslip.io> · [documentación de la API](https://136.68.55.254.sslip.io/api/docs) · certificado administrado, válido hasta 2027-01-25 |
 
 **Base de la entrega:** parte del tag [`entrega-2`](https://github.com/ISIS4426-2026/Plataforma-MOOC/releases/tag/entrega-2)
