@@ -1,0 +1,21 @@
+# c) Verificacion reproducible de linters, compilacion y pruebas unitarias que respaldan las correcciones (H2, #229)
+# Generado: 2026-11-01T21:14:49Z por scripts/h2_verificar_umbrales_y_hallazgos.sh
+# Commit  : d469eb65fb57420bc06bf7a5c9bb703602f16b54
+
+--- 1. Formato de codigo Go (gofmt -l .) ---
+OK     gofmt: 0 archivos desformateados en cmd/, internal/, api/, migrations/
+
+--- 2. Analisis estatico Go (go vet ./...) ---
+OK     go vet ./...: 0 advertencias
+
+--- 3. Linter Go (golangci-lint run ./...) ---
+OK     golangci-lint run ./...: 0 hallazgos en todos los paquetes Go
+
+--- 4. Compilacion de binarios productivos (make build: bin/api y bin/worker) ---
+OK     make build: bin/api y bin/worker compilados exitosamente
+
+--- 5. Pruebas unitarias de Go y de migraciones ---
+OK     go test (API, dominio, auth, postgres, worker/handler, worker/task, migrations): 20 paquetes en PASS
+
+--- 6. Pruebas unitarias, cobertura LCOV, typecheck, build y check:bundle del Frontend ---
+OK     frontend: 4 suites / 32 tests en PASS, lcov.info generado, tsc --noEmit + vite build OK y 0 secretos en bundle

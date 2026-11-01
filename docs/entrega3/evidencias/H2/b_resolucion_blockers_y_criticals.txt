@@ -1,0 +1,17 @@
+# b) Verificacion de correcciones en codigo, commits dedicados y plan explicito (H2, #229)
+# Generado: 2026-11-01T21:14:49Z por scripts/h2_verificar_umbrales_y_hallazgos.sh
+# Commit  : d469eb65fb57420bc06bf7a5c9bb703602f16b54
+
+OK     [BLOCKER RESUELTO] secrets:S8215 en internal/auth/service.go:23 -> dummyHash generado con bcrypt.DefaultCost en arranque (commit 868e43d)
+OK     [PRUEBA ANADIDA] TestLoginUnknownEmailRunsTimingShieldWithoutHardcodedHash en internal/auth/service_test.go
+OK     [MAJOR BUG RESUELTO] typescript:S9383 en frontend/src/student/StudentData.tsx:35 -> promesa marcada con 'void' (commit bde3686)
+OK     [MAJOR CODE_SMELL RESUELTO] typescript:S8786 en frontend/src/config.ts:6 -> stripTrailingSlashes lineal O(n) (commit bde3686)
+OK     [MAJOR CODE_SMELL RESUELTO] typescript:S8786 en frontend/src/runtime.ts:24 -> stripTrailingSlashes lineal O(n) (commit bde3686)
+OK     [MAJOR CODE_SMELL RESUELTO] typescript:S8786 en frontend/src/lib/markdown.tsx:52 -> parseHeading y parseListItem lineales O(n) (commit bde3686)
+OK     [PRUEBAS ANADIDAS] Casos unitarios de stripTrailingSlashes y parseHeading/parseListItem en runtime.test.ts y lib.test.tsx
+OK     [BLOCKER RESUELTO] githubactions:S8482 en .github/workflows/ci.yml:85 -> instalacion verificada con go install @v1.64.8 (commit 28967df)
+OK     [CRITICAL RESUELTO] python:S5443 en scripts/g6_linea_de_tiempo.py:41 -> directorio seguro con tempfile.mkdtemp (commit 28967df)
+OK     [4 CRITICAL RESUELTOS] go:S4830 y go:S5527 en scripts/capacity_escenario2 y pilot_escenario2 -> validacion TLS 1.2 activa por defecto (commit 28967df)
+OK     [BLOCKER RESUELTO] secrets:S6698 en scripts/migrate.sh:48 -> marcador <DB_PASSWORD> en comentario de uso (commit 28967df)
+OK     [SPECTRAL RESUELTO] 0 operaciones sin description en api/openapi.yaml (PUT /modules/{module_id} y PUT /units/{unit_id}, commit d469eb6)
+OK     Matriz auditable generada en docs/entrega3/evidencias/H2/reporte_h2_estado_hallazgos.json (0 Blocker/Critical sin resolver ni sin plan explicito)
