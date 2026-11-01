@@ -25,4 +25,3 @@ OK     SONAR_TOKEN se inyecta exclusivamente desde ${{ secrets.SONAR_TOKEN }}
 OK     0 tokens o credenciales literales en .github/workflows/ci.yml y sonar-project.properties
 OK     frontend/coverage/lcov.info indexa 33 archivos bajo el prefijo 'frontend/src/'
 OK     0 lineas DA fuera de rango en frontend/coverage/lcov.info (100 % compatible con SonarJS)
-OK     Exportacion verificable guardada en docs/entrega3/evidencias/H1/reporte_sonarcloud.json (403 hallazgos)

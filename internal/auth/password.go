@@ -29,11 +29,8 @@ var ErrPasswordMismatch = errors.New("password does not match")
 var dummyHash = mustGenerateDummyHash()
 
 func mustGenerateDummyHash() string {
-	hash, err := bcrypt.GenerateFromPassword([]byte("mooc-timing-shield-not-a-secret"), bcrypt.DefaultCost)
-	if err != nil {
-		panic(fmt.Sprintf("generate timing-shield bcrypt hash: %v", err))
-	}
-	return string(hash)
+	hash, _ := HashPassword("mooc-timing-shield-not-a-secret")
+	return hash
 }
 
 // HashPassword derives a bcrypt hash suitable for the users.password_hash

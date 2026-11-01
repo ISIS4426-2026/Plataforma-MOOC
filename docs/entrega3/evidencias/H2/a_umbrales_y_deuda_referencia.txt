@@ -1,6 +1,6 @@
 # a) Verificacion de umbrales (< 20% duplicacion, mantenibilidad <= C) y deuda tecnica de referencia (H2, #229)
-# Generado: 2026-11-01T21:14:49Z por scripts/h2_verificar_umbrales_y_hallazgos.sh
-# Commit  : d469eb65fb57420bc06bf7a5c9bb703602f16b54
+# Generado: 2026-11-01T21:38:44Z por scripts/h2_verificar_umbrales_y_hallazgos.sh
+# Commit  : d8a70920c7f96d5a73fd25fcb5efef8fb5a59d61
 
 OK     Umbral 1 cumplido — Duplicacion de codigo: 0.8% < 20.0% (751 lineas duplicadas en 48 bloques)
 OK     Umbral 2 cumplido — Mantenibilidad (sqale_rating): Calificacion A (1.0 <= 3.0 [C], sqale_debt_ratio=0.0%)

@@ -1,6 +1,6 @@
 # b) Verificacion de correcciones en codigo, commits dedicados y plan explicito (H2, #229)
-# Generado: 2026-11-01T21:14:49Z por scripts/h2_verificar_umbrales_y_hallazgos.sh
-# Commit  : d469eb65fb57420bc06bf7a5c9bb703602f16b54
+# Generado: 2026-11-01T21:38:44Z por scripts/h2_verificar_umbrales_y_hallazgos.sh
+# Commit  : d8a70920c7f96d5a73fd25fcb5efef8fb5a59d61
 
 OK     [BLOCKER RESUELTO] secrets:S8215 en internal/auth/service.go:23 -> dummyHash generado con bcrypt.DefaultCost en arranque (commit 868e43d)
 OK     [PRUEBA ANADIDA] TestLoginUnknownEmailRunsTimingShieldWithoutHardcodedHash en internal/auth/service_test.go

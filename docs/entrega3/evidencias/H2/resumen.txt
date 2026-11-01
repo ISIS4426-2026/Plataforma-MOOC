@@ -21,3 +21,4 @@ OK     golangci-lint run ./...: 0 hallazgos en todos los paquetes Go
 OK     make build: bin/api y bin/worker compilados exitosamente
 OK     go test (API, dominio, auth, postgres, worker/handler, worker/task, migrations): 20 paquetes en PASS
 OK     frontend: 4 suites / 32 tests en PASS, lcov.info generado, tsc --noEmit + vite build OK y 0 secretos en bundle
+OK     cobertura LCOV en codigo nuevo de H2 >= 80% (Quality Gate): frontend/src/config.ts=6/6 (100%), frontend/src/runtime.ts=17/17 (100%), frontend/src/lib/markdown.tsx=72/72 (100%)

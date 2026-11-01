@@ -453,8 +453,31 @@ cabecera "${FC}" "c) Verificacion reproducible de linters, compilacion y pruebas
     echo
     echo "--- 6. Pruebas unitarias, cobertura LCOV, typecheck, build y check:bundle del Frontend ---"
     if [[ -d "${ROOT}/frontend/node_modules" ]]; then
-        if (cd "${ROOT}/frontend" && npm run test:coverage && npm run build && npm run check:bundle) >/tmp/h2_fe_test.log 2>&1; then
+        if (cd "${ROOT}/frontend" && rm -rf coverage/v8 && npm run test:coverage && npm run build && npm run check:bundle) >/tmp/h2_fe_test.log 2>&1; then
             echo "OK     frontend: 4 suites / 32 tests en PASS, lcov.info generado, tsc --noEmit + vite build OK y 0 secretos en bundle"
+            "${PY}" - "${ROOT}/frontend/coverage/lcov.info" <<'PYEOF'
+import sys
+lcov_path = sys.argv[1]
+cov = {}
+cur = None
+with open(lcov_path, "r", encoding="utf-8") as f:
+    for raw in f:
+        line = raw.strip()
+        if line.startswith("SF:"):
+            cur = line[3:]
+            cov[cur] = [0, 0]
+        elif line.startswith("LF:") and cur:
+            cov[cur][0] = int(line[3:])
+        elif line.startswith("LH:") and cur:
+            cov[cur][1] = int(line[3:])
+targets = ["frontend/src/config.ts", "frontend/src/runtime.ts", "frontend/src/lib/markdown.tsx"]
+ok = all(cov.get(t, [0, 0])[0] > 0 and cov.get(t, [0, 0])[0] == cov.get(t, [0, 0])[1] for t in targets)
+if ok:
+    resumen = ", ".join(f"{t}={cov[t][1]}/{cov[t][0]} (100%)" for t in targets)
+    print(f"OK     cobertura LCOV en codigo nuevo de H2 >= 80% (Quality Gate): {resumen}")
+else:
+    print(f"FALLA  Cobertura LCOV insuficiente en archivos modificados de H2: { {t: cov.get(t) for t in targets} }")
+PYEOF
         else
             echo "FALLA  Fallo la verificacion del frontend (ver /tmp/h2_fe_test.log)"
         fi
