@@ -180,10 +180,22 @@ resource "google_compute_url_map" "redirect_to_https" {
   }
 }
 
+# F1 (#219): version minima de TLS. Sin una politica propia el balanceador usa la de Google por omision, que acepta
+# TLS 1.0 y 1.1: el primer barrido real de F1 lo comprobo con un cliente limitado a 1.1 (negocio `TLSv1.1`). La
+# Entrega 2 lo rechazaba con Nginx y ese control se habia perdido al pasar al balanceador. TLS 1.2 como minimo y el
+# perfil MODERN, que admite navegadores y clientes actuales; RESTRICTED seria mas estricto, pero deja fuera clientes
+# legitimos sin que F1 lo pida.
+resource "google_compute_ssl_policy" "api" {
+  name            = "mooc-api-tls"
+  profile         = "MODERN"
+  min_tls_version = "TLS_1_2"
+}
+
 resource "google_compute_target_https_proxy" "api" {
   name             = "mooc-api-https-proxy"
   url_map          = google_compute_url_map.api.self_link
   ssl_certificates = [google_compute_managed_ssl_certificate.lb.self_link]
+  ssl_policy       = google_compute_ssl_policy.api.self_link
 }
 
 resource "google_compute_target_http_proxy" "redirect" {

@@ -122,7 +122,11 @@ for i in cargar("instancias"):
                 publicas.append(("instancia", i["name"], ac["natIP"]))
 for d in cargar("direcciones"):
     if d.get("addressType", "EXTERNAL") == "EXTERNAL":
-        publicas.append(("direccion reservada", d["name"], d.get("address", "")))
+        # La que el NAT de salida reservo solo la usa un router (users = .../routers/...): es de salida, no escucha.
+        if any("/routers/" in u for u in d.get("users", []) or []):
+            publicas.append(("direccion de salida del NAT", d["name"], d.get("address", "")))
+        else:
+            publicas.append(("direccion reservada", d["name"], d.get("address", "")))
 for r in cargar("reenvio"):
     if r.get("loadBalancingScheme", "").startswith("EXTERNAL"):
         publicas.append(("regla de reenvio " + r.get("portRange", ""), r["name"], r.get("IPAddress", "")))
@@ -131,7 +135,7 @@ for s in cargar("sql"):
         if ip.get("type") == "PRIMARY":
             publicas.append(("cloud sql publica", s["name"], ip.get("ipAddress", "")))
 for t, n, ip in publicas:
-    print(f"{ip}\t{t}\t{n}\t{'balanceador' if ip == lb else 'OTRA'}")
+    print(f"{ip}\t{t}\t{n}\t{'balanceador' if ip == lb else 'NAT' if t.startswith('direccion de salida') else 'OTRA'}")
 PYEOF
 
 {
@@ -142,11 +146,13 @@ PYEOF
 } >>"$f"
 
 OTRAS="$(awk -F'\t' '$4=="OTRA"{print $1}' "${TMP}/publicas.txt" | sort -u)"
+NATS="$(awk -F'\t' '$4=="NAT"{print $1}' "${TMP}/publicas.txt" | sort -u)"
 if [ -z "${OTRAS}" ]; then
     veredicto "$f" OK "la unica direccion publica del proyecto es la del balanceador (${LB_IP})"
 else
     veredicto "$f" FALLA "hay direcciones publicas que no son el balanceador: $(echo ${OTRAS})"
 fi
+[ -z "${NATS}" ] || veredicto "$f" OK "$(echo ${NATS} | wc -w | tr -d ' ') direccion(es) de salida del NAT (solo egreso, de uso exclusivo del router): se barren igual, abajo"
 REENVIO_LB="$(awk -F'\t' '$4=="balanceador" && $2 ~ /^regla de reenvio/' "${TMP}/publicas.txt" | wc -l | tr -d ' ')"
 if [ "${REENVIO_LB}" -ge 1 ]; then
     veredicto "$f" OK "el balanceador tiene ${REENVIO_LB} regla(s) de reenvio: el entorno esta encendido y el barrido mide algo"
@@ -161,7 +167,7 @@ barrer() { # ip -> lineas "puerto abierto|cerrado"
     done
 }
 
-for ip in ${LB_IP} ${OTRAS}; do
+for ip in ${LB_IP} ${OTRAS} ${NATS}; do
     {
         echo "== Barrido TCP de ${ip} desde este equipo (fuera de la VPC), $(ahora) =="
         echo "   puertos: ${PUERTOS}"
@@ -381,7 +387,7 @@ while IFS=$'\t' read -r nombre rol estado ext cuentas tags entran cuenta_ok etiq
         [ "${cuenta_ok}" = "1" ] && [ "${etiq_ok}" = "1" ] ||
             veredicto "$f" FALLA "${nombre}: cuenta (${cuentas}) o etiquetas (${tags}) no son las de su componente"
     fi
-done <"${TMP}/acceso.txt"
+done < <(tr -d '\r' <"${TMP}/acceso.txt")
 [ "${N_API}" -ge 1 ] || veredicto "$f" FALLA "no hay instancias de API en marcha: el control de acceso a la API no se pudo comprobar"
 
 while IFS=$'\t' read -r _ nombre ipv4 red ssl redes_aut; do
@@ -420,16 +426,50 @@ printf '%s' "${CAB}" | grep -qi "^Strict-Transport-Security" &&
     veredicto "$f" OK "HSTS presente" ||
     veredicto "$f" OBS "sin Strict-Transport-Security (observacion heredada de la Entrega 2, no es falla)"
 
-TLS11="$("${CURL}" -s --max-time 15 --tls-max 1.1 -o /dev/null -w '%{http_code}' "${BASE}/api/v1/ready" 2>/dev/null)"
-echo "   cliente limitado a TLS 1.1: HTTP ${TLS11:-000}" >>"$f"
-[ "${TLS11:-000}" = "000" ] &&
-    veredicto "$f" OK "TLS 1.1 rechazado" ||
-    veredicto "$f" FALLA "un cliente TLS 1.1 obtuvo HTTP ${TLS11}"
+# El maximo de TLS NO se puede fijar con el curl de Windows (Schannel ignora --tls-max y negocia 1.3: dio un
+# 200 falso en el primer intento real de F1). Se prueba con el modulo ssl de Python, que si lo respeta, y con un
+# CONTROL POSITIVO: el mismo cliente tiene que poder hacer el saludo con TLS 1.2, o el resultado no vale (un
+# cliente que no sabe hablar TLS 1.1 daria "rechazado" sin que el servidor haya dicho nada).
+TLS11="$("${PY}" - "${LB_IP}.sslip.io" 2>/dev/null <<'TLSEOF'
+import socket, ssl, sys, warnings
+warnings.simplefilter("ignore")
+host = sys.argv[1]
+def saludo(maximo, minimo):
+    ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+    ctx.check_hostname = False
+    ctx.verify_mode = ssl.CERT_NONE
+    try:
+        ctx.set_ciphers("ALL:@SECLEVEL=0")
+    except ssl.SSLError:
+        pass
+    ctx.minimum_version, ctx.maximum_version = minimo, maximo
+    with socket.create_connection((host, 443), timeout=15) as s:
+        with ctx.wrap_socket(s, server_hostname=host) as t:
+            return t.version()
+try:
+    control = saludo(ssl.TLSVersion.TLSv1_2, ssl.TLSVersion.TLSv1_2)
+except Exception:
+    print("inconcluso: el cliente no pudo hacer el saludo ni con TLS 1.2")
+    sys.exit(0)
+try:
+    print("aceptado " + str(saludo(ssl.TLSVersion.TLSv1_1, ssl.TLSVersion.TLSv1)))
+except ssl.SSLError:
+    print("rechazado (control con " + control + " correcto)")
+except Exception:
+    print("inconcluso: error de red al probar TLS 1.1")
+TLSEOF
+)"
+echo "   cliente limitado a TLS 1.0-1.1: ${TLS11:-sin respuesta}" >>"$f"
+case "${TLS11}" in
+    rechazado*) veredicto "$f" OK "TLS 1.0 y 1.1 rechazados por el balanceador (${TLS11})" ;;
+    aceptado*)  veredicto "$f" FALLA "el balanceador acepta TLS 1.0/1.1: ${TLS11} (falta la politica TLS minima 1.2 en load_balancer.tf)" ;;
+    *)          veredicto "$f" OBS "no se pudo probar TLS 1.1 desde este equipo: ${TLS11:-sin respuesta}" ;;
+esac
 
 echo "== CSRF: POST con cookie de sesion segun el origen ==" >>"$f"
-C_AJENO="$(codigo -X POST -H "Origin: https://evil.example" -H "Cookie: __Host-mooc_session=falsa" "${BASE}/api/v1/auth/logout")"
-C_SIN="$(codigo -X POST -H "Cookie: __Host-mooc_session=falsa" "${BASE}/api/v1/auth/logout")"
-C_PROPIO="$(codigo -X POST -H "Origin: ${BASE}" -H "Cookie: __Host-mooc_session=falsa" "${BASE}/api/v1/auth/logout")"
+C_AJENO="$(codigo -X POST -d '' -H "Origin: https://evil.example" -H "Cookie: __Host-mooc_session=falsa" "${BASE}/api/v1/auth/logout")"
+C_SIN="$(codigo -X POST -d '' -H "Cookie: __Host-mooc_session=falsa" "${BASE}/api/v1/auth/logout")"
+C_PROPIO="$(codigo -X POST -d '' -H "Origin: ${BASE}" -H "Cookie: __Host-mooc_session=falsa" "${BASE}/api/v1/auth/logout")"
 printf '   origen ajeno: %s   sin origen: %s   origen propio: %s\n' "${C_AJENO}" "${C_SIN}" "${C_PROPIO}" >>"$f"
 echo "   (403 = rechazado por CSRF; el propio pasa el filtro y falla despues porque la cookie es falsa)" >>"$f"
 [ "${C_AJENO}" = "403" ] && [ "${C_SIN}" = "403" ] && [ "${C_PROPIO}" != "403" ] &&
