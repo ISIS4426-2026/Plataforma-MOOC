@@ -83,7 +83,7 @@ trap 'kill ${MUESTREO} 2>/dev/null || true' EXIT
 date -u +%Y-%m-%dT%H:%M:%SZ > "${OUT}/ventana.txt"
 MSYS_NO_PATHCONV=1 docker run --rm --name "${CONTENEDOR}" \
   -v "${H2_DIR}:/jmeter" -v "${RESULTS_ROOT}:/jmeter/resultados" -v "${DATA_DIR}:/jmeter/capacity:ro" \
-  justb4/jmeter:latest \
+  "${JMETER_IMAGE:-justb4/jmeter:latest}" \
   -n -t "/jmeter/${PLAN}" -l "/jmeter/resultados/${RUN}/resultados.jtl" -j "/jmeter/resultados/${RUN}/jmeter.log" \
   -Jusers="${USERS}" -Jramp="${RAMP_SECONDS:-30}" -Jsessions="${SESSIONS:-3}" \
   -Jthink_ms="${THINK_MS:-4000}" -Jthink_range_ms="${THINK_RANGE_MS:-2000}" \
@@ -110,7 +110,9 @@ cat > "${OUT}/destino.json" <<JSON
   "sesiones": ${SESSIONS:-3},
   "calentamiento_omitido_s": ${WARMUP_SKIP_SECONDS:-45},
   "commit": "$(git -C "${ROOT}" rev-parse --short HEAD 2>/dev/null || echo desconocido)",
-  "generador": "justb4/jmeter:latest en $(hostname)",
+  "generador": "${JMETER_IMAGE:-justb4/jmeter:latest} en $(hostname)",
+  "nucleos_generador": $(nproc 2>/dev/null || echo 0),
+  "memoria_generador_gib": $(awk '/MemTotal/ {printf "%.1f", $2/1048576}' /proc/meminfo 2>/dev/null || echo 0),
   "inicio_utc": "$(sed -n 1p "${OUT}/ventana.txt")",
   "fin_utc": "$(sed -n 2p "${OUT}/ventana.txt")"
 }

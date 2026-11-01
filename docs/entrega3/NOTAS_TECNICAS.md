@@ -48,6 +48,7 @@ lo reemplaza, lo continúa.
 | 46 | [El frontend se sirve en el mismo origen, y la API no tiene «mis cursos» ni «quién soy»](#46) | **D2, D3**, A4, B3, C1, C3, E1 |
 | 47 | [Interfaces del estudiante y del profesor: trampas que ya costaron tiempo](#47) | **D2, D3**, A1, A5, B1, C3, E1 |
 | 48 | [Un estudiante inscrito no puede abrir un PDF, una imagen ni un archivo descargable](#48) | **D2, D5**, G1, A5 |
+| 49 | [El generador de carga sale de una VM propia, y lo que mide el balanceador contrasta lo que mide JMeter](#49) | **G1**, G3, G4, G5, G6, G7 |
 
 ---
 
@@ -2040,3 +2041,20 @@ ninguna ruta de lectura para el estudiante**, y el enunciado pide «consumir con
 | La interfaz | Lo dice: «Este archivo no se puede descargar», sin pantalla en blanco. Y el aviso global de 403 ya no sigue al estudiante a la pantalla siguiente |
 | Arreglo | Rama `fix/media-descarga-estudiante`: la ruta pasa a `requireAuth` y `DownloadURL` autoriza al estudiante con inscripción activa (`EnrollmentRepository.IsActive`) en un curso **publicado**; el resto, 403, también si el recurso no tiene archivo. Pruebas en `internal/media`. **Cambio de la API: hay que republicar la imagen y aplicar** |
 | Quién | Es del módulo de media (Fredy) |
+
+<a id="49"></a>
+## 49. El generador de carga sale de una VM propia, y lo que mide el balanceador contrasta lo que mide JMeter
+
+**Afecta a:** G1 (#222), G3, G4, G5, G6, G7. Escrito el 2026-11-01.
+
+| Decisión o trampa | Qué hay que saber |
+| :--- | :--- |
+| **La línea base de A7 se midió desde un portátil** | `destino.json` dice `DESKTOP-…` y A7 documentó que esa red no reproduce lo publicado. G3 y G4 salen de una **VM en la misma región** (`infra/terraform/generator.tf`); esa diferencia hay que **declararla** en G7, no esconderla |
+| **El generador está apagado por omisión** | `generator_enabled = false`: no existe ni su cuenta de servicio. Encenderlo es un `apply` con los `-var` del entorno encendido (nota 38) más `-var generator_enabled=true`. Cuesta ~0,13 USD/h; se apaga al terminar |
+| **Sin IP pública** | sale por la NAT de B2 y se entra por IAP. No abre ningún puerto: F1 no encuentra nada nuevo. Su cuenta solo escribe registros y métricas |
+| **JMeter se fija por digest** | la línea base usó `justb4/jmeter:latest`, que resolvía a **JMeter 5.5**, `sha256:088ac52b…`. `run_escenario1.sh` acepta `JMETER_IMAGE`; en la VM va el digest. Un `latest` que cambie de versión entre campañas rompe «misma herramienta y versión» |
+| **Qué métricas existen** | `custom.googleapis.com/mooc/queue/{pending,active,outstanding,oldest_pending_age_seconds}` (C6), `prometheus…/worker_jobs_{processed,failed}_total`, `loadbalancing…/https/{request_count,total_latencies,backend_latencies}`, `compute…/instance_group/size`, `autoscaler…/{current_utilization,recommended_size}` y las del agente de las VM |
+| **Las instancias que el grupo destruyó** | Monitoring solo guarda su id numérico. `capacity_metricas_gcp.py` recupera su nombre del **registro de auditoría** de su creación (`instances.insert`); sin ese permiso de lectura quedan como «otro» |
+| **«Existentes» no es «operativas»** | las primeras son el tamaño del grupo; las segundas, las instancias que mandan métricas ese minuto. Durante una rotación o un arranque difieren, y es justo lo que G5 y G6 quieren ver |
+| **Un percentil del balanceador es por minuto** | Cloud Monitoring no da el percentil de toda la ventana. Contrasta; **no sustituye** al de JMeter. Con menos de 20 puntos el p95 se publica como `null` (nota 25) |
+| **El generador se rechaza solo** | `capacity_contraste_generador.py` cruza CPU/memoria, brecha de latencia contra el balanceador y solicitudes contadas. Sin datos **no** da la corrida por buena. Umbrales fechados en `capacity-planning/criterios_de_medicion.md` |
