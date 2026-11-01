@@ -1,0 +1,19 @@
+ok  el grupo sale del nombre de la VM
+ok  la cola y lo desconocido tienen su grupo
+ok  la media y el maximo de una instancia se separan
+ok  las instancias operativas se cuentan por minuto (una nueva aparece en t2)
+ok  las conexiones se suman
+ok  con 5 puntos no se presenta un p95
+ok  con 40 puntos si
+ok  alineacion al minuto
+
+Todas las reglas se cumplen.
+
+ok  un generador holgado, con brecha de red normal, no limita
+ok  con la CPU del contenedor al 97 % de 4 nucleos, limita
+ok  si el generador ve 900 ms y el balanceador 40 ms, el generador espera
+ok  si el balanceador conto el 60 %, hay perdidas antes de salir
+ok  sin muestras de CPU no se demuestra nada, y no se da por bueno
+ok  la memoria se lee en GiB
+
+Todas las reglas se cumplen.

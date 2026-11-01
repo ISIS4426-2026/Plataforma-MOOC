@@ -1,0 +1,22 @@
+Recorrido del PROFESOR en la nube, desde la interfaz desplegada (versión f6aa76e5988c)
+Fecha: 2026-10-31 · URL: https://136.68.55.254.sslip.io · Cuenta: profesor1@plataforma-mooc.test (semilla)
+La sesión la inició una persona; ninguna contraseña pasa por scripts ni por este archivo.
+
+Curso creado: «[prueba D3] Recorrido del profesor en la nube 20261031»  (id 9fee85f1-9690-4dc3-8503-4183737a52d6)
+  1. Crear curso (borrador) ...................... OK
+  2. Agregar módulo y unidad ..................... OK
+  3. Recurso de texto (obligatorio) .............. OK
+  4. Recurso de video (obligatorio) .............. OK -> estado «Sin archivo»
+  5. Cargar archivo (mp4, 10 334 bytes, 2 s):
+       0,0 s  Sin archivo
+       0,5 s  «Pidiendo permiso…»                    POST /media/presigned-url
+       1,0 s  «Subiendo… 100 %»                      PUT directo al bucket por URL firmada
+       1,5 s  «Archivo recibido: se está procesando» POST /media/uploads/{id}/complete
+       2,1 s  En cola
+       6,2 s  Disponible                              el worker lo transcodificó
+  6. Recurso de cuestionario + cuestionario (nota mínima 70, 3 intentos) + 1 pregunta con respuesta correcta ... OK
+  7. Publicar el curso ........................... OK  «Curso publicado. Ya aparece en el catálogo de los estudiantes.»
+     El editor pasa a «Publicado» e «inmutable: despublícalo para editar su contenido».
+
+Tiempo de procesamiento de un video de 2 s: ~4 s en cola y transcodificación (de 2,1 s a 6,2 s).
+Queda en la nube un curso de prueba más (la API no permite borrar cursos).

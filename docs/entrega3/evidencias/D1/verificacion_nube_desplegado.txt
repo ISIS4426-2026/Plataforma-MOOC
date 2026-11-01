@@ -1,0 +1,29 @@
+Verificacion de D1 con el frontend DESPLEGADO en el grupo de instancias, a traves del balanceador
+Fecha: 2026-10-31 · URL: https://136.68.55.254.sslip.io · Version desplegada: e7575e98eb6b (commit de main)
+Despliegue: imagenes api/worker/web publicadas con scripts/publish_images.sh; `terraform apply` desde main
+  (2 plantillas nuevas, 3 cambios, 2 plantillas retiradas; balanceador, base y autoescalador de la API sin cambios).
+  Los dos grupos rotaron sin bajar del minimo (max_unavailable = 0).
+
+Sin sesion
+  GET /                          200 text/html (la interfaz)
+  GET /version.json              200 {"commit":"e7575e98eb6b", ...}
+  GET /config.json               200 {"hlsBaseUrl":"https://storage.googleapis.com/plataforma-mooc-entrega2-hls"}
+  Cabeceras de /                 X-Frame-Options: DENY · X-Content-Type-Options: nosniff ·
+                                 Referrer-Policy: strict-origin-when-cross-origin · Content-Security-Policy propia
+  GET /api/docs                  200
+  GET /api/v1/metrics            403 (denegada por nginx)
+  POST /auth/login, Origin AJENO 403  (csrf_origin_rejected)
+  POST /auth/login, Origin propio 401 (credenciales falsas: el origen pasa)
+
+Con sesion (iniciada por una persona en el navegador; ninguna contrasena pasa por scripts ni por este archivo)
+  Cuenta: estudiante1@plataforma-mooc.test (semilla)
+  Pie de pagina de la interfaz   "Version e7575e98eb6b"  == /version.json == commit evaluado
+  document.cookie                vacio: la cookie __Host-mooc_session es HttpOnly
+  sessionStorage / localStorage  solo "mooc.user" (usuario, sin token) / vacio
+  GET /api/v1/me/enrollments     200 (11 inscripciones) · X-Instance-ID c546c8d8e63d
+  Inicio con 5 cursos, aula del curso, video HLS (8 s, 640 px) reproducido desde el bucket de HLS
+
+Hallazgo (D2)
+  GET /api/v1/media/resources/{id}/download-url -> 403 "forbidden" para un ESTUDIANTE inscrito:
+  la ruta es solo de autor/administrador (internal/media/service.go, authorizeOnResource). Un estudiante no
+  puede abrir PDF, imagenes ni archivos descargables. Ver la nota 48.

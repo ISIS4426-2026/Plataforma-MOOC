@@ -8,14 +8,14 @@ publicados y el profesor necesita ver también sus borradores (nota 27).
 
 | Flujo obligatorio | Ruta | Estado local | Cloud |
 | :--- | :--- | :---: | :---: |
-| Iniciar sesión como profesor | `/login` | ✅ | ⏳ |
-| Consultar sus cursos (borradores incluidos) | `/profesor`, `/profesor/cursos` | ✅ | ⏳ |
-| Crear un curso | `/profesor/cursos/nuevo` | ✅ | ⏳ |
-| Agregar módulos, lecciones y recursos | `/profesor/cursos/:id` | ✅ | ⏳ |
-| Cargar un archivo: URL firmada → subida directa → confirmación, con progreso | editor | ✅ | ⏳ |
-| Ver el recurso pasar de «Procesando» a «Disponible» | editor (se actualiza sola) | ⚠️ ver abajo | ⏳ |
-| Crear un cuestionario con preguntas y respuesta correcta | editor | ✅ | ⏳ |
-| Publicar / despublicar, con las razones si el servidor lo rechaza | editor | ✅ | ⏳ |
+| Iniciar sesión como profesor | `/login` | ✅ | ✅ |
+| Consultar sus cursos (borradores incluidos) | `/profesor`, `/profesor/cursos` | ✅ | ✅ |
+| Crear un curso | `/profesor/cursos/nuevo` | ✅ | ✅ |
+| Agregar módulos, lecciones y recursos | `/profesor/cursos/:id` | ✅ | ✅ |
+| Cargar un archivo: URL firmada → subida directa → confirmación, con progreso | editor | ✅ | ✅ |
+| Ver el recurso pasar de «Procesando» a «Disponible» | editor (se actualiza sola) | ⚠️ | ✅ |
+| Crear un cuestionario con preguntas y respuesta correcta | editor | ✅ | ✅ |
+| Publicar / despublicar, con las razones si el servidor lo rechaza | editor | ✅ | ✅ |
 
 ## Lo que se verificó y cómo
 
@@ -29,18 +29,13 @@ publicados y el profesor necesita ver también sus borradores (nota 27).
 - **Subida:** el archivo viaja directo al almacenamiento de objetos; la API solo firma y confirma. El servidor exige
   el MIME canónico de la extensión y un máximo de 1 GiB; la interfaz valida extensión, tamaño y vacío antes de subir.
 
-### Limitación honesta: «Procesando → Disponible»
+### En la nube (2026-10-31)
 
-El estado «Procesando» se vio en pantalla y el recurso terminó «Disponible», pero **no se capturó el cambio de
-estado en vivo**: la transcodificación de 90 s a 720p tardó 2 m 49 s en esta máquina y el video terminó mientras se
-cambiaba de sesión. Hay que registrarlo en la corrida de la nube (los videos de la semilla son cortos).
+[`recorrido_profesor_nube_2026-10-31.txt`](./recorrido_profesor_nube_2026-10-31.txt): curso, módulo, unidad, texto, video, cuestionario con 1 pregunta y publicación, todo desde la interfaz. **El cambio de estado se capturó en vivo**: Sin archivo → «Pidiendo permiso…» → «Subiendo… 100 %» → «Archivo recibido» → En cola (2,1 s) → **Disponible (6,2 s)**.
 
 ## Pendiente
 
-1. Corrida en la nube con capturas, incluida la del cambio «Procesando → Disponible».
-2. ~~Aprobación de `GET /me/courses`~~ **Hecho** (2026-10-26): Fredy dio su OK al cambio aditivo en el contrato
-   (`api/openapi.yaml`) y en el servidor. Va en un PR separado de la interfaz.
-3. Capturas locales del editor (no se guardaron al disco en esta sesión).
+Nada de este issue. (Las capturas del editor locales no se guardaron; las de la nube sí: `capturas/2026-10-31_nube-profesor-*`.)
 
 ## Nunca
 

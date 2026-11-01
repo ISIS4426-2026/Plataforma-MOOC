@@ -7,9 +7,9 @@ Código en [`frontend/`](../../../../frontend/). Decisión y trampas en la
 
 | Criterio de aceptación | Estado | Evidencia |
 | :--- | :---: | :--- |
-| El frontend desplegado consume la API **a través del balanceador** con sesión por cookie | ⏳ **Pendiente de C3** | Verificado en local, mismo origen (nginx del frontend → API): ver §2. Falta repetirlo contra la URL HTTPS del balanceador cuando exista |
-| La versión del build es visible y corresponde a un commit | ✅ | Pie de página de la interfaz y `/version.json` (§3) |
-| CORS y CSRF configurados y documentados, con un origen ajeno rechazado | ✅ en local · ⏳ repetir en cloud | [`verificacion_origen_csrf_cors_local.txt`](./verificacion_origen_csrf_cors_local.txt) (§4) |
+| El frontend desplegado consume la API **a través del balanceador** con sesión por cookie | ✅ | [`verificacion_nube_desplegado.txt`](./verificacion_nube_desplegado.txt): `https://136.68.55.254.sslip.io`, sesión sostenida con la cookie HttpOnly (§7) |
+| La versión del build es visible y corresponde a un commit | ✅ | Pie de página y `/version.json` = `f6aa76e5988c` en la nube ([captura](./capturas/2026-11-01_nube-login-version-visible.png)) |
+| CORS y CSRF configurados y documentados, con un origen ajeno rechazado | ✅ | Local: [`verificacion_origen_csrf_cors_local.txt`](./verificacion_origen_csrf_cors_local.txt). Nube: origen ajeno → 403 `csrf_origin_rejected` ([§7](./verificacion_nube_desplegado.txt)) |
 | El bundle no contiene claves, credenciales ni URLs internas | ✅ | [`bundle_check.txt`](./bundle_check.txt) (§5) |
 | Lo que el equipo deba saber, anotado en `NOTAS_TECNICAS.md` | ✅ | Nota 27, con la columna de a qué issues afecta |
 
@@ -22,7 +22,7 @@ Código en [`frontend/`](../../../../frontend/). Decisión y trampas en la
 | Cliente HTTP con sesión por cookie, origen permitido y manejo global de 401, 403 y 5xx | ✅ (§2, pruebas unitarias) |
 | Versión identificable del build, visible y registrada | ✅ (§3) |
 | Configuración por variables de build, sin secretos en el bundle | ✅ (§5) |
-| **Registrar la URL HTTPS pública del frontend y su conexión con la API** | ⏳ **Pendiente de C3** |
+| **Registrar la URL HTTPS pública del frontend y su conexión con la API** | ✅ **`https://136.68.55.254.sslip.io`** (mismo origen: la interfaz y `/api/` salen por el balanceador) |
 
 ## 1. Stack y alojamiento
 
@@ -118,15 +118,18 @@ Comprobado: la plantilla de nginx se renderiza y `nginx -t` pasa; `docker compos
 `web`; `terraform validate` pasa; la comprobación de salud (`/api/v1/ready`) sigue cayendo dentro de `/api/`.
 **Sin comprobar en la nube:** requiere publicar la imagen y aplicar C1.
 
-## Pendiente, y quién lo cierra
+## 7. En la nube (2026-10-31)
 
-1. **Cuando C3 publique el balanceador:** poner `CSRF_ALLOWED_ORIGINS` con su URL HTTPS, desplegar la imagen
-   `Dockerfile.web` en las instancias (B3, C1), repetir `scripts/verify_frontend_origin.sh` con
-   `BASE_URL=https://<balanceador>` y **registrar aquí la URL HTTPS pública del frontend**.
-2. ~~Confirmar con Fredy el alojamiento~~ **Hecho** (2026-10-26): Fredy aprobó el mismo origen vía nginx (opción A). Lo consumen A4, C3 y E1.
-3. **Dos huecos de la API que bloquean a D2 y D3** (nota 46): listar los cursos propios del profesor y un
-   `GET /me`.
-4. Capturar la interfaz una vez más con la versión de un commit limpio (las capturas actuales muestran `-sin-commit`).
+- **URL pública del frontend y de la API:** `https://136.68.55.254.sslip.io` (el frontend se sirve en el mismo origen que la API, a través del balanceador).
+- Versión desplegada `f6aa76e5988c` (commit de `main`), visible en el pie y en `/version.json`.
+- Cabeceras de seguridad, `/api/v1/metrics` denegada (403) y origen ajeno rechazado (403) comprobados contra el balanceador.
+- Sesión por cookie sostenida: `document.cookie` vacío (HttpOnly), solo el usuario en `sessionStorage`, sin token.
+- Detalle completo: [`verificacion_nube_desplegado.txt`](./verificacion_nube_desplegado.txt) y, antes del despliegue, la prueba contra la API con el proxy de desarrollo: [`verificacion_nube_dev_proxy.txt`](./verificacion_nube_dev_proxy.txt).
+- Despliegue: ver la nota 46 y `scripts/publish_images.sh` (publica `api`, `worker` y `web`).
+
+## Pendiente
+
+Nada de este issue. (El `GET /me` que mencionaba la nota 46 sigue sin existir: la interfaz guarda el usuario del login sin token.)
 
 ## Nunca
 

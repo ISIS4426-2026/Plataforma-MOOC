@@ -47,7 +47,10 @@ lo reemplaza, lo continúa.
 | 27 | [Un `FLUSHDB` en el Redis de asynq mata la observabilidad y no se nota](#27) | **B1, C6, C7**, A7, G4, G6 |
 | 46 | [El frontend se sirve en el mismo origen, y la API no tiene «mis cursos» ni «quién soy»](#46) | **D2, D3**, A4, B3, C1, C3, E1 |
 | 47 | [Interfaces del estudiante y del profesor: trampas que ya costaron tiempo](#47) | **D2, D3**, A1, A5, B1, C3, E1 |
-| 48 | [El arnés `e2e_cloud` ya registra `X-Instance-ID` y reconcilia trabajos, y `delete-instances` devuelve antes de que acabe el drenaje](#48) | **G3, G5, G6**, I1, I4 |
+| 48 | [Un estudiante inscrito no puede abrir un PDF, una imagen ni un archivo descargable](#48) | **D2, D5**, G1, A5 |
+| 49 | [El generador de carga sale de una VM propia, y lo que mide el balanceador contrasta lo que mide JMeter](#49) | **G1**, G3, G4, G5, G6, G7 |
+| 50 | [Un trabajo interrumpido dejaba su carpeta de trabajo en el disco del worker, y nada la limpiaba](#50) | **E3**, C7, G4, G6 |
+| 51 | [El arnés `e2e_cloud` ya registra `X-Instance-ID` y reconcilia trabajos, y `delete-instances` devuelve antes de que acabe el drenaje](#51) | **G3, G5, G6**, I1, I4 |
 
 ---
 
@@ -2025,7 +2028,57 @@ Qué hace cada interfaz está en las evidencias de [D2](./evidencias/D2/README.m
 | Transcodificación lenta en local | 90 s de video a 720p tardaron 2 m 49 s | No se capturó «Procesando → Disponible» en vivo; hacerlo en la nube | D3 |
 
 <a id="48"></a>
-## 48. El arnés `e2e_cloud` ya registra `X-Instance-ID` y reconcilia trabajos, y `delete-instances` devuelve antes de que acabe el drenaje
+## 48. Un estudiante inscrito no puede abrir un PDF, una imagen ni un archivo descargable
+
+Encontrado el 2026-10-31 al recorrer el aula contra el balanceador (D2). **Afecta a:** D2, D5, G1, A5.
+
+`GET /api/v1/media/resources/{id}/download-url` está montada con `requireAuthor` y `authorizeOnResource` solo
+deja pasar al **autor del curso o a un administrador** (`internal/media/service.go`). Un estudiante inscrito
+recibe `403 forbidden`, siempre. El video no se ve afectado: el HLS sale del bucket público de derivados. Pero
+los tipos con archivo que no son video (`pdf`, `presentation`, `downloadable`, `image`, `audio`) **no tienen
+ninguna ruta de lectura para el estudiante**, y el enunciado pide «consumir contenido multimedia y documentos».
+
+| Qué | Estado |
+| :--- | :--- |
+| La interfaz | Lo dice: «Este archivo no se puede descargar», sin pantalla en blanco. Y el aviso global de 403 ya no sigue al estudiante a la pantalla siguiente |
+| Arreglo | Rama `fix/media-descarga-estudiante`: la ruta pasa a `requireAuth` y `DownloadURL` autoriza al estudiante con inscripción activa (`EnrollmentRepository.IsActive`) en un curso **publicado**; el resto, 403, también si el recurso no tiene archivo. Pruebas en `internal/media`. **Cambio de la API: hay que republicar la imagen y aplicar** |
+| Quién | Es del módulo de media (Fredy) |
+
+<a id="49"></a>
+## 49. El generador de carga sale de una VM propia, y lo que mide el balanceador contrasta lo que mide JMeter
+
+**Afecta a:** G1 (#222), G3, G4, G5, G6, G7. Escrito el 2026-11-01.
+
+| Decisión o trampa | Qué hay que saber |
+| :--- | :--- |
+| **La línea base de A7 se midió desde un portátil** | `destino.json` dice `DESKTOP-…` y A7 documentó que esa red no reproduce lo publicado. G3 y G4 salen de una **VM en la misma región** (`infra/terraform/generator.tf`); esa diferencia hay que **declararla** en G7, no esconderla |
+| **El generador está apagado por omisión** | `generator_enabled = false`: no existe ni su cuenta de servicio. Encenderlo es un `apply` con los `-var` del entorno encendido (nota 38) más `-var generator_enabled=true`. Cuesta ~0,13 USD/h; se apaga al terminar |
+| **Sin IP pública** | sale por la NAT de B2 y se entra por IAP. No abre ningún puerto: F1 no encuentra nada nuevo. Su cuenta solo escribe registros y métricas |
+| **JMeter se fija por digest** | la línea base usó `justb4/jmeter:latest`, que resolvía a **JMeter 5.5**, `sha256:088ac52b…`. `run_escenario1.sh` acepta `JMETER_IMAGE`; en la VM va el digest. Un `latest` que cambie de versión entre campañas rompe «misma herramienta y versión» |
+| **Qué métricas existen** | `custom.googleapis.com/mooc/queue/{pending,active,outstanding,oldest_pending_age_seconds}` (C6), `prometheus…/worker_jobs_{processed,failed}_total`, `loadbalancing…/https/{request_count,total_latencies,backend_latencies}`, `compute…/instance_group/size`, `autoscaler…/{current_utilization,recommended_size}` y las del agente de las VM |
+| **Las instancias que el grupo destruyó** | Monitoring solo guarda su id numérico. `capacity_metricas_gcp.py` recupera su nombre del **registro de auditoría** de su creación (`instances.insert`); sin ese permiso de lectura quedan como «otro» |
+| **«Existentes» no es «operativas»** | las primeras son el tamaño del grupo; las segundas, las instancias que mandan métricas ese minuto. Durante una rotación o un arranque difieren, y es justo lo que G5 y G6 quieren ver |
+| **Un percentil del balanceador es por minuto** | Cloud Monitoring no da el percentil de toda la ventana. Contrasta; **no sustituye** al de JMeter. Con menos de 20 puntos el p95 se publica como `null` (nota 25) |
+| **El conteo del balanceador se lee con margen** | un punto de Monitoring por minuto, y los que cruzan el borde de la ventana se descartan: sin margen se pierde el primer y el último minuto. `capacity_metricas_gcp.py` lee 2 min antes y 4 después. El conteo es de **todos** los clientes: es una cota inferior de lo que envió el generador |
+| **Se compara contra lo ENVIADO, no contra la tabla** | el balanceador cuenta también el calentamiento que el resumen omite. `capacity_contraste_generador.py` cuenta las filas del `.jtl` |
+| **Un portátil perdió el 20 % de las solicitudes y la VM no** | la misma calibración (20 usuarios, 3 min): 80 % contadas desde el portátil, 102 % desde la VM. Una razón más para medir G3 y G4 desde la VM |
+| **El generador se rechaza solo** | `capacity_contraste_generador.py` cruza CPU/memoria, brecha de latencia contra el balanceador y solicitudes contadas. Sin datos **no** da la corrida por buena. Umbrales fechados en `capacity-planning/criterios_de_medicion.md` |
+
+<a id="50"></a>
+## 50. Un trabajo interrumpido dejaba su carpeta de trabajo en el disco del worker, y nada la limpiaba
+
+**Afecta a:** E3 (#218), C7, G4, G6. Escrito el 2026-11-01.
+
+| Qué | Detalle |
+| :--- | :--- |
+| El problema | `defer os.RemoveAll(workDir)` solo corre en salidas normales. Con un `SIGKILL` (el plazo de drenaje de C7 vence con un video largo, un OOM, la VM se detiene) la carpeta `mooc-media-*` —con el original de hasta 2 GiB— queda en el volumen `worker_scratch`, **que sobrevive al reinicio del contenedor**. El trabajo reintentado usa una carpeta nueva: la vieja nunca se reclama. Un disco de 30 GiB se llena con unos pocos |
+| El arreglo | `handler.SweepStaleScratch`, una vez al arrancar el worker y antes de aceptar trabajos. Solo directorios con el prefijo `mooc-media-`, sin seguir enlaces; vacío = no se barre (sería el temporal del sistema) |
+| La suposición | el directorio de trabajo es de **un** worker. Si algún día dos contenedores comparten volumen, el barrido de uno borraría el trabajo en curso del otro |
+| Para G4 y G6 | un video largo procesado con un drenaje corto es exactamente el caso que lo provoca. Si una corrida mata workers, el log del siguiente arranque dice cuántas carpetas y cuántos MB se liberaron |
+| Lo que no cambia | no hay ninguna copia local que sea la única fuente de un dato de negocio: el original está en el bucket y las renditions se regeneran |
+
+<a id="51"></a>
+## 51. El arnés `e2e_cloud` ya registra `X-Instance-ID` y reconcilia trabajos, y `delete-instances` devuelve antes de que acabe el drenaje
 
 **Afecta a:** G3 (recorrido extremo a extremo contra la arquitectura elástica), G5 y G6 (ciclo elástico bajo carga de API y workers), I1 (documento de arquitectura y operación) e I4 (vídeo de sustentación).
 

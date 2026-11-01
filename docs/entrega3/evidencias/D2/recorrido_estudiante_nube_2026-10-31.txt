@@ -1,0 +1,20 @@
+Recorrido del ESTUDIANTE en la nube, desde la interfaz desplegada (versión f6aa76e5988c)
+Fecha: 2026-10-31 · URL: https://136.68.55.254.sslip.io · Cuenta: estudiante1@plataforma-mooc.test (semilla)
+La sesión la inició una persona; ninguna contraseña pasa por scripts ni por este archivo.
+Curso: «[prueba D3] Recorrido del profesor en la nube 20261031», creado y publicado un rato antes por el profesor (ver D3).
+
+  1. El curso aparece en el catálogo con «Inscribirme» ........................ OK (12 cursos publicados)
+  2. Inscribirse ............................................................ OK  inscripción «active»; pasa a la vista del curso
+  3. Texto: se muestra con su formato (título, negrita, lista) y «Marcar como completado" ... OK  1 de 3 · 33 %
+  4. Video subido por el profesor 2 min antes: HLS desde el bucket de derivados
+       duración 2,048 s · 160 px · readyState 4 · sin error ........................ OK  al terminar: 2 de 3 · 67 %
+  5. Cuestionario: «Comenzar» -> intento 1 de 3 -> la pregunta SIN clave de respuesta ->
+       elegir «Recursos bajo demanda» -> «Enviar respuestas» ....................... OK  nota 100 · Aprobado
+  6. Curso completo: 3 de 3 recursos obligatorios · 100 % · insignia «Curso aprobado»
+     Panel del estudiante: Inscritos 12 · Aprobados 10 · Insignias 10
+  7. Documento (PDF) de otro curso: «Abrir / descargar archivo» -> URL firmada -> 206 application/pdf
+     (el arreglo de la nota 48: antes era 403 para el estudiante)
+
+Cadena completa en la nube: profesor crea -> sube video -> el worker lo procesa -> publica -> el estudiante
+lo encuentra -> se inscribe -> lee, reproduce y evalúa -> progreso y aprobación.
+Pendiente de este issue: el video corto de pantalla del recorrido (D5), que debe grabar una persona.

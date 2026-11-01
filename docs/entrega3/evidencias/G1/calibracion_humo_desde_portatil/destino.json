@@ -1,0 +1,16 @@
+{
+  "base_url": "https://136.68.55.254.sslip.io",
+  "entorno": "nube-entrega3-prueba-local",
+  "plan": "calibracion_generador.jmx",
+  "usuarios": 5,
+  "rampa_s": 10,
+  "pausa_ms": "1000+-1000",
+  "sesiones": 1,
+  "calentamiento_omitido_s": 15,
+  "commit": "8282f25",
+  "generador": "justb4/jmeter:latest en DESKTOP-LCSE11U",
+  "nucleos_generador": 12,
+  "memoria_generador_gib": 5.8,
+  "inicio_utc": "2026-11-01T04:49:18Z",
+  "fin_utc": "2026-11-01T04:50:31Z"
+}

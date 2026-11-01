@@ -1,0 +1,35 @@
+{
+  "veredicto": "LIMITADO",
+  "razones": [
+    "el balanceador conto 136 de 170 solicitudes (80%): se perdieron antes de salir"
+  ],
+  "medidas": {
+    "generador_cpu_pct_de_un_nucleo": {
+      "muestras": 6,
+      "p95": 6.2,
+      "max": 6.2,
+      "limite": 840.0
+    },
+    "generador_memoria_pct": {
+      "max_gib": 0.32,
+      "total_gib": 5.8,
+      "max_pct": 5.6,
+      "limite": 80.0
+    },
+    "latencia": {
+      "generador_p50_ms": 87,
+      "balanceador_p50_ms_media_por_minuto": 6.2,
+      "brecha_p50_ms": 80.8,
+      "generador_p95_ms": 183,
+      "balanceador_p95_ms_media_por_minuto": 9.7,
+      "brecha_p95_ms": 173.3
+    },
+    "solicitudes": {
+      "enviadas_por_el_generador": 170,
+      "contadas_por_el_balanceador": 136,
+      "ratio": 0.8,
+      "minimo": 0.95
+    }
+  },
+  "nucleos_del_generador": 12
+}

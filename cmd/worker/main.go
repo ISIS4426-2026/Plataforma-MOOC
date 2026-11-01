@@ -136,6 +136,14 @@ func main() {
 		nil,
 	)
 
+	// Lo que un trabajo interrumpido dejo en el disco (E3, #218): el volumen sobrevive al reinicio del contenedor y
+	// nada mas lo limpia. Solo se barre al arrancar, antes de aceptar trabajos.
+	if n, bytes, err := handler.SweepStaleScratch(cfg.MediaWorkDir, nil); err != nil {
+		log.Printf("limpieza de directorios de trabajo huerfanos: %v\n", err)
+	} else if n > 0 {
+		log.Printf("limpieza de directorios de trabajo huerfanos: %d eliminados, %d MB liberados\n", n, bytes>>20)
+	}
+
 	workDirDesc := cfg.MediaWorkDir
 	if workDirDesc == "" {
 		workDirDesc = "(system temp)"

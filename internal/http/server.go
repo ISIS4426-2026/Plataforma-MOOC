@@ -319,8 +319,13 @@ func NewServer(cfg *config.Config, deps Deps, logger *slog.Logger) *Server {
 		requireAuthor(idempotent(http.HandlerFunc(mediaHandler.PresignedUploadURL)).ServeHTTP))
 	mux.Handle("POST /api/v1/media/uploads/{resourceID}/complete",
 		requireAuthor(idempotent(http.HandlerFunc(mediaHandler.ConfirmUpload)).ServeHTTP))
+	// Open to any signed-in user: the service decides. Authors and administrators
+	// read their own courses' files, and a student reads a published course's
+	// files only while actively enrolled. A student reaching this route used to
+	// get 403 from the role guard, so no PDF or image was readable by the people
+	// the course is for.
 	mux.Handle("GET /api/v1/media/resources/{resourceID}/download-url",
-		requireAuthor(mediaHandler.DownloadURL))
+		requireAuth(http.HandlerFunc(mediaHandler.DownloadURL)))
 
 	// Enrollment (issue #111). Enrolling and withdrawing act on the caller's own
 	// enrollment, so they need a session but no particular role. Both carry

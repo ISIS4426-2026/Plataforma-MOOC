@@ -289,3 +289,23 @@ go run ./scripts/capacity_escenario2                     # se niega a correr sin
 ```
 
 Este archivo no contiene credenciales, llaves ni secretos.
+
+## El generador no limita la medición (G1, #222) — fechado 2026-11-01
+
+Escrito **antes de la primera corrida de G3 y G4**, en
+`scripts/capacity_contraste_generador.py`, que se ejecuta después de cada campaña y **rechaza** la corrida que
+incumple: una corrida `LIMITADO` no se publica.
+
+| Señal | Umbral | Por qué |
+| :--- | :--- | :--- |
+| CPU del contenedor de JMeter (`generador.csv`), p95 | ≤ 70 % de los núcleos de la máquina | por encima, el generador espera su propia CPU y mide su cola |
+| Memoria del generador | ≤ 80 % | el recolector de basura de JMeter distorsiona la latencia |
+| Brecha de latencia, p50 | generador − balanceador ≤ 150 ms | es red + cola del generador; mayor que eso, el generador está esperando |
+| Brecha de latencia, p95 | ≤ 400 ms | ídem, en la cola |
+| Solicitudes contadas | el balanceador cuenta ≥ 95 % de las que envió el generador | si faltan, se perdieron antes de salir (conexiones, puertos, red) |
+| Sin muestras de CPU o sin latencia del balanceador | **no se da por bueno** | la ausencia de datos no demuestra nada |
+
+La latencia del balanceador es un percentil **por minuto** (Cloud Monitoring no entrega el percentil de toda la
+ventana); se compara su media contra el percentil global del generador. No son la misma cantidad, por eso los umbrales de brecha son holgados
+y el contraste solo sirve para descubrir un generador que espera, no para medir con precisión.
+Las cifras que se publican siguen saliendo de JMeter (`capacity_resumen_jtl.py`); las del balanceador solo contrastan.

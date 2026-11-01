@@ -4,32 +4,38 @@
 
 | Rol | Flujo | Ruta | Endpoint principal | Local | Cloud |
 | :--- | :--- | :--- | :--- | :---: | :---: |
-| Ambos | Iniciar / cerrar sesión | `/login` | `POST /auth/login`, `POST /auth/logout` | ✅ [D1](../D1/README.md) | ⏳ |
-| Estudiante | Catálogo | `/catalogo` | `GET /courses` | ✅ [D2](../D2/README.md) | ⏳ |
-| Estudiante | Inscribirse | `/cursos/:id` | `POST /courses/{id}/enrollments` | ✅ | ⏳ |
-| Estudiante | Mis cursos y progreso | `/`, `/mis-cursos` | `GET /me/enrollments`, `GET /progress/courses/{id}` | ✅ | ⏳ |
-| Estudiante | Aula, texto completado | `/cursos/:id/:recurso` | `POST /progress/heartbeat` | ✅ | ⏳ |
-| Estudiante | Video HLS | aula | `master.m3u8` del almacenamiento | ✅ | ⏳ |
-| Estudiante | Cuestionario | aula | `POST /quizzes/{id}/attempts`, `PUT …/attempts/current`, envío | ✅ | ⏳ |
-| Profesor | Mis cursos | `/profesor/cursos` | `GET /me/courses` (nuevo) | ✅ [D3](../D3/README.md) | ⏳ |
-| Profesor | Crear curso y estructura | `/profesor/cursos/:id` | `POST /courses`, módulos, lecciones, recursos | ✅ | ⏳ |
-| Profesor | Subir archivo | editor | `POST /media/presigned-url` → PUT → `POST /media/uploads/{id}/complete` | ✅ | ⏳ |
-| Profesor | Cuestionario | editor | quiz y preguntas | ✅ | ⏳ |
-| Profesor | Publicar / despublicar | editor | `POST /courses/{id}/publish`, `/unpublish` | ✅ | ⏳ |
-| Ambos | Autorización negativa | — | 401 / 403 | ✅ [D4](../D4/README.md) | ⏳ |
+| Ambos | Iniciar / cerrar sesión | `/login` | `POST /auth/login`, `POST /auth/logout` | ✅ [D1](../D1/README.md) | ✅ |
+| Estudiante | Catálogo | `/catalogo` | `GET /courses` | ✅ [D2](../D2/README.md) | ✅ |
+| Estudiante | Inscribirse | `/cursos/:id` | `POST /courses/{id}/enrollments` | ✅ | ✅ |
+| Estudiante | Mis cursos y progreso | `/`, `/mis-cursos` | `GET /me/enrollments`, `GET /progress/courses/{id}` | ✅ | ✅ |
+| Estudiante | Aula, texto completado | `/cursos/:id/:recurso` | `POST /progress/heartbeat` | ✅ | ✅ |
+| Estudiante | Video HLS | aula | `master.m3u8` del almacenamiento | ✅ | ✅ |
+| Estudiante | Cuestionario | aula | `POST /quizzes/{id}/attempts`, `PUT …/attempts/current`, envío | ✅ | ✅ |
+| Profesor | Mis cursos | `/profesor/cursos` | `GET /me/courses` (nuevo) | ✅ [D3](../D3/README.md) | ✅ |
+| Profesor | Crear curso y estructura | `/profesor/cursos/:id` | `POST /courses`, módulos, lecciones, recursos | ✅ | ✅ |
+| Profesor | Subir archivo | editor | `POST /media/presigned-url` → PUT → `POST /media/uploads/{id}/complete` | ✅ | ✅ |
+| Profesor | Cuestionario | editor | quiz y preguntas | ✅ | ✅ |
+| Profesor | Publicar / despublicar | editor | `POST /courses/{id}/publish`, `/unpublish` | ✅ | ✅ |
+| Ambos | Autorización negativa | — | 401 / 403 | ✅ [D4](../D4/README.md) | ✅ |
 
-## Recorrido conectado (profesor → estudiante)
+## Recorrido conectado (profesor → estudiante), en la nube
 
-Verificado en local, en el navegador, de punta a punta: el profesor crea el curso, le sube un video y crea un
-cuestionario; el worker procesa el video; el profesor publica; un estudiante lo encuentra en el catálogo, se inscribe,
-reproduce el video, resuelve el cuestionario y ve su progreso. Falta repetirlo **en la nube** y grabar el video corto
-que pide el issue.
+Ejecutado el **2026-10-31** en `https://136.68.55.254.sslip.io`, desde el navegador, con la versión `f6aa76e5988c`:
+el profesor crea el curso, le sube un video (procesado en ~4 s), crea un cuestionario y publica; el estudiante lo
+encuentra, se inscribe, lee, reproduce el video, resuelve el cuestionario (nota 100) y queda «Curso aprobado».
+Detalle y tiempos: [`D3/recorrido_profesor_nube_2026-10-31.txt`](../D3/recorrido_profesor_nube_2026-10-31.txt) y
+[`D2/recorrido_estudiante_nube_2026-10-31.txt`](../D2/recorrido_estudiante_nube_2026-10-31.txt).
 
-## Pendiente (todo depende de tener la nube arriba)
+## Video del recorrido conectado
 
-1. C3 (balanceador) y el frontend desplegado (D1).
-2. Corrida del recorrido en la nube y video corto, mostrando la URL del balanceador y el `X-Instance-ID`.
-3. Pasar la columna «Cloud» a ✅ con enlaces a las capturas.
+Decisión acordada con Fredy (2026-11-01): **no se graba un clip aparte**. El enunciado pide demostrar el recorrido conectado
+profesor → estudiante dentro del **video de sustentación**, y allí se muestra. Mientras tanto, la prueba escrita y con capturas es
+la de arriba: [profesor](../D3/recorrido_profesor_nube_2026-10-31.txt), [estudiante](../D2/recorrido_estudiante_nube_2026-10-31.txt)
+y la autorización negativa en [D4](../D4/README.md).
+
+## Pendiente
+
+Enlazar aquí el video de sustentación cuando exista.
 
 ## Nunca
 
