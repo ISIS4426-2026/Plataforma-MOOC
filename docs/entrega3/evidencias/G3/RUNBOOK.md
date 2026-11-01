@@ -29,16 +29,21 @@ La VM tarda unos minutos en instalar Docker y bajar la imagen de JMeter: `cat /v
 ## 1. Entregar la contraseña de la base a la VM, y preparar
 
 Si `generator_db_secret_access=true` la VM la lee sola de Secret Manager y este paso sobra. Por omisión **no** lo está
-(aplicarlo exige poder cambiar la política de IAM del secreto). La contraseña viaja por el túnel de IAP, **por la entrada
-estándar** y no en una línea de comandos, y se queda en un archivo en memoria (`/dev/shm`, solo para su dueño) que desaparece
-al apagar la VM. Desde tu máquina:
+(aplicarlo exige poder cambiar la política de IAM del secreto). La contraseña **no se escribe en ninguna línea de comandos**:
+se deja en un archivo temporal de tu máquina (solo para tu usuario), se copia con `scp` por el túnel de IAP y se borra
+en el mismo comando; en la VM pasa a `/run/mooc-db-pw` (memoria, solo para su dueño) y se borra la copia del disco. `/run` y
+no `/dev/shm`, porque Debian vacía `/dev/shm` de un usuario al cerrar su última sesión SSH. Desde tu máquina:
 
 ```bash
-gcloud secrets versions access latest --secret=db-password |   gcloud compute ssh mooc-load-generator --zone us-east1-c --tunnel-through-iap   --command 'umask 077; tr -d "
- " > /dev/shm/mooc-db-pw; wc -c < /dev/shm/mooc-db-pw'
+F=$(mktemp); ( umask 077; gcloud secrets versions access latest --secret=db-password | tr -d '[:space:]' > "$F" )
+gcloud compute scp --zone us-east1-c --tunnel-through-iap "$F" mooc-load-generator:mooc-pw.tmp; rm -f "$F"
+gcloud compute ssh mooc-load-generator --zone us-east1-c --tunnel-through-iap --command \
+  'sudo install -m 600 -o "$USER" ~/mooc-pw.tmp /run/mooc-db-pw && shred -u ~/mooc-pw.tmp; wc -c < /run/mooc-db-pw'
 ```
 
-Debe imprimir un número mayor que 0 (los caracteres guardados, no la contraseña). Al terminar la campaña: `rm -f /dev/shm/mooc-db-pw`.
+Debe imprimir 32 (los caracteres guardados, no la contraseña). Al terminar la campaña: `sudo rm -f /run/mooc-db-pw`.
+
+(El `ssh` con la contraseña por entrada estándar no sirve con el `gcloud` de Windows: la entrada no llega a la VM.)
 
 Después, en la VM:
 
