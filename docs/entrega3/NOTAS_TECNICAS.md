@@ -56,6 +56,7 @@ lo reemplaza, lo continúa.
 | 54 | [En el escenario 3B el autoescalador reacciona en 26,3 s, el worker empieza a consumir en 99,4 s (60 s antes de figurar `HEALTHY`), y sus logs locales se pierden al reducir si no se extraen en vivo](#54) | **G6**, G7, I1, I2, I4 |
 | 55 | [SonarQube falla con `can't be indexed twice` si los tests conviven con el código y no se excluyen de `sonar.sources`, y requiere desactivar *Automatic Analysis* para recibir cobertura de CI](#55) | **H1, H2, H3**, I3, I5 |
 | 56 | [La primera línea base de SonarQube registra `0,8 %` de duplicación, mantenibilidad `A` (`664 min` global / `60 min → 0 min` en aplicación), se resolvieron los Blockers/Criticals en 4 commits y `go:S2077` se audita como constantes SQL seguras para H3](#56) | **H2, H3**, I3, I4, I5, I6 |
+| 57 | [El Entregable 6 (`docs/entrega3/deuda-tecnica.md`) consolida 8 correcciones cerradas en el sprint, 12 ítems de deuda con los 8 campos obligatorios en las 5 dimensiones, el desglose individual de los 33 `MAJOR` (`go:S2077`) y la exportación del commit final](#57) | **H3**, I1, I2, I3, I4, I5, I6 |
 
 ---
 
@@ -2226,6 +2227,24 @@ Cifras medidas en la corrida completa del **Escenario 3B (ciclo de escalamiento 
 | :--- | :--- |
 | **H3** | En `docs/entrega3/deuda-tecnica.md`: 1) distinguir en la sección *Correcciones realizadas durante este ejercicio* los 5 cambios cerrados en H1/H2 (Nota 15 en CI + los 4 commits `868e43d`, `bde3686`, `28967df`, `d469eb6` de H2) frente a los pendientes que integran la línea base final; 2) incluir en el inventario los hallazgos `MAJOR` abiertos de SonarQube (`go:S2077` consolidado por repositorio en `internal/postgres/*.go`, `go:S5332` en `internal/mailer/smtp.go:89`) junto con la deuda arquitectónica, de pruebas y operativa de este documento (notas 20, 23, 24, 25, 27, 44, 52, 54). |
 | **I6** | Al ejecutar el cierre en `main`, sustituir el marcador literal `:CONTRASENA@` por `<DB_PASSWORD>` en `infra/terraform/outputs.tf:138` según el plan `TD-SEC-FP-01` de [`docs/entrega3/evidencias/H2/README.md`](evidencias/H2/README.md). |
+
+<a id="57"></a>
+## 57. El Entregable 6 (`docs/entrega3/deuda-tecnica.md`) consolida 8 correcciones cerradas en el sprint, 12 ítems de deuda con los 8 campos obligatorios en las 5 dimensiones, el desglose individual de los 33 `MAJOR` (`go:S2077`) y la exportación del commit final
+
+**Afecta a:** H3 (#230), I1 (documento de arquitectura), I2 (documento de operación y elasticidad), I3 (README principal con enlaces), I4 (vídeo de sustentación), I5 (commit evaluado del tag `entrega-3`) e I6 (cierre en `main`). Escrito el 2026-11-01.
+
+| Qué | Detalle |
+| :--- | :--- |
+| **Entregable 6 y estructura verificada** | [`docs/entrega3/deuda-tecnica.md`](deuda-tecnica.md) cubre las 7 secciones exigidas por el enunciado: 1) Alcance y método del diagnóstico (`135` archivos productivos / `21 682` líneas + `63` archivos de prueba / `14 485` líneas + `21` archivos HCL, herramientas y 5 actividades del equipo); 2) Resumen de la medición inicial y línea base (duplicación `0.8 %` global / `0.0 %` en aplicación, mantenibilidad `A` / `1.0`, `sqale_index = 664 min` inicial global / `60 min → 0 min` en `CODE_SMELL` de aplicación y `785 min → 690 min` de esfuerzo total de remediación); 3) Las **8 correcciones realizadas en este ejercicio** (`CORR-H1-01` en `90647b0` y `CORR-H2-01`..`07` en `868e43d`, `bde3686`, `28967df`, `d469eb6`, `48a304a`) distinguidas de los pendientes; 4) Inventario de **12 elementos** en las 5 categorías (**Código**: `TD-COD-01`..`04`, **Arquitectura**: `TD-ARQ-01`..`02`, **Infraestructura**: `TD-INF-01`..`03`, **Pruebas**: `TD-PRU-01`, **Operación**: `TD-OPE-01`..`02`), cada uno con los **8 campos obligatorios**; 5) Registro individual de las **33 ocurrencias `MAJOR` abiertas** (`go:S2077`, claves `AaGYz7mFYJKVmQ5dynOB` a `AaGYz7mwYJKVmQ5dynOf`); 6) Plan de tratamiento priorizado (Orden `#1` a `#12`); y 7) Enlaces al pipeline y exportación verificable en [`docs/entrega3/evidencias/H3/reporte_sonarcloud_commit_final.json`](evidencias/H3/reporte_sonarcloud_commit_final.json). |
+| **Verificador automatizado de H3** | [`scripts/h3_verificar_deuda_tecnica.sh`](../../scripts/h3_verificar_deuda_tecnica.sh) valida 18 controles (`18 OK · 0 FALLA · 0 OBS`): presencia de las 7 secciones, cobertura de las 5 dimensiones, presencia exacta de los 8 campos obligatorios en los 12 ítems, validez de las 35 anclas Markdown internas (Nota Técnica #14), registro de las 33 claves `go:S2077`, existencia de los 6 commits de corrección en Git, regeneración de `reporte_sonarcloud_commit_final.json` y ausencia de credenciales, tokens o IPs privadas en `deuda-tecnica.md` y en `docs/entrega3/evidencias/H3/`. |
+
+| Issue | Qué tiene que saber |
+| :--- | :--- |
+| **I1, I2** | Al redactar la sección de *Limitaciones residuales y mejoras priorizadas* en `docs/entrega3/arquitectura-elastica.md` (I1) y `docs/entrega3/operacion-y-elasticidad.md` (I2), referenciar directamente los identificadores del inventario (`TD-ARQ-01`, `TD-ARQ-02`, `TD-INF-01`, `TD-INF-02`, `TD-OPE-01`, `TD-OPE-02`) de [`docs/entrega3/deuda-tecnica.md`](deuda-tecnica.md) para mantener numeración, responsables y plazos idénticos entre los entregables 1, 2 y 6. |
+| **I3** | En la tabla de entregables del `README.md` principal, enlazar el **Entregable 6** a [`docs/entrega3/deuda-tecnica.md`](deuda-tecnica.md), la exportación verificable a [`docs/entrega3/evidencias/H3/reporte_sonarcloud_commit_final.json`](evidencias/H3/reporte_sonarcloud_commit_final.json) y las evidencias de H1, H2 y H3 a `docs/entrega3/evidencias/{H1,H2,H3}/README.md`. |
+| **I4** | Para el bloque de calidad y deuda técnica del vídeo de sustentación, mostrar las 3 capturas de [`docs/entrega3/evidencias/H3/capturas/`](evidencias/H3/capturas/) junto con las de H1 y H2, destacando que la duplicación está en `0,0 %` en código de aplicación (`0,8 %` global), la mantenibilidad en `A` (`0 min` de deuda `CODE_SMELL` en aplicación tras resolver los hallazgos en H2) y el contraste entre deuda detectada por SonarQube (`TD-COD-01`, `TD-COD-02`) y deuda arquitectónica/operativa medida experimentalmente (`TD-ARQ-01/02`, `TD-INF-01/02`, `TD-OPE-01`). |
+| **I5, I6** | Antes de crear el tag `entrega-3` en `main` (y tras aplicar en `main` el paso 1 de `TD-INF-03` en `infra/terraform/outputs.tf:138`), ejecutar `bash ./scripts/h3_verificar_deuda_tecnica.sh` para que `evaluated_head_commit` dentro de `docs/entrega3/evidencias/H3/reporte_sonarcloud_commit_final.json` quede actualizado con el SHA final de cierre. |
+
 
 
 

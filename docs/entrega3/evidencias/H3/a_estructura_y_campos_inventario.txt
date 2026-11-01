@@ -1,0 +1,29 @@
+# a) Verificacion de docs/entrega3/deuda-tecnica.md: secciones, 8 campos por item y anclas (H3, #230)
+# Generado: 2026-11-01T22:23:45Z por scripts/h3_verificar_deuda_tecnica.sh
+# Commit  : 91f7a1241c45738ee8d66df5007bb13bdd59721b
+
+OK     Entregable 6 presente en la ruta exigida: docs/entrega3/deuda-tecnica.md (523 lineas)
+OK     Seccion obligatoria presente: '## 1. Alcance y método del diagnóstico' (Alcance y metodo del diagnostico)
+OK     Seccion obligatoria presente: '## 2. Resumen de la medición inicial y línea base verificable' (Resumen de la medicion inicial y linea base)
+OK     Seccion obligatoria presente: '## 3. Correcciones realizadas durante este ejercicio' (Correcciones realizadas distinguidas de pendientes)
+OK     Seccion obligatoria presente: '## 4. Inventario de deuda técnica identificada' (Inventario de deuda de codigo, arquitectura, infra, pruebas y operacion)
+OK     Seccion obligatoria presente: '## 5. Registro completo de hallazgos Major o superiores abiertos' (Registro de todo hallazgo Major o superior abierto)
+OK     Seccion obligatoria presente: '## 6. Priorización y plan de tratamiento' (Priorizacion y plan de tratamiento)
+OK     Seccion obligatoria presente: '## 7. Reporte verificable del commit final y enlaces al pipeline' (Reporte verificable del commit final y enlace al pipeline)
+OK     Inventario completo con 12 elementos en las 5 dimensiones (Codigo, Arquitectura, Infraestructura, Pruebas, Operacion)
+OK     Los 12 elementos del inventario registran completos los 8 campos obligatorios del enunciado
+OK     Nota Tecnica 14 verificada: 35 enlaces internos (#ancla) resuelven sin anclas rotas
+
+--- Resumen de elementos del inventario por dimension ---
+  TD-COD-01  | Dimension: Código                           | 8/8 campos verificados
+  TD-COD-02  | Dimension: Código                           | 8/8 campos verificados
+  TD-COD-03  | Dimension: Código y Contrato API            | 8/8 campos verificados
+  TD-COD-04  | Dimension: Código Multimedia                | 8/8 campos verificados
+  TD-ARQ-01  | Dimension: Arquitectura                     | 8/8 campos verificados
+  TD-ARQ-02  | Dimension: Arquitectura                     | 8/8 campos verificados
+  TD-INF-01  | Dimension: Infraestructura                  | 8/8 campos verificados
+  TD-INF-02  | Dimension: Infraestructura                  | 8/8 campos verificados
+  TD-INF-03  | Dimension: Infraestructura y Configuración  | 8/8 campos verificados
+  TD-PRU-01  | Dimension: Pruebas                          | 8/8 campos verificados
+  TD-OPE-01  | Dimension: Operación y Observabilidad       | 8/8 campos verificados
+  TD-OPE-02  | Dimension: Operación                        | 8/8 campos verificados

@@ -1,0 +1,6 @@
+# c) Verificacion de ausencia de credenciales, llaves, tokens e IPs privadas en H3 (#230)
+# Generado: 2026-11-01T22:23:46Z por scripts/h3_verificar_deuda_tecnica.sh
+# Commit  : 91f7a1241c45738ee8d66df5007bb13bdd59721b
+
+OK     0 credenciales, llaves ni tokens en docs/entrega3/deuda-tecnica.md y 6 archivos de docs/entrega3/evidencias/H3/
+OK     0 direcciones IP privadas expuestas en docs/entrega3/deuda-tecnica.md ni en docs/entrega3/evidencias/H3/
