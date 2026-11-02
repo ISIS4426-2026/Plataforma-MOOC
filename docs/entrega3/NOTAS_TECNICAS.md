@@ -64,6 +64,7 @@ lo reemplaza, lo continúa.
 | 62 | [`docs/entrega3/arquitectura.md` completo (§1–§8) consolida las decisiones de escalamiento, el runbook reproducible de operación/aparcado/retiro y el cruce de capacidad, costos y SPOF con `scripts/i2_verificar_arquitectura.sh`](#62) | **I2**, I3, I4, I5, I6, G7 |
 | 63 | [F1 encontró que el balanceador aceptaba TLS 1.0/1.1, y su guion daba cinco falsas FALLA en Windows](#63) | **F1**, F2, G5, I1, I2, I6 |
 | 64 | [G5: la API escala en 48 s y se incorpora en 157 s; reducir tarda 11 min y no se puede acortar](#64) | **G7, I2, I4**, quien corra algo desde la nube de Claude |
+| 65 | [G4: el autoescalador de workers tarda ~3 min en reaccionar y retiró un worker con dos videos en curso; el primer cuadro sale en ~380 ms](#65) | **G4, G6**, G7, I1, I4 |
 
 ---
 
@@ -2380,3 +2381,24 @@ Cifras medidas en la corrida completa del **Escenario 3B (ciclo de escalamiento 
 | **Desde un contenedor que corre como `root`** | `gcloud compute ssh` entra como `root` y la VM lo rechaza (`Permission denied (publickey)`): hay que dar un usuario, `gcloud compute ssh usuario@vm` |
 | **El `.jtl` va comprimido** | 17 MB sin comprimir; `resultados.jtl.gz` son 0,7 MB y `g5_linea_de_tiempo.py` lo lee igual |
 
+<a id="65"></a>
+## 65. G4: el autoescalador de workers tarda ~3 min en reaccionar y retiró un worker con dos videos en curso; el primer cuadro sale en ~380 ms
+
+**Afecta a:** G4 (#224), G6, G7, I1, I4. Escrito el 2026-11-02. Detalle en [`evidencias/G4/README.md`](evidencias/G4/README.md).
+
+| Qué | Detalle |
+| :--- | :--- |
+| El resultado | niveles 0 a 3 del escenario 2 con workers de 1 a 3: 16 videos (15 de los niveles y el de consumo), **16 de 16 `completed` verificados por la API**, 0 fallos y la cola drenada hasta 0 en 47 min. Antigüedad máxima en cola del nivel 3: **305 s** (A7: 1 184 s). Pico de active: 6 (A7: 2) |
+| Tiempo al primer cuadro | **378 ms de mediana y 414 de p95** (24 mediciones, Chromium + hls.js, 0 fallidas); la decodificación inicial es **238 ms (63 %)**. No cambia con la cola llena: los segmentos salen del bucket |
+| La reacción | ~3 min entre que la cola crece y hay un worker más operativo, las dos veces (00:18 → 00:21 y 00:44 → 00:47) |
+| **El retiro con trabajo activo** | a las 00:34, con 2 trabajos activos y 0 pendientes, el grupo pasó de 2 a 1. Los dos videos de 600 s del nivel 2 seguían activos 22 min después de empezar (tarda ~9–14 min): lo consistente es que uno se retiró con su instancia y volvió a empezar tras el drenaje de 90 s. **No se midió directamente** (los registros de los workers no llegan a Cloud Logging). La señal `outstanding / 2` ve lo pendiente, no un trabajo que lleva 20 min procesándose |
+| El cuello de botella | la CPU de los workers (67–100 %); al final, **un solo trabajo**: escalar workers acorta la espera, no el procesamiento de un video de 30 min |
+| Un defecto del programa, corregido | los cuatro informes narrativos de la campaña tenían escrita a mano la tabla de **cinco** niveles y se caían (`index out of range`) con `-hasta-nivel 3`, **después** de haber medido todo. Con menos niveles ya no se escriben. La evidencia es el log de corrida, el drenaje y `ttff.json` |
+| Un detalle de la verificación terminal | `SELECT … FROM resources WHERE object_key LIKE 'originals/%'` cuenta todos los recursos del proyecto, no los de la corrida (aparecían 3 `failed` de pruebas anteriores). Verificar por la API sobre la unidad de la campaña |
+| Cómo medir el primer cuadro | el Chromium de Playwright/Puppeteer no trae H.264/AAC; el de Debian sí. En `FRAG_LOADED` de hls.js las estadísticas están en `frag.stats`, no en `data.stats` (con la segunda forma la descomposición salía vacía, sin error) |
+
+| Issue | Qué tiene que saber |
+| :--- | :--- |
+| **G6** | el retiro de un worker con un video largo en curso lo reinicia: un `scale_in_control` más lento o un drenaje mayor que los 90 s actuales lo evitan; y la señal de escalamiento no ve el trabajo ya activo |
+| **G7** | el efecto de escalar workers es sobre la **espera en cola**, no sobre el procesamiento por video; la API no escaló y no se le atribuye nada |
+| **I1, I4** | gráfica en `G4/capturas/` con 1 → 2 → 1 → 3 → 2 → 1 workers y la cola |

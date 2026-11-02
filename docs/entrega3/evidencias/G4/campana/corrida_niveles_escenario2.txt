@@ -1,0 +1,134 @@
+================================================================================
+ EVIDENCIA H5 - LOG DE CORRIDA FORMAL DE NIVELES (ESCENARIO 2 DE CAPACIDAD)
+================================================================================
+Destino medido   : https://136.68.55.254.sslip.io  [remoto]
+Base HLS         : https://storage.googleapis.com/plataforma-mooc-entrega2-hls
+Entorno          : nube-entrega3
+Patron de consumo: cadencia (segmentos por estudiante: 10)
+Codigo           : ref: refs/heads/main
+Generador        : mooc-load-generator
+Fecha UTC        : 2026-11-02T01:31:24Z
+Fecha de corrida      : 2026-11-02T01:31:24Z
+Concurrencia workers  : WORKER_CONCURRENCY=2 (Fija en 1 worker por vCPU)
+Seguridad / Secretos  : SANITIZADO. Cero credenciales, llaves ni firmas V4 registradas.
+
+--------------------------------------------------------------------------------
+ NIVEL 0: NIVEL 0: LÍNEA BASE LIMPIA
+--------------------------------------------------------------------------------
+• Parámetros de Carga   : 1 profesores concurrentes (1 subidas totales), 2 estudiantes HLS
+• Perfiles utilizados   : corto
+• Duración corrida      : 1m31.35s | Tasa: 0.66 videos/min
+• Trabajos completados  : 1 exitosos, 0 fallidos / DLQ, 0 sin terminar de medir
+• Métricas de Cola      : Pico pending=1 | Pico active=1 | Antigüedad máxima=0.27s
+
+  [Desglose Desacoplado por Etapa]
+  Etapa    | Operación                              | Avg          | p50          | p95         
+  ------------------------------------------------------------------------------------------
+  Etapa 1  | Emisión URL Prefirmada (API Control)   | 75ms         | n/d (n=1)    | n/d (n=1)   
+  Etapa 2  | Transferencia Directa (PUT Storage)    | 212ms        | n/d (n=1)    | n/d (n=1)   
+  Etapa 3  | Confirmación Carga (API Control)       | 66ms         | n/d (n=1)    | n/d (n=1)   
+  Etapa 4  | Espera en Cola (Redis Asynq)           | 2.018s       | n/d (n=1)    | n/d (n=1)   
+  Etapa 5  | Procesamiento FFmpeg (Worker Server)   | 1m28.804s    | n/d (n=1)    | n/d (n=1)   
+  Etapa 6  | Tiempo Total a Available               | 1m30.822s    | n/d (n=1)    | n/d (n=1)   
+
+  [Consumo Multimedia HLS]
+  • Latencia Manifiesto Maestro : 44ms
+  • Latencia Lista Variante     : 30ms
+  • Latencia Promedio Segmento  : 48ms
+  • Latencia de Segmento        : p50 36ms | p95 97ms | n=20 observaciones
+  • Consumo Declarado           : 2 estudiantes concurrentes, patrón cadencia, 10 segmentos de 7.20 s
+  • Margen de Buffer Medido     : 14.24 s en el peor segmento | Interrupciones: 0 de 16
+  • Descarga Greedy (Bulk)      : 11.40 MB/s (Aislada como prueba de estrés de red)
+  • Primer Segmento Descargado  : 121ms (transporte; NO es tiempo al primer cuadro)
+  • Tiempo al Primer Cuadro     : n=6 (fallidas 0) | primer cuadro: mediana 366 ms, min 362, max 414 ms | manifiesto 48, segmento 0 45, decodificacion 226 ms (medianas) [Chromium sin ventana + hls.js, Chrome/156.0.8078.73]
+
+--------------------------------------------------------------------------------
+ NIVEL 1: NIVEL 1: SUB-SATURACIÓN (Λ < Μ)
+--------------------------------------------------------------------------------
+• Parámetros de Carga   : 2 profesores concurrentes (2 subidas totales), 10 estudiantes HLS
+• Perfiles utilizados   : corto, corto
+• Duración corrida      : 2m51.948s | Tasa: 0.70 videos/min
+• Trabajos completados  : 2 exitosos, 0 fallidos / DLQ, 0 sin terminar de medir
+• Métricas de Cola      : Pico pending=0 | Pico active=2 | Antigüedad máxima=0.00s
+
+  [Desglose Desacoplado por Etapa]
+  Etapa    | Operación                              | Avg          | p50          | p95         
+  ------------------------------------------------------------------------------------------
+  Etapa 1  | Emisión URL Prefirmada (API Control)   | 73ms         | n/d (n=2)    | n/d (n=2)   
+  Etapa 2  | Transferencia Directa (PUT Storage)    | 174ms        | n/d (n=2)    | n/d (n=2)   
+  Etapa 3  | Confirmación Carga (API Control)       | 60ms         | n/d (n=2)    | n/d (n=2)   
+  Etapa 4  | Espera en Cola (Redis Asynq)           | 2.017s       | n/d (n=2)    | n/d (n=2)   
+  Etapa 5  | Procesamiento FFmpeg (Worker Server)   | 2m48.451s    | n/d (n=2)    | n/d (n=2)   
+  Etapa 6  | Tiempo Total a Available               | 2m50.468s    | n/d (n=2)    | n/d (n=2)   
+
+  [Consumo Multimedia HLS]
+  • Latencia Manifiesto Maestro : 32ms
+  • Latencia Lista Variante     : 21ms
+  • Latencia Promedio Segmento  : 27ms
+  • Latencia de Segmento        : p50 25ms | p95 42ms | n=100 observaciones
+  • Consumo Declarado           : 10 estudiantes concurrentes, patrón cadencia, 10 segmentos de 7.20 s
+  • Margen de Buffer Medido     : 14.29 s en el peor segmento | Interrupciones: 0 de 80
+  • Descarga Greedy (Bulk)      : 18.80 MB/s (Aislada como prueba de estrés de red)
+  • Primer Segmento Descargado  : 81ms (transporte; NO es tiempo al primer cuadro)
+  • Tiempo al Primer Cuadro     : n=6 (fallidas 0) | primer cuadro: mediana 368 ms, min 333, max 414 ms | manifiesto 39, segmento 0 43, decodificacion 237 ms (medianas) [Chromium sin ventana + hls.js, Chrome/156.0.8078.73]
+
+--------------------------------------------------------------------------------
+ NIVEL 2: NIVEL 2: PUNTO DE EQUILIBRIO NOMINAL (Λ ≈ Μ)
+--------------------------------------------------------------------------------
+• Parámetros de Carga   : 4 profesores concurrentes (4 subidas totales), 25 estudiantes HLS
+• Perfiles utilizados   : corto, medio, corto, medio
+• Duración corrida      : 25m56.153s | Tasa: 0.08 videos/min
+• Trabajos completados  : 2 exitosos, 0 fallidos / DLQ, 2 sin terminar de medir
+• Métricas de Cola      : Pico pending=4 | Pico active=4 | Antigüedad máxima=152.42s
+
+  [Desglose Desacoplado por Etapa]
+  Etapa    | Operación                              | Avg          | p50          | p95         
+  ------------------------------------------------------------------------------------------
+  Etapa 1  | Emisión URL Prefirmada (API Control)   | 72ms         | n/d (n=4)    | n/d (n=4)   
+  Etapa 2  | Transferencia Directa (PUT Storage)    | 228ms        | n/d (n=4)    | n/d (n=4)   
+  Etapa 3  | Confirmación Carga (API Control)       | 62ms         | n/d (n=4)    | n/d (n=4)   
+  Etapa 4  | Espera en Cola (Redis Asynq)           | 2.017s       | n/d (n=2)    | n/d (n=2)   
+  Etapa 5  | Procesamiento FFmpeg (Worker Server)   | 2m46.54s     | n/d (n=2)    | n/d (n=2)   
+  Etapa 6  | Tiempo Total a Available               | 2m48.557s    | n/d (n=2)    | n/d (n=2)   
+
+  [Consumo Multimedia HLS]
+  • Latencia Manifiesto Maestro : 33ms
+  • Latencia Lista Variante     : 21ms
+  • Latencia Promedio Segmento  : 25ms
+  • Latencia de Segmento        : p50 23ms | p95 45ms | n=250 observaciones
+  • Consumo Declarado           : 25 estudiantes concurrentes, patrón cadencia, 10 segmentos de 7.20 s
+  • Margen de Buffer Medido     : 14.26 s en el peor segmento | Interrupciones: 0 de 200
+  • Descarga Greedy (Bulk)      : 23.64 MB/s (Aislada como prueba de estrés de red)
+  • Primer Segmento Descargado  : 80ms (transporte; NO es tiempo al primer cuadro)
+  • Tiempo al Primer Cuadro     : n=6 (fallidas 0) | primer cuadro: mediana 362 ms, min 355, max 392 ms | manifiesto 42, segmento 0 37, decodificacion 238 ms (medianas) [Chromium sin ventana + hls.js, Chrome/156.0.8078.73]
+
+--------------------------------------------------------------------------------
+ NIVEL 3: NIVEL 3: SATURACIÓN DE COLA (Λ > Μ)
+--------------------------------------------------------------------------------
+• Parámetros de Carga   : 8 profesores concurrentes (8 subidas totales), 50 estudiantes HLS
+• Perfiles utilizados   : corto, medio, largo, corto, medio, corto, medio, corto
+• Duración corrida      : 47m6.697s | Tasa: 0.17 videos/min
+• Trabajos completados  : 8 exitosos, 0 fallidos / DLQ, 0 sin terminar de medir
+• Métricas de Cola      : Pico pending=8 | Pico active=6 | Antigüedad máxima=305.49s
+
+  [Desglose Desacoplado por Etapa]
+  Etapa    | Operación                              | Avg          | p50          | p95         
+  ------------------------------------------------------------------------------------------
+  Etapa 1  | Emisión URL Prefirmada (API Control)   | 81ms         | 66ms         | n/d (n=8)   
+  Etapa 2  | Transferencia Directa (PUT Storage)    | 277ms        | 198ms        | n/d (n=8)   
+  Etapa 3  | Confirmación Carga (API Control)       | 56ms         | 55ms         | n/d (n=8)   
+  Etapa 4  | Espera en Cola (Redis Asynq)           | 3m31.25s     | 2m37.518s    | n/d (n=8)   
+  Etapa 5  | Procesamiento FFmpeg (Worker Server)   | 13m31.962s   | 2m51.667s    | n/d (n=8)   
+  Etapa 6  | Tiempo Total a Available               | 17m3.212s    | 5m29.185s    | n/d (n=8)   
+
+  [Consumo Multimedia HLS]
+  • Latencia Manifiesto Maestro : 39ms
+  • Latencia Lista Variante     : 25ms
+  • Latencia Promedio Segmento  : 32ms
+  • Latencia de Segmento        : p50 24ms | p95 72ms | n=500 observaciones
+  • Consumo Declarado           : 50 estudiantes concurrentes, patrón cadencia, 10 segmentos de 7.20 s
+  • Margen de Buffer Medido     : 14.23 s en el peor segmento | Interrupciones: 0 de 400
+  • Descarga Greedy (Bulk)      : 23.60 MB/s (Aislada como prueba de estrés de red)
+  • Primer Segmento Descargado  : 95ms (transporte; NO es tiempo al primer cuadro)
+  • Tiempo al Primer Cuadro     : n=6 (fallidas 0) | primer cuadro: mediana 379 ms, min 376, max 430 ms | manifiesto 41, segmento 0 42, decodificacion 249 ms (medianas) [Chromium sin ventana + hls.js, Chrome/156.0.8078.73]
+
