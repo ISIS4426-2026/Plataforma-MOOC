@@ -50,68 +50,105 @@ desde la Entrega 2 (B1, [`evidencias/B1/`](./evidencias/B1/README.md)).
 ### 2.1 Vista general
 
 ```mermaid
-flowchart LR
+flowchart TB
     nav(["Navegador<br/>estudiante · profesor"])
-    lb["Balanceador HTTPS<br/>único punto público"]
+    lb["Balanceador HTTPS global<br/>único punto público<br/>RATE · 100 pet/s por réplica"]
+    asapi{{"mooc-api-autoscaler<br/>utilización del balanceador<br/>objetivo 0,8 → 80 pet/s"}}
 
     subgraph apig ["Grupo de la API · 1 a 3 réplicas iguales"]
-        direction TB
         front["nginx<br/>frontend React estático<br/>proxy de /api/"]
         api["API en Go<br/>monolito modular"]
     end
 
-    subgraph cola ["Cola compartida · VM dedicada"]
-        direction TB
-        redis[("Redis 7<br/>db 0: cola asynq<br/>db 1: sesiones")]
+    subgraph cola ["Cola compartida · VM que ningún autoescalador puede retirar"]
+        direction LR
+        redis[("Redis 7 con AOF<br/>db 0: cola asynq y candados<br/>db 1: sesiones")]
         exp["exportador<br/>de la cola"]
     end
 
+    mon{{"Cloud Monitoring<br/>mooc/queue/outstanding"}}
+    aswk{{"mooc-worker-autoscaler<br/>2 tareas pendientes por instancia"}}
+
     subgraph wkg ["Grupo de workers · 1 a 3 réplicas iguales"]
-        wk["Worker en Go<br/>FFmpeg"]
+        wk["Worker en Go<br/>FFmpeg · concurrencia 1"]
     end
 
     subgraph adm ["Servicios administrados"]
-        direction TB
+        direction LR
         db[("Cloud SQL<br/>PostgreSQL 16")]
         media[("Bucket media<br/>PRIVADO")]
         hls[("Bucket hls<br/>PÚBLICO")]
-        mon["Cloud Monitoring<br/>outstanding"]
     end
 
-    smtp{{"Brevo<br/>SMTP 587"}}
+    smtp(["Brevo<br/>SMTP 587"])
 
     nav ==>|"HTTPS 443"| lb
     lb ==>|"HTTP 80"| front
     front --> api
     api -->|"SQL"| db
-    api -->|"encola · sesiones"| redis
+    api -->|"encola · sesiones · idempotencia"| redis
     api -->|"firma URL V4"| media
-    api -->|"correo"| smtp
+    api -->|"correo por Cloud NAT"| smtp
     redis -.->|"asynq"| wk
     wk -->|"lee original"| media
     wk -->|"escribe HLS"| hls
-    wk -->|"estado"| db
+    wk -->|"estado del recurso"| db
     exp -->|"lee profundidad"| redis
     exp -->|"publica cada 30 s"| mon
-    mon -.->|"señal de escalado"| wkg
     nav -.->|"PUT firmado"| media
     nav -.->|"GET manifiesto y segmentos"| hls
+
+    lb -.->|"tasa observada"| asapi
+    asapi -.->|"redimensiona 1–3"| apig
+    mon -.->|"profundidad de la cola"| aswk
+    aswk -.->|"redimensiona 1–3"| wkg
+
+    subgraph leyenda ["Leyenda"]
+        direction LR
+        k1["nuestro código en una VM"]
+        k2[("dato privado")]
+        k3[("alcanzable desde internet")]
+        k4{{"control del proveedor"}}
+        k5(["fuera del proyecto"])
+    end
 
     classDef privado fill:#fde8e8,stroke:#c53030,color:#1a202c
     classDef publico fill:#e6f4ea,stroke:#1e8e3e,color:#1a202c
     classDef proc fill:#e8f0fe,stroke:#1a73e8,color:#1a202c
+    classDef control fill:#fef7e0,stroke:#f29900,color:#1a202c
     classDef ext fill:#f1f3f4,stroke:#5f6368,color:#1a202c
-    class media,db privado
-    class hls publico
-    class front,api,wk,redis,exp proc
-    class nav,lb,smtp,mon ext
+    class media,db,k2 privado
+    class hls,lb,k3 publico
+    class front,api,wk,redis,exp,k1 proc
+    class asapi,aswk,mon,k4 control
+    class nav,smtp,k5 ext
+
+    style apig fill:#f3f8ff,stroke:#4285f4,color:#1a73e8
+    style wkg fill:#f3f8ff,stroke:#4285f4,color:#1a73e8
+    style cola fill:#f3f8ff,stroke:#4285f4,color:#1a73e8
+    style adm fill:#fafafa,stroke:#9aa0a6,color:#3c4043
+    style leyenda fill:#ffffff,stroke:#bdc1c6,stroke-dasharray:3 3,color:#5f6368
 ```
+
+El grosor de la flecha es significativo y se repite en el §3.1:
+
+| Trazo | Qué significa |
+| :--- | :--- |
+| `==>` gruesa | Tráfico que entra desde internet |
+| `-->` fina | Llamada interna síncrona: la respuesta se espera |
+| `-.->` punteada | Camino asíncrono o de control: nadie espera en línea |
+
+**Los dos lazos de escalado son independientes y miden cosas distintas.** El de
+la API se cierra dentro del balanceador —tasa observada contra `100 pet/s`
+declarados por instancia—; el de los workers sale de la aplicación, pasa por el
+exportador y por Cloud Monitoring, y vuelve como un número de tareas por
+instancia (§5.3). Ninguno de los dos usa CPU, y ninguno puede retirar la cola.
 
 Lo que cambia frente a la Entrega 2 se ve en dos sitios. **Las réplicas de API y
 de workers son intercambiables**: ninguna guarda estado propio, porque todo lo
 que comparten —sesiones, cola, datos y archivos— vive fuera de ellas (E1, E3). Y
 **la cola ya no vive con los workers**: está en una máquina que ningún
-autoescalador puede retirar.
+autoescalador puede retirar, dibujada a propósito fuera de los dos grupos.
 
 Las dos flechas punteadas que salen del navegador siguen siendo el punto del
 diseño de la Entrega 2: **los bytes de los archivos no atraviesan la API**.
@@ -160,8 +197,9 @@ permite demostrar el reparto entre réplicas sin publicar la topología.
 | 9 | Navegador → Cloud Storage | HTTPS: URL firmada V4 para subir, lectura pública para HLS | Síncrona, **sin la API** |
 | 10 | Exportador → Cloud Monitoring | `CreateTimeSeries` sobre `generic_node`, cada 30 s | **Asíncrona** respecto a la aplicación |
 | 11 | Cloud Monitoring → autoescalador de workers | lectura de `outstanding` con filtro | **Asíncrona** |
-| 12 | Balanceador → cada réplica | comprobación de salud `GET /api/v1/ready` | Síncrona, periódica |
-| 13 | API → Brevo | SMTP 587 con STARTTLS, por Cloud NAT | Síncrona |
+| 12 | Balanceador → autoescalador de la API | `load_balancing_utilization`, objetivo `0,8` sobre los `100 pet/s` declarados por instancia | **Asíncrona** |
+| 13 | Balanceador → cada réplica | comprobación de salud `GET /api/v1/ready` | Síncrona, periódica |
+| 14 | API → Brevo | SMTP 587 con STARTTLS, por Cloud NAT | Síncrona |
 
 ### 2.4 El flujo asíncrono con réplicas
 
@@ -171,31 +209,51 @@ sequenceDiagram
     actor P as Profesor (navegador)
     participant L as Balanceador
     participant A as API (cualquier réplica)
+    participant D as Cloud SQL
     participant B as Bucket media
     participant Q as Cola compartida
     participant W as Worker (cualquier réplica)
     participant H as Bucket hls
 
     P->>L: POST /api/v1/media/presigned-url
-    L->>A: reparto por tasa
+    L->>A: reparto por tasa · 80 pet/s por réplica
     A-->>P: URL firmada V4
     P->>B: PUT del original
     Note over P,B: Los bytes no pasan por la API
+
     P->>L: POST /api/v1/media/uploads/{id}/complete
-    L->>A: puede ser otra réplica (sesión compartida)
+    L->>A: puede ser otra réplica · sesión en la cola
     A->>B: ¿existe el objeto?
+    A->>D: recurso = pending
     A->>Q: encola media:process
     A-->>P: 202 · pending
+
     Q->>W: entrega la tarea al worker libre
     W->>B: descarga el original
     W->>W: ffprobe + ffmpeg
-    W->>H: master.m3u8, variantes y segmentos
-    W->>Q: completa la tarea
-    Note over W,Q: Si el worker se retira a mitad,<br/>la tarea vuelve a pending sin gastar reintento (C7)
+
+    alt El worker termina el trabajo
+        W->>H: master.m3u8, variantes y segmentos
+        W->>D: recurso = completed
+        W->>Q: completa la tarea
+    else El worker se retira a mitad (C7)
+        Note over W: /readyz = 503 draining<br/>ventana de 90 s
+        W->>Q: requeue() · vuelve a pending con retry = 0
+        Q->>W: otra réplica retoma la misma tarea
+        Note over W,H: El prefijo HLS es determinista:<br/>rehacer sobrescribe, no duplica (E3)
+    end
+
+    P->>H: GET del manifiesto y los segmentos
+    Note over P,H: Lectura pública, también sin la API
 ```
 
 Las dos llamadas del profesor pueden caer en réplicas distintas y el flujo no
 lo nota: la sesión vive en la cola compartida y el recurso en la base (E1).
+
+La rama `else` es lo que añade esta entrega: el retiro de un worker a mitad de
+un `ffmpeg` **no es un fallo** del que haya que recuperarse, sino un camino
+previsto. La tarea vuelve a `pending` sin gastar reintento, y las dos rutas se
+distinguen en Redis sin leer ningún registro (§5.5, C7).
 
 ---
 
@@ -206,61 +264,88 @@ lo nota: la sesión vive en la cola compartida y el recurso en la base (E1).
 ```mermaid
 flowchart TB
     internet(["Internet"])
-    iap["Cloud IAP<br/>35.235.240.0/20"]
-    gfe["Rangos de Google<br/>130.211.0.0/22 · 35.191.0.0/16"]
+    iap{{"Cloud IAP<br/>35.235.240.0/20"}}
+    gfe{{"Sondeo de Google<br/>130.211.0.0/22 · 35.191.0.0/16"}}
 
     subgraph gcp ["GCP · plataforma-mooc-entrega2 · us-east1"]
         direction TB
-        lb["Balanceador externo global<br/>mooc-lb-ip · 443 HTTPS · 80 redirige"]
 
-        subgraph vpc ["mooc-vpc"]
-            direction TB
-            subgraph sub ["mooc-subnet · 10.0.1.0/24 · sin IP pública en ninguna VM"]
-                direction LR
-                subgraph zb ["zona us-east1-b"]
-                    direction TB
-                    apigrp["mooc-api-group<br/>1–3 × e2-highcpu-2<br/>nginx + api"]
-                    wkgrp["mooc-worker-group<br/>1–3 × e2-highcpu-2<br/>worker"]
-                    q["mooc-queue-server<br/>e2-small · IP fija interna<br/>Redis + exportador"]
-                end
-                subgraph zc ["zona us-east1-c"]
-                    gen["mooc-load-generator<br/>e2-standard-4<br/>solo durante las pruebas"]
-                end
+        lb["Balanceador externo global<br/>mooc-lb-ip · 443 HTTPS · 80 redirige con 301"]
+
+        subgraph vpc ["mooc-vpc · mooc-subnet 10.0.1.0/24 · Private Google Access · ninguna VM con IP pública"]
+            subgraph zb ["zona us-east1-b · la aplicación"]
+                direction TB
+                apigrp["mooc-api-group<br/>1–3 × e2-highcpu-2<br/>nginx + api"]
+                wkgrp["mooc-worker-group<br/>1–3 × e2-highcpu-2<br/>worker"]
+                q["mooc-queue-server<br/>e2-small · mooc-queue-ip<br/>Redis + exportador"]
             end
+
+            subgraph zc ["zona us-east1-c · las pruebas"]
+                gen["mooc-load-generator<br/>e2-standard-4"]
+            end
+
+            nat["mooc-router + mooc-nat<br/>única salida a internet de las cuatro VM"]
         end
 
-        sql[("Cloud SQL mooc-db-1<br/>zonal us-east1-b<br/>solo IP privada (PSA)")]
-        gcs1[("Bucket media · PRIVADO")]
-        gcs2[("Bucket hls · PÚBLICO")]
-        ctl["Artifact Registry<br/>Secret Manager<br/>Cloud Monitoring y Logging"]
+        subgraph adm ["Servicios administrados · alcanzados sin IP pública"]
+            direction LR
+            sql[("Cloud SQL mooc-db-1<br/>us-east1-b<br/>solo IP privada (PSA)")]
+            gcs1[("Bucket media<br/>PRIVADO")]
+            gcs2[("Bucket hls<br/>PÚBLICO")]
+            ctl{{"Artifact Registry<br/>Secret Manager<br/>Monitoring y Logging"}}
+        end
     end
 
+    smtp(["Brevo · SMTP 587"])
+
     internet ==>|"443 / 80"| lb
-    lb ==>|"80"| apigrp
-    gfe -.->|"salud 80"| apigrp
-    gfe -.->|"salud 9090"| wkgrp
     internet ==>|"HLS público"| gcs2
-    iap -.->|"22"| apigrp & wkgrp & q
+    lb ==>|"80"| apigrp
+    gfe -.->|"salud 80 · /api/v1/ready cada 10 s"| apigrp
+    gfe -.->|"salud 9090 · /readyz cada 15 s"| wkgrp
+    iap -.->|"22 · allow-iap-ssh en las cuatro VM"| vpc
     apigrp & wkgrp -->|"6379 por cuenta de servicio"| q
-    apigrp & wkgrp -->|"5432"| sql
-    apigrp & wkgrp --> ctl
-    apigrp & wkgrp --> gcs1
-    wkgrp --> gcs2
-    gen -->|"carga por internet"| lb
+    gen -->|"6379 · lote de G4"| q
+    apigrp & wkgrp -->|"5432 por IP privada"| sql
+    apigrp -->|"firma URL V4"| gcs1
+    wkgrp -->|"lee original"| gcs1
+    wkgrp -->|"escribe HLS"| gcs2
+    q -->|"outstanding cada 30 s"| ctl
+    apigrp -->|"587 a Brevo"| nat
+    gen -->|"443 al balanceador"| nat
+    nat -->|"STARTTLS"| smtp
+    nat ==>|"carga del generador"| lb
 
     classDef privado fill:#fde8e8,stroke:#c53030,color:#1a202c
     classDef publico fill:#e6f4ea,stroke:#1e8e3e,color:#1a202c
     classDef proc fill:#e8f0fe,stroke:#1a73e8,color:#1a202c
+    classDef control fill:#fef7e0,stroke:#f29900,color:#1a202c
     classDef ext fill:#f1f3f4,stroke:#5f6368,color:#1a202c
     class gcs1,sql privado
     class gcs2,lb publico
-    class apigrp,wkgrp,q proc
-    class internet,iap,gfe,ctl,gen ext
+    class apigrp,wkgrp,q,gen,nat proc
+    class iap,gfe,ctl control
+    class internet,smtp ext
+    style gcp fill:#fafafa,stroke:#9aa0a6,stroke-dasharray:5 4,color:#3c4043
+    style vpc fill:#f3f8ff,stroke:#4285f4,color:#1a73e8
+    style zb fill:#ffffff,stroke:#bdc1c6,stroke-dasharray:3 3,color:#5f6368
+    style zc fill:#ffffff,stroke:#bdc1c6,stroke-dasharray:3 3,color:#5f6368
+    style adm fill:#fafafa,stroke:#9aa0a6,color:#3c4043
 ```
 
-Para que el dibujo se lea, faltan dos cosas que valen para todas las máquinas:
-la salida a internet va por Cloud NAT (§3.2) y todas, incluida la cola, se
-administran por IAP. La cola y el generador también escriben en Monitoring.
+Misma leyenda de colores y de trazos que el §2.1. Tres cosas que el dibujo sí
+dice y conviene leer despacio:
+
+- **Ninguna VM tiene IP pública, ni siquiera el generador.** Todo lo que sale a
+  internet —paquetes del sistema, GitHub, el SMTP de Brevo— pasa por
+  `mooc-nat`, y todo lo que entra a administrar pasa por IAP. Las cuatro
+  máquinas llevan la etiqueta `allow-iap-ssh` ([`network.tf`](../../infra/terraform/network.tf)).
+- **El generador ataca el balanceador por internet, a través de la NAT**, no por
+  la red privada: mide el mismo camino que recorre un usuario real (G1). Lo
+  único que hace por la red interna es hablar con la cola en el `6379` durante
+  el lote de G4, con una regla propia atada a su cuenta de servicio.
+- **Los servicios administrados se alcanzan sin IP pública** gracias a Private
+  Google Access en la subred, y Cloud SQL solo por su IP privada (PSA).
 
 Todas las instancias de aplicación están en **una sola zona**, `us-east1-b`: el
 enunciado no exige alta disponibilidad multizonal, y la zona única evita tráfico
@@ -763,8 +848,23 @@ Los resultados experimentales obtenidos en el Bloque G (`G3`, `G5`, `G6`) y en l
 
 Se editan aquí mismo y GitHub los renderiza. Para exportarlos a imagen:
 `npx -y @mermaid-js/mermaid-cli -i docs/entrega3/arquitectura.md -o arquitectura.svg`,
-que genera un SVG por bloque. Los saltos de línea dentro de los nodos van con
-`<br/>`, nunca con `\n`, que Mermaid imprime literal.
+que genera un SVG por bloque.
+
+Cuatro trampas de Mermaid que ya costaron una revisión y conviene no repetir:
+
+| Trampa | Regla |
+| :--- | :--- |
+| `\n` dentro de un nodo se imprime literal | los saltos de línea van con `<br/>` |
+| Un `subgraph` que aparece en una arista **pierde su `direction`** | se aprovecha: `apig` y `wkg` en el §2.1 y `vpc` en el §3.1 no lo llevan, para que los autoescaladores y el IAP puedan apuntar al grupo entero en vez de repetir una arista por nodo. Un subgrafo sin `direction` hereda el de la raíz, así que no se pierde nada |
+| `~~~` **no reordena nada** si ya hay una arista real | `gen --> q` obliga a que el generador quede por encima de la cola; un enlace invisible en sentido contrario se ignora |
+| Los colores se fijan con `fill` claro **y `color` oscuro explícito** | sin el `color`, el modo oscuro de GitHub pinta texto claro sobre fondo claro |
+
+Los cinco colores de nodo y los tres grosores de flecha son los mismos en los
+dos diagramas de flujo, y el §2.1 lleva la leyenda dibujada. Las **cajas** no
+usan la paleta rotatoria del tema, que asigna un color distinto a cada grupo sin
+que signifique nada: van en gris cuando solo agrupan, en azul cuando marcan la
+frontera de red, y con el borde discontinuo cuando el límite es lógico —el
+proyecto y las zonas— y no una red.
 
 Todos los diagramas corresponden a lo que declara `infra/terraform/` en `main`
 a la fecha de este documento, aplicado y verificado en las evidencias que se
