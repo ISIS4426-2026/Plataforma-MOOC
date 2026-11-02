@@ -1,0 +1,10 @@
+utc	t_s	hito	detalle
+2026-11-01T23:29:25Z	8	PARTIDA	1 instancia operativa (mooc-api-m2b7), autoescalador ACTIVE, minimo 1
+2026-11-01T23:34:47Z	330	DECISION_AMPLIAR	el autoescalador recomienda 2 y el objetivo es 2 (partida: 1)
+2026-11-01T23:34:48Z	331	INSTANCIA_RUNNING	mooc-api-b18m (id 3476718266121613931) arrancada; creada 2026-11-01T15:34:28.221-08:00
+2026-11-01T23:34:48Z	331	INSTANCIA_CREADA	mooc-api-b18m (id 3476718266121613931, X-Instance-ID 3fc0f66b96c6), creationTimestamp 2026-11-01T15:34:28.221-08:00
+2026-11-01T23:37:05Z	468	INSTANCIA_SANA	mooc-api-b18m HEALTHY ante el balanceador y sin accion en curso
+2026-11-01T23:37:05Z	468	INSTANCIA_ATIENDE	mooc-api-b18m respondio peticiones del balanceador (3fc0f66b96c6:5 8f18e6086033:5)
+2026-11-01T23:54:53Z	1536	DECISION_REDUCIR	el objetivo baja de 2 a 1
+2026-11-01T23:57:09Z	1672	INSTANCIA_RETIRADA	mooc-api-b18m (id 3476718266121613931) ya no esta en el grupo
+2026-11-01T23:57:29Z	1692	CICLO_COMPLETO	subio a 2 y volvio a 1 (que nadie lo toco lo confirma la auditoria en g5_linea_de_tiempo.py)
