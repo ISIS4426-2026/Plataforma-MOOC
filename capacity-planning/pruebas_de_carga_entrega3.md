@@ -3,15 +3,15 @@
 Entregable 5 del enunciado, issue **G7** ([#227](https://github.com/ISIS4426-2026/Plataforma-MOOC/issues/227)).
 
 > **BORRADOR, 2026-11-01.** Escrito con lo que ya está cerrado: la línea base retrospectiva (A7), el escenario 1
-> (G3) y el ciclo de workers (G6). **Faltan el escenario 2 (G4) y el ciclo de la API (G5)**; sus secciones están
-> marcadas y no contienen cifras. Ninguna conclusión de este borrador depende de ellos salvo donde se dice.
+> (G3), el ciclo de la API (G5) y el ciclo de workers (G6). **Falta el escenario 2 (G4)**; su sección está marcada y
+> no contiene cifras. Ninguna conclusión de este borrador depende de él salvo donde se dice.
 
 | Sección | Fuente | Estado |
 | :--- | :--- | :---: |
 | [1. Método y diferencias declaradas](#1-método-y-diferencias-declaradas) | A6, A7, G1, G3 | ✅ |
 | [2. Escenario 1: actividad académica concurrente](#2-escenario-1-actividad-académica-concurrente) | G3 | ✅ |
 | [3. Escenario 2: carga, procesamiento y consumo multimedia](#3-escenario-2-carga-procesamiento-y-consumo-multimedia) | G4 | ⏳ |
-| [4. Escenario 3A: ciclo de escalamiento de la API](#4-escenario-3a-ciclo-de-escalamiento-de-la-api) | G5 | ⏳ |
+| [4. Escenario 3A: ciclo de escalamiento de la API](#4-escenario-3a-ciclo-de-escalamiento-de-la-api) | G5 | ✅ |
 | [5. Escenario 3B: ciclo de escalamiento de workers](#5-escenario-3b-ciclo-de-escalamiento-de-workers) | G6 | ✅ |
 | [6. Qué mejoró, qué quedó igual, qué empeoró](#6-qué-mejoró-qué-quedó-igual-qué-empeoró) | 2–5 | 🟡 parcial |
 | [7. El escalamiento: cuándo, qué pasó mientras, qué lo limita y cuánto cuesta](#7-el-escalamiento-cuándo-qué-pasó-mientras-qué-lo-limita-y-cuánto-cuesta) | 2–5, F3 | 🟡 parcial |
@@ -93,14 +93,35 @@ observado— y los parámetros completos de la campaña.
 
 ## 4. Escenario 3A: ciclo de escalamiento de la API
 
-*Pendiente de G5 (#225, @CrispisCas9).* Herramientas en `main`
-([runbook](../docs/entrega3/evidencias/G5/RUNBOOK.md)). La corrida da `linea_de_tiempo.md` con los dos tiempos que
-pide el enunciado —**reacción** (la carga supera 80 pet./s por instancia → decisión) e **incorporación** (decisión →
-primera petición atendida por la instancia nueva)— y el registro de auditoría que muestra que nadie redimensionó el
-grupo. G3 §3.3 ya observó, sin instrumentar, que el grupo tarda **de 3 a 8 minutos** en ampliarse tras empezar la
-carga.
+Corrida de G5 del 2026-11-01 (23:29–23:57 UTC), carga escalonada por **tasa fija** desde la VM del generador:
+10 → 40 → 70 → **130** → 10 pet/s. El umbral de la política (C2) son 80 pet/s por instancia. Ciclo **1 → 2 → 1**
+en `mooc-api-group`, todo por decisión del autoescalador: el registro de auditoría solo tiene `instances.insert` e
+`instances.delete` del agente del grupo administrado. Detalle en
+[`evidencias/G5/`](../docs/entrega3/evidencias/G5/README.md).
 
----
+| Tramo | Duración | Qué lo compone |
+| :--- | ---: | :--- |
+| **Reacción** | **48 s** | La carga supera 80 pet/s con una instancia (23:33:40) → el grupo crea la VM (23:34:28, `creationTimestamp`) |
+| **Incorporación** | **157 s** | Decisión → primera petición atendida por la nueva por el balanceador (23:37:05, reparto 5/5); 138 s son el arranque de la imagen hasta `/api/v1/ready` |
+| De extremo a extremo | 205 s | La suma de los dos |
+| Reducción | ~11 min hasta la decisión | Baja la carga a las 23:43:40; el objetivo baja a 1 a las 23:54:53 y la instancia sale a las 23:57:09 |
+
+| Etapa | Pedida (pet/s) | Lograda (pet/s) | n | p50 / p95 / p99 (ms) | Errores reales |
+| :--- | ---: | ---: | ---: | :---: | ---: |
+| base | 10 | 9,6 | 1 152 | 9 / 18 / 35 | 0 |
+| subida | 40 | 37,9 | 2 271 | 8 / 14 / 24 | 0 |
+| subida | 70 | 69,1 | 4 148 | 8 / 14 / 24 | 0 |
+| **alta** | **130** | **124,6** | 74 751 | 7 / 13 / 22 | 0 |
+| bajada | 10 | 10,7 | 7 712 | 9 / 18 / 28 | 0 |
+
+**0 errores reales en 90 080 peticiones**, también durante la incorporación y el retiro. El generador no limitó.
+La latencia **no cambió** al entrar la segunda instancia: una sola atendía 124 pet/s con p95 de 13 ms y la API no pasó
+del 28 % de CPU. Igual que en el escenario 1, **el ciclo demuestra el mecanismo, no una mejora de rendimiento**: no
+había saturación que la segunda instancia tuviera que aliviar.
+
+**Frente a los workers (§5):** la API reacciona más lento (48 s frente a 26 s) y se incorpora más lento (157 s frente
+a 99 s). La reacción depende de cómo muestrea cada señal; la incorporación de la API incluye esperar a que el
+balanceador la declare sana, y la del worker no: el worker toma trabajo en cuanto arranca.
 
 ## 5. Escenario 3B: ciclo de escalamiento de workers
 
@@ -130,17 +151,19 @@ GCE lo marcara `HEALTHY`: para un worker, la incorporación real es el primer tr
 | **Igual** | Rendimiento y latencia del escenario 1 | Hasta ~110 pet./s | Una instancia de API está lejos de saturarse (§2) |
 | **Empeoró** | Cola de latencia durante el escalamiento | ~255 pet./s mientras el grupo suma instancias | Hipótesis de instancias que entran frías (§7) |
 | **Empeoró** | Carga de PostgreSQL por petición | Con 3 instancias de API | §7 |
-| *Pendiente* | Escenario 2 y ciclo de la API | — | G4, G5 |
+| **Mejoró** | La capacidad de la API crece sola con la demanda | Más de 80 pet/s por instancia | El grupo pasa de 1 a 2 en 48 s y la nueva atiende a los 157 s (§4), sin errores |
+| *Pendiente* | Escenario 2 | — | G4 |
 
 ---
 
 ## 7. El escalamiento: cuándo, qué pasó mientras, qué lo limita y cuánto cuesta
 
-**Cuándo se activó.** Workers: a los 26,3 s de superar el umbral (§5). API: de 3 a 8 minutos tras empezar la carga
-en G3; la medida instrumentada es la de G5 (§4).
+**Cuándo se activó.** Workers: a los 26,3 s de superar el umbral (§5). API: a los 48 s de superar el umbral, con la
+nueva atendiendo a los 157 s (§4); en G3, sin carga escalonada, se vio de 3 a 8 minutos tras empezar.
 
 **Qué pasó mientras arrancaban las instancias.** En workers, nada que se pierda: la cola retiene el trabajo y el
-worker nuevo lo toma al terminar su arranque. En la API, el único 503 de la campaña de G3 y el p95 más alto (163 ms
+worker nuevo lo toma al terminar su arranque. En la API, en el ciclo instrumentado de G5, **ninguno**: 0 errores en
+90 080 peticiones mientras la nueva arrancaba y mientras la retirada drenaba. En G3, el único 503 de la campaña y el p95 más alto (163 ms
 frente a 99 ms) coinciden con la entrada de una instancia nueva. La explicación más probable —**no demostrada**— es
 que la instancia entra con cachés y pools fríos.
 
@@ -151,8 +174,8 @@ instancias cae donde cae el de la base. **Esta campaña no lo demuestra**: hace 
 con 200 cuentas.
 
 **Qué coste adicional implicó** (F3, [`evidencias/F3/`](../docs/entrega3/evidencias/F3/README.md)): operar 24×7 cuesta
-**186,94 USD/mes con los dos grupos a 1 instancia** frente a 133,73 de la Entrega 2. De los 53,21 USD/mes de más, 36,50
-son las dos reglas de reenvío del balanceador y 13,23 la VM de la cola: **lo caro es tener la entrada y la cola, no
+**168,69 USD/mes con los dos grupos a 1 instancia** frente a 133,73 de la Entrega 2. De los 34,96 USD/mes de más, 18,25
+son las reglas de reenvío del balanceador y 13,23 la VM de la cola: **lo caro es tener la entrada y la cola, no
 escalar**. Cada instancia extra cuesta 0,055 USD/h; un ciclo como el de G6 (dos workers extra durante ~12 y ~29 min)
 cuesta unos 4 centavos.
 
@@ -182,13 +205,15 @@ primeros defectos; el quinto lo añade el propio issue. Esta tabla dice cómo se
 - Las métricas de infraestructura por corrida son una o dos muestras de Cloud Monitoring (una por minuto); son
   indicativas. La serie continua está en `G3/campana_completa/`.
 - La línea base de A7 salió de un portátil: sus latencias no son comparables con las de la Entrega 3 (§1).
-- *Pendiente*: las del escenario 2 y del ciclo de la API.
+- El ciclo de la API (G5) se corrió **una vez** y se acortó por tiempo (alta de 10 min y no de 15); llegó a 2
+  instancias, no a 3. Los tiempos de reacción e incorporación son una observación, no una distribución.
+- *Pendiente*: las del escenario 2.
 
 ---
 
 ## 10. Revisión final de tablas
 
-Se hace al cerrar G7, cuando estén G4 y G5:
+Se hace al cerrar G7, cuando esté G4:
 
 - [ ] Unidades en todas las cabeceras.
 - [ ] Ventana de agregación y número de observaciones de cada percentil.
