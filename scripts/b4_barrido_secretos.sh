@@ -46,7 +46,9 @@ declare -a NOMBRES=(
 )
 declare -a PATRONES=(
     '-----BEGIN [A-Z ]*PRIVATE KEY'
-    '"private_key"[[:space:]]*:'
+    # Una cuenta de servicio real lleva la llave en PEM como valor; exigirlo evita
+    # que cuente como hallazgo la documentacion que nombra el campo (F2, #220).
+    '"private_key"[[:space:]]*:[[:space:]]*"-----BEGIN'
     'AIza[0-9A-Za-z_-]{35}'
     'xkeysib-[0-9a-f]{20}'
     'AKIA[0-9A-Z]{16}'

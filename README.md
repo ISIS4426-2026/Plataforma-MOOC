@@ -26,24 +26,56 @@ Desde la **Entrega 2** incluye además el despliegue en **Google Cloud Platform*
 
 ## Entrega 3 — Aplicación elástica IaaS
 
+La plataforma pasa de dos máquinas fijas a **dos grupos de instancias con escalamiento automático entre 1 y 3** (API
+y workers), detrás de un **balanceador externo HTTPS**, con una **cola compartida** fuera de ambos grupos, Cloud SQL y
+Cloud Storage compartidos por todas las réplicas, y un **frontend mínimo** para estudiante y profesor.
+
+| | |
+| :--- | :--- |
+| **URL del frontend** | <https://136.68.55.254.sslip.io> — servido en el mismo origen que la API, por el balanceador ([D1](docs/entrega3/evidencias/D1/README.md)) |
+| **URL del balanceador de la API** | <https://136.68.55.254.sslip.io/api/v1/> · [documentación de la API](https://136.68.55.254.sslip.io/api/docs) · TLS 1.2 como mínimo, certificado administrado por Google |
+| **Commit evaluado** | tag `entrega-3` *(I5, pendiente)* |
+| **Acceso para el equipo docente** | cuentas de prueba y procedimiento por el medio privado del curso; **este repositorio no publica credenciales** |
+
 > [!NOTE]
-> **En construcción.** La Entrega 3 evoluciona el despliegue de dos máquinas fijas
-> hacia dos grupos de instancias con escalamiento automático entre 1 y 3, un
-> balanceador externo, una cola compartida fuera de ambos grupos y un frontend
-> mínimo funcional. Las URL HTTPS del frontend y del balanceador se publican aquí
-> cuando existan.
+> **El entorno se apaga cuando no se está midiendo**, por costo. Mientras está aparcado, la URL no responde: no
+> existen las reglas de reenvío del balanceador. Encenderlo y reconstruirlo desde cero está en
+> [`arquitectura.md` §6](docs/entrega3/arquitectura.md#6-operación-y-recuperación). La dirección y el dominio no
+> cambian al encender, porque la IP global está reservada.
+
+### Los entregables del enunciado, y qué documento satisface cada uno
+
+| | Entregable | Dónde está |
+| :---: | :--- | :--- |
+| 1 | **Plataforma desplegada**, con frontend, autoscaling en API y workers, cola compartida y persistencia | Las dos URL de arriba · arquitectura verificada en [`arquitectura.md`](docs/entrega3/arquitectura.md) §1–§3 |
+| 2 | **Release del código y la configuración** | Tag `entrega-3` *(I5)* · código Go en [`cmd/`](cmd/) e [`internal/`](internal/), frontend en [`frontend/`](frontend/), contenedores (`Dockerfile.*`), plantillas, arranque, políticas y balanceo en [`infra/terraform/`](infra/terraform/README.md) e [`infra/bootstrap/`](infra/bootstrap/) |
+| 3 | **Documento de arquitectura**, con operación y reconstrucción | [`docs/entrega3/arquitectura.md`](docs/entrega3/arquitectura.md) |
+| 4 | **Verificación funcional del frontend**: matriz de recorridos y rutas | [`evidencias/D5`](docs/entrega3/evidencias/D5/README.md) (matriz) · [`D2`](docs/entrega3/evidencias/D2/README.md) estudiante · [`D3`](docs/entrega3/evidencias/D3/README.md) profesor · [`D4`](docs/entrega3/evidencias/D4/README.md) estados y autorización |
+| 5 | **Informe de capacidad**: tres escenarios, variantes 3A y 3B | [`capacity-planning/pruebas_de_carga_entrega3.md`](capacity-planning/pruebas_de_carga_entrega3.md) *(G7)* |
+| 6 | **Primer documento de deuda técnica** | [`docs/entrega3/deuda-tecnica.md`](docs/entrega3/deuda-tecnica.md) |
+| 7 | **Evidencias reproducibles**: scripts, datos sintéticos, resultados originales, reportes de calidad y pipeline | [`docs/entrega3/evidencias/`](docs/entrega3/evidencias/) — una carpeta por issue, con su `README.md` · [`scripts/`](scripts/) · [`capacity-planning/`](capacity-planning/) · CI en [`.github/workflows/`](.github/workflows/) |
+| 8 | **Video de sustentación** | *(I4, pendiente: enlace con acceso para el equipo docente)* |
+
+### Dónde se sustenta cada criterio de evaluación
+
+| Criterio | Sustento |
+| :--- | :--- |
+| **Arquitectura elástica** | [`arquitectura.md`](docs/entrega3/arquitectura.md) §3 y §5 · ciclo de la API en [`G5`](docs/entrega3/evidencias/G5/README.md) y de workers en [`G6`](docs/entrega3/evidencias/G6/README.md) · arranque autónomo en [`B3`](docs/entrega3/evidencias/B3/README.md) · balanceo en [`C3`](docs/entrega3/evidencias/C3/README.md) y [`C4`](docs/entrega3/evidencias/C4/README.md) · cola compartida en [`B1`](docs/entrega3/evidencias/B1/README.md) |
+| **Frontend funcional** | [`D1`](docs/entrega3/evidencias/D1/README.md)–[`D5`](docs/entrega3/evidencias/D5/README.md): recorridos de profesor y estudiante desde el navegador sobre la nube |
+| **Integridad y operación** | Sesiones y reglas entre réplicas en [`E1`](docs/entrega3/evidencias/E1/README.md) y [`E2`](docs/entrega3/evidencias/E2/README.md) · estado externo en [`E3`](docs/entrega3/evidencias/E3/README.md) · retiro seguro de workers en [`C7`](docs/entrega3/evidencias/C7/README.md) · seguridad en [`F1`](docs/entrega3/evidencias/F1/README.md) y [`F2`](docs/entrega3/evidencias/F2/README.md) |
+| **Pruebas comparativas** | [Informe de capacidad](capacity-planning/pruebas_de_carga_entrega3.md) · línea base en [`A7`](docs/entrega3/evidencias/A7/README.md) · escenarios en [`G3`](docs/entrega3/evidencias/G3/README.md), [`G4`](docs/entrega3/evidencias/G4/), [`G5`](docs/entrega3/evidencias/G5/README.md), [`G6`](docs/entrega3/evidencias/G6/README.md) · instrumentación en [`G1`](docs/entrega3/evidencias/G1/README.md) · criterios en [`criterios_de_medicion.md`](capacity-planning/criterios_de_medicion.md) |
+| **Calidad del código** | [`H1`](docs/entrega3/evidencias/H1/) análisis en la CI · [`H2`](docs/entrega3/evidencias/H2/) umbrales · reporte trazable al commit final en [`deuda-tecnica.md`](docs/entrega3/deuda-tecnica.md) |
+| **Documentación y deuda** | [`arquitectura.md`](docs/entrega3/arquitectura.md) (diagramas del despliegue real, decisiones, operación) · [`deuda-tecnica.md`](docs/entrega3/deuda-tecnica.md) · costos en [`F3`](docs/entrega3/evidencias/F3/README.md) |
+| **Sustentación** | Video *(I4)* · guion e inventario de capturas en [`evidencias/I4`](docs/entrega3/evidencias/I4/) |
+
+### Para trabajar en la entrega
 
 | | |
 | :--- | :--- |
 | Backlog | [44 issues, #193–#236](https://github.com/ISIS4426-2026/Plataforma-MOOC/issues?q=is%3Aissue+label%3Aentrega-3), milestone *Entrega 3 - Aplicacion elastica IaaS* |
 | Notas técnicas | [`docs/entrega3/NOTAS_TECNICAS.md`](docs/entrega3/NOTAS_TECNICAS.md) — **leer antes de empezar un issue, anotar antes de cerrarlo** |
-| Evidencias | [`docs/entrega3/evidencias/`](docs/entrega3/evidencias/) — un directorio por issue |
-| Documento de arquitectura | [`docs/entrega3/arquitectura.md`](docs/entrega3/arquitectura.md) — componentes, despliegue y cambios frente a la Entrega 2 *(I1)*; decisiones de escalamiento, operación, capacidad, costos y limitaciones *(I2)* |
-| Criterios de medición | [`capacity-planning/criterios_de_medicion.md`](capacity-planning/criterios_de_medicion.md) — **qué puede publicarse como cifra**; se comprueba con `python scripts/capacity_criterios.py --autoprueba` |
-| Informe de capacidad | `capacity-planning/pruebas_de_carga_entrega3.md` *(G7)* |
-| Deuda técnica | [`docs/entrega3/deuda-tecnica.md`](docs/entrega3/deuda-tecnica.md) *(H3)* |
-| URL del frontend | <https://136.68.55.254.sslip.io> *(mismo origen en el balanceador, D1)* |
-| URL del balanceador de la API | <https://136.68.55.254.sslip.io> · [documentación de la API](https://136.68.55.254.sslip.io/api/docs) · certificado administrado, válido hasta 2027-01-25 |
+| Criterios de medición | [`capacity-planning/criterios_de_medicion.md`](capacity-planning/criterios_de_medicion.md) — se comprueban con `python scripts/capacity_criterios.py --autoprueba` |
+| Capturas que bloquean el cierre | `bash ./scripts/check_evidencias.sh` |
 
 **Base de la entrega:** parte del tag [`entrega-2`](https://github.com/ISIS4426-2026/Plataforma-MOOC/releases/tag/entrega-2)
 (commit `1827cdc`); commit base `d7ac108`.
