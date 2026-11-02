@@ -65,6 +65,7 @@ lo reemplaza, lo continúa.
 | 63 | [F1 encontró que el balanceador aceptaba TLS 1.0/1.1, y su guion daba cinco falsas FALLA en Windows](#63) | **F1**, F2, G5, I1, I2, I6 |
 | 64 | [G5: la API escala en 48 s y se incorpora en 157 s; reducir tarda 11 min y no se puede acortar](#64) | **G7, I2, I4**, quien corra algo desde la nube de Claude |
 | 65 | [G4: el autoescalador de workers tarda ~3 min en reaccionar y retiró un worker con dos videos en curso; el primer cuadro sale en ~380 ms](#65) | **G4, G6**, G7, I1, I4 |
+| 66 | [I3: el barrido de secretos contaba la documentación de F2 como llave, y una URL vista por el proxy de Claude no prueba el certificado](#66) | **I3, I5**, I6, quien corra algo desde la nube de Claude |
 
 ---
 
@@ -2402,3 +2403,19 @@ Cifras medidas en la corrida completa del **Escenario 3B (ciclo de escalamiento 
 | **G6** | el retiro de un worker con un video largo en curso lo reinicia: un `scale_in_control` más lento o un drenaje mayor que los 90 s actuales lo evitan; y la señal de escalamiento no ve el trabajo ya activo |
 | **G7** | el efecto de escalar workers es sobre la **espera en cola**, no sobre el procesamiento por video; la API no escaló y no se le atribuye nada |
 | **I1, I4** | gráfica en `G4/capturas/` con 1 → 2 → 1 → 3 → 2 → 1 workers y la cola |
+
+## 66. I3: el barrido de secretos contaba la documentación de F2 como llave, y una URL vista por el proxy de Claude no prueba el certificado
+
+**Afecta a:** I3 (#233), I5, I6. Escrito el 2026-11-02. Detalle en [`evidencias/I3/README.md`](evidencias/I3/README.md).
+
+| Qué | Detalle |
+| :--- | :--- |
+| Falso hallazgo del barrido | `b4_barrido_secretos.sh` buscaba `"private_key":` y coincidía con la tabla de F2 que nombra el campo, en el árbol **y en el historial** (no se puede reescribir). Ahora exige `"private_key": "-----BEGIN`, la forma de una llave real |
+| URL desde la nube de Claude | sale por un proxy que **termina TLS**: el certificado que se ve es el del proxy y `http://` no resuelve. Sirve para probar que la URL responde 200, **no** el certificado ni la redirección: eso se prueba desde un portátil (F1) |
+| Clon desde cero | `terraform validate` pasa en un clon nuevo; `go build` necesita `proxy.golang.org`, que la nube de Claude no alcanza: la compilación la prueba CI |
+| Lo que falta para que `check_evidencias.sh` salga con 0 | D5 (video corto, entorno encendido) e I6 (destruir y recrear, al final) |
+
+| Issue | Qué tiene que saber |
+| :--- | :--- |
+| **I5** | el README ya enlaza los ocho entregables; el tag y el video se completan en sus filas |
+| **I6** | al terminar, `check_evidencias.sh` debería salir con 0; vuelvan a correrlo |

@@ -1,0 +1,12 @@
+# I3 — las dos URL HTTPS del README responden
+# 2026-11-02T01:50:31Z desde fuera de la VPC, curl 8.5.0
+
+https://136.68.55.254.sslip.io/                  HTTP 200  0.595259s
+https://136.68.55.254.sslip.io/api/v1/ready      HTTP 200  0.446541s
+https://136.68.55.254.sslip.io/api/docs          HTTP 200  0.190145s
+
+Contenido del frontend (título): <title>Plataforma MOOC</title>
+
+Nota: esta corrida salió por un proxy HTTPS que termina TLS, así que aquí no se lee el certificado
+del balanceador ni la redirección de HTTP. Ambos están comprobados contra el balanceador en F1
+(d_controles_entrega2.txt: HTTP -> HTTPS, certificado válido, TLS 1.0/1.1 rechazados).
