@@ -63,6 +63,7 @@ lo reemplaza, lo continúa.
 | 61 | [Aparcado, la dirección del balanceador sí factura, y Cloud SQL cuesta 0,0676 USD/h, no 0,0855](#61) | **F3, I2, I6**, G7, quien estime el coste de una sesión |
 | 62 | [`docs/entrega3/arquitectura.md` completo (§1–§8) consolida las decisiones de escalamiento, el runbook reproducible de operación/aparcado/retiro y el cruce de capacidad, costos y SPOF con `scripts/i2_verificar_arquitectura.sh`](#62) | **I2**, I3, I4, I5, I6, G7 |
 | 63 | [F1 encontró que el balanceador aceptaba TLS 1.0/1.1, y su guion daba cinco falsas FALLA en Windows](#63) | **F1**, F2, G5, I1, I2, I6 |
+| 64 | [G5: la API escala en 48 s y se incorpora en 157 s; reducir tarda 11 min y no se puede acortar](#64) | **G7, I2, I4**, quien corra algo desde la nube de Claude |
 
 ---
 
@@ -2359,3 +2360,19 @@ Cifras medidas en la corrida completa del **Escenario 3B (ciclo de escalamiento 
 | **G5** | un `apply` desde `main` ahora incluye la política TLS: no la vuelve a quitar |
 | **I1, I2** | el control «TLS mínimo 1.2» de la Entrega 2 está vigente otra vez, demostrado con el barrido de F1 del 2026-11-01 |
 | **I6** | al destruir el entorno, la política `mooc-api-tls` se destruye con el balanceador; no queda nada suelto |
+
+<a id="64"></a>
+## 64. G5: la API escala en 48 s y se incorpora en 157 s; reducir tarda 11 min y no se puede acortar
+
+**Afecta a:** G7, I2, I4, y a quien opere el entorno desde un espacio de trabajo nuevo. Escrito el 2026-11-01 en G5 (#225). Detalle en [`evidencias/G5/`](evidencias/G5/README.md).
+
+| Qué | Detalle |
+| :--- | :--- |
+| **Los dos tiempos** | **reacción 48 s** (la carga pasa de 80 pet/s por instancia → el grupo crea la VM) e **incorporación 157 s** (decisión → primera petición atendida), de los que 138 s son arranque de la imagen hasta `/api/v1/ready`. Frente a G6: los workers reaccionan en 26 s y se incorporan en 99 s |
+| **Reducir tarda ~11 min** | desde que baja la carga hasta que el autoescalador decide reducir: su ventana de estabilización más `scale_in_control` (C2). Cualquier prueba que tenga que **ver** la reducción necesita al menos 12 min de carga baja al final |
+| **La decisión se fecha mejor con `creationTimestamp`** | el sondeo del autoescalador (`recommendedSize`) se vio 19 s **después** de que la VM ya existiera. El registro de auditoría (`instances.insert`) y el `creationTimestamp` dan la hora real |
+| **Escalar no mejoró la latencia, y no tenía por qué** | una instancia atendía 124 pet/s con p95 de 13 ms y 28 % de CPU. El ciclo prueba el mecanismo, no una mejora de rendimiento; para G7 es el mismo hallazgo que G3 (nota 58) |
+| **Para entrar por IAP hace falta `roles/iap.tunnelResourceAccessor`** | `roles/editor` no lo incluye: sin él, `gcloud compute ssh --tunnel-through-iap` responde `4033: not authorized`. Se añadió para @CrispisCas9 el 2026-11-01 |
+| **Desde un contenedor que corre como `root`** | `gcloud compute ssh` entra como `root` y la VM lo rechaza (`Permission denied (publickey)`): hay que dar un usuario, `gcloud compute ssh usuario@vm` |
+| **El `.jtl` va comprimido** | 17 MB sin comprimir; `resultados.jtl.gz` son 0,7 MB y `g5_linea_de_tiempo.py` lo lee igual |
+
