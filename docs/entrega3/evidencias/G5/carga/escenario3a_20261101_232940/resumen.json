@@ -1,0 +1,184 @@
+{
+  "publicable": true,
+  "destino": {
+    "base_url": "https://136.68.55.254.sslip.io",
+    "entorno": "nube-entrega3",
+    "plan": "escenario3a_api.jmx",
+    "etapas_pet_s": {
+      "e1": 10,
+      "e2": 40,
+      "e3": 70,
+      "e4": 130,
+      "e5": 10
+    },
+    "etapas_s": {
+      "e1": 120,
+      "e2": 60,
+      "e3": 60,
+      "e4": 600,
+      "e5": 720
+    },
+    "calentamiento_omitido_s": 0,
+    "commit": "ac3f7fa",
+    "generador": "justb4/jmeter@sha256:088ac52b759a198a5afa5ae13d0a6306e9f2017d71ad140ff57427f6930406f7 en mooc-load-generator",
+    "nucleos_generador": 4,
+    "memoria_generador_gib": 15.6,
+    "inicio_utc": "2026-11-01T23:29:40Z",
+    "fin_utc": "2026-11-01T23:55:45Z",
+    "clase": "remoto"
+  },
+  "muestras": 90080,
+  "omitidas_calentamiento_s": 0.0,
+  "duracion_corrida_s": 1560.2,
+  "ventana_agregacion_s": 1560.2,
+  "hilos_max": 75,
+  "fallos_reales": 0,
+  "fallos_reales_pct": 0.0,
+  "fallos_validacion": 0,
+  "rechazos_negocio": 0,
+  "timeouts": 0,
+  "ms": {
+    "p50": 8,
+    "p95": 14,
+    "p99": 23,
+    "max": 685
+  },
+  "ms_publicables": {
+    "p50": 8,
+    "p95": 14,
+    "p99": 23
+  },
+  "rps": 57.74,
+  "pasos": {
+    "e1 GET catalogo de cursos": {
+      "n": 601,
+      "p50": 10,
+      "p95": 24,
+      "p99": 37,
+      "max": 685,
+      "fallos": 0,
+      "publicables": {
+        "p50": 10,
+        "p95": 24,
+        "p99": 37
+      }
+    },
+    "e1 GET readiness": {
+      "n": 593,
+      "p50": 8,
+      "p95": 14,
+      "p99": 27,
+      "max": 156,
+      "fallos": 0,
+      "publicables": {
+        "p50": 8,
+        "p95": 14,
+        "p99": 27
+      }
+    },
+    "e2 GET catalogo de cursos": {
+      "n": 1207,
+      "p50": 9,
+      "p95": 16,
+      "p99": 24,
+      "max": 147,
+      "fallos": 0,
+      "publicables": {
+        "p50": 9,
+        "p95": 16,
+        "p99": 24
+      }
+    },
+    "e2 GET readiness": {
+      "n": 1190,
+      "p50": 7,
+      "p95": 12,
+      "p99": 22,
+      "max": 57,
+      "fallos": 0,
+      "publicables": {
+        "p50": 7,
+        "p95": 12,
+        "p99": 22
+      }
+    },
+    "e3 GET catalogo de cursos": {
+      "n": 2154,
+      "p50": 8,
+      "p95": 16,
+      "p99": 25,
+      "max": 282,
+      "fallos": 0,
+      "publicables": {
+        "p50": 8,
+        "p95": 16,
+        "p99": 25
+      }
+    },
+    "e3 GET readiness": {
+      "n": 2131,
+      "p50": 7,
+      "p95": 13,
+      "p99": 22,
+      "max": 219,
+      "fallos": 0,
+      "publicables": {
+        "p50": 7,
+        "p95": 13,
+        "p99": 22
+      }
+    },
+    "e4 GET catalogo de cursos": {
+      "n": 37521,
+      "p50": 8,
+      "p95": 14,
+      "p99": 23,
+      "max": 357,
+      "fallos": 0,
+      "publicables": {
+        "p50": 8,
+        "p95": 14,
+        "p99": 23
+      }
+    },
+    "e4 GET readiness": {
+      "n": 37482,
+      "p50": 7,
+      "p95": 12,
+      "p99": 21,
+      "max": 359,
+      "fallos": 0,
+      "publicables": {
+        "p50": 7,
+        "p95": 12,
+        "p99": 21
+      }
+    },
+    "e5 GET catalogo de cursos": {
+      "n": 3605,
+      "p50": 10,
+      "p95": 19,
+      "p99": 28,
+      "max": 106,
+      "fallos": 0,
+      "publicables": {
+        "p50": 10,
+        "p95": 19,
+        "p99": 28
+      }
+    },
+    "e5 GET readiness": {
+      "n": 3596,
+      "p50": 8,
+      "p95": 17,
+      "p99": 29,
+      "max": 170,
+      "fallos": 0,
+      "publicables": {
+        "p50": 8,
+        "p95": 17,
+        "p99": 29
+      }
+    }
+  }
+}

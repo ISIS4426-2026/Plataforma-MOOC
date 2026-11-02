@@ -34,6 +34,7 @@ La auditoria usa el gcloud de quien lo ejecuta, de solo lectura. Los correos de 
 salen como "persona". Los de cuentas de servicio si, porque no identifican a nadie.
 """
 import csv
+import gzip
 import json
 import os
 import shutil
@@ -114,7 +115,11 @@ def leer_tsv(ruta):
 def leer_jtl(ruta):
     """Filas del .jtl: (inicio datetime, elapsed ms, etiqueta, codigo, exito)."""
     filas = []
-    with open(ruta, encoding="utf-8", newline="") as f:
+    # El .jtl original se versiona comprimido (resultados.jtl.gz) cuando pesa mucho; se lee igual.
+    if not os.path.exists(ruta) and os.path.exists(ruta + ".gz"):
+        ruta += ".gz"
+    abrir = gzip.open if ruta.endswith(".gz") else open
+    with abrir(ruta, "rt", encoding="utf-8", newline="") as f:
         for r in csv.DictReader(f):
             try:
                 ts = datetime.fromtimestamp(int(r["timeStamp"]) / 1000, tz=timezone.utc)
@@ -395,7 +400,7 @@ def informe(dir_carga, dir_obs, dir_salida, con_auditoria=True):
     add("| Etapa | Pedida (pet/s) | Lograda (pet/s) | n | p50 ms | p95 ms | p99 ms | Errores reales | 4xx |")
     add("| :--- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |")
     for t in tabla:
-        add(f"| {t['etapa']} {t['nombre']} | {t['pedida']:.0f} | {t['lograda']:.1f} | {t['n']} | "
+        add(f"| {t['etapa']} {t['nombre']} | {t['pedida']:.0f} | {t['lograda']:.1f} |".replace(".", ",") + f" {t['n']} | "
             f"{cc.formatear(t['p50'], t['n_lat'])} | {cc.formatear(t['p95'], t['n_lat'])} | "
             f"{cc.formatear(t['p99'], t['n_lat'])} | {t['err_reales']} | {t['err_4xx']} |")
     add("")

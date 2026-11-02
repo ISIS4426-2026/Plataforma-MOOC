@@ -8,14 +8,14 @@
 | **Depende de** | C1, C2, C5, C6, D1 — cerrados |
 | **Desbloquea** | I2 (#232), I6 (#236) |
 
-**Estado: estimación hecha y reproducible; faltan el consumo facturado y la
-comprobación de las alertas, que salen de la consola de facturación (§5 y §6).**
+**Estado: completo.** Estimación reproducible, contrastada tarifa por tarifa con lo facturado el 29 de octubre
+(que corrigió el precio de las reglas de reenvío), y presupuesto activo comprobado.
 
-Operar la arquitectura elástica 24×7 cuesta **186,94 USD/mes con los dos grupos
-a 1 instancia y 347,48 USD/mes con los dos a 3**, frente a 133,73 USD/mes de la
+Operar la arquitectura elástica 24×7 cuesta **168,69 USD/mes con los dos grupos
+a 1 instancia y 329,23 USD/mes con los dos a 3**, frente a 133,73 USD/mes de la
 Entrega 2. Aparcado, el entorno cuesta **0,33 USD/día** con la cola parada y
 **0,74 USD/día** con la cola encendida. Una sesión de pruebas de 2 h con el
-generador, **0,79 USD**.
+generador, **0,74 USD**. **Del cupón activo quedan unos 10,40 USD** (§6).
 
 ---
 
@@ -44,7 +44,7 @@ descuentos por uso comprometido ni créditos (§7). **Generadas por**
 [`scripts/f3_estimacion_costos.py`](../../../../scripts/f3_estimacion_costos.py):
 los precios y tamaños están declarados arriba del todo del script, con su fuente,
 y `--autoprueba` comprueba que reproduce las cifras de la Entrega 2 (39,11 USD de
-una `e2-highcpu-2` y 49,31 de Cloud SQL) y las 1,20 USD/día de las reglas (C3).
+una `e2-highcpu-2` y 49,31 de Cloud SQL) y lo facturado por las reglas de reenvío el 2026-10-29 (§5).
 
 Supuestos de volumen, que pesan centavos: 3 GiB en buckets y 5 GiB/mes de HLS
 hacia Sudamérica (los de la Entrega 2), 5 GiB/mes procesados por el balanceador,
@@ -61,7 +61,7 @@ unos 4 centavos y 1 GiB de copias y registros de PITR.
 | Grupo de la API: 1 x e2-highcpu-2 + 30 GiB (incluye el frontend) | 0,0536 | 39,11 | MIG |
 | Grupo de workers: 1 x e2-highcpu-2 + 30 GiB | 0,0536 | 39,11 | MIG |
 | Cola: mooc-queue-server, e2-small + 10 GiB | 0,0181 | 13,23 | NO es de ningun grupo |
-| Balanceador: 2 reglas de reenvio (HTTPS y redireccion) | 0,0500 | 36,50 | NO es instancia: factura en reposo |
+| Balanceador: reglas de reenvio (HTTPS y redireccion; tarifa minima de hasta 5) | 0,0250 | 18,25 | NO es instancia: factura en reposo |
 | Balanceador: datos procesados | 0,0001 | 0,08 | supuesto de volumen |
 | Cloud SQL: 1 vCPU, 3,75 GiB, zonal | 0,0675 | 49,31 |  |
 | Cloud SQL: 10 GiB SSD + copias y PITR | 0,0024 | 1,78 |  |
@@ -71,7 +71,7 @@ unos 4 centavos y 1 GiB de copias y registros de PITR.
 | Cloud Storage: 2 buckets STANDARD | 0,0001 | 0,06 | supuesto de volumen |
 | Salida a internet: HLS a Sudamerica | 0,0013 | 0,95 | supuesto de volumen |
 | Monitoring: metrica personalizada de la cola | 0,0000 | 0,00 | NO es instancia; dentro de lo gratuito |
-| **Total** | **0,2561** | **186,94** | |
+| **Total** | **0,2311** | **168,69** | |
 
 #### Escenario 3: los dos grupos a 3 instancias
 
@@ -80,7 +80,7 @@ unos 4 centavos y 1 GiB de copias y registros de PITR.
 | Grupo de la API: 3 x e2-highcpu-2 + 30 GiB (incluye el frontend) | 0,1607 | 117,34 | MIG |
 | Grupo de workers: 3 x e2-highcpu-2 + 30 GiB | 0,1607 | 117,34 | MIG |
 | Cola: mooc-queue-server, e2-small + 10 GiB | 0,0181 | 13,23 | NO es de ningun grupo |
-| Balanceador: 2 reglas de reenvio (HTTPS y redireccion) | 0,0500 | 36,50 | NO es instancia: factura en reposo |
+| Balanceador: reglas de reenvio (HTTPS y redireccion; tarifa minima de hasta 5) | 0,0250 | 18,25 | NO es instancia: factura en reposo |
 | Balanceador: datos procesados | 0,0001 | 0,08 | supuesto de volumen |
 | Cloud SQL: 1 vCPU, 3,75 GiB, zonal | 0,0675 | 49,31 |  |
 | Cloud SQL: 10 GiB SSD + copias y PITR | 0,0024 | 1,78 |  |
@@ -90,9 +90,9 @@ unos 4 centavos y 1 GiB de copias y registros de PITR.
 | Cloud Storage: 2 buckets STANDARD | 0,0001 | 0,06 | supuesto de volumen |
 | Salida a internet: HLS a Sudamerica | 0,0013 | 0,95 | supuesto de volumen |
 | Monitoring: metrica personalizada de la cola | 0,0000 | 0,00 | NO es instancia; dentro de lo gratuito |
-| **Total** | **0,4760** | **347,48** | |
+| **Total** | **0,4510** | **329,23** | |
 
-Pasar de 1 a 3 instancias por grupo cuesta **0,2199 USD/h** mas (+86 %): solo crecen las instancias y su paso por Cloud NAT; todo lo demas es fijo.
+Pasar de 1 a 3 instancias por grupo cuesta **0,2199 USD/h** mas (+95 %): solo crecen las instancias y su paso por Cloud NAT; todo lo demas es fijo.
 
 #### Sesion de pruebas: escenario 1 mas el generador
 
@@ -101,7 +101,7 @@ Pasar de 1 a 3 instancias por grupo cuesta **0,2199 USD/h** mas (+86 %): solo cr
 | Grupo de la API: 1 x e2-highcpu-2 + 30 GiB (incluye el frontend) | 0,0536 | 39,11 | MIG |
 | Grupo de workers: 1 x e2-highcpu-2 + 30 GiB | 0,0536 | 39,11 | MIG |
 | Cola: mooc-queue-server, e2-small + 10 GiB | 0,0181 | 13,23 | NO es de ningun grupo |
-| Balanceador: 2 reglas de reenvio (HTTPS y redireccion) | 0,0500 | 36,50 | NO es instancia: factura en reposo |
+| Balanceador: reglas de reenvio (HTTPS y redireccion; tarifa minima de hasta 5) | 0,0250 | 18,25 | NO es instancia: factura en reposo |
 | Balanceador: datos procesados | 0,0001 | 0,08 | supuesto de volumen |
 | Cloud SQL: 1 vCPU, 3,75 GiB, zonal | 0,0675 | 49,31 |  |
 | Cloud SQL: 10 GiB SSD + copias y PITR | 0,0024 | 1,78 |  |
@@ -112,9 +112,9 @@ Pasar de 1 a 3 instancias por grupo cuesta **0,2199 USD/h** mas (+86 %): solo cr
 | Salida a internet: HLS a Sudamerica | 0,0013 | 0,95 | supuesto de volumen |
 | Monitoring: metrica personalizada de la cola | 0,0000 | 0,00 | NO es instancia; dentro de lo gratuito |
 | Generador de carga: e2-standard-4 + 30 GiB | 0,1381 | 100,83 | solo durante las pruebas |
-| **Total** | **0,3956** | **288,79** | |
-| Una sesion de 2 h | | **0,79** | 2 h |
-| Una sesion de 3 h | | **1,19** | 3 h |
+| **Total** | **0,3706** | **270,54** | |
+| Una sesion de 2 h | | **0,74** | 2 h |
+| Una sesion de 3 h | | **1,11** | 3 h |
 
 #### Entorno aparcado, con la cola parada
 
@@ -147,29 +147,29 @@ La metrica personalizada son ~2,7 MiB/mes (4 series, un punto cada 30 s, 8 bytes
 
 | | Cuánto | Por qué se escapa |
 | :--- | ---: | :--- |
-| **Reglas de reenvío del balanceador** | 0,05 USD/h, **36,50 USD/mes** | Facturan **por hora, sirvan o no tráfico**. Con el entorno a 1 instancia son el **segundo concepto más caro** después de Cloud SQL, por encima de cada grupo |
+| **Reglas de reenvío del balanceador** | 0,025 USD/h por el conjunto, **18,25 USD/mes** | Facturan **por hora, sirvan o no tráfico** (tarifa mínima por hasta cinco reglas, §5). Es la mitad de un grupo a 1 instancia, y aun así lo tercero más caro del entorno mínimo |
 | **`mooc-queue-server`** | 0,018 USD/h, 13,23 USD/mes | No pertenece a ningún grupo: `resize --size=0` no la toca y se queda encendida si nadie la para. Aparcado, es **más de la mitad** del costo diario |
-| **Métrica personalizada de C6** | ~0 USD | 4 series a un punto cada 30 s son ~2,7 MiB/mes: caben más de 50 veces en los 150 MiB gratuitos. Pasaría a costar algo solo con cientos de series o con intervalos de segundos |
+| **Métrica personalizada de C6** | ~0 USD | 4 series a un punto cada 30 s son ~2,7 MiB/mes. Con las métricas del agente, el volumen total fue de 3,04 MiB en un día (§5): sigue dentro de los 150 MiB gratuitos al mes |
 
 ## 3. Qué cuesta el escalamiento, frente a la Entrega 2
 
 | | Entrega 2 (24×7) | Entrega 3, 1 instancia por grupo | Entrega 3, 3 por grupo |
 | :--- | ---: | ---: | ---: |
-| Total | 133,73 | **186,94** | **347,48** |
-| Diferencia con la Entrega 2 | — | +53,21 (+40 %) | +213,75 (+160 %) |
+| Total | 133,73 | **168,69** | **329,23** |
+| Diferencia con la Entrega 2 | — | +34,96 (+26 %) | +195,50 (+146 %) |
 
-Los **53,21 USD/mes** de la arquitectura mínima no son instancias: con un grupo
+Los **34,96 USD/mes** de la arquitectura mínima no son instancias: con un grupo
 de cada a 1 hay las mismas dos `e2-highcpu-2` que en la Entrega 2. Son la **entrada
 y la cola**:
 
 | Concepto nuevo | USD/mes |
 | :--- | ---: |
-| Reglas de reenvío del balanceador | +36,50 |
+| Reglas de reenvío del balanceador | +18,25 |
 | VM dedicada de la cola | +13,23 |
 | Cloud NAT (pasarela, su IP y datos) | +6,81 |
 | Las dos IPv4 externas de la Entrega 2, retiradas | −3,65 |
 | Copias de Cloud SQL, datos del balanceador, egreso al precio actual | +0,32 |
-| **Total** | **+53,21** |
+| **Total** | **+34,96** |
 
 Lo que añade **escalar** es otra cosa: cada instancia más de cualquiera de los
 dos grupos son 0,055 USD/h (39,11 USD/mes más 1 USD de NAT). Con un ciclo como
@@ -189,7 +189,8 @@ desglosan: **0,33 USD/día** con la cola parada, **0,74 USD/día** encendida.
 > proxies «no tienen coste por hora». El certificado, los mapas y los proxies
 > no; **la dirección sí**: una IP externa estática reservada **sin uso** se
 > factura a **0,01 USD/h** (0,24 USD/día), y deja de estar en uso justo cuando
-> se borran las reglas de reenvío. Mientras la regla existe no paga. Sigue
+> se borran las reglas de reenvío. Mientras la regla existe no paga. **La factura
+> del 29 de octubre lo confirma**: 10,75 h de IP sin uso, justo las horas sin reglas (§5). Sigue
 > siendo la decisión correcta conservarla —rehacerla cambia el dominio y obliga
 > a reaprovisionar el certificado, hasta una hora—, pero hay que contarla: es
 > **el 72 %** del costo aparcado con la cola parada.
@@ -208,47 +209,78 @@ gcloud artifacts repositories describe mooc --location=us-east1 \
 
 ## 5. Consumo observado
 
-*Pendiente de la consola de facturación.* Dos sesiones del 29 de octubre dan
-costo real sin gastar nada nuevo: la de **C5 y C6** (ciclo de autoescalado
-completo, 1 → 3 → 1 en 33 min) y la de **C7**. Para sacarlo:
+**Lo facturado el 2026-10-29** —el día de las sesiones de C5, C6 y C7— exportado de Consola › Facturación › Informes,
+agrupado por SKU y **sin créditos** (costo bruto): [`consumo_2026-10-29.csv`](./consumo_2026-10-29.csv). Total
+**3,45 USD**, cubierto entero por el cupón (−3,45 de créditos): Compute Engine 1,85, Cloud SQL 0,95 y redes 0,65.
 
-1. Consola › **Facturación › Informes**. Proyecto `plataforma-mooc-entrega2`,
-   intervalo **2026-10-29 a 2026-10-29**, agrupar por **SKU**, y **desmarcar
-   los créditos** (mismo motivo que el presupuesto, §6).
-2. Captura → `capturas/2026-10-29_facturacion-por-sku.png`, y **Descargar CSV**
-   → `consumo_2026-10-29.csv` en esta carpeta.
-3. Lo mismo para la sesión de G5 y F1 cuando se haga.
+### Tarifa por tarifa, contra la estimación
 
-Y el contraste, que es lo que pide el criterio: horas medidas × tarifa del §2
-frente a lo facturado, SKU por SKU. Dos diferencias que hay que esperar y
-explicar:
+Lo que se contrasta no es el total del día —que depende de cuántas horas estuvo encendido cada recurso— sino **el
+precio unitario que salió en la factura frente al que usa la estimación**. Si la tarifa cuadra, la estimación del §2
+vale para cualquier número de horas.
 
-| Diferencia esperada | Por qué |
-| :--- | :--- |
-| Cloud SQL factura **menos** de lo que dice `C1/coste_sesion.txt` | Ese archivo usa 0,0855 USD/h; la tarifa de lista de 1 vCPU y 3,75 GiB es **0,0676 USD/h** (§2). El de C1 sobrestimaba un 27 % |
-| Aparece un SKU de **IP estática sin uso** los días aparcados | El §4: 0,24 USD/día que la nota 38 no contaba |
+| SKU facturado | Uso | USD | USD por unidad | En la estimación | |
+| :--- | ---: | ---: | ---: | ---: | :---: |
+| Cloud SQL, vCPU zonal | 13,26 h | 0,55 | 0,0415 /h | 0,0413 /h | ✅ |
+| Cloud SQL, RAM zonal | 49,73 GiB·h | 0,35 | 0,0070 /GiB·h | 0,007 /GiB·h | ✅ |
+| E2, núcleo | 60,4 h | 1,32 | 0,0219 /vCPU·h | `e2-highcpu-2` = 0,0495 /h | ✅ |
+| E2, RAM | 80,74 GiB·h | 0,24 | 0,0030 /GiB·h | (incluida arriba) | ✅ |
+| Disco `pd-balanced` | 1,76 GiB·mes | 0,18 | 0,102 /GiB·mes | 0,10 | ✅ |
+| Cloud NAT, pasarela | 40,43 VM·h | 0,06 | 0,0015 /VM·h | 0,0014 | ✅ |
+| Cloud NAT, IP | 13,58 h | 0,07 | 0,0052 /h | 0,005 | ✅ |
+| Cloud NAT, datos | 1,17 GiB | 0,05 | 0,043 /GiB | 0,045 | ✅ |
+| **IP estática sin uso** | **10,75 h** | **0,11** | **0,0102 /h** | **0,01** | ✅ confirma el §4: son justo las horas del día **sin** reglas de reenvío (24 − 13,23) |
+| **Reglas de reenvío, tarifa mínima global** | **13,23 h** | **0,33** | **0,025 /h** | **0,05 /h (0,025 × 2)** | ❌ **corregida** |
+| Métricas de Monitoring | 3,04 MiB | 0,00 | — | gratis hasta 150 MiB/mes | ✅ |
+| Network Intelligence Center (3 SKU) | 49 recursos·h c/u | 0,14 | — | **no estimado** | ⚠️ |
+
+### Lo que la factura corrigió
+
+**Las reglas de reenvío se cobran por el conjunto, no por regla.** La tarifa de 0,025 USD/h es el **mínimo por las
+primeras cinco reglas**, y el SKU se llama exactamente así, *Forwarding Rule Minimum Global*: con las dos reglas
+encendidas 13,23 h se facturaron 0,33 USD, es decir 0,025 /h por las dos. La estimación las contaba por separado y
+**duplicaba ese concepto**: son **18,25 USD/mes y no 36,50**. Corregido en el script y en las tablas del §2; la
+misma cifra de 1,20 USD/día que circulaba desde C3 (nota 38) era el doble de lo real, 0,60.
+
+**Dos cosas que la estimación no tenía:**
+
+- **Network Intelligence Center**, 0,14 USD el día observado: Network Analyzer, la topología y el rendimiento de
+  internet a Google Cloud, a 49 recursos·hora cada uno. Factura por recurso supervisado, no por uso. Si nadie lo
+  consulta, desactivar el análisis del proyecto lo ahorra; se anota para I6.
+- **Volumen de métricas**: 3,04 MiB en un día, frente a los ~2,7 MiB **al mes** de la métrica personalizada de la
+  cola. El resto son las métricas del agente de las VM. Sigue siendo gratis —unos 90 MiB/mes a ese ritmo, dentro
+  de los 150—, pero un mes con los grupos más tiempo encendidos podría pasar del tramo gratuito.
+
+### La sesión de hoy (G3, G6, F1 y G5)
+
+La facturación tarda hasta 24 horas en consolidarse: el 2026-11-01 no se exporta el mismo día. Cuando esté, se
+añade aquí con el mismo procedimiento —Consola › Facturación › Informes, intervalo del día, por SKU, sin créditos,
+**Descargar CSV**— y debería confirmar las mismas tarifas.
 
 ## 6. Alertas de presupuesto
 
-*Pendiente de comprobar en la consola.* No se puede leer por línea de comandos:
-`gcloud billing budgets list` exige la *Cloud Billing Budget API*, que no está
-habilitada en el proyecto, y habilitarla es un cambio de configuración que no se
-hizo solo para leer. La configuración que se estableció en la
-Entrega 2
-([`CONFIGURACION_Y_COSTOS.md` §5](../../../entrega2/CONFIGURACION_Y_COSTOS.md)):
-50 USD en un **rango personalizado** —no mensual, porque el cupón no se reinicia
-el día 1—, umbrales del 25, 50, 80 y 100 % y los **créditos excluidos**, para
-que avise mientras se gasta el cupón y no cuando ya se acabó.
+**Activo**, comprobado el 2026-11-01 en Consola › Facturación › Presupuestos y límites:
+[`capturas/2026-11-01_presupuesto-activo.png`](./capturas/2026-11-01_presupuesto-activo.png).
 
-Para la arquitectura nueva los umbrales siguen valiendo: con el costo diario
-real (sesiones de 1–2 USD y 0,33–0,74 USD/día aparcado), el 25 % de 50 USD llega
-en semanas, no en horas, y da margen. Lo que sí hay que revisar:
+| | Configurado | Comentario |
+| :--- | :--- | :--- |
+| Nombre | *Entrega 2 - cupon activo* | |
+| Importe | **50 USD** | el cupón activo |
+| Periodo | desde el 26 sept 2026, **sin fecha de fin** | equivale al rango personalizado de la Entrega 2: acumula y no se reinicia el día 1 |
+| Alertas | **25, 50, 90 y 100 %** | la Entrega 2 documentaba 80 % en vez de 90 %; hoy está en 90 % |
+| Créditos | **no se usaron créditos** | mide el consumo bruto, como debe |
+| **Gastado** | **39,60 USD de 50 (79 %)** | |
 
-- [ ] El presupuesto sigue **activo** y su rango cubre noviembre: Consola ›
-      Facturación › **Presupuestos y alertas**. Captura →
-      `capturas/2026-11-01_presupuesto-activo.png`.
-- [ ] El monto refleja el **cupón activo en este momento**, no el de septiembre.
-- [ ] Siguen sin créditos (*Savings* desmarcado).
+> **Atención al equipo: quedan unos 10,40 USD del cupón.** La alerta del 90 % salta a los 45 USD. Al ritmo
+> observado —0,33–0,74 USD/día aparcado y 0,74–1,11 USD por sesión de pruebas, más días como hoy con tres
+> sesiones— alcanza para las pruebas que faltan y la sustentación, **pero no para dejar el entorno encendido**: un día
+> entero con los dos grupos a 1 instancia son unos 5,55 USD. **Hay que aparcar al terminar cada sesión.** Si hace
+> falta más margen, hay que activar el siguiente cupón antes de la sustentación.
+
+La consola ofrece ahora también **límites de gasto** (*spend caps*) que pausan servicios al superar el importe; el
+presupuesto no lo tiene activado («No aplicable»). La Entrega 2 los descartó porque no cubrían Compute Engine ni
+Cloud SQL. No se activa sin decisión del equipo: pausar la base o los grupos en mitad de una prueba o de la
+sustentación sería peor que el aviso.
 
 ## 7. Fuentes de precios
 

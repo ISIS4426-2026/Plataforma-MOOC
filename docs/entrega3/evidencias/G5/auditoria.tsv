@@ -1,0 +1,7 @@
+timestamp	metodo	recurso	quien	fase
+2026-11-01T23:34:27.558237Z	v1.compute.instances.insert	mooc-api-b18m	agente de servicio de Google APIs (grupo administrado / autoescalador)	inicio
+2026-11-01T23:34:37.967521Z	v1.compute.instances.insert	mooc-api-b18m	agente de servicio de Google APIs (grupo administrado / autoescalador)	fin
+2026-11-01T23:56:36.695211Z	v1.compute.instances.delete	mooc-api-b18m	agente de servicio de Google APIs (grupo administrado / autoescalador)	inicio
+2026-11-01T23:56:56.241886Z	v1.compute.instances.delete	mooc-api-b18m	agente de servicio de Google APIs (grupo administrado / autoescalador)	fin
+2026-11-01T23:58:52.203341Z	v1.compute.instances.delete	mooc-load-generator	persona	inicio
+2026-11-01T23:59:11.615257Z	v1.compute.instances.delete	mooc-load-generator	persona	fin

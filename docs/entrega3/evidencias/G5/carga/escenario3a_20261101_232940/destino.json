@@ -1,0 +1,14 @@
+{
+  "base_url": "https://136.68.55.254.sslip.io",
+  "entorno": "nube-entrega3",
+  "plan": "escenario3a_api.jmx",
+  "etapas_pet_s": {"e1": 10, "e2": 40, "e3": 70, "e4": 130, "e5": 10},
+  "etapas_s": {"e1": 120, "e2": 60, "e3": 60, "e4": 600, "e5": 720},
+  "calentamiento_omitido_s": 0,
+  "commit": "ac3f7fa",
+  "generador": "justb4/jmeter@sha256:088ac52b759a198a5afa5ae13d0a6306e9f2017d71ad140ff57427f6930406f7 en mooc-load-generator",
+  "nucleos_generador": 4,
+  "memoria_generador_gib": 15.6,
+  "inicio_utc": "2026-11-01T23:29:40Z",
+  "fin_utc": "2026-11-01T23:55:45Z"
+}

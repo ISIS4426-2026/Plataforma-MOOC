@@ -9,9 +9,9 @@
 | **Desbloquea** | G7 (#227) |
 | **Cómo se corre** | [`RUNBOOK.md`](./RUNBOOK.md), en la misma sesión que F1 |
 
-**Estado: herramientas listas y probadas en seco; falta la corrida con el
-entorno encendido.** Esta página se completa con los números de
-`linea_de_tiempo.md` en cuanto exista.
+**Estado: cumplido.** Corrida del **2026-11-01, 23:29–23:57 UTC**: el grupo de la API pasó **1 → 2 → 1** solo,
+por decisión del autoescalador, con **reacción de 48 s** e **incorporación de 157 s**, **0 errores en 90 080
+peticiones** y **11 de 11 comprobaciones** de [`linea_de_tiempo.md`](./linea_de_tiempo.md) en OK.
 
 ---
 
@@ -19,12 +19,12 @@ entorno encendido.** Esta página se completa con los números de
 
 | Criterio | Cómo se demuestra | Estado |
 | :--- | :--- | :---: |
-| Al menos una creación automática y una reducción posterior, observadas y fechadas | `hitos.tsv` del observador: `DECISION_AMPLIAR`, `INSTANCIA_CREADA` (con el `creationTimestamp` de GCE), `DECISION_REDUCIR`, `INSTANCIA_RETIRADA` | ⏳ |
-| Incorporación al balanceador demostrada con peticiones atendidas por la instancia nueva | el observador manda peticiones por el balanceador y agrupa por `X-Instance-ID`; como ese valor es `sha256(ID de la instancia)[:12]`, se sabe **qué** instancia respondió sin entrar por SSH | ⏳ |
-| Los dos tiempos —reacción e incorporación— reportados por separado | `linea_de_tiempo.md`: reacción = cruce del umbral en el `.jtl` → decisión; incorporación = decisión → primera petición atendida, desglosada en creada / `RUNNING` / sana / atiende | ⏳ |
-| La ampliación manual del grupo no aparece como evidencia | el observador se niega a empezar si el mínimo no es 1 o el grupo no está en 1; `g5_linea_de_tiempo.py` lee el **registro de auditoría** de la ventana y falla si una persona llamó a `resize`, `update-autoscaling` o similares | ⏳ |
-| **Bloquea el cierre:** capturas de la línea de tiempo, la decisión del autoescalador y la consola durante el ciclo completo | seis capturas, cada una anunciada por el observador en su momento (§5 del runbook) | ⏳ |
-| Lo que el equipo debe saber, en `NOTAS_TECNICAS.md` | tras la corrida: los dos tiempos (para G7 e I2) | ⏳ |
+| Al menos una creación automática y una reducción posterior, observadas y fechadas | `hitos.tsv` del observador: `DECISION_AMPLIAR`, `INSTANCIA_CREADA` (con el `creationTimestamp` de GCE), `DECISION_REDUCIR`, `INSTANCIA_RETIRADA` | ✅ |
+| Incorporación al balanceador demostrada con peticiones atendidas por la instancia nueva | el observador manda peticiones por el balanceador y agrupa por `X-Instance-ID`; como ese valor es `sha256(ID de la instancia)[:12]`, se sabe **qué** instancia respondió sin entrar por SSH | ✅ |
+| Los dos tiempos —reacción e incorporación— reportados por separado | `linea_de_tiempo.md`: reacción = cruce del umbral en el `.jtl` → decisión; incorporación = decisión → primera petición atendida, desglosada en creada / `RUNNING` / sana / atiende | ✅ |
+| La ampliación manual del grupo no aparece como evidencia | el observador se niega a empezar si el mínimo no es 1 o el grupo no está en 1; `g5_linea_de_tiempo.py` lee el **registro de auditoría** de la ventana y falla si una persona llamó a `resize`, `update-autoscaling` o similares | ✅ |
+| **Bloquea el cierre:** capturas de la línea de tiempo, la decisión del autoescalador y la consola durante el ciclo completo | seis capturas, cada una anunciada por el observador en su momento (§5 del runbook) | ✅ |
+| Lo que el equipo debe saber, en `NOTAS_TECNICAS.md` | nota 64 | ✅ |
 
 ## Diseño de la corrida
 
@@ -83,9 +83,60 @@ lograda con la pedida en cada etapa y falla si la alta no llega al 90 %.
 
 ## Resultado
 
-*Pendiente de la corrida.* Aquí van: los dos tiempos, la tabla por etapa, la
-línea de tiempo resumida, el reparto con la instancia nueva y el enlace a las
-seis capturas.
+Desde la VM del generador (`mooc-load-generator`, JMeter 5.5 por digest) contra `https://136.68.55.254.sslip.io`,
+imagen `97120ca`. Por tiempo, la corrida se acortó respecto al plan: base 2 min, subidas 1 + 1 min, alta 10 min y
+bajada 12 min (variables `DUR_*` del guion). Datos crudos en [`carga/escenario3a_20261101_232940/`](./carga/escenario3a_20261101_232940/)
+—el `.jtl` original va comprimido— y en [`observacion_20261101/`](./observacion_20261101/). El generador **no
+limitó** (`contraste_generador.json`).
+
+### Los dos tiempos
+
+| Tiempo | Desde | Hasta | Duración |
+| :--- | :--- | :--- | ---: |
+| **Reacción** | la carga supera 80 pet/s con una instancia (23:33:40) | el grupo crea la instancia nueva (23:34:28, `creationTimestamp`) | **48 s** |
+| **Incorporación** | la decisión (23:34:28) | la instancia nueva responde peticiones que entran por el balanceador (23:37:05) | **157 s** |
+| — de ellos | creada → `RUNNING` | | 19 s |
+| — de ellos | `RUNNING` → sana ante el balanceador | | 138 s |
+| **Reducción** | baja la carga (23:43:40) | el objetivo baja a 1 (23:54:53); la instancia sale del grupo a las 23:57:09 | 11 min 13 s hasta la decisión |
+
+La reducción espera **unos 10 minutos de carga baja** antes de decidir: es la ventana de estabilización del
+autoescalador más `scale_in_control` (C2), y es la razón por la que la bajada no se puede acortar.
+
+### Carga por etapa
+
+| Etapa | Pedida (pet/s) | Lograda (pet/s) | n | p50 / p95 / p99 (ms) | Errores |
+| :--- | ---: | ---: | ---: | :---: | ---: |
+| e1 base | 10 | 9,6 | 1 152 | 9 / 18 / 35 | 0 |
+| e2 subida | 40 | 37,9 | 2 271 | 8 / 14 / 24 | 0 |
+| e3 subida | 70 | 69,1 | 4 148 | 8 / 14 / 24 | 0 |
+| **e4 alta** | **130** | **124,6** | 74 751 | 7 / 13 / 22 | 0 |
+| e5 bajada | 10 | 10,7 | 7 712 | 9 / 18 / 28 | 0 |
+
+**Integridad durante el ciclo:** 0 errores reales (5xx, timeouts, conexión) en 90 080 peticiones, también durante
+la incorporación y durante el retiro. Las latencias no se movieron al entrar la segunda instancia: una sola atendía
+124 pet/s con p95 de 13 ms y la API no pasó del 28 % de CPU. El ciclo demuestra el **mecanismo**; no hubo
+saturación que la segunda instancia tuviera que aliviar, igual que en G3.
+
+### Quién cambió el grupo
+
+[`auditoria.tsv`](./auditoria.tsv): en la ventana, `instances.insert` (23:34:27) e `instances.delete` (23:56:36)
+sobre `mooc-api-b18m`, ambos por el **agente de servicio del grupo administrado**. **Ninguna persona** cambió el
+tamaño ni la política del grupo.
+
+### Capturas
+
+Las cinco primeras son la salida real del observador y del registro de auditoría, dibujada con
+[`render_consola.py`](../../../../scripts/render_consola.py) sin editar el texto (el pie de cada una dice de qué
+archivo y líneas sale); la sexta es el tablero de Cloud Monitoring de la ventana.
+
+| Captura | Qué muestra |
+| :--- | :--- |
+| [`2026-11-01_g5-partida-1-instancia.png`](./capturas/2026-11-01_g5-partida-1-instancia.png) | 1 instancia sana, autoescalador `ACTIVE`, mínimo 1, todo el tráfico en un `X-Instance-ID` |
+| [`2026-11-01_g5-autoescalador-amplia-a-2.png`](./capturas/2026-11-01_g5-autoescalador-amplia-a-2.png) | la decisión de ampliar y la creación de `mooc-api-b18m` |
+| [`2026-11-01_g5-instancia-nueva-sana-y-reparto.png`](./capturas/2026-11-01_g5-instancia-nueva-sana-y-reparto.png) | la nueva sana y el reparto 5/5 entre los dos `X-Instance-ID` |
+| [`2026-11-01_g5-reduccion-a-1.png`](./capturas/2026-11-01_g5-reduccion-a-1.png) | la reducción, la instancia retirada y las cinco comprobaciones del observador |
+| [`2026-11-01_g5-auditoria-sin-intervencion-manual.png`](./capturas/2026-11-01_g5-auditoria-sin-intervencion-manual.png) | el registro de auditoría: solo el grupo administrado crea y borra |
+| [`2026-11-01_g5-tablero-del-ciclo.png`](./capturas/2026-11-01_g5-tablero-del-ciclo.png) | instancias 1 → 2 → 1, CPU, cola y solicitudes por minuto en el balanceador |
 
 ---
 

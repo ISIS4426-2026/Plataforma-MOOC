@@ -1,0 +1,39 @@
+Descripción del servicio,ID de servicio,Descripción del SKU,ID de SKU,Cantidad de uso,Unidad de uso,Costo ($),Programas de ahorros ($),Otros ahorros ($),Subtotal sin redondear ($),Subtotal ($),Cambio porcentual en el subtotal en comparación con el período anterior
+Compute Engine,6F81-5844-456A,Network Data Transfer In from Google Services from Americas to Americas,123C-0EFC-B7C8,1.96,gibibyte,0.00,0.00,0.00,0.000000,0.00,0%
+Cloud Logging,5490-F7B7-8DF6,Log Storage cost,143F-A1B0-E0BE,0.01,gibibyte,0.00,0.00,0.00,0.000000,0.00,0%
+Compute Engine,6F81-5844-456A,Network Intra Zone Data Transfer Out,14F9-7705-2FD4,0.71,gibibyte,0.00,0.00,0.00,0.000000,0.00,0%
+Cloud Storage,95FF-2EF5-5EA1,Download Worldwide Destinations (excluding Asia & Australia),22EB-AAE8-FBCD,0.01,gibibyte,0.00,0.00,0.00,0.000000,0.00,0%
+Networking,E505-1604-58F8,Networking Cloud Nat Gateway Uptime,32E2-4EFC-EF9F,40.43,hour,0.06,0.00,-0.06,0.000000,0.00,0%
+Cloud Storage,95FF-2EF5-5EA1,Regional Standard Class A Operations,4DBF-185F-A415,773,count,0.00,0.00,-0.00,0.000000,0.00,0%
+Cloud SQL,9662-B51E-5089,Storage PD Snapshot,66AB-BA17-351C,0,gibibyte month,0.00,0.00,-0.00,0.000000,0.00,0%
+Compute Engine,6F81-5844-456A,Network HTTP Load Balancing Data Transfer Out to Load Balancer,6C67-1253-BB04,0.01,gibibyte,0.00,0.00,0.00,0.000000,0.00,0%
+Artifact Registry,149C-F9EC-3994,"Artifact Registry Network Internet Egress Intercontinental (Excl Oceania, Africa and China)",72BD-5309-1C4C,0,gibibyte,0.00,0.00,-0.00,0.000000,0.00,0%
+Compute Engine,6F81-5844-456A,Network HTTP Load Balancing Data Transfer In from Load Balancer,761A-BA86-D467,0.01,gibibyte,0.00,0.00,0.00,0.000000,0.00,0%
+Secret Manager,EE82-7A5E-871C,Secret version replica storage,7756-ADEF-84F4,0.06,month,0.00,0.00,0.00,0.000000,0.00,0%
+VM Manager,5E18-9A83-2867,VM Manager Usage,785A-57EB-25E2,49,count,0.00,0.00,0.00,0.000000,0.00,0%
+Cloud Storage,95FF-2EF5-5EA1,Regional Standard Class B Operations,7870-010B-2763,216,count,0.00,0.00,0.00,0.000000,0.00,0%
+Compute Engine,6F81-5844-456A,Licensing Fee for Debian 12 Bookworm,7DA4-2B85-2064,40.37,hour,0.00,0.00,0.00,0.000000,0.00,0%
+Artifact Registry,149C-F9EC-3994,Artifact Registry Storage,8502-299A-ABAF,0.02,gibibyte month,0.00,0.00,0.00,0.000000,0.00,0%
+Networking,E505-1604-58F8,Networking Cloud NAT IP Usage,8515-9425-D2CE,13.58,hour,0.07,0.00,-0.07,0.000000,0.00,0%
+Compute Engine,6F81-5844-456A,Network Data Transfer to Google Services from Americas to Americas,92CB-C25F-B1D1,0.58,gibibyte,0.00,0.00,0.00,0.000000,0.00,0%
+Networking,E505-1604-58F8,Network Intelligence Center Network Analyzer Resource Hours,9BF8-CD36-F9B8,49,count,0.05,0.00,-0.05,0.000000,0.00,0%
+Compute Engine,6F81-5844-456A,Network Intra Zone Data Transfer In,9C76-A3FB-C60A,0.09,gibibyte,0.00,0.00,0.00,0.000000,0.00,0%
+Cloud Monitoring,58CD-E7C3-72CA,Metric Volume,A924-09D0-8854,3.04,mebibyte,0.00,0.00,0.00,0.000000,0.00,0%
+Networking,E505-1604-58F8,Network Intelligence Center Internet to Google Cloud Performance Resource Hours,BDBA-22FA-3925,49,count,0.04,0.00,-0.04,0.000000,0.00,0%
+Networking,E505-1604-58F8,Network Intelligence Center Topology and Google Cloud Performance Resource Hours,D9AD-28F8-05D8,49,count,0.05,0.00,-0.05,0.000000,0.00,0%
+Networking,E505-1604-58F8,Cloud Load Balancer Forwarding Rule Minimum Global,DEE3-C42E-3E4D,13.23,hour,0.33,0.00,-0.33,0.000000,0.00,0%
+Networking,E505-1604-58F8,Global External Application Load Balancer Outbound Data Processing for South Carolina (us-east1),E43F-E132-4694,0,gibibyte,0.00,0.00,-0.00,0.000000,0.00,0%
+Cloud Storage,95FF-2EF5-5EA1,Standard Storage US Regional,E5F0-6A5D-7BAD,0.36,gibibyte month,0.00,0.00,0.00,0.000000,0.00,0%
+Compute Engine,6F81-5844-456A,Network Internet Data Transfer In from Americas to Americas,E926-D07C-E1A4,1.17,gibibyte,0.00,0.00,0.00,0.000000,0.00,0%
+Secret Manager,EE82-7A5E-871C,Secret access operations,EBA7-264F-2D2C,17,count,0.00,0.00,0.00,0.000000,0.00,0%
+Compute Engine,6F81-5844-456A,Static Ip Charge,66A2-68EA-56BE,10.75,hour,0.11,0.00,-0.11,-0.000001,-0.00,0%
+Compute Engine,6F81-5844-456A,Balanced PD Capacity,6AE1-525F-8B80,1.76,gibibyte month,0.18,0.00,-0.18,-0.000001,-0.00,0%
+Cloud SQL,9662-B51E-5089,Cloud SQL for PostgreSQL: Zonal - Standard storage in Americas,C18F-7FE0-0717,0.32,gibibyte month,0.05,0.00,-0.05,-0.000001,-0.00,0%
+Compute Engine,6F81-5844-456A,E2 Instance Ram running in Americas,F449-33EC-A5EF,80.74,gibibyte hour,0.24,0.00,-0.24,-0.000001,-0.00,0%
+Networking,E505-1604-58F8,Networking Cloud Nat Data Processing,015F-5732-FFF0,1.17,gibibyte,0.05,0.00,-0.05,-0.000003,-0.00,0%
+Cloud SQL,9662-B51E-5089,Cloud SQL for PostgreSQL: Zonal - RAM in Americas,93DA-3F55-CB04,49.73,gibibyte hour,0.35,0.00,-0.35,-0.000004,-0.00,0%
+Cloud SQL,9662-B51E-5089,Cloud SQL for PostgreSQL: Zonal - vCPU in Americas,965E-7C36-08E6,13.26,hour,0.55,0.00,-0.55,-0.000004,-0.00,0%
+Compute Engine,6F81-5844-456A,E2 Instance Core running in Americas,CF4E-A0C7-E3BF,60.4,hour,1.32,0.00,-1.32,-0.000004,-0.00,0%
+,,,,,,,,Subtotal,0.000000,0.00
+,,,,,,,,Impuesto,0.000000,0.00
+,,,,,,,,Total,0.000000,0.00
