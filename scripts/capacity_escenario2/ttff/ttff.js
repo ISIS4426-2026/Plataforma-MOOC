@@ -36,9 +36,11 @@ const puppeteer = require("puppeteer-core");
       hls.on(Hls.Events.LEVEL_LOADED, (e, d) => { if (!("variante_ms" in ev)) ev.variante_ms = +(d.stats.loading.end - d.stats.loading.start).toFixed(1); });
       hls.on(Hls.Events.FRAG_LOADED, (e, d) => {
         if (primerSn === null) primerSn = d.frag.sn;
-        if (d.frag.sn === primerSn && !("segmento0_ms" in ev)) {
-          ev.segmento0_ms = +(d.stats.loading.end - d.stats.loading.start).toFixed(1);
-          ev.segmento0_llegada = +(d.stats.loading.end - t0).toFixed(1);
+        // En FRAG_LOADED las estadisticas viven en frag.stats (en MANIFEST_LOADED y LEVEL_LOADED, en data.stats).
+        const st = (d.frag && d.frag.stats && d.frag.stats.loading) || (d.stats && d.stats.loading);
+        if (d.frag.sn === primerSn && !("segmento0_ms" in ev) && st) {
+          ev.segmento0_ms = +(st.end - st.start).toFixed(1);
+          ev.segmento0_llegada = +(st.end - t0).toFixed(1);
         }
       });
       hls.on(Hls.Events.ERROR, (e, d) => { if (d.fatal) { ev.error = d.type + ":" + d.details; hls.destroy(); resolve(ev); } });
