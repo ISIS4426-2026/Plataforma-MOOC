@@ -135,7 +135,15 @@ probar "${T_ADMIN}" GET /api/v1/admin/audit-logs 200
 # La comprobacion se queda como guardia: si alguien la reintroduce en el
 # contrato sin implementarla, aqui vuelve a verse. Un 404 es el resultado
 # correcto; lo que daria que pensar es un 201.
-probar "${T_ADMIN}" POST /users/professors 404 \
+#
+# La ruta va CON el prefijo `/api/v1`. Sin el, nginx ni la enruta a la API:
+# cae en `location /` con `try_files $uri /index.html`, y un POST contra un
+# fichero estatico responde 405. Hasta que D1 metio el frontend en la imagen
+# del proxy, `try_files` no encontraba nada y devolvia 404, asi que la
+# comprobacion pasaba por accidente. Medido en I6 (#236), 2026-11-02:
+#     POST /users/professors         -> 405  (nginx, no llega a la API)
+#     POST /api/v1/users/professors  -> 404  (la API no registra la ruta)
+probar "${T_ADMIN}" POST /api/v1/users/professors 404 \
     '{"email":"nuevo.profesor@plataforma-mooc.test","full_name":"Nuevo","password":"Password123!"}'
 echo
 

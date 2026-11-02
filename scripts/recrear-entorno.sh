@@ -100,7 +100,17 @@ if [[ "${1:-}" == "--en-la-vpc" ]]; then
     # mismo camino que usa el despliegue real, y significa que no hay que
     # pasarla por argumento ni por el historial del shell.
     fase "1/2  Leer la contrasena de Secret Manager"
-    CONTRASENA="$(gcloud secrets versions access latest --secret="${SECRETO_BD}" 2>/dev/null)"
+    # El valor guardado en Secret Manager termina en un retorno de carro
+    # --lo dejo ahi quien lo creo desde Windows-- y la sustitucion de
+    # comandos quita los saltos de linea finales pero NO el retorno de
+    # carro. Terraform si lo recorta, con trimspace(var.db_password) en
+    # database.tf:271, asi que la contrasena que acaba en PostgreSQL tiene
+    # 32 caracteres y la que leia este guion tenia 33.
+    #
+    # Paso de verdad en I6 (#236), 2026-11-02, al sembrar la base recreada:
+    #   psql: FATAL: password authentication failed for user "moocuser"
+    # con el guion informando «Leida (33 caracteres)».
+    CONTRASENA="$(gcloud secrets versions access latest --secret="${SECRETO_BD}" 2>/dev/null | tr -d '\r\n')"
     [[ -n "${CONTRASENA}" ]] || morir "no se pudo leer ${SECRETO_BD}. Falta secretmanager.secretAccessor para la cuenta de esta VM."
     echo "Leida (${#CONTRASENA} caracteres). No se imprime."
     export DATABASE_URL="postgres://moocuser:${CONTRASENA}@${IP_BASE}:5432/moocdb?sslmode=require"
@@ -148,7 +158,7 @@ if [[ ${SOLO_BASE} -eq 0 ]]; then
     if [[ -z "${TF_VAR_db_password:-}" ]]; then
         echo "Leyendo la contrasena de Secret Manager para TF_VAR_db_password..."
         TF_VAR_db_password="$(gcloud secrets versions access latest \
-            --secret="${SECRETO_BD}" --project="${PROJECT_ID}" 2>/dev/null)"
+            --secret="${SECRETO_BD}" --project="${PROJECT_ID}" 2>/dev/null | tr -d '\r\n')"
         [[ -n "${TF_VAR_db_password}" ]] || morir "no se pudo leer ${SECRETO_BD}"
         export TF_VAR_db_password
     fi

@@ -66,6 +66,8 @@ lo reemplaza, lo continúa.
 | 64 | [G5: la API escala en 48 s y se incorpora en 157 s; reducir tarda 11 min y no se puede acortar](#64) | **G7, I2, I4**, quien corra algo desde la nube de Claude |
 | 65 | [G4: el autoescalador de workers tarda ~3 min en reaccionar y retiró un worker con dos videos en curso; el primer cuadro sale en ~380 ms](#65) | **G4, G6**, G7, I1, I4 |
 | 66 | [I3: el barrido de secretos contaba la documentación de F2 como llave, y una URL vista por el proxy de Claude no prueba el certificado](#66) | **I3, I5**, I6, quien corra algo desde la nube de Claude |
+| 67 | [Los atributos que gobiernan el borrado se leen del ESTADO, no del fichero: cambiarlos en el `.tf` no basta](#67) | **I6**, C1, I5, quien destruya o recree cualquier cosa |
+| 68 | [El secreto `db-password` termina en un retorno de carro: Terraform lo recorta y los demás consumidores no](#68) | **I6**, B1, C2, D2, quien lea un secreto en un guion |
 
 ---
 
@@ -2419,3 +2421,81 @@ Cifras medidas en la corrida completa del **Escenario 3B (ciclo de escalamiento 
 | :--- | :--- |
 | **I5** | el README ya enlaza los ocho entregables; el tag y el video se completan en sus filas |
 | **I6** | al terminar, `check_evidencias.sh` debería salir con 0; vuelvan a correrlo |
+
+---
+
+<a id="67"></a>
+## 67. Los atributos que gobiernan el borrado se leen del ESTADO, no del fichero: cambiarlos en el `.tf` no basta
+
+**Afecta a:** I6 (#236), C1, I5, y a quien destruya o recree cualquier recurso.
+Escrito el 2026-11-02. Detalle en [`evidencias/I6/RUNBOOK.md`](evidencias/I6/RUNBOOK.md).
+
+Pasó **dos veces en la misma sesión**, con dos atributos distintos, y las dos
+veces el síntoma fue un `destroy` que falla después de haberse llevado ya otros
+recursos por delante.
+
+| Atributo | Qué pasó |
+| :--- | :--- |
+| `deletion_protection` de `google_sql_database_instance` | Se puso a `false` en `database.tf` y se planificó el destroy. El plan lo mostraba como `true -> null`: el estado seguía diciendo `true`. Sin un `apply` previo que lo persista, el destroy falla con `failed to delete instance because deletion_protection is set to true` **aunque el fichero diga `false`** |
+| `deletion_policy` de `google_sql_user` | Se añadió `ABANDON` al fichero y se replanificó —el plan era posterior al cambio, comprobado por fecha—, y el `apply` **siguió llamando a la API de borrado**. El estado conservaba `DELETE` |
+
+**La regla:** un cambio que solo importa en el momento de destruir no tiene
+efecto hasta que un `apply` lo escribe en el estado. Y la comprobación no es
+mirar el `.tf`, es:
+
+```bash
+terraform state show <recurso> | grep -E "deletion_protection|deletion_policy"
+```
+
+`database.tf:103` ya avisaba del primer caso. Lo que faltaba era **la
+comprobación**: un paso que no se puede verificar es un paso implícito, y por
+eso el runbook de I6 ahora la incluye después de cada uno de los dos `apply`.
+
+Para `google_sql_user` la salida en caliente fue `terraform state rm
+google_sql_user.app`, que no toca GCP y deja que el usuario se vaya con la
+instancia. El `ABANDON` queda en el código para que el próximo destroy no
+tropiece.
+
+> **Por qué el usuario no se podía borrar, de fondo:** `google_sql_database.mooc`
+> tiene `deletion_policy = "ABANDON"`, así que Terraform deja `moocdb` en pie y
+> acto seguido intenta `DROP USER moocuser`, dueño de sus 20 objetos. Las dos
+> políticas tenían que coincidir y no coincidían.
+
+---
+
+<a id="68"></a>
+## 68. El secreto `db-password` termina en un retorno de carro: Terraform lo recorta y los demás consumidores no
+
+**Afecta a:** I6 (#236), B1, C2, D2, y a cualquiera que lea un secreto en un
+guion. Escrito el 2026-11-02.
+
+El valor guardado en Secret Manager mide **33 bytes**, y 32 sin `\r` ni `\n`.
+El byte de más es un **retorno de carro**, no un salto de línea: la sustitución
+de comandos `$( )` quita los `\n` finales pero **no el `\r`**, y por eso el
+guion informaba «Leída (33 caracteres)» después de leerlo con `$( )`.
+
+Lleva ahí desde que alguien creó el secreto desde Windows, y nadie lo había
+notado porque **el único consumidor que no recortaba casi nunca se ejecuta**:
+
+| Quién lee el secreto | Qué hace | Resultado |
+| :--- | :--- | :--- |
+| Terraform | `trimspace(var.db_password)` (`database.tf:271`) | la contraseña que acaba en PostgreSQL tiene **32** caracteres |
+| Las VMs de la aplicación | su propio camino, ya recortado | funcionan |
+| `scripts/recrear-entorno.sh` | leía en crudo | usaba **33** → `FATAL: password authentication failed for user "moocuser"` |
+
+Solo falla **recreando la base desde cero**, que es exactamente lo que I6 pide
+hacer y lo que nadie había hecho hasta el 2026-11-02.
+
+El arreglo va en el consumidor, no en el secreto: así el sistema tolera un valor
+con o sin retorno de carro y no hay que tocar una credencial a mitad de sesión.
+Las dos lecturas de `recrear-entorno.sh` llevan ahora `| tr -d '\r\n'`, que es
+el patrón que ya usaba `docs/entrega2/OPERACION_Y_CAPACIDAD.md:131`.
+
+**Cómo comprobarlo sin exponer el valor:**
+
+```bash
+gcloud secrets versions access latest --secret=db-password \
+  --project=plataforma-mooc-entrega2 | wc -c                      # 33
+gcloud secrets versions access latest --secret=db-password \
+  --project=plataforma-mooc-entrega2 | tr -d '\r\n' | wc -c      # 32
+```

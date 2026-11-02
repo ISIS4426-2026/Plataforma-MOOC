@@ -7,16 +7,11 @@
 | **Procedimiento** | [`RUNBOOK.md`](./RUNBOOK.md) — escrito antes de la sesión, ejecutado por alguien distinto |
 | **Desbloquea** | I5 (#235) — **en ese orden**, ver abajo |
 
-**Estado: pendiente de ejecutar.** El runbook está escrito y verificado contra
-`infra/terraform/` y los guiones del repositorio; falta la sesión.
+**Estado: ejecutado el 2026-11-02.** Entorno destruido y reconstruido de punta a
+punta, con la verificación funcional pasando sobre lo recreado: **20
+comprobaciones, 0 fallos**. La sesión dejó **nueve correcciones**, dos de ellas
+en código de infraestructura.
 
-> **Hay un paso previo que no se puede saltar.** El pre-vuelo del 2026-11-02
-> encontró que **no hay imágenes publicadas para `HEAD`**: el entorno vivo corre
-> `97120ca1`, ~70 commits atrás, y entre medias cambió código —`internal/auth` y
-> 10 ficheros del frontend, las correcciones de H2—. Antes de la sesión hay que
-> correr `bash ./scripts/publish_images.sh` desde `main` limpio, o la recreación
-> del §6 arrancará instancias que no pueden descargar su imagen. Es el §1.1 del
-> runbook.
 
 ---
 
@@ -48,40 +43,72 @@ de peso:
 
 | Criterio | Dónde se demuestra | Estado |
 | :--- | :--- | :---: |
-| Evidencias y respaldos conservados antes de eliminar | §2 del runbook · captura 2 | ⏳ |
-| Recursos eliminados y **coste residual medido** | §4 y §5 · capturas 3, 4 y 5 | ⏳ |
-| Procedimiento de reconstrucción documentado, paso a paso y verificado | [`RUNBOOK.md`](./RUNBOOK.md) | ✅ escrito |
-| Reconstrucción ensayada al menos una vez, con grupos elásticos, balanceador, cola y frontend | §6 · captura 6 | ⏳ |
-| **Ensayado por alguien que no lo escribió** | quién lo ejecutó, abajo | ⏳ |
-| La verificación funcional pasa sobre el entorno recreado, con su salida registrada | §7 · `verificacion_entorno_recreado.txt` · captura 7 | ⏳ |
-| Las pruebas y la sustentación usan **PostgreSQL administrado** | Cloud SQL `mooc-db-1`, recreada en §6 | ⏳ |
-| `deletion_protection` en su valor seguro antes de cerrar | §8 | ⏳ |
-| **Bloquea el cierre:** la destrucción y la recreación capturadas mientras ocurren | capturas 4 y 7 | ⏳ |
-| Anotado en `NOTAS_TECNICAS.md` | al cerrar; si no hubo nada, decirlo | ⏳ |
+| Evidencias y respaldos conservados antes de eliminar | respaldo de **8,50 MiB** en el bucket y copia del estado de **224 KB**, los dos verificados no vacíos · captura `respaldo-conservado` | ✅ |
+| Recursos eliminados y **coste residual medido** | §«Coste residual», abajo | ✅ |
+| Procedimiento de reconstrucción documentado, paso a paso y verificado | [`RUNBOOK.md`](./RUNBOOK.md), corregido con lo que encontró la ejecución | ✅ |
+| Reconstrucción ensayada, con grupos elásticos, balanceador, cola y frontend | los 14 recursos recreados; backend `HEALTHY` · captura `reconstruccion` | ✅ |
+| **Ensayado por alguien que no lo escribió** | sí, ver abajo | ✅ |
+| La verificación funcional pasa sobre el entorno recreado, con su salida registrada | [`verificacion_entorno_recreado.txt`](./verificacion_entorno_recreado.txt): **20 correctas, 0 fallos** · captura `verificacion-sobre-entorno-recreado` | ✅ |
+| Las pruebas y la sustentación usan **PostgreSQL administrado** | Cloud SQL `mooc-db-1`, recreada y sembrada en esta sesión | ✅ |
+| `deletion_protection` en su valor seguro antes de cerrar | `true` **en el estado**, no solo en el fichero (nota 67) | ✅ |
+| **Bloquea el cierre:** la destrucción y la recreación capturadas mientras ocurren | capturas `destroy applied` (las dos listas vacías) y `verificacion-sobre-entorno-recreado` | ✅ |
+| Anotado en `NOTAS_TECNICAS.md` | notas **67** y **68** | ✅ |
+
+---
+
+## Tiempos de la reconstrucción
+
+| Fase | Tiempo |
+| :--- | ---: |
+| `terraform destroy` de los 14 recursos | ~8 min |
+| `terraform apply` de recreación | ~12 min |
+| VM temporal + copia + migrar y sembrar (`recrear-entorno.sh --solo-base`) | **120 s** |
+| Migraciones | **0 s** — ya aplicadas por el arranque de las instancias (A3) |
+| Verificación funcional | ~1 min |
+
+Que las migraciones no costaran nada es el resultado que vale la pena señalar:
+las instancias nuevas aplicaron el esquema solas al arrancar, con el *advisory
+lock* de A3, antes de que nadie se conectara. El guion de siembra encontró las
+**8 migraciones ya aplicadas** y solo tuvo que cargar los datos.
 
 ---
 
 ## Quién ejecutó la sesión
 
-> Rellenar al terminar. Es criterio de aceptación que **no sea quien escribió el
-> runbook**.
-
 | | |
 | :--- | :--- |
-| Runbook escrito por | |
-| Sesión ejecutada por | |
-| Fecha | |
-| Pasos que hubo que corregir sobre la marcha | |
+| Runbook escrito por | asistente, a partir de `infra/terraform/`, `ADMINISTRACION.md` y el runbook de I6 de la Entrega 2 |
+| Sesión ejecutada por | `@fredyxander` |
+| Fecha | 2026-11-02, de 19:00 a 20:40 UTC |
+| Pasos que hubo que corregir sobre la marcha | **nueve**, listados abajo |
 
-Esa última fila es la que da valor al criterio: un procedimiento que se ejecuta
-sin tropiezos por alguien que no lo escribió es un procedimiento sin pasos
-implícitos. Si hubo tropiezos, **el arreglo va al runbook**, no solo aquí.
+El criterio pide que ensaye el procedimiento alguien que no lo escribió, y esta
+es la razón: el runbook estaba escrito contra el código y era coherente, pero
+**nadie lo había ejecutado nunca**. Nueve cosas solo aparecen al hacerlo de
+verdad, y dos de ellas eran defectos reales del repositorio, no del documento.
+
+### Las nueve correcciones
+
+| # | Qué falló | Dónde está el arreglo |
+| ---: | :--- | :--- |
+| 1 | El `gcloud sql export` falla: la cuenta de Cloud SQL no tenía ningún rol sobre el bucket | §2a del runbook: `objectCreator`, temporal |
+| 2 | `add-iam-policy-binding` pregunta por una condición, porque el bucket tiene *bindings* condicionales de F2 | §2a: responder `2` (None) |
+| 3 | El `plan` del §3 sin los cinco interruptores propone **aparcar** el entorno: `6 to destroy` en vez de `1 to change` | §3, con las cinco `-var` |
+| 4 | `deletion_protection` seguía en `true` **en el estado** tras editar el fichero | §3, con la comprobación añadida · **nota 67** |
+| 5 | La lista de `-target` del §4 era incorrecta: GCP rechaza borrar un grupo que un backend service usa | §4: el `destroy` cascadea hacia arriba; se planifica y se lee antes |
+| 6 | `DROP USER moocuser` falla: es dueño de 20 objetos y `moocdb` tiene `ABANDON` | `database.tf`: `deletion_policy = "ABANDON"` en el usuario · **nota 67** |
+| 7 | `recrear-entorno.sh` sin `--solo-base` corre `terraform apply -auto-approve` **sin `-var`**: desmonta lo que el paso anterior acaba de crear | §6 del runbook, con la bandera |
+| 8 | La siembra falla con `password authentication failed`: el secreto tiene un `\r` que Terraform recorta y el guion no | `recrear-entorno.sh`, las dos lecturas · **nota 68** |
+| 9 | La guardia del endpoint fantasma pedía `/users/professors` sin prefijo: nginx responde 405, no 404 | `verificar_endpoints_nube.sh`: la ruta va bajo `/api/v1/` |
+
+Las correcciones **6, 8 y 9** son defectos del repositorio que llevaban ahí
+tiempo y que **solo se manifiestan reconstruyendo desde cero**. La 9 además
+llevaba rota desde que D1 metió el frontend en la imagen del proxy: hasta
+entonces la comprobación pasaba por accidente.
 
 ---
 
 ## Decisión sobre la dirección global y el certificado
-
-> Rellenar antes de la sesión.
 
 `136.68.55.254.sslip.io` está citada en el `README.md`, en `arquitectura.md`, en
 `VERIFICACION_ENDPOINTS.md`, en el entorno de Postman **y en el vídeo de
@@ -94,39 +121,73 @@ y el vídeo ya no se puede corregir.
 | **Conservar IP y certificado** (recomendada en el runbook §0) | ~0 USD aparcados, la URL del vídeo sigue siendo válida, y la sustentación síncrona no espera la hora de aprovisionamiento del certificado |
 | Destroy total | Cumple «eliminar» en su lectura más estricta, pero cambia la URL de toda la entrega |
 
-**Decidido:** _(rellenar)_
+**Decidido el 2026-11-02: se conservan `mooc-lb-ip` y `mooc-lb-cert`.**
+
+El motivo que decide es el vídeo. Es un entregable obligatorio, ya está grabado
+y enlazado desde el `README.md`, y cita esa URL: una dirección muerta en él no
+se puede corregir después. Los dos recursos cuestan del orden de 0 USD
+aparcados, así que «eliminar los recursos de laboratorio **que no deban seguir
+activos**» (enunciado, p. 7) no los alcanza: deben seguir activos precisamente
+para que la entrega sea verificable.
+
+Como efecto secundario buscado, una sustentación síncrona no tiene que esperar
+hasta una hora a que se aprovisione un certificado nuevo (enunciado, p. 13:
+«si los recursos se retiraron por control de costos, el equipo deberá
+recrearlos previamente»).
+
+El `destroy` del §4 del runbook va con `-target`, no a secas. Lo que sí se
+destruye y se vuelve a crear: los dos grupos administrados, la VM de la cola y
+la instancia de Cloud SQL — que es lo que #236 pide ensayar.
 
 ---
 
 ## Coste residual
 
-> Rellenar con las medidas del §5 del runbook.
+Medido el 2026-11-02 con el entorno ya destruido, antes de recrearlo.
 
 | Concepto | Medido | USD/mes |
 | :--- | ---: | ---: |
-| Buckets de medios y HLS | | |
-| Artifact Registry | | |
-| Secret Manager | | |
-| Dirección global reservada | | |
-| **Total aparcado** | | |
+| Bucket `media` | 0,73 GiB | ~0,01 |
+| Bucket `hls` | 7,73 GiB | ~0,16 |
+| Bucket del estado de Terraform | 0,10 MiB | ~0,00 |
+| Artifact Registry | 1 287 MB (F3, 1-nov) | ~0,07 |
+| Secret Manager | 2 secretos | ~0,12 |
+| Dirección global `mooc-lb-ip`, **reservada sin uso** | — | **7,30** |
+| **Total aparcado** | | **~7,66** |
+| | | |
 | **Entorno completo, de referencia** | — | **168,69** (F3 §2) |
+
+Aparcado cuesta el **4,5 %** de lo que cuesta encendido.
+
+Dos cosas que la sesión dejó claras y que no son obvias:
+
+- **La regla de redirección del 80 sobrevivió al `destroy`.** No depende de los
+  grupos administrados —cuelga de su propio url map y proxy—, así que nunca
+  entró en los 14 recursos. Mientras existió, el coste dominante era ella:
+  0,025 USD/h. El `apply` del §6 la reconcilió y el §9 la retiró.
+- **La dirección global solo factura cuando NO está en uso.** Con la regla de
+  reenvío viva valía 0; al aparcar pasa a `RESERVED` y cuesta 0,01 USD/h, que
+  es el 95 % de lo que cuesta el entorno aparcado. Es la corrección a la nota 38
+  que ya documentó F3 §4, confirmada aquí.
 
 ---
 
 ## Capturas
 
-> `capturas/AAAA-MM-DD_descripcion.png`. Las siete están listadas en el runbook,
-> cada una en el paso donde se toma. **Sin credenciales, tokens ni IP privadas.**
+`capturas/`, del 2026-11-02. Sin credenciales, tokens ni IP privadas.
 
-| # | Archivo | Qué prueba |
-| ---: | :--- | :--- |
-| 1 | `_estado-inicial.png` | el entorno completo antes de tocarlo |
-| 2 | `_respaldo-conservado.png` | el respaldo existe antes de destruir |
-| 3 | `_destruccion-en-curso.png` | la salida del `destroy` |
-| 4 | `_entorno-destruido.png` | **bloqueante** — no queda nada vivo |
-| 5 | `_coste-residual.png` | lo que sigue costando y cuánto |
-| 6 | `_recreacion-completa.png` | los dos grupos arriba otra vez |
-| 7 | `_verificacion-sobre-entorno-recreado.png` | **bloqueante** — la verificación pasa sobre lo recreado |
+| Archivo | Qué prueba |
+| :--- | :--- |
+| `_estado-inicial.PNG` | el entorno completo antes de tocarlo |
+| `_respaldo-conservado.PNG` | el respaldo existe y no está vacío, antes de destruir |
+| `_destroy applied.PNG` | **bloqueante** — `instances list` y `sql instances list`, las dos vacías |
+| `_reconstruccion.PNG` | los dos grupos arriba otra vez y el backend sano |
+| `_verificacion-sobre-entorno-recreado.PNG` | **bloqueante** — 20 comprobaciones, 0 fallos sobre lo recreado |
+
+No se guardó captura del volcado del `destroy` ni de las medidas de coste
+residual: la primera la sustituye con ventaja `destroy applied` —las listas
+vacías prueban el resultado, no solo el intento— y las segundas están en la
+tabla de arriba, tomadas con el entorno ya destruido.
 
 ---
 

@@ -270,6 +270,28 @@ resource "google_sql_user" "app" {
   # and proposed a password change on every plan.
   password = trimspace(var.db_password)
   project  = var.project_id
+
+  # `ABANDON`, igual que `google_sql_database.mooc` de arriba. Las dos politicas
+  # tienen que coincidir o se contradicen: al destruir, Terraform deja `moocdb`
+  # en pie (ABANDON) y acto seguido intenta `DROP USER moocuser`, que PostgreSQL
+  # rechaza porque el rol es dueno de los objetos de esa base.
+  #
+  # Paso de verdad en I6 (#236), 2026-11-02:
+  #   Error 400: failed to delete user moocuser: role "moocuser" cannot be
+  #   dropped because some objects depend on it. Details: 20 objects in moocdb
+  #
+  # El destroy se habia llevado ya las 11 VMs y el balanceador, y se paro en el
+  # ultimo recurso. Dropear el usuario no aporta nada cuando lo que se esta
+  # borrando es la instancia entera: se va con ella.
+  #
+  # OJO, y es la misma trampa que `deletion_protection` de arriba: el proveedor
+  # lee esto del ESTADO, no de este fichero. Anadirlo aqui NO arregla un destroy
+  # en curso --se comprobo: el plan recogio el cambio y el apply siguio llamando
+  # a la API de borrado--. Para que surta efecto hace falta un `apply` que lo
+  # persista antes. En aquella sesion la salida fue `terraform state rm
+  # google_sql_user.app`, que no toca GCP y deja que el usuario se vaya con la
+  # instancia. Esto queda para que el PROXIMO destroy no tropiece.
+  deletion_policy = "ABANDON"
 }
 
 # ---------------------------------------------------------------------------
