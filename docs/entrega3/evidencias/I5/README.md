@@ -7,15 +7,17 @@
 | **Responsable** | `@fredyxander` |
 | **Depende de** | H2, I3, I4 — cerrados — **y de I6**, ver abajo |
 
-**Estado: bloqueado por I6.** Todo lo demás está listo: la CI está verde en
-`main` y 18 de los 19 issues con captura obligatoria pasan la verificación.
+**Estado: completo.** Tag publicado el 2026-11-02 sobre `9df67ea`,
+con la CI en verde, `check_evidencias.sh` en 0 y el reporte de calidad
+correspondiente al mismo commit.
 
 ---
 
 ## El último paso de la entrega, y por qué va después de I6
 
 `scripts/check_evidencias.sh` es criterio de aceptación de este issue: tiene que
-salir con **código 0 sobre el commit que se taguea**. Hoy sale con 1:
+salir con **código 0 sobre el commit que se taguea**. Antes de I6 salía con 1,
+y el único que faltaba era precisamente I6:
 
 ```
 ==> 19 issue(s) con captura obligatoria
@@ -24,9 +26,12 @@ salir con **código 0 sobre el commit que se taguea**. Hoy sale con 1:
 ==> Faltan 1 captura(s).
 ```
 
-Así que el tag no se puede crear hasta que I6 haya capturado y mergeado. El
-cuerpo de #236 dice «Depende de: I5» y está al revés; el razonamiento completo,
-con las citas del enunciado, está en [`../I6/README.md`](../I6/README.md).
+Por eso el tag no podía crearse hasta que I6 capturara y mergeara. El cuerpo de
+#236 decía «Depende de: I5» y estaba al revés —se corrigió en GitHub el
+2026-11-02—; el razonamiento completo, con las citas del enunciado, está en
+[`../I6/README.md`](../I6/README.md).
+
+Con I6 cerrado, el script pasó a **código 0** y el tag se creó sobre ese commit.
 
 ---
 
@@ -70,21 +75,37 @@ evaluado»): en este README, en `docs/entrega3/deuda-tecnica.md` y en el
 
 ## Commit evaluado
 
-> Rellenar al crear el tag.
-
 | | |
 | :--- | :--- |
-| Tag | `entrega-3` |
-| SHA | |
-| Fecha | |
-| CI | |
-| `check_evidencias.sh` | |
-| Reporte de calidad correspondiente | |
+| Tag | [`entrega-3`](https://github.com/ISIS4426-2026/Plataforma-MOOC/releases/tag/entrega-3), anotado, publicado en el remoto |
+| SHA | `9df67ea2ca9fb2c29adf8030ed294d4f38adc4d3` |
+| Fecha | 2026-11-02, 15:50 -05:00 |
+| CI | [verde](https://github.com/ISIS4426-2026/Plataforma-MOOC/actions/runs/41522946344): `Build, Lint, Migrations & Unit Tests`, `Frontend`, `Terraform Format & Validate` y `SonarQube Static Analysis` |
+| `check_evidencias.sh` | **código 0** — 19 de 19 issues con captura obligatoria |
+| Reporte de calidad correspondiente | sí, ver abajo |
 
-El enunciado (p. 12) exige que el reporte de calidad esté «asociado al commit
-final de la entrega 3». **Comprobar que el reporte de H2 y el inventario de
-`deuda-tecnica.md` corresponden a este SHA**, no a uno anterior: si I6 añadió
-commits después del último análisis, hay que relanzarlo.
+### El reporte de calidad sí corresponde a este commit
+
+El enunciado (p. 12) exige que el reporte esté «asociado al commit final de la
+entrega 3». Se cumple por dos caminos independientes:
+
+1. **SonarQube analizó este commit.** La corrida de CI de `9df67ea`
+   incluye el trabajo `SonarQube Static Analysis (API, Workers & Frontend)` y
+   terminó en verde.
+2. **La exportación versionada sigue siendo válida.** El JSON de la línea base
+   (`evidencias/H3/reporte_sonarcloud_commit_final.json`) se exportó en
+   `3e7d4c5`, y entre ese commit y el tag **no cambió ni un fichero de código de
+   aplicación**:
+
+   ```bash
+   git diff --name-only 3e7d4c5..9df67ea -- internal/ cmd/ frontend/src api/ go.mod go.sum
+   # sin salida: 0 ficheros
+   ```
+
+   Las métricas no pueden haber variado porque las fuentes analizadas son
+   idénticas. Lo que entró después fue documentación y tres arreglos de guiones
+   e infraestructura (`database.tf`, `recrear-entorno.sh`,
+   `verificar_endpoints_nube.sh`), ninguno bajo `sonar.sources`.
 
 ---
 

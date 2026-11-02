@@ -34,7 +34,7 @@ Cloud Storage compartidos por todas las réplicas, y un **frontend mínimo** par
 | :--- | :--- |
 | **URL del frontend** | <https://136.68.55.254.sslip.io> — servido en el mismo origen que la API, por el balanceador ([D1](docs/entrega3/evidencias/D1/README.md)) |
 | **URL del balanceador de la API** | <https://136.68.55.254.sslip.io/api/v1/health> (base de la API: `/api/v1`; la raíz `/api/v1/` no es un recurso y responde 404) · [documentación de la API](https://136.68.55.254.sslip.io/api/docs) · TLS 1.2 como mínimo, certificado administrado por Google |
-| **Commit evaluado** | tag `entrega-3` *(I5, pendiente)* |
+| **Commit evaluado** | tag [`entrega-3`](https://github.com/ISIS4426-2026/Plataforma-MOOC/releases/tag/entrega-3) sobre `9df67ea2ca9fb2c29adf8030ed294d4f38adc4d3` · [CI verde](https://github.com/ISIS4426-2026/Plataforma-MOOC/actions/runs/41522946344) con los 4 trabajos, SonarQube incluido |
 | **Acceso para el equipo docente** | cuentas de prueba y procedimiento por el medio privado del curso; **este repositorio no publica credenciales** |
 
 > [!NOTE]
@@ -48,13 +48,13 @@ Cloud Storage compartidos por todas las réplicas, y un **frontend mínimo** par
 | | Entregable | Dónde está |
 | :---: | :--- | :--- |
 | 1 | **Plataforma desplegada**, con frontend, autoscaling en API y workers, cola compartida y persistencia | Las dos URL de arriba · arquitectura verificada en [`arquitectura.md`](docs/entrega3/arquitectura.md) §1–§3 |
-| 2 | **Release del código y la configuración** | Tag `entrega-3` *(I5)* · código Go en [`cmd/`](cmd/) e [`internal/`](internal/), frontend en [`frontend/`](frontend/), contenedores (`Dockerfile.*`), plantillas, arranque, políticas y balanceo en [`infra/terraform/`](infra/terraform/README.md) e [`infra/bootstrap/`](infra/bootstrap/) |
+| 2 | **Release del código y la configuración** | Tag [`entrega-3`](https://github.com/ISIS4426-2026/Plataforma-MOOC/releases/tag/entrega-3) sobre `9df67ea` · código Go en [`cmd/`](cmd/) e [`internal/`](internal/), frontend en [`frontend/`](frontend/), contenedores (`Dockerfile.*`), plantillas, arranque, políticas y balanceo en [`infra/terraform/`](infra/terraform/README.md) e [`infra/bootstrap/`](infra/bootstrap/) |
 | 3 | **Documento de arquitectura**, con operación y reconstrucción | [`docs/entrega3/arquitectura.md`](docs/entrega3/arquitectura.md) |
 | 4 | **Verificación funcional del frontend**: matriz de recorridos y rutas | [`evidencias/D5`](docs/entrega3/evidencias/D5/README.md) (matriz) · [`D2`](docs/entrega3/evidencias/D2/README.md) estudiante · [`D3`](docs/entrega3/evidencias/D3/README.md) profesor · [`D4`](docs/entrega3/evidencias/D4/README.md) estados y autorización |
 | 5 | **Informe de capacidad**: tres escenarios, variantes 3A y 3B | [`capacity-planning/pruebas_de_carga_entrega3.md`](capacity-planning/pruebas_de_carga_entrega3.md) *(G7)* |
 | 6 | **Primer documento de deuda técnica** | [`docs/entrega3/deuda-tecnica.md`](docs/entrega3/deuda-tecnica.md) |
 | 7 | **Evidencias reproducibles**: scripts, datos sintéticos, resultados originales, reportes de calidad y pipeline | [`docs/entrega3/evidencias/`](docs/entrega3/evidencias/) — una carpeta por issue, con su `README.md` · [`scripts/`](scripts/) · [`capacity-planning/`](capacity-planning/) · CI en [`.github/workflows/`](.github/workflows/) |
-| 8 | **Video de sustentación** | *(I4, pendiente: enlace con acceso para el equipo docente)* |
+| 8 | **Video de sustentación** | <https://www.youtube.com/watch?v=yHv4ZpIWkik> |
 
 ### Dónde se sustenta cada criterio de evaluación
 
@@ -66,7 +66,7 @@ Cloud Storage compartidos por todas las réplicas, y un **frontend mínimo** par
 | **Pruebas comparativas** | [Informe de capacidad](capacity-planning/pruebas_de_carga_entrega3.md) · línea base en [`A7`](docs/entrega3/evidencias/A7/README.md) · escenarios en [`G3`](docs/entrega3/evidencias/G3/README.md), [`G4`](docs/entrega3/evidencias/G4/), [`G5`](docs/entrega3/evidencias/G5/README.md), [`G6`](docs/entrega3/evidencias/G6/README.md) · instrumentación en [`G1`](docs/entrega3/evidencias/G1/README.md) · criterios en [`criterios_de_medicion.md`](capacity-planning/criterios_de_medicion.md) |
 | **Calidad del código** | [`H1`](docs/entrega3/evidencias/H1/) análisis en la CI · [`H2`](docs/entrega3/evidencias/H2/) umbrales · reporte trazable al commit final en [`deuda-tecnica.md`](docs/entrega3/deuda-tecnica.md) |
 | **Documentación y deuda** | [`arquitectura.md`](docs/entrega3/arquitectura.md) (diagramas del despliegue real, decisiones, operación) · [`deuda-tecnica.md`](docs/entrega3/deuda-tecnica.md) · costos en [`F3`](docs/entrega3/evidencias/F3/README.md) |
-| **Sustentación** | Video *(I4)* · guion e inventario de capturas en [`evidencias/I4`](docs/entrega3/evidencias/I4/) |
+| **Sustentación** | [Video](https://www.youtube.com/watch?v=yHv4ZpIWkik) · guion e inventario de capturas en [`evidencias/I4`](docs/entrega3/evidencias/I4/) |
 
 ### Para trabajar en la entrega
 

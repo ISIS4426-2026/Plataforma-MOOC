@@ -491,6 +491,29 @@ flowchart TB
 
 De acuerdo con el criterio de aceptación (*«Entregar el reporte completo o una exportación verificable asociado al commit final de la entrega 3, junto con el enlace a la ejecución del pipeline. Las capturas parciales y las explicaciones verbales no sustituyen el reporte»*), a continuación se disponen los enlaces y artefactos completos versionados en el repositorio:
 
+### 7.0. El commit evaluado
+
+| | |
+| :--- | :--- |
+| Tag | [`entrega-3`](https://github.com/ISIS4426-2026/Plataforma-MOOC/releases/tag/entrega-3) |
+| Commit | `9df67ea2ca9fb2c29adf8030ed294d4f38adc4d3` |
+| Corrida de CI que lo analizó | [verde, con `SonarQube Static Analysis`](https://github.com/ISIS4426-2026/Plataforma-MOOC/actions/runs/41522946344) |
+
+La exportación versionada de la línea base
+([`evidencias/H3/reporte_sonarcloud_commit_final.json`](./evidencias/H3/reporte_sonarcloud_commit_final.json))
+se generó en `3e7d4c5`. **Sigue siendo la línea base de este commit**: entre
+`3e7d4c5` y `9df67ea` no cambió ningún fichero bajo `sonar.sources`
+ni `sonar.tests`, comprobable con
+
+```bash
+git diff --name-only 3e7d4c5..9df67ea -- internal/ cmd/ frontend/src api/ go.mod go.sum
+```
+
+que no devuelve nada. Lo que entró después fue documentación de la Entrega 3 y
+tres arreglos encontrados al ejecutar I6 (`infra/terraform/database.tf`,
+`scripts/recrear-entorno.sh`, `scripts/verificar_endpoints_nube.sh`), fuera del
+alcance del analizador.
+
 ### 7.1. Enlaces al analizador y al pipeline de integración continua
 
 | Recurso | Enlace / Ruta verificable | Descripción |
