@@ -37,6 +37,7 @@ P = {
     # Cloud NAT, cloud.google.com/nat/pricing
     "nat_vm_h": 0.0014,                # por VM que usa la pasarela, hasta 32
     "nat_datos_gib": 0.045,
+    "nat_ip_h": 0.005,                 # por IP externa de la pasarela; con min_ports_per_vm = 2048 basta una (nota 57)
     # Direcciones IP, cloud.google.com/vpc/network-pricing
     "ip_reservada_sin_uso_h": 0.01,    # la de la regla de reenvio no paga mientras la regla existe
     # Cloud Storage STANDARD us-east1, el mismo valor que la Entrega 2
@@ -82,6 +83,7 @@ def escenario(n_api, n_worker, generador=False):
         ("Cloud SQL: 1 vCPU, 3,75 GiB, zonal", SQL_VCPU * P["sql_vcpu_h"] + SQL_RAM_GIB * P["sql_gib_ram_h"], ""),
         ("Cloud SQL: 10 GiB SSD + copias y PITR", SQL_SSD_GIB * P["sql_ssd_gib_h"] + SQL_BACKUP_GIB * P["sql_backup_gib_h"], ""),
         ("Cloud NAT: pasarela", (n_api + n_worker + 1 + (1 if generador else 0)) * P["nat_vm_h"], "por VM que sale por ella"),
+        ("Cloud NAT: 1 IP externa de la pasarela", P["nat_ip_h"], "una IP para ~8 VM a 2 048 puertos cada una (nota 57)"),
         ("Cloud NAT: datos procesados", NAT_GIB_MES * P["nat_datos_gib"] / HORAS_MES, "supuesto de volumen"),
         ("Cloud Storage: 2 buckets STANDARD", GCS_GIB * P["gcs_gib_mes"] / HORAS_MES, "supuesto de volumen"),
         ("Salida a internet: HLS a Sudamerica", EGRESO_GIB_MES * P["egreso_sudamerica_gib"] / HORAS_MES, "supuesto de volumen"),
