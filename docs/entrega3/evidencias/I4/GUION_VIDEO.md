@@ -31,8 +31,8 @@ muestran desde sus ejecuciones previas, con sus registros completos en el reposi
 
 ## Antes de grabar
 
-- [ ] Las tres capturas que faltan: **G5** (en curso hoy), **F1** (hecha) y el **vídeo corto de D5**, que solo se
-      puede grabar con el entorno encendido.
+- [x] Capturas de **G5** y **F1**: hechas el 2026-11-01.
+- [ ] El **vídeo corto de D5**, que solo se puede grabar con el entorno encendido.
 - [ ] G4 y G7 cerrados: el bloque 9 se monta sobre el informe definitivo, no sobre el borrador.
 - [ ] Cada presentador repasa su bloque con su issue abierto: el enunciado pide que todos puedan explicar
       configuración, decisiones y resultados, y la sustentación síncrona puede pedir repetir una prueba.
