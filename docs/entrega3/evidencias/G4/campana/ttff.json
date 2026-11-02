@@ -1,0 +1,318 @@
+{
+  "nivel_0": {
+    "Solicitadas": 6,
+    "Muestras": [
+      {
+        "ttff_ms": 362.5,
+        "manifiesto_ms": 54.2,
+        "variante_ms": 31.7,
+        "segmento0_ms": 89.9,
+        "decodificacion_ms": 167.7,
+        "playing": 362.5,
+        "waiting": 12.5,
+        "stalled": 0,
+        "error": "",
+        "navegador": "Chrome/156.0.8078.73"
+      },
+      {
+        "ttff_ms": 414.1,
+        "manifiesto_ms": 78.3,
+        "variante_ms": 32.1,
+        "segmento0_ms": 54.1,
+        "decodificacion_ms": 226.3,
+        "playing": 414.1,
+        "waiting": 12.6,
+        "stalled": 0,
+        "error": "",
+        "navegador": "Chrome/156.0.8078.73"
+      },
+      {
+        "ttff_ms": 366.2,
+        "manifiesto_ms": 39.9,
+        "variante_ms": 26.3,
+        "segmento0_ms": 40.9,
+        "decodificacion_ms": 242.8,
+        "playing": 366.2,
+        "waiting": 12.4,
+        "stalled": 0,
+        "error": "",
+        "navegador": "Chrome/156.0.8078.73"
+      },
+      {
+        "ttff_ms": 363.4,
+        "manifiesto_ms": 47.7,
+        "variante_ms": 28.7,
+        "segmento0_ms": 44.7,
+        "decodificacion_ms": 224.5,
+        "playing": 363.4,
+        "waiting": 21.5,
+        "stalled": 0,
+        "error": "",
+        "navegador": "Chrome/156.0.8078.73"
+      },
+      {
+        "ttff_ms": 369.4,
+        "manifiesto_ms": 38.1,
+        "variante_ms": 29.1,
+        "segmento0_ms": 47.2,
+        "decodificacion_ms": 229.1,
+        "playing": 369.4,
+        "waiting": 14.2,
+        "stalled": 0,
+        "error": "",
+        "navegador": "Chrome/156.0.8078.73"
+      },
+      {
+        "ttff_ms": 392.8,
+        "manifiesto_ms": 55.5,
+        "variante_ms": 34.9,
+        "segmento0_ms": 42.3,
+        "decodificacion_ms": 235.3,
+        "playing": 392.8,
+        "waiting": 16.3,
+        "stalled": 0,
+        "error": "",
+        "navegador": "Chrome/156.0.8078.73"
+      }
+    ],
+    "Fallidas": 0,
+    "Navegador": "Chrome/156.0.8078.73"
+  },
+  "nivel_1": {
+    "Solicitadas": 6,
+    "Muestras": [
+      {
+        "ttff_ms": 333.4,
+        "manifiesto_ms": 44.9,
+        "variante_ms": 29.2,
+        "segmento0_ms": 47.9,
+        "decodificacion_ms": 193.6,
+        "playing": 333.4,
+        "waiting": 10.1,
+        "stalled": 0,
+        "error": "",
+        "navegador": "Chrome/156.0.8078.73"
+      },
+      {
+        "ttff_ms": 404.2,
+        "manifiesto_ms": 41.7,
+        "variante_ms": 26.8,
+        "segmento0_ms": 47.6,
+        "decodificacion_ms": 267.5,
+        "playing": 404.2,
+        "waiting": 15.3,
+        "stalled": 0,
+        "error": "",
+        "navegador": "Chrome/156.0.8078.73"
+      },
+      {
+        "ttff_ms": 381.7,
+        "manifiesto_ms": 34.7,
+        "variante_ms": 27.8,
+        "segmento0_ms": 36,
+        "decodificacion_ms": 259.1,
+        "playing": 381.7,
+        "waiting": 15,
+        "stalled": 0,
+        "error": "",
+        "navegador": "Chrome/156.0.8078.73"
+      },
+      {
+        "ttff_ms": 355.5,
+        "manifiesto_ms": 33.1,
+        "variante_ms": 29.7,
+        "segmento0_ms": 41.5,
+        "decodificacion_ms": 231.2,
+        "playing": 355.5,
+        "waiting": 16.1,
+        "stalled": 0,
+        "error": "",
+        "navegador": "Chrome/156.0.8078.73"
+      },
+      {
+        "ttff_ms": 414.2,
+        "manifiesto_ms": 38.9,
+        "variante_ms": 30.8,
+        "segmento0_ms": 45,
+        "decodificacion_ms": 279.9,
+        "playing": 414.2,
+        "waiting": 10.1,
+        "stalled": 0,
+        "error": "",
+        "navegador": "Chrome/156.0.8078.73"
+      },
+      {
+        "ttff_ms": 368.5,
+        "manifiesto_ms": 42.3,
+        "variante_ms": 26.1,
+        "segmento0_ms": 42.8,
+        "decodificacion_ms": 236.6,
+        "playing": 368.5,
+        "waiting": 15.4,
+        "stalled": 0,
+        "error": "",
+        "navegador": "Chrome/156.0.8078.73"
+      }
+    ],
+    "Fallidas": 0,
+    "Navegador": "Chrome/156.0.8078.73"
+  },
+  "nivel_2": {
+    "Solicitadas": 6,
+    "Muestras": [
+      {
+        "ttff_ms": 391.8,
+        "manifiesto_ms": 42.1,
+        "variante_ms": 33.7,
+        "segmento0_ms": 31.6,
+        "decodificacion_ms": 263.6,
+        "playing": 391.8,
+        "waiting": 14.9,
+        "stalled": 0,
+        "error": "",
+        "navegador": "Chrome/156.0.8078.73"
+      },
+      {
+        "ttff_ms": 355.2,
+        "manifiesto_ms": 39.4,
+        "variante_ms": 25.9,
+        "segmento0_ms": 37.1,
+        "decodificacion_ms": 232,
+        "playing": 355.2,
+        "waiting": 15.9,
+        "stalled": 0,
+        "error": "",
+        "navegador": "Chrome/156.0.8078.73"
+      },
+      {
+        "ttff_ms": 361.8,
+        "manifiesto_ms": 43.7,
+        "variante_ms": 26.3,
+        "segmento0_ms": 41,
+        "decodificacion_ms": 231.1,
+        "playing": 361.8,
+        "waiting": 14.7,
+        "stalled": 0,
+        "error": "",
+        "navegador": "Chrome/156.0.8078.73"
+      },
+      {
+        "ttff_ms": 356.2,
+        "manifiesto_ms": 35.7,
+        "variante_ms": 24.4,
+        "segmento0_ms": 40.1,
+        "decodificacion_ms": 238.1,
+        "playing": 356.2,
+        "waiting": 16.1,
+        "stalled": 0,
+        "error": "",
+        "navegador": "Chrome/156.0.8078.73"
+      },
+      {
+        "ttff_ms": 380.7,
+        "manifiesto_ms": 47.3,
+        "variante_ms": 28.8,
+        "segmento0_ms": 42.4,
+        "decodificacion_ms": 246.2,
+        "playing": 380.7,
+        "waiting": 11.8,
+        "stalled": 0,
+        "error": "",
+        "navegador": "Chrome/156.0.8078.73"
+      },
+      {
+        "ttff_ms": 384.5,
+        "manifiesto_ms": 44.1,
+        "variante_ms": 23.4,
+        "segmento0_ms": 37.1,
+        "decodificacion_ms": 262.9,
+        "playing": 384.5,
+        "waiting": 10.4,
+        "stalled": 0,
+        "error": "",
+        "navegador": "Chrome/156.0.8078.73"
+      }
+    ],
+    "Fallidas": 0,
+    "Navegador": "Chrome/156.0.8078.73"
+  },
+  "nivel_3": {
+    "Solicitadas": 6,
+    "Muestras": [
+      {
+        "ttff_ms": 378.4,
+        "manifiesto_ms": 46.7,
+        "variante_ms": 24.2,
+        "segmento0_ms": 38.1,
+        "decodificacion_ms": 248.8,
+        "playing": 378.4,
+        "waiting": 18.6,
+        "stalled": 0,
+        "error": "",
+        "navegador": "Chrome/156.0.8078.73"
+      },
+      {
+        "ttff_ms": 379.3,
+        "manifiesto_ms": 40.6,
+        "variante_ms": 33.5,
+        "segmento0_ms": 46.7,
+        "decodificacion_ms": 238.2,
+        "playing": 379.3,
+        "waiting": 17.1,
+        "stalled": 0,
+        "error": "",
+        "navegador": "Chrome/156.0.8078.73"
+      },
+      {
+        "ttff_ms": 411.9,
+        "manifiesto_ms": 44.5,
+        "variante_ms": 29.7,
+        "segmento0_ms": 47.1,
+        "decodificacion_ms": 271,
+        "playing": 411.9,
+        "waiting": 18.6,
+        "stalled": 0,
+        "error": "",
+        "navegador": "Chrome/156.0.8078.73"
+      },
+      {
+        "ttff_ms": 388.7,
+        "manifiesto_ms": 41.2,
+        "variante_ms": 25.3,
+        "segmento0_ms": 43,
+        "decodificacion_ms": 256.8,
+        "playing": 388.7,
+        "waiting": 18.6,
+        "stalled": 0,
+        "error": "",
+        "navegador": "Chrome/156.0.8078.73"
+      },
+      {
+        "ttff_ms": 376,
+        "manifiesto_ms": 40.1,
+        "variante_ms": 26.7,
+        "segmento0_ms": 41.8,
+        "decodificacion_ms": 244.7,
+        "playing": 376,
+        "waiting": 16,
+        "stalled": 0,
+        "error": "",
+        "navegador": "Chrome/156.0.8078.73"
+      },
+      {
+        "ttff_ms": 430.5,
+        "manifiesto_ms": 49.8,
+        "variante_ms": 37.2,
+        "segmento0_ms": 40.5,
+        "decodificacion_ms": 280.7,
+        "playing": 430.5,
+        "waiting": 19,
+        "stalled": 0,
+        "error": "",
+        "navegador": "Chrome/156.0.8078.73"
+      }
+    ],
+    "Fallidas": 0,
+    "Navegador": "Chrome/156.0.8078.73"
+  }
+}

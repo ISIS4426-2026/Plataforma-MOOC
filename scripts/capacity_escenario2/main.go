@@ -918,10 +918,17 @@ func main() {
 		_ = os.WriteFile(filepath.Join(cfg.OutDir, "ttff.json"), raw, 0644)
 	}
 	writeDrainLog(filepath.Join(cfg.OutDir, "drenaje_cola_verificacion.txt"), cfg, drainResult)
-	writeExecutiveSummary(filepath.Join(cfg.OutDir, "resumen_ejecutivo_escenario2.md"), cfg, levelResults, drainResult)
-	writeBottleneckAnalysis(filepath.Join(cfg.OutDir, "analisis_cuello_de_botella.md"), cfg, levelResults, drainResult)
-	writeH5README(filepath.Join(cfg.OutDir, "README.md"), cfg, levelResults, drainResult)
-	writeCapacityReportFile(filepath.Join(cfg.OutDir, "reporte_carga_escenario2.md"), cfg, levelResults, drainResult)
+	// Los cuatro informes narrativos de abajo tienen la tabla de CINCO niveles escrita a mano (levels[4]): con
+	// -hasta-nivel menor se caian al escribirla, despues de haber medido todo (G4). Con menos niveles no se escriben:
+	// la evidencia es el log de corrida, el drenaje, ttff.json y las tablas del README de la campana.
+	if len(levelResults) == 5 {
+		writeExecutiveSummary(filepath.Join(cfg.OutDir, "resumen_ejecutivo_escenario2.md"), cfg, levelResults, drainResult)
+		writeBottleneckAnalysis(filepath.Join(cfg.OutDir, "analisis_cuello_de_botella.md"), cfg, levelResults, drainResult)
+		writeH5README(filepath.Join(cfg.OutDir, "README.md"), cfg, levelResults, drainResult)
+		writeCapacityReportFile(filepath.Join(cfg.OutDir, "reporte_carga_escenario2.md"), cfg, levelResults, drainResult)
+	} else {
+		log.Printf("Informes narrativos de 5 niveles omitidos: se corrieron %d niveles (-hasta-nivel).", len(levelResults))
+	}
 
 	// La campana no se declara exitosa sola. Antes imprimia "Finalizado
 	// Exitosamente" con 23 de 27 trabajos sin terminar de medirse y el drenaje
