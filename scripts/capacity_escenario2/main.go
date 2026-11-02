@@ -57,6 +57,10 @@ type Config struct {
 	VideoMedio        string
 	VideoLargo        string
 	QuickMode         bool
+	// G4 (#224)
+	HastaNivel   int
+	TTFFMuestras int
+	TTFFImagen   string
 }
 
 // Duracion declarada de cada perfil, en segundos. Las mismas que verifica
@@ -290,6 +294,8 @@ type LevelMetrics struct {
 	// PrimerSegmentoDur es transporte: manifiesto + variante + primer segmento.
 	// NO es el tiempo al primer cuadro, y no se publica como tal.
 	PrimerSegmentoDur time.Duration
+	// TTFF es el tiempo al primer cuadro medido por un reproductor (Chromium + hls.js), G4.
+	TTFF ResultadoTTFF
 }
 
 type DrainSnapshot struct {
@@ -441,7 +447,14 @@ func main() {
 	flag.StringVar(&cfg.VideoMedio, "video-medio", "scratch/video_medio.mp4", "Path to medium profile video")
 	flag.StringVar(&cfg.VideoLargo, "video-largo", "scratch/video_largo.mp4", "Path to long profile video")
 	flag.BoolVar(&cfg.QuickMode, "quick", false, "Fast execution mode for validation")
+	flag.IntVar(&cfg.HastaNivel, "hasta-nivel", 4, "Ultimo nivel que se corre (0 a 4). El ultimo nivel corrido es el que observa el drenaje")
+	flag.IntVar(&cfg.TTFFMuestras, "ttff-muestras", 6, "Reproducciones por nivel para medir el tiempo al primer cuadro con Chromium + hls.js (0 = no se mide)")
+	flag.StringVar(&cfg.TTFFImagen, "ttff-imagen", "mooc-ttff", "Imagen de Docker del medidor (scripts/capacity_escenario2/ttff)")
 	flag.Parse()
+	// La cadena de conexion lleva la contrasena de la base: por entorno, no por argumento (un argumento se ve en `ps`).
+	if v := os.Getenv("DB_CONN"); v != "" {
+		cfg.DBConnStr = v
+	}
 
 	// Criterios de medicion de A6 (issue #198): sin destino y entorno
 	// declarados no se mide, porque entonces la evidencia no puede decir contra
@@ -559,6 +572,26 @@ func main() {
 	cfg.HLSBaseURL = hlsBase
 	log.Printf("%s", cabeceraEvidencia(cfg))
 
+	// El consumo HLS y el tiempo al primer cuadro NO pueden depender de la cola que se esta midiendo: en A7,
+	// los niveles 2 a 4 no descargaron ni un segmento porque sus videos seguian encolados. Se prepara UN
+	// video del perfil corto antes de medir nada y se espera a que quede procesado; los estudiantes de
+	// todos los niveles lo consumen mientras las subidas del nivel alimentan la cola.
+	var fixtureUnit struct {
+		ID string `json:"id"`
+	}
+	if _, _, err = adminClient.doJSON("POST", fmt.Sprintf("/api/v1/modules/%s/units", module.ID), map[string]any{
+		"title": "Unidad de consumo (video ya procesado)",
+	}, &fixtureUnit); err != nil {
+		log.Fatalf("Error creando la unidad del video de consumo: %v", err)
+	}
+	log.Printf("Preparando el video de consumo (perfil corto): se espera a que quede procesado antes de medir nada")
+	fx := executeUploadLifecycle(adminClient, fixtureUnit.ID, 0, "corto", videoCortoBytes, cfg.HLSBaseURL, 45*time.Minute, nil)
+	if fx.FinalStatus != "completed" || fx.StableID == "" {
+		log.Fatalf("El video de consumo no quedo procesado (estado %q): %s", fx.FinalStatus, fx.ErrorMessage)
+	}
+	fixtureStableID := fx.StableID
+	log.Printf("Video de consumo listo (stable_id %s)", fixtureStableID)
+
 	// -------------------------------------------------------------------------
 	// Definición de Niveles de Carga
 	// -------------------------------------------------------------------------
@@ -626,9 +659,16 @@ func main() {
 		},
 	}
 
+	if cfg.HastaNivel >= 0 && cfg.HastaNivel < len(levels)-1 {
+		levels = levels[:cfg.HastaNivel+1]
+		for i := range levels {
+			levels[i].IsDrainLevel = false
+		}
+		levels[len(levels)-1].IsDrainLevel = true
+	}
+
 	var levelResults []LevelMetrics
 	var drainResult DrainResult
-	var lastStableID string
 
 	// Run each level
 	for _, ldef := range levels {
@@ -697,6 +737,24 @@ func main() {
 		log.Printf("  Presupuesto de espera   : %v (%.0f s de video a %.1fx en %d vCPU)",
 			presupuesto.Round(time.Second), segundosDeVideo(ldef.Profiles), factorTranscodificado, cfg.WorkerConcurrency)
 
+		// Consumo concurrente: los estudiantes leen el video ya procesado MIENTRAS las subidas del nivel
+		// alimentan la cola, y despues se mide el tiempo al primer cuadro con un reproductor.
+		type consumo struct {
+			hls  HLSStreamResult
+			ttff ResultadoTTFF
+		}
+		consumoCh := make(chan consumo, 1)
+		go func() {
+			var c consumo
+			c.hls = runHLSStreamingSimulation(newHTTPClient(cfg.BaseURL), hlsBase, fixtureStableID,
+				ldef.PacingSec, ldef.Streamers, cfg.Patron, cfg.MaxSegs)
+			if cfg.TTFFMuestras > 0 {
+				c.ttff = medirTTFF(cfg.TTFFImagen,
+					fmt.Sprintf("%s/hls/%s/master.m3u8", strings.TrimRight(hlsBase, "/"), fixtureStableID), cfg.TTFFMuestras)
+			}
+			consumoCh <- c
+		}()
+
 		// Concurrently spawn upload jobs
 		var (
 			uploadWG    sync.WaitGroup
@@ -748,9 +806,6 @@ func main() {
 
 					res := executeUploadLifecycle(client, unit.ID, idx+1, prof, vBytes, hlsBase, presupuesto, onConf)
 					results[idx] = res
-					if res.StableID != "" {
-						lastStableID = res.StableID
-					}
 				}
 			}(w)
 		}
@@ -825,28 +880,15 @@ func main() {
 			lm.Stage2ThroughputMBs = (float64(totalBytesUploaded) / (1024 * 1024)) / lm.Stage2.TotalDur.Seconds()
 		}
 
-		// Run HLS Streaming validation using the produced stable ID
-		if lastStableID != "" {
-			hlsClient := newHTTPClient(cfg.BaseURL)
-			lm.HLSStreaming = runHLSStreamingSimulation(hlsClient, hlsBase, lastStableID,
-				ldef.PacingSec, ldef.Streamers, cfg.Patron, cfg.MaxSegs)
-			lm.GreedyDownloadMBps = runGreedyBulkDownload(hlsClient, hlsBase, lastStableID)
-
-			// Lo que esta medicion puede sostener: el tiempo hasta tener el
-			// primer segmento descargado. Es transporte, no reproduccion.
-			//
-			// Antes esta linea sumaba 45 ms fijos y el resultado se publicaba
-			// como «tiempo al primer cuadro» de una «sonda de reproductor
-			// real». Los 45 ms eran una constante escrita en el codigo; sumarla
-			// a una latencia de red devuelve la misma latencia desplazada, y no
-			// habia reproductor en ninguna parte. La revision lo marco.
-			//
-			// El tiempo al primer cuadro solo se publica si lo produjo un
-			// reproductor; como medirlo esta en la seccion 6 del documento de
-			// criterios, y lo implementa G4. Hasta entonces esta cifra se
-			// publica con su nombre.
-			lm.PrimerSegmentoDur = lm.HLSStreaming.ManifestTTFB + lm.HLSStreaming.VariantTTFB + lm.HLSStreaming.AvgSegLatency
+		// Lo medido por los estudiantes y por el reproductor mientras corria el nivel.
+		cons := <-consumoCh
+		lm.HLSStreaming = cons.hls
+		lm.TTFF = cons.ttff
+		if fixtureStableID != "" {
+			lm.GreedyDownloadMBps = runGreedyBulkDownload(newHTTPClient(cfg.BaseURL), hlsBase, fixtureStableID)
 		}
+		// Transporte: manifiesto + variante + primer segmento. NO es el tiempo al primer cuadro, que es lm.TTFF.
+		lm.PrimerSegmentoDur = lm.HLSStreaming.ManifestTTFB + lm.HLSStreaming.VariantTTFB + lm.HLSStreaming.AvgSegLatency
 
 		log.Printf("  >>> Resumen %s:", ldef.Name)
 		log.Printf("      Duración total corrida     : %v", lm.Duration.Round(time.Millisecond))
@@ -868,6 +910,13 @@ func main() {
 	// Generar y Escribir Todos los Archivos de Evidencia
 	// -------------------------------------------------------------------------
 	writeCorridaLog(filepath.Join(cfg.OutDir, "corrida_niveles_escenario2.txt"), cfg, levelResults)
+	tt := map[string]ResultadoTTFF{}
+	for _, lm := range levelResults {
+		tt[fmt.Sprintf("nivel_%d", lm.Level)] = lm.TTFF
+	}
+	if raw, err := json.MarshalIndent(tt, "", "  "); err == nil {
+		_ = os.WriteFile(filepath.Join(cfg.OutDir, "ttff.json"), raw, 0644)
+	}
 	writeDrainLog(filepath.Join(cfg.OutDir, "drenaje_cola_verificacion.txt"), cfg, drainResult)
 	writeExecutiveSummary(filepath.Join(cfg.OutDir, "resumen_ejecutivo_escenario2.md"), cfg, levelResults, drainResult)
 	writeBottleneckAnalysis(filepath.Join(cfg.OutDir, "analisis_cuello_de_botella.md"), cfg, levelResults, drainResult)
@@ -1047,8 +1096,7 @@ func executeUploadLifecycle(client *httpClient, unitID string, jobIdx int, profi
 	// Detector de atasco: separa "lento" de "colgado". Mientras el estado del
 	// recurso avance, se sigue esperando aunque falte mucho; si no se mueve
 	// nada durante este tiempo, no hace falta gastar el presupuesto entero.
-	const limiteAtasco = 12 * time.Minute
-	ultimoAvance := time.Now()
+	marcarAvance()
 	estadoPrevio := ""
 
 	for time.Now().Before(deadline) {
@@ -1084,15 +1132,15 @@ func executeUploadLifecycle(client *httpClient, unitID string, jobIdx int, profi
 
 		if res.FinalStatus != estadoPrevio {
 			estadoPrevio = res.FinalStatus
-			ultimoAvance = time.Now()
+			marcarAvance()
 		}
 
 		if res.FinalStatus == "completed" || res.FinalStatus == "failed" {
 			break
 		}
 
-		if time.Since(ultimoAvance) > limiteAtasco {
-			res.ErrorMessage = fmt.Sprintf("atascado en %q durante %v", res.FinalStatus, limiteAtasco)
+		if sinAvanceDesde() > limiteAtascoSistema {
+			res.ErrorMessage = fmt.Sprintf("el sistema no avanza (ningun trabajo cambio de estado) desde hace %v; este quedo en %q", limiteAtascoSistema, res.FinalStatus)
 			break
 		}
 	}
@@ -1666,7 +1714,8 @@ func writeCorridaLog(path string, cfg Config, levels []LevelMetrics) {
 			lm.HLSStreaming.Streamers, lm.HLSStreaming.Patron, lm.HLSStreaming.SegmentsCount, lm.HLSStreaming.SegDurSec))
 		sb.WriteString(fmt.Sprintf("  • Margen de Buffer Medido     : %s | Interrupciones: %s\n", margenTexto(lm.HLSStreaming), stallsTexto(lm.HLSStreaming)))
 		sb.WriteString(fmt.Sprintf("  • Descarga Greedy (Bulk)      : %.2f MB/s (Aislada como prueba de estrés de red)\n", lm.GreedyDownloadMBps))
-		sb.WriteString(fmt.Sprintf("  • Primer Segmento Descargado  : %v (transporte; NO es tiempo al primer cuadro)\n\n", lm.PrimerSegmentoDur.Round(time.Millisecond)))
+		sb.WriteString(fmt.Sprintf("  • Primer Segmento Descargado  : %v (transporte; NO es tiempo al primer cuadro)\n", lm.PrimerSegmentoDur.Round(time.Millisecond)))
+		sb.WriteString(fmt.Sprintf("  • Tiempo al Primer Cuadro     : %s [Chromium sin ventana + hls.js, %s]\n\n", lm.TTFF.Texto(), lm.TTFF.Navegador))
 	}
 
 	_ = os.WriteFile(path, []byte(sb.String()), 0644)

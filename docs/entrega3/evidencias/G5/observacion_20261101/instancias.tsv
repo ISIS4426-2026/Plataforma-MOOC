@@ -1,0 +1,3 @@
+nombre	id	x_instance_id	creada	vista_por_primera_vez	primer_running	primer_sana	primera_peticion_atendida	desaparecio
+mooc-api-m2b7	2131513704192808667	8f18e6086033	2026-11-01T12:59:32.973-08:00	2026-11-01T23:29:21Z	anterior a la corrida	anterior a la corrida	anterior a la corrida	
+mooc-api-b18m	3476718266121613931	3fc0f66b96c6	2026-11-01T15:34:28.221-08:00	2026-11-01T23:34:48Z	2026-11-01T23:34:47Z	2026-11-01T23:37:05Z	2026-11-01T23:37:05Z	2026-11-01T23:57:09Z

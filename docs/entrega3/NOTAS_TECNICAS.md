@@ -63,6 +63,7 @@ lo reemplaza, lo continúa.
 | 61 | [Aparcado, la dirección del balanceador sí factura, y Cloud SQL cuesta 0,0676 USD/h, no 0,0855](#61) | **F3, I2, I6**, G7, quien estime el coste de una sesión |
 | 62 | [`docs/entrega3/arquitectura.md` completo (§1–§8) consolida las decisiones de escalamiento, el runbook reproducible de operación/aparcado/retiro y el cruce de capacidad, costos y SPOF con `scripts/i2_verificar_arquitectura.sh`](#62) | **I2**, I3, I4, I5, I6, G7 |
 | 63 | [F1 encontró que el balanceador aceptaba TLS 1.0/1.1, y su guion daba cinco falsas FALLA en Windows](#63) | **F1**, F2, G5, I1, I2, I6 |
+| 64 | [G5: la API escala en 48 s y se incorpora en 157 s; reducir tarda 11 min y no se puede acortar](#64) | **G7, I2, I4**, quien corra algo desde la nube de Claude |
 
 ---
 
@@ -1497,7 +1498,9 @@ plan lo dice con `will be updated in-place`.
 ### Por qué las reglas de reenvío se apagan pero el certificado se conserva
 
 Una regla de reenvío se factura **por hora, sirva o no tráfico**: 0,025 USD/h, y
-hay dos. Son 1,20 USD/día aparcado, veinte veces la base detenida. Pero destruir
+hay dos. Son 1,20 USD/día aparcado, veinte veces la base detenida.
+
+> **Corrección (F3, nota 61):** la tarifa es un mínimo por **hasta cinco** reglas, no por regla: son **0,60 USD/día**, no 1,20. Lo confirmó la factura del 2026-10-29. Pero destruir
 el balanceador entero obligaría a reaprovisionar el certificado —hasta una hora—
 en cada sesión.
 
@@ -2317,8 +2320,10 @@ Cifras medidas en la corrida completa del **Escenario 3B (ciclo de escalamiento 
 | **La IP reservada sin regla paga** | La nota 38 dice que al aparcar se conservan «dirección, certificado, mapas y proxies, que no tienen coste por hora». Certificado, mapas y proxies, no; **la dirección sí**: una IP externa estática reservada **sin uso** se factura a **0,01 USD/h**, y deja de estar en uso justo al borrar las reglas de reenvío (`lb_enabled=false`). Son 0,24 USD/día, el 72 % del entorno aparcado con la cola parada (`0,33 USD/día`). Conservarla sigue siendo correcto (rehacerla cambia el dominio `sslip.io` y obliga a reaprovisionar `mooc-lb-cert`), pero hay que contarla. [Precios de VPC](https://cloud.google.com/vpc/network-pricing) |
 | **La cola es la otra mitad** | `mooc-queue-server` no es de ningún grupo y el `resize --size=0` no la toca. Encendida, el aparcado pasa de 0,33 a 0,74 USD/día |
 | **Cloud SQL: 0,0676 USD/h** | `C1/coste_sesion.txt` usa 0,0855 USD/h. La tarifa de lista de 1 vCPU (0,0413) y 3,75 GiB (0,007/GiB) en Enterprise zonal es **0,0676 USD/h**, la misma que dio los 49,31 USD/mes de la Entrega 2. El 0,0855 sobrestima un 27 % |
-| **De dónde sale cada cifra** | [`scripts/f3_estimacion_costos.py`](../../scripts/f3_estimacion_costos.py), con los precios y su fuente declarados al principio y una autoprueba (`--autoprueba`) que reproduce las cifras de la Entrega 2 (39,11 USD/mes por `e2-highcpu-2` y 49,31 de Cloud SQL). Genera `186,94 USD/mes` a 1 instancia por grupo, `347,48 USD/mes` a 3 y `0,79 USD` por sesión de 2 h. Para I2 y G7: citar sus tablas en vez de recalcular a mano |
-| **Lo que cuesta escalar** | cada instancia extra de cualquiera de los dos grupos son 0,055 USD/h. Lo caro de la arquitectura elástica es mantener la entrada: las dos reglas de reenvío son 36,50 USD/mes, más que cualquiera de los grupos a 1 instancia |
+| **De dónde sale cada cifra** | [`scripts/f3_estimacion_costos.py`](../../scripts/f3_estimacion_costos.py), con los precios y su fuente declarados al principio y una autoprueba (`--autoprueba`) que reproduce las cifras de la Entrega 2 (39,11 USD/mes por `e2-highcpu-2` y 49,31 de Cloud SQL). Genera `168,69 USD/mes` a 1 instancia por grupo, `329,23 USD/mes` a 3 y `0,74 USD` por sesión de 2 h. Para I2 y G7: citar sus tablas en vez de recalcular a mano |
+| **Lo que cuesta escalar** | cada instancia extra de cualquiera de los dos grupos son 0,055 USD/h. Lo caro de la arquitectura elástica es mantener la entrada y la cola: las reglas de reenvío son 18,25 USD/mes y la VM de la cola 13,23 |
+| **Las reglas de reenvío se cobran por el conjunto** | la factura del 2026-10-29 lo confirmó: el SKU es *Forwarding Rule Minimum Global*, 0,025 USD/h por **hasta cinco** reglas, no por regla (13,23 h con dos reglas = 0,33 USD). Las «1,20 USD/día» de la nota 38 y de C3 eran el doble: son **0,60**. Detalle en [`evidencias/F3/`](evidencias/F3/README.md) §5 |
+| **Queda poco cupón** | el presupuesto *Entrega 2 - cupon activo* llevaba **39,60 de 50 USD** el 2026-11-01. Aparcar al terminar cada sesión no es opcional |
 
 <a id="62"></a>
 ## 62. `docs/entrega3/arquitectura.md` completo (§1–§8) consolida las decisiones de escalamiento, el runbook reproducible de operación/aparcado/retiro y el cruce de capacidad, costos y SPOF con `scripts/i2_verificar_arquitectura.sh`
@@ -2330,7 +2335,7 @@ Cifras medidas en la corrida completa del **Escenario 3B (ciclo de escalamiento 
 | **Qué cierra I2 en `docs/entrega3/arquitectura.md`** | Completa las secciones **§5 (Decisiones de escalamiento)**, **§6 (Operación y recuperación)** y **§7 (Capacidad, costo y limitaciones)** sobre la base de §1–§4 y §8 de I1 (#231), y actualiza §3.2 (`min_ports_per_vm = 2048` en Cloud NAT de G3), §3.3 (política `mooc-api-tls` TLS 1.2 de F1) y §4 (estado de G3, G6 y H1–H3). |
 | **Parámetros efectivos del proveedor y trampas documentadas** | §5 documenta con nombres exactos de HCL/GCP las dos plantillas (`create_before_destroy`, `PROACTIVE`/`REPLACE`/`SUBSTITUTE`, `max_surge_fixed = 1`, `max_unavailable_fixed = 0`), el contrato de metadata hacia `mooc-bootstrap.sh` y el *advisory lock* `4426202603` de `mooc-migrate.sh`, los dos autoescaladores (`RATE` `0.8 × 100 = 80 req/s`, `cooldown = 300s`, ventana `600s` en API; métrica `outstanding` en `generic_node` con `single_instance_assignment = 2`, `cooldown = 420s`, ventana `900s` en worker), la diferencia entre exclusión del LB (~30 s) y recreación por autohealing (`300s`/`420s` de gracia inicial, `152s` medidos en C4), y el drenaje de workers (`90s < 120s < 180s`, `requeue()` con `retry=0` vs `handleFailedMessage()`, y las 3 capas de idempotencia de E3). |
 | **Operación reproducible, aparcado y trampa de `google_sql_user.app` en `I6`** | §6 consolida las dos capas de identidad (IAM de GCP sin `roles/cloudsql.client` vs usuario PostgreSQL `moocuser`, F2), los 3 niveles de configuración/secretos (B4), los comandos exactos para desplegar desde cero o desaparcar (encendiendo siempre `mooc-db-1` y `mooc-queue-server` **antes** que los grupos), los 8 controles de verificación post-despliegue, el aparcado en 5 pasos y el retiro final para **I6** (`terraform state rm google_sql_user.app` antes de `terraform destroy` para evitar el bloqueo por dependencias de `moocuser` en PostgreSQL). |
-| **SPOF nombrados sin omisiones y trazabilidad a pruebas y deuda técnica** | §7 integra las tablas de `F3` (`186,94` y `347,48 USD/mes`, `0,79 USD` por sesión de 2 h, `0,33` y `0,74 USD/día` aparcado), nombra explícitamente los **4 puntos únicos de falla restantes** (`mooc-queue-server` Redis/exportador, Cloud SQL `mooc-db-1` zonal sin *standby*, concentración en la zona única `us-east1-b` y relay SMTP externo Brevo) y conecta los resultados de `G3`, `G5`, `G6`, `C4`, `C7`, `E1` y `E2` con los ítems `TD-ARQ-01/02`, `TD-INF-01/02` y `TD-OPE-01/02` de [`docs/entrega3/deuda-tecnica.md`](deuda-tecnica.md). |
+| **SPOF nombrados sin omisiones y trazabilidad a pruebas y deuda técnica** | §7 integra las tablas de `F3` (`168,69` y `329,23 USD/mes`, `0,74 USD` por sesión de 2 h, `0,33` y `0,74 USD/día` aparcado), nombra explícitamente los **4 puntos únicos de falla restantes** (`mooc-queue-server` Redis/exportador, Cloud SQL `mooc-db-1` zonal sin *standby*, concentración en la zona única `us-east1-b` y relay SMTP externo Brevo) y conecta los resultados de `G3`, `G5`, `G6`, `C4`, `C7`, `E1` y `E2` con los ítems `TD-ARQ-01/02`, `TD-INF-01/02` y `TD-OPE-01/02` de [`docs/entrega3/deuda-tecnica.md`](deuda-tecnica.md). |
 | **Verificador automatizado de I2** | [`scripts/i2_verificar_arquitectura.sh`](../../scripts/i2_verificar_arquitectura.sh) ejecuta 15 controles automatizados en 10 bloques con salida distinta de cero ante cualquier fallo (`15 OK · 0 FALLA · 0 OBS`, Nota Técnica #36): presencia de las 8 secciones y subsecciones, paridad de parámetros con `infra/terraform/*.tf`, presencia de los 4 SPOF y de los 6 `TD-*`, validez de todos los enlaces relativos y anclas Markdown (Nota Técnica #14), autoprueba de costos (`f3_estimacion_costos.py --autoprueba`) y ausencia de secretos, llaves o IPs privadas de instancias. |
 
 | Issue | Qué tiene que saber |
@@ -2359,3 +2364,19 @@ Cifras medidas en la corrida completa del **Escenario 3B (ciclo de escalamiento 
 | **G5** | un `apply` desde `main` ahora incluye la política TLS: no la vuelve a quitar |
 | **I1, I2** | el control «TLS mínimo 1.2» de la Entrega 2 está vigente otra vez, demostrado con el barrido de F1 del 2026-11-01 |
 | **I6** | al destruir el entorno, la política `mooc-api-tls` se destruye con el balanceador; no queda nada suelto |
+
+<a id="64"></a>
+## 64. G5: la API escala en 48 s y se incorpora en 157 s; reducir tarda 11 min y no se puede acortar
+
+**Afecta a:** G7, I2, I4, y a quien opere el entorno desde un espacio de trabajo nuevo. Escrito el 2026-11-01 en G5 (#225). Detalle en [`evidencias/G5/`](evidencias/G5/README.md).
+
+| Qué | Detalle |
+| :--- | :--- |
+| **Los dos tiempos** | **reacción 48 s** (la carga pasa de 80 pet/s por instancia → el grupo crea la VM) e **incorporación 157 s** (decisión → primera petición atendida), de los que 138 s son arranque de la imagen hasta `/api/v1/ready`. Frente a G6: los workers reaccionan en 26 s y se incorporan en 99 s |
+| **Reducir tarda ~11 min** | desde que baja la carga hasta que el autoescalador decide reducir: su ventana de estabilización más `scale_in_control` (C2). Cualquier prueba que tenga que **ver** la reducción necesita al menos 12 min de carga baja al final |
+| **La decisión se fecha mejor con `creationTimestamp`** | el sondeo del autoescalador (`recommendedSize`) se vio 19 s **después** de que la VM ya existiera. El registro de auditoría (`instances.insert`) y el `creationTimestamp` dan la hora real |
+| **Escalar no mejoró la latencia, y no tenía por qué** | una instancia atendía 124 pet/s con p95 de 13 ms y 28 % de CPU. El ciclo prueba el mecanismo, no una mejora de rendimiento; para G7 es el mismo hallazgo que G3 (nota 58) |
+| **Para entrar por IAP hace falta `roles/iap.tunnelResourceAccessor`** | `roles/editor` no lo incluye: sin él, `gcloud compute ssh --tunnel-through-iap` responde `4033: not authorized`. Se añadió para @CrispisCas9 el 2026-11-01 |
+| **Desde un contenedor que corre como `root`** | `gcloud compute ssh` entra como `root` y la VM lo rechaza (`Permission denied (publickey)`): hay que dar un usuario, `gcloud compute ssh usuario@vm` |
+| **El `.jtl` va comprimido** | 17 MB sin comprimir; `resultados.jtl.gz` son 0,7 MB y `g5_linea_de_tiempo.py` lo lee igual |
+

@@ -629,7 +629,7 @@ terraform -chdir=infra/terraform destroy \
   -target=google_compute_autoscaler.api \
   -auto-approve
 
-# 2. Apagar las dos reglas de reenvío del balanceador (ahorra 1,20 USD/día) y fijar min_replicas=0
+# 2. Apagar las dos reglas de reenvío del balanceador (ahorra 0,60 USD/día) y fijar min_replicas=0
 terraform -chdir=infra/terraform apply \
   -var="api_min_replicas=0" \
   -var="lb_enabled=false" \
@@ -712,22 +712,22 @@ El modelo completo de costos es reproducible mediante [`scripts/f3_estimacion_co
 | Grupo de la API (`e2-highcpu-2` + 30 GiB, incluye frontend) | 39,11 USD/mes | 39,11 USD/mes (0,0536 USD/h) | 117,34 USD/mes (0,1607 USD/h) | 0,0536 USD/h | 0,00 USD/h (`size=0`) |
 | Grupo de workers (`e2-highcpu-2` + 30 GiB) | 39,11 USD/mes | 39,11 USD/mes (0,0536 USD/h) | 117,34 USD/mes (0,1607 USD/h) | 0,0536 USD/h | 0,00 USD/h (`size=0`) |
 | Cola dedicada `mooc-queue-server` (`e2-small` + 10 GiB) | *(en el worker)* | 13,23 USD/mes (0,0181 USD/h) | 13,23 USD/mes (0,0181 USD/h) | 0,0181 USD/h | 0,0014 USD/h (solo disco) / 0,0181 USD/h (encendida) |
-| Balanceador: 2 reglas de reenvío + datos | — | 36,58 USD/mes (0,0501 USD/h) | 36,58 USD/mes (0,0501 USD/h) | 0,0501 USD/h | — *(reglas borradas al aparcar)* |
+| Balanceador: 2 reglas de reenvío (tarifa mínima por hasta 5) + datos | — | 18,33 USD/mes (0,0251 USD/h) | 18,33 USD/mes (0,0251 USD/h) | 0,0251 USD/h | — *(reglas borradas al aparcar)* |
 | IP global `mooc-lb-ip` reservada sin regla activa | — | 0,00 USD/mes *(en uso)* | 0,00 USD/mes *(en uso)* | 0,00 USD/h | **0,0100 USD/h (0,24 USD/día)** |
 | Cloud SQL `mooc-db-1` (1 vCPU, 3,75 GiB + 10 GiB SSD + copias) | 51,09 USD/mes | 51,09 USD/mes (0,0699 USD/h) | 51,09 USD/mes (0,0699 USD/h) | 0,0699 USD/h | 0,0024 USD/h (solo disco y copias, `NEVER`) |
 | Cloud NAT (pasarela por VM, su IP externa y datos) | — | 6,81 USD/mes (0,0093 USD/h) | 10,89 USD/mes (0,0149 USD/h) | 0,0107 USD/h | 0,00 USD/h (0 VMs activas) |
 | Cloud Storage + salida HLS a Sudamérica + Monitoring | 4,42 USD/mes | 1,01 USD/mes (0,0014 USD/h) | 1,01 USD/mes (0,0014 USD/h) | 0,0014 USD/h | 0,0001 USD/h |
 | Generador `mooc-load-generator` (`e2-standard-4` + 30 GiB) | — | — | — | 0,1381 USD/h | 0,00 USD/h |
-| **Total por hora** | **0,1832 USD/h** | **0,2561 USD/h** | **0,4760 USD/h** | **0,3956 USD/h** | **0,0139 USD/h** (cola parada) / **0,0306 USD/h** (encendida) |
-| **Total de referencia** | **133,73 USD/mes** | **186,94 USD/mes** (+40 %) | **347,48 USD/mes** (+160 %) | **0,79 USD por sesión de 2 h** (1,19 USD en 3 h) | **0,33 USD/día** (cola parada) / **0,74 USD/día** (encendida) |
+| **Total por hora** | **0,1832 USD/h** | **0,2311 USD/h** | **0,4510 USD/h** | **0,3706 USD/h** | **0,0139 USD/h** (cola parada) / **0,0306 USD/h** (encendida) |
+| **Total de referencia** | **133,73 USD/mes** | **168,69 USD/mes** (+26 %) | **329,23 USD/mes** (+146 %) | **0,74 USD por sesión de 2 h** (1,11 USD en 3 h) | **0,33 USD/día** (cola parada) / **0,74 USD/día** (encendida) |
 
 #### Hallazgos clave sobre los costos y el consumo observado
-1. **Lo que cuesta la elasticidad frente a lo que cuesta escalar**: pasar de la arquitectura fija de la Entrega 2 (`133,73 USD/mes`) a la arquitectura elástica mínima con 1 instancia por grupo (`186,94 USD/mes`) añade **+53,21 USD/mes**, explicados casi por completo por dos recursos que **no son instancias de los grupos**: las dos reglas de reenvío del balanceador (**36,50 USD/mes**, que facturan por hora sirvan o no tráfico) y la VM dedicada de la cola `mooc-queue-server` (**13,23 USD/mes**). En cambio, cada instancia adicional creada durante un pico cuesta solo **0,055 USD/h** (`0,0536` de la VM + `0,0014` de NAT): un ciclo completo de escalado 1 → 3 → 1 durante 30 minutos como los ejecutados en `C2`, `C6`, `G3`, `G5` y `G6` cuesta **~0,05–0,06 USD**.
+1. **Lo que cuesta la elasticidad frente a lo que cuesta escalar**: pasar de la arquitectura fija de la Entrega 2 (`133,73 USD/mes`) a la arquitectura elástica mínima con 1 instancia por grupo (`168,69 USD/mes`) añade **+34,96 USD/mes**, explicados casi por completo por dos recursos que **no son instancias de los grupos**: las reglas de reenvío del balanceador (**18,25 USD/mes** por las dos: la tarifa es un mínimo por hasta cinco reglas, como confirmó la factura del 29 de octubre en F3, que facturan por hora sirvan o no tráfico) y la VM dedicada de la cola `mooc-queue-server` (**13,23 USD/mes**). En cambio, cada instancia adicional creada durante un pico cuesta solo **0,055 USD/h** (`0,0536` de la VM + `0,0014` de NAT): un ciclo completo de escalado 1 → 3 → 1 durante 30 minutos como los ejecutados en `C2`, `C6`, `G3`, `G5` y `G6` cuesta **~0,05–0,06 USD**.
 2. **Contraste entre la estimación y las sesiones medidas (`C1`, `C2`, `C5`, `C6`, `C7`, `G3`, `G6`)**:
    - La métrica personalizada `custom.googleapis.com/mooc/queue/outstanding` genera `~2,7 MiB/mes` (un punto de 8 bytes cada 30 s), más de 50 veces por debajo del tramo gratuito de `150 MiB/mes` de Cloud Monitoring (**costo efectivo: 0,00 USD**).
    - El cálculo preliminar de `C1` usaba `0,0855 USD/h` para Cloud SQL; la tarifa oficial de lista verificada en `F3` para `db-custom-1-3840` (1 vCPU + 3,75 GiB en Enterprise zonal) es **0,0676 USD/h** de cómputo (`49,31 USD/mes`), por lo que `C1` sobrestimaba Cloud SQL en un 27 %.
    - Al aparcar el entorno borrando las reglas de reenvío (`lb_enabled=false`), la IP global `mooc-lb-ip` pasa a estado reservado sin uso y factura **0,01 USD/h (`0,24 USD/día`)**, que representa el 72 % de los `0,33 USD/día` del entorno aparcado (nota 61). Conservarla sigue siendo la decisión operativa correcta porque evita cambiar el dominio `sslip.io` y esperar hasta 45 min por un nuevo certificado TLS en cada sesión.
-   - El presupuesto de facturación configurado desde la Entrega 2 (`50 USD` en rango personalizado, umbrales del 25 %, 50 %, 80 % y 100 %, **con créditos desmarcados** para alertar sobre el consumo bruto del cupón estudiantil) cubre con amplio margen el ritmo real de gasto del proyecto (`0,33 USD/día` aparcado y `~0,79–1,19 USD` por sesión de pruebas).
+   - El presupuesto de facturación configurado desde la Entrega 2 (`50 USD` en rango personalizado, umbrales del 25 %, 50 %, 80 % y 100 %, **con créditos desmarcados** para alertar sobre el consumo bruto del cupón estudiantil) cubre con amplio margen el ritmo real de gasto del proyecto (`0,33 USD/día` aparcado y `~0,74–1,11 USD` por sesión de pruebas).
 
 ### 7.3 Puntos únicos de falla restantes (SPOF)
 
