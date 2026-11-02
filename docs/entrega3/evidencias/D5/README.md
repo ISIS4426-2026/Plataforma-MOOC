@@ -33,9 +33,12 @@ profesor → estudiante dentro del **video de sustentación**, y allí se muestr
 la de arriba: [profesor](../D3/recorrido_profesor_nube_2026-10-31.txt), [estudiante](../D2/recorrido_estudiante_nube_2026-10-31.txt)
 y la autorización negativa en [D4](../D4/README.md).
 
+Captura del recorrido conectado: [`capturas/2026-10-31_nube-recorrido-conectado-profesor-estudiante.png`](./capturas/2026-10-31_nube-recorrido-conectado-profesor-estudiante.png),
+compuesta con las capturas originales de ese mismo curso en [D3](../D3/capturas/) y [D2](../D2/capturas/), sin editarlas.
+
 ## Pendiente
 
-Enlazar aquí el video de sustentación cuando exista.
+Enlazar aquí el video de sustentación cuando exista (I4).
 
 ## Nunca
 

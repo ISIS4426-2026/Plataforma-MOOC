@@ -66,7 +66,7 @@ que el resto del equipo deba saber.
 | [`D2`](./D2/) | [#212](https://github.com/ISIS4426-2026/Plataforma-MOOC/issues/212) Estudiante: recorrido completo desde el navegador | @tmichelldiaz | **el recorrido completo de estudiante en el navegador** |
 | [`D3`](./D3/) | [#213](https://github.com/ISIS4426-2026/Plataforma-MOOC/issues/213) Profesor: recorrido completo de autoria y publicacion desde el navegador | @tmichelldiaz | **el recorrido completo de profesor** |
 | [`D4`](./D4/) | [#214](https://github.com/ISIS4426-2026/Plataforma-MOOC/issues/214) Estados de interfaz y autorizacion negativa verificados en el navegador | @tmichelldiaz | **los estados de interfaz y los dos rechazos de autorizacion** |
-| [`D5`](./D5/) | [#215](https://github.com/ISIS4426-2026/Plataforma-MOOC/issues/215) Matriz de recorridos, rutas de interfaz y recorrido conectado profesor-estudiante en cloud | @tmichelldiaz | **video corto del recorrido conectado profesor-estudiante** |
+| [`D5`](./D5/) | [#215](https://github.com/ISIS4426-2026/Plataforma-MOOC/issues/215) Matriz de recorridos, rutas de interfaz y recorrido conectado profesor-estudiante en cloud | @tmichelldiaz | **el recorrido conectado profesor-estudiante en la nube** (el video va en la sustentación, I4) |
 
 ## E - Integridad y estado compartido
 
