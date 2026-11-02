@@ -33,7 +33,7 @@ Cloud Storage compartidos por todas las réplicas, y un **frontend mínimo** par
 | | |
 | :--- | :--- |
 | **URL del frontend** | <https://136.68.55.254.sslip.io> — servido en el mismo origen que la API, por el balanceador ([D1](docs/entrega3/evidencias/D1/README.md)) |
-| **URL del balanceador de la API** | <https://136.68.55.254.sslip.io/api/v1/> · [documentación de la API](https://136.68.55.254.sslip.io/api/docs) · TLS 1.2 como mínimo, certificado administrado por Google |
+| **URL del balanceador de la API** | <https://136.68.55.254.sslip.io/api/v1/health> (base de la API: `/api/v1`; la raíz `/api/v1/` no es un recurso y responde 404) · [documentación de la API](https://136.68.55.254.sslip.io/api/docs) · TLS 1.2 como mínimo, certificado administrado por Google |
 | **Commit evaluado** | tag `entrega-3` *(I5, pendiente)* |
 | **Acceso para el equipo docente** | cuentas de prueba y procedimiento por el medio privado del curso; **este repositorio no publica credenciales** |
 
