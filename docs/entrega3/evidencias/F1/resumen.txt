@@ -1,0 +1,27 @@
+OK     la unica direccion publica del proyecto es la del balanceador (136.68.55.254)
+OK     1 direccion(es) de salida del NAT (solo egreso, de uso exclusivo del router): se barren igual, abajo
+OK     el balanceador tiene 2 regla(s) de reenvio: el entorno esta encendido y el barrido mide algo
+OK     balanceador 136.68.55.254: abiertos solo [80 443] de 21,22,23,25,80,443,3000,3306,5432,5672,6379,8000,8080,8443,9000,9090,9100,9200,27017
+OK     136.72.18.9: ningun puerto abierto
+OK     5 de 5 reglas esperadas existen y coinciden con el codigo, cada una con su razon
+OK     mooc-api-m2b7 (api): sin IP externa
+OK     mooc-api-m2b7: solo la alcanzan balanceador/salud (80), IAP (22) e ICMP interno
+OK     mooc-queue-server (cola): sin IP externa
+OK     mooc-queue-server: el 6379 solo desde las cuentas de API y workers; IAP (22) e ICMP interno
+OK     mooc-worker-wxgc (worker): sin IP externa
+OK     mooc-worker-wxgc: solo la alcanzan la salud del autohealing (9090), IAP (22) e ICMP interno
+OK     Cloud SQL mooc-db-1: sin IPv4 publica, solo por la red privada mooc-vpc, sin redes autorizadas
+OK     Cloud SQL mooc-db-1: conexion cifrada obligatoria (ENCRYPTED_ONLY)
+OK     el 80 redirige a HTTPS
+OK     el 443 sirve con un certificado valido (curl verifica la cadena)
+OBS    sin Strict-Transport-Security (observacion heredada de la Entrega 2, no es falla)
+OK     TLS 1.0 y 1.1 rechazados por el balanceador (rechazado (control con TLSv1.2 correcto))
+OK     CSRF: origen ajeno y ausente rechazados (403), el propio pasa el filtro (401)
+OK     derivado HLS legible sin firmar (por diseno)
+OK     original NO legible sin firmar (403)
+OK     escritura anonima rechazada en plataforma-mooc-entrega2-hls (403)
+OK     escritura anonima rechazada en plataforma-mooc-entrega2-media (403)
+OK     el bucket privado no se puede listar sin firmar (401)
+
+Total: 0 falla(s), 1 observacion(es). Generado 2026-11-01T23:09:15Z.
+Este archivo no contiene credenciales, llaves ni secretos.

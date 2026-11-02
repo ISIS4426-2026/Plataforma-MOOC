@@ -1,0 +1,45 @@
+=============================================================================
+ Verificacion de arquitectura.md — Issue I2 (#232)
+ Fecha UTC: 2026-11-01T23:07:40Z
+ Commit base: 9f5abab
+=============================================================================
+
+[1/10] Estructura completa de docs/entrega3/arquitectura.md (§1 a §8)
+  [OK]   Existe el entregable en la ruta exigida: docs/entrega3/arquitectura.md
+  [OK]   Cero marcadores pendientes en docs/entrega3/arquitectura.md
+  [OK]   Presentes los 23 encabezados obligatorios (§1–§8 y subsecciones de §5, §6 y §7)
+
+[2/10] Integridad de anclas Markdown (Nota Tecnica #14) y enlaces relativos
+OK_LINKS anchors=8 rel_links=85
+  [OK]   Todas las anclas internas y enlaces relativos de docs/entrega3/arquitectura.md resuelven a destinos existentes
+
+[3/10] Paridad de parametros efectivos de escalamiento y salud con Terraform
+  [OK]   Verificados los 27 parametros efectivos del proveedor contra infra/terraform/*.tf
+  [OK]   Confirmada coincidencia exacta con api_autoscaler.tf, worker_autoscaler.tf, network.tf y load_balancer.tf
+
+[4/10] Arranque automatico, advisory lock, drenaje seguro e idempotencia
+  [OK]   Documentados bootstrap, advisory lock (4426202603), cadena 90s < 120s < 180s, requeue() y 3 capas de idempotencia
+
+[5/10] Instrucciones reproducibles de operacion, aparcado, retiro (I6) y secretos (§6)
+  [OK]   Verificados los 15 controles de identidades, secretos, encendido, aparcado y retiro (google_sql_user.app)
+
+[6/10] Reproducibilidad del modelo de costos (scripts/f3_estimacion_costos.py)
+  [OK]   scripts/f3_estimacion_costos.py --autoprueba ejecutado con exito
+  [OK]   Todas las cifras de costos en §7.2 coinciden con scripts/f3_estimacion_costos.py
+
+[7/10] Puntos unicos de falla restantes nombrados explicitamente (§7.3)
+  [OK]   Nombrados explicitamente los 4 puntos unicos de falla restantes y su impacto/mitigacion
+
+[8/10] Trazabilidad a pruebas de carga y al inventario de deuda tecnica (H3)
+  [OK]   Verificadas las referencias cruzadas a G3, G5, G6, C4, C7, E1, E2 y TD-ARQ/INF/OPE en docs/entrega3/deuda-tecnica.md
+
+[9/10] Registro de hallazgos en docs/entrega3/NOTAS_TECNICAS.md
+  [OK]   Notas tecnicas #60 (I1), #61 (F3) y #62 (I2) registradas en indice y cuerpo de docs/entrega3/NOTAS_TECNICAS.md
+
+[10/10] Barrido de secretos, llaves e IPs privadas en entregable y evidencias
+  [OK]   Cero credenciales, llaves privadas o firmas sin redactar en docs/entrega3/arquitectura.md docs/entrega3/evidencias/I1 docs/entrega3/evidencias/F3 docs/entrega3/evidencias/I2
+  [OK]   Cero IPs privadas literales de instancias en docs/entrega3/arquitectura.md docs/entrega3/evidencias/I1 docs/entrega3/evidencias/F3 docs/entrega3/evidencias/I2
+
+=============================================================================
+ RESUMEN I2: 15 OK · 0 FALLA · 0 OBS
+=============================================================================

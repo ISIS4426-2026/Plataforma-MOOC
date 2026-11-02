@@ -1,0 +1,60 @@
+# a) Direcciones publicas del proyecto y barrido de puertos desde internet
+# Generado: 2026-11-01T23:05:49Z por scripts/f1_superficie_red.sh (solo lectura), desde MINGW64_NT-10.0-26300 fuera de la VPC
+# Proyecto: plataforma-mooc-entrega2   Balanceador: https://136.68.55.254.sslip.io
+
+== Direcciones publicas encontradas en el proyecto (instancias, reservadas, reglas de reenvio, Cloud SQL) ==
+IP	QUE	NOMBRE	ES
+136.68.55.254	direccion reservada	mooc-lb-ip	balanceador
+136.72.18.9	direccion de salida del NAT	nat-auto-ip-7074172-4-1793299686121028	NAT
+136.68.55.254	regla de reenvio 80-80	mooc-api-http	balanceador
+136.68.55.254	regla de reenvio 443-443	mooc-api-https	balanceador
+
+OK     la unica direccion publica del proyecto es la del balanceador (136.68.55.254)
+OK     1 direccion(es) de salida del NAT (solo egreso, de uso exclusivo del router): se barren igual, abajo
+OK     el balanceador tiene 2 regla(s) de reenvio: el entorno esta encendido y el barrido mide algo
+== Barrido TCP de 136.68.55.254 desde este equipo (fuera de la VPC), 2026-11-01T23:05:52Z ==
+   puertos: 21 22 23 25 80 443 3000 3306 5432 5672 6379 8000 8080 8443 9000 9090 9100 9200 27017
+   puerto 21 cerrado
+   puerto 22 cerrado
+   puerto 23 cerrado
+   puerto 25 cerrado
+   puerto 80 abierto
+   puerto 443 abierto
+   puerto 3000 cerrado
+   puerto 3306 cerrado
+   puerto 5432 cerrado
+   puerto 5672 cerrado
+   puerto 6379 cerrado
+   puerto 8000 cerrado
+   puerto 8080 cerrado
+   puerto 8443 cerrado
+   puerto 9000 cerrado
+   puerto 9090 cerrado
+   puerto 9100 cerrado
+   puerto 9200 cerrado
+   puerto 27017 cerrado
+
+OK     balanceador 136.68.55.254: abiertos solo [80 443] de 21,22,23,25,80,443,3000,3306,5432,5672,6379,8000,8080,8443,9000,9090,9100,9200,27017
+== Barrido TCP de 136.72.18.9 desde este equipo (fuera de la VPC), 2026-11-01T23:07:04Z ==
+   puertos: 21 22 23 25 80 443 3000 3306 5432 5672 6379 8000 8080 8443 9000 9090 9100 9200 27017
+   puerto 21 cerrado
+   puerto 22 cerrado
+   puerto 23 cerrado
+   puerto 25 cerrado
+   puerto 80 cerrado
+   puerto 443 cerrado
+   puerto 3000 cerrado
+   puerto 3306 cerrado
+   puerto 5432 cerrado
+   puerto 5672 cerrado
+   puerto 6379 cerrado
+   puerto 8000 cerrado
+   puerto 8080 cerrado
+   puerto 8443 cerrado
+   puerto 9000 cerrado
+   puerto 9090 cerrado
+   puerto 9100 cerrado
+   puerto 9200 cerrado
+   puerto 27017 cerrado
+
+OK     136.72.18.9: ningun puerto abierto

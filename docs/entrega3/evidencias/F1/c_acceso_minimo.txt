@@ -1,0 +1,29 @@
+# c) Quien puede llegar a cada componente
+# Generado: 2026-11-01T23:08:26Z por scripts/f1_superficie_red.sh (solo lectura), desde MINGW64_NT-10.0-26300 fuera de la VPC
+# Proyecto: plataforma-mooc-entrega2   Balanceador: https://136.68.55.254.sslip.io
+
+== Instancias: IP externa, cuenta de servicio, etiquetas y reglas que las alcanzan ==
+NOMBRE                   ROL       ESTADO      IP_EXT     REGLAS DE ENTRADA QUE LA ALCANZAN
+mooc-api-m2b7            api       RUNNING     -          mooc-allow-internal-icmp,mooc-allow-lb-health,mooc-allow-ssh-iap
+mooc-queue-server        cola      RUNNING     -          mooc-allow-internal-icmp,mooc-allow-queue,mooc-allow-ssh-iap
+mooc-worker-wxgc         worker    RUNNING     -          mooc-allow-internal-icmp,mooc-allow-ssh-iap,mooc-allow-worker-health
+
+== Cuenta de servicio y etiquetas por instancia ==
+mooc-api-m2b7            cuenta=sa-web-server@plataforma-mooc-entrega2.iam.gserviceaccount.com  etiquetas=allow-iap-ssh,mooc-api-node
+mooc-queue-server        cuenta=sa-queue-server@plataforma-mooc-entrega2.iam.gserviceaccount.com  etiquetas=allow-iap-ssh,queue-server
+mooc-worker-wxgc         cuenta=sa-worker-server@plataforma-mooc-entrega2.iam.gserviceaccount.com  etiquetas=allow-iap-ssh,mooc-worker-node
+
+== Cloud SQL ==
+mooc-db-1  ipv4_publica=False  red_privada=mooc-vpc  ssl=ENCRYPTED_ONLY  redes_autorizadas=0
+
+== Administracion autorizada: personas o grupos con roles/iap.tunnelResourceAccessor (solo conteo) ==
+2
+
+OK     mooc-api-m2b7 (api): sin IP externa
+OK     mooc-api-m2b7: solo la alcanzan balanceador/salud (80), IAP (22) e ICMP interno
+OK     mooc-queue-server (cola): sin IP externa
+OK     mooc-queue-server: el 6379 solo desde las cuentas de API y workers; IAP (22) e ICMP interno
+OK     mooc-worker-wxgc (worker): sin IP externa
+OK     mooc-worker-wxgc: solo la alcanzan la salud del autohealing (9090), IAP (22) e ICMP interno
+OK     Cloud SQL mooc-db-1: sin IPv4 publica, solo por la red privada mooc-vpc, sin redes autorizadas
+OK     Cloud SQL mooc-db-1: conexion cifrada obligatoria (ENCRYPTED_ONLY)
