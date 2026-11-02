@@ -32,7 +32,9 @@ P = {
     "sql_ssd_gib_h": 0.000232877,
     "sql_backup_gib_h": 0.000109589,
     # Cloud Load Balancing, cloud.google.com/load-balancing/pricing
-    "regla_reenvio_h": 0.025,          # cada una, primeras 5
+    # Tarifa minima global por el CONJUNTO de hasta 5 reglas, no por regla: lo confirma la factura del 2026-10-29
+    # (SKU "Forwarding Rule Minimum Global": 13,23 h x 0,025 = 0,33 USD con las dos reglas activas). Ver nota 61.
+    "reglas_reenvio_h": 0.025,
     "lb_datos_gib": 0.008,             # entrada y salida procesadas, por separado
     # Cloud NAT, cloud.google.com/nat/pricing
     "nat_vm_h": 0.0014,                # por VM que usa la pasarela, hasta 32
@@ -78,7 +80,7 @@ def escenario(n_api, n_worker, generador=False):
         (f"Grupo de la API: {n_api} x e2-highcpu-2 + 30 GiB (incluye el frontend)", n_api * vm_h("e2-highcpu-2", DISCO_GRUPO_GIB), "MIG"),
         (f"Grupo de workers: {n_worker} x e2-highcpu-2 + 30 GiB", n_worker * vm_h("e2-highcpu-2", DISCO_GRUPO_GIB), "MIG"),
         ("Cola: mooc-queue-server, e2-small + 10 GiB", vm_h("e2-small", DISCO_COLA_GIB), "NO es de ningun grupo"),
-        ("Balanceador: 2 reglas de reenvio (HTTPS y redireccion)", 2 * P["regla_reenvio_h"], "NO es instancia: factura en reposo"),
+        ("Balanceador: reglas de reenvio (HTTPS y redireccion; tarifa minima de hasta 5)", P["reglas_reenvio_h"], "NO es instancia: factura en reposo"),
         ("Balanceador: datos procesados", 2 * LB_GIB_MES * P["lb_datos_gib"] / HORAS_MES, "supuesto de volumen"),
         ("Cloud SQL: 1 vCPU, 3,75 GiB, zonal", SQL_VCPU * P["sql_vcpu_h"] + SQL_RAM_GIB * P["sql_gib_ram_h"], ""),
         ("Cloud SQL: 10 GiB SSD + copias y PITR", SQL_SSD_GIB * P["sql_ssd_gib_h"] + SQL_BACKUP_GIB * P["sql_backup_gib_h"], ""),
@@ -155,9 +157,9 @@ def autoprueba():
     # Y Cloud SQL 1 vCPU / 3,75 GiB en 49,31 USD/mes.
     if abs((P["sql_vcpu_h"] + 3.75 * P["sql_gib_ram_h"]) * HORAS_MES - 49.31) > 0.02:
         fallos.append("Cloud SQL no da 49,31 USD/mes")
-    # Las reglas de reenvio: 0,025 x 2 x 24 = 1,20 USD/dia (C3).
-    if abs(2 * P["regla_reenvio_h"] * 24 - 1.20) > 1e-9:
-        fallos.append("reglas de reenvio no dan 1,20 USD/dia")
+    # Las reglas de reenvio: lo facturado el 2026-10-29 fueron 13,23 h y 0,33 USD con las dos activas.
+    if abs(round(13.23 * P["reglas_reenvio_h"], 2) - 0.33) > 1e-9:
+        fallos.append("las reglas de reenvio no reproducen la factura del 2026-10-29")
     # Tres instancias por grupo cuestan mas que una, y la diferencia son solo instancias + NAT.
     d = sum(f[1] for f in escenario(3, 3)) - sum(f[1] for f in escenario(1, 1))
     esperado = 4 * vm_h("e2-highcpu-2", 30) + 4 * P["nat_vm_h"]
