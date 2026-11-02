@@ -2,22 +2,21 @@
 
 Entregable 5 del enunciado, issue **G7** ([#227](https://github.com/ISIS4426-2026/Plataforma-MOOC/issues/227)).
 
-> **BORRADOR, 2026-11-01.** Escrito con lo que ya está cerrado: la línea base retrospectiva (A7), el escenario 1
-> (G3), el ciclo de la API (G5) y el ciclo de workers (G6). **Falta el escenario 2 (G4)**; su sección está marcada y
-> no contiene cifras. Ninguna conclusión de este borrador depende de él salvo donde se dice.
+> **2026-11-02.** Consolida la línea base retrospectiva (A7), el escenario 1 (G3), el escenario 2 (G4), el ciclo de
+> la API (G5) y el ciclo de workers (G6). Cada cifra enlaza a la evidencia de la que sale.
 
 | Sección | Fuente | Estado |
 | :--- | :--- | :---: |
 | [1. Método y diferencias declaradas](#1-método-y-diferencias-declaradas) | A6, A7, G1, G3 | ✅ |
 | [2. Escenario 1: actividad académica concurrente](#2-escenario-1-actividad-académica-concurrente) | G3 | ✅ |
-| [3. Escenario 2: carga, procesamiento y consumo multimedia](#3-escenario-2-carga-procesamiento-y-consumo-multimedia) | G4 | ⏳ |
+| [3. Escenario 2: carga, procesamiento y consumo multimedia](#3-escenario-2-carga-procesamiento-y-consumo-multimedia) | G4 | ✅ |
 | [4. Escenario 3A: ciclo de escalamiento de la API](#4-escenario-3a-ciclo-de-escalamiento-de-la-api) | G5 | ✅ |
 | [5. Escenario 3B: ciclo de escalamiento de workers](#5-escenario-3b-ciclo-de-escalamiento-de-workers) | G6 | ✅ |
-| [6. Qué mejoró, qué quedó igual, qué empeoró](#6-qué-mejoró-qué-quedó-igual-qué-empeoró) | 2–5 | 🟡 parcial |
-| [7. El escalamiento: cuándo, qué pasó mientras, qué lo limita y cuánto cuesta](#7-el-escalamiento-cuándo-qué-pasó-mientras-qué-lo-limita-y-cuánto-cuesta) | 2–5, F3 | 🟡 parcial |
-| [8. Defectos de la Entrega 2 corregidos](#8-defectos-de-la-entrega-2-corregidos) | A5, A6, A7, G4, G6 | 🟡 parcial |
-| [9. Limitaciones](#9-limitaciones) | todas | 🟡 parcial |
-| [10. Revisión final de tablas](#10-revisión-final-de-tablas) | — | ⏳ al cerrar |
+| [6. Qué mejoró, qué quedó igual, qué empeoró](#6-qué-mejoró-qué-quedó-igual-qué-empeoró) | 2–5 | ✅ |
+| [7. El escalamiento: cuándo, qué pasó mientras, qué lo limita y cuánto cuesta](#7-el-escalamiento-cuándo-qué-pasó-mientras-qué-lo-limita-y-cuánto-cuesta) | 2–5, F3 | ✅ |
+| [8. Defectos de la Entrega 2 corregidos](#8-defectos-de-la-entrega-2-corregidos) | A5, A6, A7, G4, G6 | ✅ |
+| [9. Limitaciones](#9-limitaciones) | todas | ✅ |
+| [10. Revisión final de tablas](#10-revisión-final-de-tablas) | — | ✅ |
 
 ---
 
@@ -85,9 +84,50 @@ pet./s como la capacidad máxima**: es lo máximo probado.
 
 ## 3. Escenario 2: carga, procesamiento y consumo multimedia
 
-*Pendiente de G4 (#224, @tmichelldiaz).* Esta sección llevará la tabla comparativa con el mismo formato que §2.1
-—etapas separadas, perfiles reales verificados (A5), tiempo al primer cuadro medido con reproductor y drenaje
-observado— y los parámetros completos de la campaña.
+Campaña de G4 del 2026-11-02 (00:12–01:32 UTC), desde la VM del generador contra el balanceador, imagen `97120ca`,
+workers de 1 a 3 con `WORKER_CONCURRENCY=2` por instancia. **Niveles 0 a 3** (1/1, 2/10, 4/25 y 8/50 subidas y
+estudiantes), perfiles reales de A5 verificados con `ffprobe` (120, 600 y 1800 s, 1280×720), consumo con patrón de
+**cadencia de reproducción**. **16 de 16 videos `completed`** (verificado por la API), 0 fallos, y la cola observada
+hasta 0 (47 min 5 s de drenaje). **El nivel 4 no se corrió** (recorte por tiempo). Detalle en
+[`evidencias/G4/`](../docs/entrega3/evidencias/G4/README.md).
+
+### 3.1 Tabla comparativa con la Entrega 2
+
+| Escenario y operación | Nivel de carga | Métrica y unidad | Entrega 2 (A7) | Entrega 3 | Cambio | Explicación |
+| :--- | :--- | :--- | ---: | ---: | :---: | :--- |
+| Procesamiento de videos | nivel 3 (8 subidas) | trabajos terminados en su ventana | 4 de 8 | **8 de 8** | **mejor** | El grupo de workers pasa de 1 a 3 y la concurrencia efectiva de 2 a 6 |
+| Espera en cola | nivel 3 | antigüedad máxima en cola, s | 1 184 | **305** | **mejor** (3,9 veces menos) | Es lo que cambia el escalamiento de workers: más trabajos atendidos a la vez |
+| Espera en cola | nivel 3 | pico de cola, pendientes / activos | 8 / 2 | 8 / **6** | **mejor** | Ídem |
+| Procesamiento (ffmpeg), video corto | 1 trabajo por instancia · 2 a la vez | duración / duración del video | 0,78× · 1,38× | 0,74× · 1,40× | **igual** | Depende del perfil y de compartir CPU, no de la arquitectura: escalar acorta la espera, no el procesamiento de un video |
+| Consumo HLS (cadencia) | niveles 0 a 3 | segmentos descargados | 0 en los niveles 2 a 4 | 696 con plazo, **0 interrupciones** | **mejor** (corregido) | A7 consumía los videos que estaban en cola; G4 procesa antes uno corto y lo consume mientras la cola está llena |
+| Consumo HLS (cadencia) | niveles 0 a 3 | latencia de segmento p50 / p95, ms | — | 23–36 / 42–97 | — | Los segmentos salen del almacenamiento, no de la API ni de los workers |
+| Tiempo al primer cuadro | 24 reproducciones, 6 por nivel | p50 / p95, ms | no medido (A7 no lo publica) | **378 / 414** (p99 n/d, n=24) | **medido** | Chromium + hls.js; la decodificación inicial es el 63 % (238 ms). No sube con la cola llena |
+| Firma y confirmación de carga (API) | niveles 0 a 3 | promedio, ms | — | 72–81 · 56–66 | **no comparable** | Cambió el generador (§1); constante aunque la cola se multiplicó |
+
+Con 1 a 8 trabajos por nivel, **las etapas de los trabajos no tienen p95 publicable** (A6 exige 20): G4 da promedio
+y mediana. Nivel 3: espera en cola 3 min 31 s de media (mediana 2 min 38 s), procesamiento 13 min 32 s (2 min 52 s),
+total hasta `available` 17 min 03 s (5 min 29 s); la media la arrastra el video de 30 min. La comparación con A7
+**declara sus diferencias** (workers elásticos frente a uno fijo, generador en la región, nivel 4 sin correr) y vale
+para la espera en cola y la concurrencia efectiva, **no** para la subida, que dependía del enlace doméstico (A7 §3.5).
+
+Fuentes: G4 [`README.md`](../docs/entrega3/evidencias/G4/README.md) §2 y §4.4,
+[`campana/corrida_niveles_escenario2.txt`](../docs/entrega3/evidencias/G4/campana/corrida_niveles_escenario2.txt),
+[`campana/ttff.json`](../docs/entrega3/evidencias/G4/campana/ttff.json),
+[`campana/drenaje_cola_verificacion.txt`](../docs/entrega3/evidencias/G4/campana/drenaje_cola_verificacion.txt) y la
+[gráfica de instancias, cola y CPU](../docs/entrega3/evidencias/G4/capturas/2026-11-02_g4-campana-instancias-cola-cpu.png);
+A7 [`COMPARACION.md`](../docs/entrega3/evidencias/A7/COMPARACION.md).
+
+### 3.2 Lo que dice el escenario 2
+
+**El cuello de botella es la CPU de los workers** (67–100 % con la cola llena; la base 14–17 % y la API en 1 instancia
+toda la campaña, así que nada de este escenario se atribuye al escalamiento de la API). Escalar workers lo alivia
+en lo que puede: la cola pasó de 10 a 4 trabajos en unos 6 min con 3 instancias. Lo que queda hasta el final del
+drenaje es **un solo trabajo**, el video de 30 min, que tarda lo mismo con 1 o con 3 workers.
+
+**Hallazgo:** a las 00:34 el grupo bajó de 2 a 1 con dos videos medios en curso, que terminaron ~22 min después de
+empezar en vez de 9–14 min. Es consistente con que el trabajo de la instancia retirada **volvió a empezar** (el plazo
+de drenaje es de 90 s y un video de 10 min no cabe), aunque **no se midió directamente**. No se perdió nada (16 de
+16 `completed`), pero se retrasó.
 
 ---
 
@@ -152,22 +192,29 @@ GCE lo marcara `HEALTHY`: para un worker, la incorporación real es el primer tr
 | **Empeoró** | Cola de latencia durante el escalamiento | ~255 pet./s mientras el grupo suma instancias | Hipótesis de instancias que entran frías (§7) |
 | **Empeoró** | Carga de PostgreSQL por petición | Con 3 instancias de API | §7 |
 | **Mejoró** | La capacidad de la API crece sola con la demanda | Más de 80 pet/s por instancia | El grupo pasa de 1 a 2 en 48 s y la nueva atiende a los 157 s (§4), sin errores |
-| *Pendiente* | Escenario 2 | — | G4 |
+| **Mejoró** | Espera en cola de los videos | Nivel 3 del escenario 2 (8 subidas) | Antigüedad máxima 305 s frente a 1 184 s y 8 de 8 terminados frente a 4 de 8, con 3 workers en vez de 1 (§3) |
+| **Igual** | Duración del procesamiento de cada video | Cualquier nivel | Un trabajo ocupa un worker: 0,74× solo y 1,40× con dos, como en A7 (§3) |
+| **Empeoró** | Un video largo puede terminar mucho después | Reducción del grupo con trabajos largos en curso | El autoescalador ve la cola pendiente, no el trabajo en curso; el retirado vuelve a empezar (§3.2) |
 
 ---
 
 ## 7. El escalamiento: cuándo, qué pasó mientras, qué lo limita y cuánto cuesta
 
-**Cuándo se activó.** Workers: a los 26,3 s de superar el umbral (§5). API: a los 48 s de superar el umbral, con la
+**Cuándo se activó.** Workers: a los 26,3 s de superar el umbral en G6 (§5), medido hasta la creación de la
+instancia; en G4, **~3 min** entre que la cola crece y hay otra instancia operativa (dos veces), medido con la serie
+por minuto e incluyendo el arranque. Son dos tramos distintos, no una contradicción: G4 suma reacción e
+incorporación (G6: 26 + 99 s ≈ 2 min) con resolución de un minuto. API: a los 48 s de superar el umbral, con la
 nueva atendiendo a los 157 s (§4); en G3, sin carga escalonada, se vio de 3 a 8 minutos tras empezar.
 
 **Qué pasó mientras arrancaban las instancias.** En workers, nada que se pierda: la cola retiene el trabajo y el
-worker nuevo lo toma al terminar su arranque. En la API, en el ciclo instrumentado de G5, **ninguno**: 0 errores en
+worker nuevo lo toma al terminar su arranque. **Al reducir sí hay un coste**: en G4 un retiro con dos videos medios
+en curso los retrasó ~10 min (§3.2), porque el drenaje de 90 s no alcanza para un trabajo largo. En la API, en el ciclo instrumentado de G5, **ninguno**: 0 errores en
 90 080 peticiones mientras la nueva arrancaba y mientras la retirada drenaba. En G3, el único 503 de la campaña y el p95 más alto (163 ms
 frente a 99 ms) coinciden con la entrada de una instancia nueva. La explicación más probable —**no demostrada**— es
 que la instancia entra con cachés y pools fríos.
 
-**Qué dependencia limita ahora la capacidad.** No se llegó a saturar ninguna. El candidato es **PostgreSQL**: 1 vCPU,
+**Qué dependencia limita ahora la capacidad.** En el escenario 2, **la CPU de los workers** (§3.2), y por encima de
+eso la duración de cada video, que no escala. En el escenario 1 no se llegó a saturar ninguna. El candidato es **PostgreSQL**: 1 vCPU,
 `max_connections = 100`, y con 3 instancias de API su CPU fue de 47–52 % para el mismo rendimiento que con 1
 instancia daba 29–36 %, con más conexiones abiertas (30–51 frente a 20–27). C2 ya extrapolaba que el techo de 3
 instancias cae donde cae el de la base. **Esta campaña no lo demuestra**: hace falta una carga que G3 no podía generar
@@ -188,11 +235,11 @@ primeros defectos; el quinto lo añade el propio issue. Esta tabla dice cómo se
 
 | Defecto de la Entrega 2 | Corrección | Dónde se verifica | Estado |
 | :--- | :--- | :--- | :---: |
-| El escenario 2 se midió contra Docker Compose (`http://api:8080`), no contra la nube | Toda corrida registra su destino en `destino.json` y el resumen **se niega a publicar** si el destino es local (`EXIGIR_NUBE=1`) | A6; `destino.json` de cada corrida de G3 y G4 | ✅ regla · ⏳ G4 |
+| El escenario 2 se midió contra Docker Compose (`http://api:8080`), no contra la nube | Toda corrida registra su destino en `destino.json` y el resumen **se niega a publicar** si el destino es local (`EXIGIR_NUBE=1`) | A6; `destino.json` de cada corrida de G3 y G5; en G4, la cabecera de [`corrida_niveles_escenario2.txt`](../docs/entrega3/evidencias/G4/campana/corrida_niveles_escenario2.txt) (`https://136.68.55.254.sslip.io [remoto]`) | ✅ |
 | Perfiles de 2, 10 y 30 minutos que eran clips de 8, 20 y 40 segundos | Perfiles regenerados y **verificados campo por campo con `ffprobe`**; el guion falla si el archivo no es lo que declara | [A5](../docs/entrega3/evidencias/A5/README.md) | ✅ |
-| Tiempo al primer cuadro calculado como latencia HTTP más 45 ms fijos | Medido con reproductor real | G4 | ⏳ |
+| Tiempo al primer cuadro calculado como latencia HTTP más 45 ms fijos | Medido con reproductor real: Chromium + hls.js, de asignar el manifiesto al primer `playing` | [G4](../docs/entrega3/evidencias/G4/README.md) §2 (`ttff.json`, 24 mediciones) | ✅ |
 | p95 por debajo del p50 | Un solo estimador y comprobación de monotonía **dentro** del script que publica | [A6](./criterios_de_medicion.md) | ✅ |
-| Etapas mezcladas y drenaje no observado | Etapas separadas (G4); drenaje de la cola observado y fechado | G4; [G6](../docs/entrega3/evidencias/G6/README.md) (`COLA_DRENADA_CERO` a las 19:02:01) | 🟡 G6 ✅ · G4 ⏳ |
+| Etapas mezcladas y drenaje no observado | Etapas separadas (G4); drenaje de la cola observado y fechado | [G4](../docs/entrega3/evidencias/G4/README.md) §2 (etapas 1 a 6 y consumo por separado; drenaje 8 → 0 en 47 min); [G6](../docs/entrega3/evidencias/G6/README.md) (`COLA_DRENADA_CERO` a las 19:02:01) | ✅ |
 
 ---
 
@@ -207,20 +254,26 @@ primeros defectos; el quinto lo añade el propio issue. Esta tabla dice cómo se
 - La línea base de A7 salió de un portátil: sus latencias no son comparables con las de la Entrega 3 (§1).
 - El ciclo de la API (G5) se corrió **una vez** y se acortó por tiempo (alta de 10 min y no de 15); llegó a 2
   instancias, no a 3. Los tiempos de reacción e incorporación son una observación, no una distribución.
-- *Pendiente*: las del escenario 2.
+- El escenario 2 se corrió **hasta el nivel 3**, no el 4 (12 subidas y 100 estudiantes), y **sin operando de control
+  con workers fijos**: su mejora se sostiene contra A7, con las diferencias declaradas en §3.1.
+- Las etapas de los trabajos del escenario 2 tienen 1 a 8 observaciones por nivel: se dan promedio y mediana, sin p95.
+  Los dos videos medios del nivel 2 terminaron fuera de su ventana (n/d en sus etapas 4–6).
+- La causa del retraso de esos dos videos (retiro del worker con trabajo en curso) es la explicación consistente con
+  la serie, **no una medición**: los registros de los workers retirados no llegaron a Cloud Logging.
+- El tiempo al primer cuadro tiene 24 mediciones: p99 n/d.
 
 ---
 
 ## 10. Revisión final de tablas
 
-Se hace al cerrar G7, cuando esté G4:
+Hecha el 2026-11-02 sobre §2–§5:
 
-- [ ] Unidades en todas las cabeceras.
-- [ ] Ventana de agregación y número de observaciones de cada percentil.
-- [ ] `p50 ≤ p95 ≤ p99` en todas las filas (`python scripts/capacity_criterios.py`).
-- [ ] Ningún percentil promediado entre corridas.
-- [ ] Ninguna latencia HTTP mezclada con duración de trabajos asíncronos.
-- [ ] Enlaces a scripts, datos, resultados originales y gráficas de cada escenario.
+- [x] Unidades en todas las cabeceras.
+- [x] Ventana de agregación y número de observaciones de cada percentil.
+- [x] `p50 ≤ p95 ≤ p99` en todas las filas (`python scripts/capacity_criterios.py`).
+- [x] Ningún percentil promediado entre corridas.
+- [x] Ninguna latencia HTTP mezclada con duración de trabajos asíncronos.
+- [x] Enlaces a scripts, datos, resultados originales y gráficas de cada escenario.
 
 ---
 
