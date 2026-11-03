@@ -116,26 +116,47 @@ func (p *MediaProcessor) Handle(ctx context.Context, t *asynq.Task) error {
 		// A payload we cannot read will not become readable on a retry.
 		return fmt.Errorf("media job carries an unreadable payload: %v: %w", err, asynq.SkipRetry)
 	}
+
+	permanent, err := p.ProcessPayload(ctx, payload)
+	switch {
+	case err == nil:
+		return nil
+	case permanent:
+		return fmt.Errorf("%w: %w", err, asynq.SkipRetry)
+	default:
+		return err
+	}
+}
+
+// ProcessPayload runs one media job and says whether a failure is permanent.
+//
+// It is Handle without anything of asynq in it, so the same pipeline can be
+// driven by another transport: the Pub/Sub push endpoint (Entrega 4) calls this and
+// maps `permanent` to "acknowledge and stop" and a transient error to "answer 5xx
+// and let the message be redelivered". A permanent failure has already been
+// recorded on the resource by the time this returns; a transient one is left
+// alone, so the status stays `processing` and the next delivery tries again.
+func (p *MediaProcessor) ProcessPayload(ctx context.Context, payload task.MediaProcessPayload) (permanent bool, err error) {
 	if payload.ResourceID == "" || payload.StoragePath == "" {
-		return fmt.Errorf("media job is missing resource_id or storage_path: %w", asynq.SkipRetry)
+		return true, errors.New("media job is missing resource_id or storage_path")
 	}
 
 	started := time.Now()
-	err := p.process(ctx, payload)
+	err = p.process(ctx, payload)
 	if err == nil {
 		p.logger.InfoContext(ctx, "media job completed",
 			slog.String("resource_id", payload.ResourceID),
 			slog.String("object_key", payload.StoragePath),
 			slog.Duration("took", time.Since(started)),
 		)
-		return nil
+		return false, nil
 	}
 
 	// A permanent failure gets recorded on the resource and told not to retry.
-	// A transient one is left alone: the status stays `processing` and asynq
-	// tries again, so a Redis blip does not present itself to the author as a
-	// broken upload.
-	permanent := errors.Is(err, transcode.ErrUnprocessable)
+	// A transient one is left alone: the status stays `processing` and the
+	// transport tries again, so a Redis blip does not present itself to the
+	// author as a broken upload.
+	permanent = errors.Is(err, transcode.ErrUnprocessable)
 	p.logger.ErrorContext(ctx, "media job failed",
 		slog.String("resource_id", payload.ResourceID),
 		slog.String("object_key", payload.StoragePath),
@@ -146,9 +167,8 @@ func (p *MediaProcessor) Handle(ctx context.Context, t *asynq.Task) error {
 
 	if permanent {
 		p.markFailed(ctx, payload.ResourceID)
-		return fmt.Errorf("%w: %w", err, asynq.SkipRetry)
 	}
-	return err
+	return permanent, err
 }
 
 func (p *MediaProcessor) process(ctx context.Context, payload task.MediaProcessPayload) error {

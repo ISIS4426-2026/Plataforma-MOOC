@@ -129,6 +129,18 @@ func (c *Config) validar(sirveHTTP bool) error {
 			c.DBMaxIdleConns, c.DBMaxOpenConns))
 	}
 
+	switch c.QueueBackend {
+	case "", "asynq":
+	case "pubsub":
+		// Solo la API publica: el worker recibe, y no necesita saber el topic.
+		if sirveHTTP && c.PubSubTopic == "" {
+			problemas = append(problemas, "QUEUE_BACKEND=pubsub exige PUBSUB_TOPIC (projects/<proyecto>/topics/<topic>)")
+		}
+	default:
+		problemas = append(problemas, fmt.Sprintf(
+			"QUEUE_BACKEND=%q no es valido: usa asynq o pubsub", c.QueueBackend))
+	}
+
 	if c.WorkerConcurrency < 0 {
 		problemas = append(problemas, fmt.Sprintf(
 			"WORKER_CONCURRENCY=%d no puede ser negativo", c.WorkerConcurrency))

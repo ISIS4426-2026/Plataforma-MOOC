@@ -12,6 +12,15 @@ type Config struct {
 	Port        string
 	DatabaseURL string
 	RedisURL    string
+
+	// QueueBackend selects how the API hands media jobs to the workers: "asynq"
+	// (Redis, the default and what Entregas 2 and 3 ran) or "pubsub" (Cloud
+	// Pub/Sub, Entrega 4). On a worker it selects the transport: asynq pulls from
+	// Redis; pubsub serves the push endpoint Pub/Sub delivers to.
+	QueueBackend string
+	// PubSubTopic is the full topic name (projects/<p>/topics/<t>) the API
+	// publishes to when QueueBackend is "pubsub".
+	PubSubTopic string
 	S3Endpoint  string
 	S3Bucket    string
 
@@ -171,6 +180,8 @@ func Load() *Config {
 		Port:             getEnv("PORT", "8080"),
 		DatabaseURL:      getEnv("DATABASE_URL", "postgres://postgres:postgres@localhost:5432/mooc?sslmode=disable"),
 		RedisURL:         getEnv("REDIS_URL", "localhost:6379"),
+		QueueBackend:     getEnv("QUEUE_BACKEND", "asynq"),
+		PubSubTopic:      getEnv("PUBSUB_TOPIC", ""),
 		S3Endpoint:       getEnv("STORAGE_ENDPOINT", getEnv("S3_ENDPOINT", "http://localhost:9000")),
 		S3Bucket:         getEnv("STORAGE_BUCKET", getEnv("S3_BUCKET", "mooc-storage")),
 		HLSBucket:        getEnv("MEDIA_HLS_BUCKET", ""),

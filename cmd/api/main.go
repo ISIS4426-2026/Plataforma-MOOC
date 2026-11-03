@@ -202,12 +202,13 @@ func run(logger *slog.Logger) error {
 		os.Exit(1)
 	}
 
-	queueClient, err := worker.NewClient(cfg.RedisURL)
+	// Como la API entrega los trabajos de medios: asynq o Cloud Pub/Sub (Entrega 4), segun QUEUE_BACKEND.
+	queueClient, closeQueue, err := worker.NewMediaQueue(context.Background(), cfg, logger)
 	if err != nil {
-		logger.Error("failed to initialise the task queue client", slog.String("error", err.Error()))
+		logger.Error("failed to initialise the media job queue", slog.String("error", err.Error()))
 		os.Exit(1)
 	}
-	defer func() { _ = queueClient.Close() }()
+	defer closeQueue()
 
 	mediaService := media.NewService(media.Deps{
 		Courses:   courseRepo,

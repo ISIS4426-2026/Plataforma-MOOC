@@ -28,7 +28,11 @@ COPY nginx.web.conf /etc/nginx/templates/default.conf.template
 # API_UPSTREAM: donde esta la API vista desde el contenedor (Compose: "api:8080").
 # STORAGE_ORIGINS: de donde puede el navegador pedir archivos (subidas firmadas y video HLS).
 # HLS_BASE_URL: base publica de los derivados HLS; el manifiesto es <base>/hls/<id>/master.m3u8.
+# API_SCHEME y API_HOST_HEADER (Entrega 4): contra un backend de Cloud Run son "https" y el nombre de host del
+# backend. Los valores por omision dejan el comportamiento de siempre (http, y el Host que mando el cliente).
 ENV API_UPSTREAM=api:8080 \
+    API_SCHEME=http \
+    API_HOST_HEADER=\$host \
     STORAGE_ORIGINS=https://storage.googleapis.com \
     HLS_BASE_URL=
 EXPOSE 80
