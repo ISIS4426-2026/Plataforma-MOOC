@@ -7,6 +7,8 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -81,5 +83,29 @@ func TestNewPublisherRejectsAShortTopicName(t *testing.T) {
 	if _, err := NewPublisher(context.Background(), "media-jobs", nil); err == nil ||
 		!strings.Contains(err.Error(), "full name") {
 		t.Fatalf("err = %v, want a complaint about the topic name", err)
+	}
+}
+
+func TestNewPublisherBuildsWithApplicationDefaultCredentials(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "adc.json")
+	creds := `{"type":"authorized_user","client_id":"id","client_secret":"secret","refresh_token":"token"}`
+	if err := os.WriteFile(path, []byte(creds), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("GOOGLE_APPLICATION_CREDENTIALS", path)
+
+	p, err := NewPublisher(context.Background(), testTopic, nil)
+	if err != nil {
+		t.Fatalf("NewPublisher: %v", err)
+	}
+	if p.topic != testTopic || p.endpoint != defaultEndpoint {
+		t.Errorf("publisher = %+v", p)
+	}
+}
+
+func TestNewPublisherFailsWithoutCredentials(t *testing.T) {
+	t.Setenv("GOOGLE_APPLICATION_CREDENTIALS", filepath.Join(t.TempDir(), "missing.json"))
+	if _, err := NewPublisher(context.Background(), testTopic, nil); err == nil {
+		t.Fatal("unreadable credentials must be an error")
 	}
 }
