@@ -19,12 +19,26 @@
 #
 #   terraform apply -var cloudrun_enabled=true <los -var del entorno>
 #
-# Las imagenes de `var.image_tag` (api, worker y web) tienen que estar publicadas antes (scripts/publish_images.sh).
+# Las imagenes de `cloudrun_image_tag` (api, worker y web) tienen que estar publicadas antes (scripts/publish_images.sh).
 
 variable "cloudrun_enabled" {
   description = "Crea los servicios de Cloud Run, el topic de Pub/Sub y lo que los une (Entrega 4). Apagado, no existe nada de esto."
   type        = bool
   default     = false
+}
+
+# `image_tag` lo comparten las plantillas de los grupos de la Entrega 3 (metadata `mooc-image-tag`): cambiarlo recrea
+# esas instancias. Cloud Run tiene su propio tag para poder publicar imagenes nuevas sin tocar lo que ya corre. Vacio usa
+# `image_tag`.
+variable "cloudrun_image_tag" {
+  description = "SHA completo (40 hex) de las imagenes api, worker y web que corre Cloud Run. Vacio usa image_tag."
+  type        = string
+  default     = ""
+
+  validation {
+    condition     = var.cloudrun_image_tag == "" || can(regex("^[0-9a-f]{40}$", var.cloudrun_image_tag))
+    error_message = "cloudrun_image_tag debe ser el SHA completo de 40 caracteres hexadecimales, o vacio."
+  }
 }
 
 variable "smtp_host" {
@@ -67,6 +81,8 @@ variable "cloudrun_services" {
 locals {
   run_count = var.cloudrun_enabled ? 1 : 0
 
+  run_image_tag = var.cloudrun_image_tag != "" ? var.cloudrun_image_tag : var.image_tag
+
   # Cloud Run publica cada servicio en `<servicio>-<numero del proyecto>.<region>.run.app`. Es deterministico, y por eso
   # frontend y backend pueden conocerse mutuamente sin que Terraform tenga un ciclo (el frontend necesita el host del
   # backend; el backend, el origen del frontend para CSRF y los enlaces de correo).
@@ -79,14 +95,14 @@ locals {
   image_prefix = "${var.region}-docker.pkg.dev/${var.project_id}/${google_artifact_registry_repository.images.repository_id}"
 }
 
-# bootstrap.tf ya exige que existan las imagenes api y worker de `var.image_tag`; la del frontend solo la usa Cloud Run.
+# La imagen del frontend solo la usa Cloud Run, asi que nadie la comprobaba antes.
 # Comprobarla aqui convierte «la imagen no esta publicada» en un error del plan y no en un servicio que no arranca.
 data "google_artifact_registry_docker_image" "web" {
   count = local.run_count
 
   location      = google_artifact_registry_repository.images.location
   repository_id = google_artifact_registry_repository.images.repository_id
-  image_name    = "web:${var.image_tag}"
+  image_name    = "web:${local.run_image_tag}"
 }
 
 data "google_project" "this" {
@@ -364,7 +380,7 @@ resource "google_cloud_run_v2_service" "workers" {
     }
 
     containers {
-      image = "${local.image_prefix}/worker:${var.image_tag}"
+      image = "${local.image_prefix}/worker:${local.run_image_tag}"
 
       resources {
         limits = {
@@ -474,7 +490,7 @@ resource "google_cloud_run_v2_service" "backend" {
     }
 
     containers {
-      image = "${local.image_prefix}/api:${var.image_tag}"
+      image = "${local.image_prefix}/api:${local.run_image_tag}"
 
       resources {
         limits = {
@@ -623,7 +639,7 @@ resource "google_cloud_run_v2_service" "frontend" {
     }
 
     containers {
-      image = "${local.image_prefix}/web:${var.image_tag}"
+      image = "${local.image_prefix}/web:${local.run_image_tag}"
 
       resources {
         limits = {
