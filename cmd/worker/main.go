@@ -144,6 +144,14 @@ func main() {
 		log.Printf("limpieza de directorios de trabajo huerfanos: %d eliminados, %d MB liberados\n", n, bytes>>20)
 	}
 
+	// Entrega 4: en Cloud Run el worker no tira de una cola, recibe. Pub/Sub entrega cada mensaje por una
+	// suscripcion push autenticada y el worker lo confirma al terminar; no hay Redis, ni motor asynq, ni
+	// espera de drenaje propia (Cloud Run detiene la instancia y Pub/Sub reentrega lo que quedo a medias).
+	if cfg.QueueBackend == "pubsub" {
+		servePush(cfg, mediaProcessor, obs)
+		return
+	}
+
 	workDirDesc := cfg.MediaWorkDir
 	if workDirDesc == "" {
 		workDirDesc = "(system temp)"

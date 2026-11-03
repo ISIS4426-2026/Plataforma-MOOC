@@ -24,6 +24,7 @@ import (
 	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/storage"
 	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/structure"
 	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/worker"
+	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/worker/pubsub"
 )
 
 // serviceVersion identifies this build in traces and metrics. A constant
@@ -202,12 +203,27 @@ func run(logger *slog.Logger) error {
 		os.Exit(1)
 	}
 
-	queueClient, err := worker.NewClient(cfg.RedisURL)
-	if err != nil {
-		logger.Error("failed to initialise the task queue client", slog.String("error", err.Error()))
-		os.Exit(1)
+	// Como la API entrega los trabajos de medios a los workers. Cloud Pub/Sub (Entrega 4) sustituye a asynq
+	// sin que el servicio de medios se entere: los dos satisfacen el mismo puerto estrecho (media.Enqueuer).
+	var queueClient media.Enqueuer
+	switch cfg.QueueBackend {
+	case "pubsub":
+		publisher, err := pubsub.NewPublisher(context.Background(), cfg.PubSubTopic, logger)
+		if err != nil {
+			logger.Error("failed to initialise the Pub/Sub publisher", slog.String("error", err.Error()))
+			os.Exit(1)
+		}
+		queueClient = publisher
+		logger.Info("media jobs go through Cloud Pub/Sub", slog.String("topic", cfg.PubSubTopic))
+	default:
+		asynqClient, err := worker.NewClient(cfg.RedisURL)
+		if err != nil {
+			logger.Error("failed to initialise the task queue client", slog.String("error", err.Error()))
+			os.Exit(1)
+		}
+		defer func() { _ = asynqClient.Close() }()
+		queueClient = asynqClient
 	}
-	defer func() { _ = queueClient.Close() }()
 
 	mediaService := media.NewService(media.Deps{
 		Courses:   courseRepo,
