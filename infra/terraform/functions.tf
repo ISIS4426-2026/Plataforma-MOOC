@@ -51,6 +51,10 @@ locals {
   fn_internal_files = [
     for f in fileset("${path.module}/../../internal", "**/*.go") : f if !endswith(f, "_test.go")
   ]
+
+  # internal/http/handler importa el paquete `api` (el contrato OpenAPI embebido: embed.go + openapi.yaml). La funcion no
+  # lo usa, pero el compilador de Cloud Functions revisa todo el modulo y un import sin resolver rompe la compilacion.
+  fn_api_files = fileset("${path.module}/../../api", "*")
 }
 
 # --- APIs ---------------------------------------------------------------------
@@ -87,6 +91,14 @@ data "archive_file" "doccheck" {
     content {
       filename = "internal/${source.value}"
       content  = file("${path.module}/../../internal/${source.value}")
+    }
+  }
+
+  dynamic "source" {
+    for_each = local.fn_api_files
+    content {
+      filename = "api/${source.value}"
+      content  = file("${path.module}/../../api/${source.value}")
     }
   }
 }
