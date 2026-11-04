@@ -626,3 +626,36 @@ func TestMediaProcessorTrataLaTareaSinTipoComoAudiovisual(t *testing.T) {
 		t.Error("una tarea sin tipo no se transcodifico; los trabajos ya encolados se romperian")
 	}
 }
+
+// Entrega 5: con la funcion duena de los documentos, el worker no los ejecuta ni los toca.
+func TestMediaProcessorRechazaUnDocumentoCuandoLoEjecutaLaFuncion(t *testing.T) {
+	h := documentHarness(t, "application/pdf")
+	h.proc.opts.DocumentsInFunction = true
+
+	permanent, err := h.proc.ProcessPayload(context.Background(),
+		task.MediaProcessPayload{ResourceID: resourceID, TaskType: "malware_scan", StoragePath: documentKey})
+
+	if !errors.Is(err, ErrDocumentsMigrated) {
+		t.Fatalf("error = %v, se esperaba ErrDocumentsMigrated", err)
+	}
+	if permanent {
+		t.Error("no debe ser permanente: el recurso queda intacto y el mensaje se reentrega hasta los muertos")
+	}
+	if got := h.resources.seen(); len(got) != 0 {
+		t.Errorf("el worker no debe tocar el recurso, pero hizo %v", got)
+	}
+}
+
+// Lo que no es un documento sigue siendo del worker aunque la funcion exista.
+func TestMediaProcessorSigueProcesandoVideoCuandoLaFuncionTieneLosDocumentos(t *testing.T) {
+	h := newHarness(t)
+	h.proc.opts.DocumentsInFunction = true
+
+	if err := h.proc.Handle(context.Background(), mediaTask(t)); err != nil {
+		t.Fatalf("Handle: %v", err)
+	}
+	got := h.resources.seen()
+	if len(got) != 2 || got[1] != domain.ResourceProcessingCompleted {
+		t.Fatalf("transiciones = %v", got)
+	}
+}

@@ -441,6 +441,11 @@ resource "google_cloud_run_v2_service" "workers" {
         name  = "MEDIA_WORK_DIR"
         value = "/tmp/mooc-media"
       }
+      # Entrega 5: con la funcion encendida, los documentos ya no son del worker.
+      env {
+        name  = "MEDIA_DOCUMENTS_IN_FUNCTION"
+        value = tostring(local.fn_enabled)
+      }
       env {
         name  = "DB_MAX_OPEN_CONNS"
         value = "5"
@@ -464,6 +469,8 @@ resource "google_cloud_run_v2_service" "workers" {
     google_project_service.cloudrun,
     google_secret_manager_secret_iam_member.database_url_readers,
     google_secret_manager_secret_version.database_url,
+    # Entrega 5: la funcion existe antes de que el worker deje de ejecutar documentos.
+    google_cloudfunctions2_function.doccheck,
   ]
 }
 
@@ -521,6 +528,12 @@ resource "google_cloud_run_v2_service" "backend" {
       env {
         name  = "PUBSUB_TOPIC"
         value = google_pubsub_topic.media_jobs[0].id
+      }
+      # Entrega 5: las tareas de documentos van a su propio topic, del que se alimenta la funcion. Vacio las deja en
+      # PUBSUB_TOPIC, que es lo que hacia la Entrega 4.
+      env {
+        name  = "PUBSUB_DOCUMENTS_TOPIC"
+        value = local.fn_enabled ? google_pubsub_topic.media_documents[0].id : ""
       }
       env {
         name = "DATABASE_URL"
@@ -621,6 +634,9 @@ resource "google_cloud_run_v2_service" "backend" {
     google_secret_manager_secret_iam_member.database_url_readers,
     google_secret_manager_secret_version.database_url,
     google_pubsub_topic_iam_member.backend_publisher,
+    # Entrega 5: la funcion y su topic existen antes de que el backend empiece a publicar documentos alli.
+    google_cloudfunctions2_function.doccheck,
+    google_pubsub_topic_iam_member.backend_publishes_documents,
   ]
 }
 

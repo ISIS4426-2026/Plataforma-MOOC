@@ -46,3 +46,19 @@ func TestValidatePubSubExigeTopicSoloALaAPI(t *testing.T) {
 		t.Errorf("el worker no necesita el topic: %v", err)
 	}
 }
+
+// Entrega 5: el topic de documentos solo existe en Pub/Sub.
+func TestValidateExigePubSubParaElTopicDeDocumentos(t *testing.T) {
+	cfg := produccionValida()
+	cfg.PubSubDocumentsTopic = "projects/demo/topics/media-documents"
+	err := cfg.Validate()
+	if err == nil || !strings.Contains(err.Error(), "PUBSUB_DOCUMENTS_TOPIC") {
+		t.Fatalf("la API arranco con un topic de documentos y sin Pub/Sub: %v", err)
+	}
+
+	cfg.QueueBackend = "pubsub"
+	cfg.PubSubTopic = "projects/demo/topics/media-jobs"
+	if err := cfg.Validate(); err != nil {
+		t.Errorf("con Pub/Sub el topic de documentos es valido: %v", err)
+	}
+}

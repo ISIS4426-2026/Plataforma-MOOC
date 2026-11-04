@@ -26,6 +26,7 @@ import (
 
 	"golang.org/x/oauth2/google"
 
+	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/media"
 	"github.com/ISIS4426-2026/Plataforma-MOOC/internal/worker/task"
 )
 
@@ -46,6 +47,7 @@ const (
 // queue is behind it.
 type Publisher struct {
 	topic    string // projects/<project>/topics/<topic>
+	docTopic string // where the document checks go (Entrega 5); empty means topic
 	endpoint string
 	client   *http.Client
 	logger   *slog.Logger
@@ -71,6 +73,24 @@ func NewPublisherWithClient(topic, endpoint string, client *http.Client, logger 
 		logger = slog.Default()
 	}
 	return &Publisher{topic: topic, endpoint: strings.TrimRight(endpoint, "/"), client: client, logger: logger}
+}
+
+// WithDocumentsTopic sends the document checks (task type malware_scan) to their own
+// topic, which is the one the Cloud Function is triggered from (Entrega 5). Everything
+// else keeps going to the worker's topic. An empty name changes nothing.
+func (p *Publisher) WithDocumentsTopic(topic string) *Publisher {
+	p.docTopic = topic
+	return p
+}
+
+// topicFor picks the topic a job is published to. The routing lives here, on the
+// publishing side, so that moving a task to another consumer is a matter of
+// where its messages go and not of every consumer filtering what it receives.
+func (p *Publisher) topicFor(taskType string) string {
+	if taskType == media.TaskMalwareScan && p.docTopic != "" {
+		return p.docTopic
+	}
+	return p.topic
 }
 
 type publishRequest struct {
@@ -121,7 +141,7 @@ func (p *Publisher) EnqueueMediaProcessJob(ctx context.Context, resourceID, task
 	defer cancel()
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost,
-		fmt.Sprintf("%s/v1/%s:publish", p.endpoint, p.topic), bytes.NewReader(body))
+		fmt.Sprintf("%s/v1/%s:publish", p.endpoint, p.topicFor(taskType)), bytes.NewReader(body))
 	if err != nil {
 		return fmt.Errorf("build publish request: %w", err)
 	}
@@ -147,6 +167,7 @@ func (p *Publisher) EnqueueMediaProcessJob(ctx context.Context, resourceID, task
 	// completion: the worker logs the same id when it receives it.
 	p.logger.Info("media job published",
 		slog.String("message_id", out.MessageIDs[0]),
+		slog.String("topic", p.topicFor(taskType)),
 		slog.String("resource_id", resourceID),
 		slog.String("object_key", objectKey),
 		slog.String("task_type", taskType),

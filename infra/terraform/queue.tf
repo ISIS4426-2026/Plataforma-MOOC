@@ -89,11 +89,25 @@ resource "google_compute_address" "queue_internal_ip" {
 # ------------------------------------------------------------------------------
 # La instancia
 # ------------------------------------------------------------------------------
+# Entrega 5: Terraform puede encender y apagar la VM de Redis, que el backend de Cloud Run necesita encendida para
+# arrancar (sesiones y limitador). `null` --el valor por omision-- no la toca, y un plan sin la variable no cambia nada.
+variable "queue_vm_status" {
+  description = "RUNNING enciende la VM de Redis, TERMINATED la apaga. null deja el estado actual."
+  type        = string
+  default     = null
+
+  validation {
+    condition     = var.queue_vm_status == null || contains(["RUNNING", "TERMINATED"], coalesce(var.queue_vm_status, "RUNNING"))
+    error_message = "queue_vm_status debe ser RUNNING, TERMINATED o no estar definida."
+  }
+}
+
 resource "google_compute_instance" "queue_server" {
-  name         = "mooc-queue-server"
-  machine_type = "e2-small"
-  zone         = var.zone
-  description  = "Cola compartida asynq/Redis, fuera de los dos grupos elasticos (B1)"
+  name           = "mooc-queue-server"
+  machine_type   = "e2-small"
+  zone           = var.zone
+  desired_status = var.queue_vm_status
+  description    = "Cola compartida asynq/Redis, fuera de los dos grupos elasticos (B1)"
 
   # Sin la etiqueta `web-server`: esta máquina no publica 80 ni 443.
   tags = ["queue-server", "allow-iap-ssh"]

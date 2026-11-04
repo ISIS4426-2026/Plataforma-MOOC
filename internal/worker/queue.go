@@ -22,7 +22,9 @@ func NewMediaQueue(ctx context.Context, cfg *config.Config, logger *slog.Logger)
 		if err != nil {
 			return nil, nil, err
 		}
-		logger.Info("media jobs go through Cloud Pub/Sub", slog.String("topic", cfg.PubSubTopic))
+		publisher.WithDocumentsTopic(cfg.PubSubDocumentsTopic)
+		logger.Info("media jobs go through Cloud Pub/Sub",
+			slog.String("topic", cfg.PubSubTopic), slog.String("documents_topic", cfg.PubSubDocumentsTopic))
 		return publisher, func() {}, nil
 	}
 
