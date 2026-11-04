@@ -1,0 +1,17 @@
+TIMESTAMP                       SERVICE_NAME   MSG  MESSAGE                                              RESOURCE_ID
+2026-11-04T16:57:56.564385792Z  mooc-doccheck       document job received                                89b467f9-9cc8-4003-b30f-e65ea51f6430
+2026-11-04T16:57:56.736991778Z  mooc-doccheck       document accepted without derivatives                89b467f9-9cc8-4003-b30f-e65ea51f6430
+2026-11-04T16:57:56.737055199Z  mooc-doccheck       media job completed                                  89b467f9-9cc8-4003-b30f-e65ea51f6430
+2026-11-04T16:57:56.737078900Z  mooc-doccheck       document job completed; event consumed               89b467f9-9cc8-4003-b30f-e65ea51f6430
+2026-11-04T16:58:07.761624490Z  mooc-doccheck       document job received                                8a11b401-1c38-4ee4-b6c8-fb2e671b24e9
+2026-11-04T16:58:07.809346315Z  mooc-doccheck       document accepted without derivatives                8a11b401-1c38-4ee4-b6c8-fb2e671b24e9
+2026-11-04T16:58:07.809394361Z  mooc-doccheck       media job completed                                  8a11b401-1c38-4ee4-b6c8-fb2e671b24e9
+2026-11-04T16:58:07.809416214Z  mooc-doccheck       document job completed; event consumed               8a11b401-1c38-4ee4-b6c8-fb2e671b24e9
+2026-11-04T17:00:07.134802178Z  mooc-doccheck       document job received                                89b467f9-9cc8-4003-b30f-e65ea51f6430
+2026-11-04T17:00:07.139196777Z  mooc-doccheck       media job skipped; this object is already processed  89b467f9-9cc8-4003-b30f-e65ea51f6430
+2026-11-04T17:00:07.139229618Z  mooc-doccheck       media job completed                                  89b467f9-9cc8-4003-b30f-e65ea51f6430
+2026-11-04T17:00:07.139250878Z  mooc-doccheck       document job completed; event consumed               89b467f9-9cc8-4003-b30f-e65ea51f6430
+2026-11-04T17:00:12.525100440Z  mooc-doccheck       document job received                                89b467f9-9cc8-4003-b30f-e65ea51f6430
+2026-11-04T17:00:12.528196887Z  mooc-doccheck       media job skipped; this object is already processed  89b467f9-9cc8-4003-b30f-e65ea51f6430
+2026-11-04T17:00:12.528233819Z  mooc-doccheck       media job completed                                  89b467f9-9cc8-4003-b30f-e65ea51f6430
+2026-11-04T17:00:12.528272531Z  mooc-doccheck       document job completed; event consumed               89b467f9-9cc8-4003-b30f-e65ea51f6430

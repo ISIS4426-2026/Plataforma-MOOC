@@ -1,0 +1,5 @@
+TIMESTAMP                       SERVICE_NAME  TASK_TYPE      TOPIC                                                          RESOURCE_ID
+2026-11-04T16:57:32.129487702Z  mooc-backend  hls_transcode  projects/plataforma-mooc-entrega2/topics/mooc-media-jobs       d6a54ae4-608a-4025-983d-77645d33c032
+2026-11-04T16:57:32.296831255Z  mooc-backend  hls_transcode  projects/plataforma-mooc-entrega2/topics/mooc-media-jobs       d6a54ae4-608a-4025-983d-77645d33c032
+2026-11-04T16:57:54.494166800Z  mooc-backend  malware_scan   projects/plataforma-mooc-entrega2/topics/mooc-media-documents  89b467f9-9cc8-4003-b30f-e65ea51f6430
+2026-11-04T16:58:05.718709047Z  mooc-backend  malware_scan   projects/plataforma-mooc-entrega2/topics/mooc-media-documents  8a11b401-1c38-4ee4-b6c8-fb2e671b24e9
