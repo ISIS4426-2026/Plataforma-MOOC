@@ -1,0 +1,33 @@
+# Construye y publica las tres imagenes (api, worker, web) en Artifact Registry con Cloud Build (Entrega 4).
+# Alternativa a scripts/publish_images.sh cuando Docker no corre en la maquina del operador.
+#
+# Desde un arbol exportado de un commit limpio (el contexto sube sin docs/ ni scripts/, que los Dockerfiles no usan):
+#
+#   SHA=$(git rev-parse origin/main); mkdir /tmp/ctx && git archive $SHA | tar -x -C /tmp/ctx
+#   rm -rf /tmp/ctx/docs /tmp/ctx/capacity-planning; cp scripts/e4_cloudbuild.yaml /tmp/ctx/cloudbuild.yaml; cd /tmp/ctx
+#   gcloud builds submit . --project plataforma-mooc-entrega2 --region us-east1 --config cloudbuild.yaml \
+#     --substitutions "_SHA=$SHA,_SHORT=${SHA:0:12}"
+substitutions:
+  _SHA: ""
+  _SHORT: ""
+  _REG: us-east1-docker.pkg.dev/plataforma-mooc-entrega2/mooc
+steps:
+  - name: gcr.io/cloud-builders/docker
+    id: api
+    args: ["build", "-f", "Dockerfile.api", "-t", "${_REG}/api:${_SHA}", "."]
+    waitFor: ["-"]
+  - name: gcr.io/cloud-builders/docker
+    id: worker
+    args: ["build", "-f", "Dockerfile.worker", "-t", "${_REG}/worker:${_SHA}", "."]
+    waitFor: ["-"]
+  - name: gcr.io/cloud-builders/docker
+    id: web
+    args: ["build", "-f", "Dockerfile.web", "--build-arg", "APP_COMMIT=${_SHORT}", "-t", "${_REG}/web:${_SHA}", "."]
+    waitFor: ["-"]
+images:
+  - ${_REG}/api:${_SHA}
+  - ${_REG}/worker:${_SHA}
+  - ${_REG}/web:${_SHA}
+options:
+  machineType: E2_HIGHCPU_8
+  logging: CLOUD_LOGGING_ONLY

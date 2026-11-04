@@ -264,7 +264,12 @@ resource "google_pubsub_subscription" "media_jobs_dead" {
 #   oidc_token                   Pub/Sub firma una identidad con `sa-pubsub-push` y Cloud Run la verifica contra IAM antes
 #                                de dejar pasar la peticion: sin `run.invoker` no llega nada al codigo.
 #   retry_policy                 una entrega fallida (5xx, timeout) se reintenta con espera exponencial de 10 s a 10 min.
-#   dead_letter_policy           tras 5 intentos el mensaje pasa al topic de mensajes muertos.
+#   dead_letter_policy           tras 20 intentos el mensaje pasa al topic de mensajes muertos. Con 5, una tanda de 9 videos
+#                                contra 3 workers de concurrencia 1 dejo a dos mensajes en su ULTIMO intento: los mensajes
+#                                4 a 9 chocan con una pared de instancias ocupadas, Cloud Run los rechaza (429/500 «aborted
+#                                after waiting too long for an available instance») y cada rechazo cuenta como intento.
+#                                Un rechazo por falta de capacidad no es un fallo del trabajo; el limite alto sigue acotando
+#                                el caso de un mensaje que de verdad no se puede procesar.
 resource "google_pubsub_subscription" "media_jobs_push" {
   count = local.run_count
 
@@ -295,7 +300,7 @@ resource "google_pubsub_subscription" "media_jobs_push" {
 
   dead_letter_policy {
     dead_letter_topic     = google_pubsub_topic.media_jobs_dead[0].id
-    max_delivery_attempts = 5
+    max_delivery_attempts = 20
   }
 
   depends_on = [
