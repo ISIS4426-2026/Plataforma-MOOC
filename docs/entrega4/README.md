@@ -308,6 +308,8 @@ curso, subida y transcodificación de video, PDF e imagen, quiz, progreso, insig
 **103 pasos verificados · 0 fallos.** Los tres trabajos de medios (video, PDF e imagen) pasaron por Pub/Sub, se procesaron en los
 workers y terminaron en `completed` (reconciliación 3/3).
 
+La corrida completa (103 pasos) está en [`evidencias/recorrido/`](evidencias/recorrido/resultados.md); el registro crudo, en `corrida_e2e_cloud.txt`.
+
 Seguimiento de una tarea (mismo `message_id` en los dos servicios, registros de Cloud Logging):
 
 ```text
