@@ -109,3 +109,35 @@ func TestNewPublisherFailsWithoutCredentials(t *testing.T) {
 		t.Fatal("unreadable credentials must be an error")
 	}
 }
+
+// Entrega 5: los documentos tienen su propio topic; todo lo demas se queda en el del worker.
+func TestPublisherRoutesDocumentChecksToTheirOwnTopic(t *testing.T) {
+	const docTopic = "projects/demo/topics/media-documents"
+	var paths []string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		paths = append(paths, r.URL.Path)
+		_, _ = w.Write([]byte(`{"messageIds":["1"]}`))
+	}))
+	defer srv.Close()
+
+	p := NewPublisherWithClient(testTopic, srv.URL, srv.Client(), nil).WithDocumentsTopic(docTopic)
+	ctx := context.Background()
+	if err := p.EnqueueMediaProcessJob(ctx, "r1", "malware_scan", "documents/a.pdf", "k1"); err != nil {
+		t.Fatal(err)
+	}
+	if err := p.EnqueueMediaProcessJob(ctx, "r2", "hls_transcode", "originals/a.mp4", "k2"); err != nil {
+		t.Fatal(err)
+	}
+
+	want := []string{"/v1/" + docTopic + ":publish", "/v1/" + testTopic + ":publish"}
+	if len(paths) != 2 || paths[0] != want[0] || paths[1] != want[1] {
+		t.Errorf("paths = %v, want %v", paths, want)
+	}
+}
+
+func TestPublisherWithoutADocumentsTopicKeepsEverythingOnOne(t *testing.T) {
+	p := NewPublisherWithClient(testTopic, "http://unused", http.DefaultClient, nil).WithDocumentsTopic("")
+	if got := p.topicFor("malware_scan"); got != testTopic {
+		t.Errorf("topicFor = %q, want %q", got, testTopic)
+	}
+}

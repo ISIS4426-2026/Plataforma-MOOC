@@ -141,6 +141,11 @@ func (c *Config) validar(sirveHTTP bool) error {
 			"QUEUE_BACKEND=%q no es valido: usa asynq o pubsub", c.QueueBackend))
 	}
 
+	// El topic de documentos solo existe en Pub/Sub: con asynq no hay a donde publicarlo.
+	if sirveHTTP && c.PubSubDocumentsTopic != "" && c.QueueBackend != "pubsub" {
+		problemas = append(problemas, "PUBSUB_DOCUMENTS_TOPIC exige QUEUE_BACKEND=pubsub")
+	}
+
 	if c.WorkerConcurrency < 0 {
 		problemas = append(problemas, fmt.Sprintf(
 			"WORKER_CONCURRENCY=%d no puede ser negativo", c.WorkerConcurrency))

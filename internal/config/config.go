@@ -21,8 +21,15 @@ type Config struct {
 	// PubSubTopic is the full topic name (projects/<p>/topics/<t>) the API
 	// publishes to when QueueBackend is "pubsub".
 	PubSubTopic string
-	S3Endpoint  string
-	S3Bucket    string
+	// PubSubDocumentsTopic (Entrega 5) is where the API publishes the document
+	// checks (task type malware_scan) when they run in a Cloud Function instead
+	// of the worker. Empty keeps them on PubSubTopic, the Entrega 4 behaviour.
+	PubSubDocumentsTopic string
+	// MediaDocumentsInFunction tells the worker that document checks are no longer
+	// its job (Entrega 5): it refuses them instead of running them a second time.
+	MediaDocumentsInFunction bool
+	S3Endpoint               string
+	S3Bucket                 string
 
 	// HLSBucket es el bucket de los derivados, cuando viven aparte del resto.
 	//
@@ -176,17 +183,20 @@ type Config struct {
 
 func Load() *Config {
 	return &Config{
-		Environment:      getEnv("APP_ENV", "development"),
-		Port:             getEnv("PORT", "8080"),
-		DatabaseURL:      getEnv("DATABASE_URL", "postgres://postgres:postgres@localhost:5432/mooc?sslmode=disable"),
-		RedisURL:         getEnv("REDIS_URL", "localhost:6379"),
-		QueueBackend:     getEnv("QUEUE_BACKEND", "asynq"),
-		PubSubTopic:      getEnv("PUBSUB_TOPIC", ""),
-		S3Endpoint:       getEnv("STORAGE_ENDPOINT", getEnv("S3_ENDPOINT", "http://localhost:9000")),
-		S3Bucket:         getEnv("STORAGE_BUCKET", getEnv("S3_BUCKET", "mooc-storage")),
-		HLSBucket:        getEnv("MEDIA_HLS_BUCKET", ""),
-		GCPProjectID:     getEnv("GCP_PROJECT_ID", getEnv("GOOGLE_CLOUD_PROJECT", "plataforma-mooc-entrega2")),
-		GCSSignerAccount: getEnv("GCS_SIGNER_ACCOUNT", getEnv("STORAGE_SIGNER_ACCOUNT", "")),
+		Environment:  getEnv("APP_ENV", "development"),
+		Port:         getEnv("PORT", "8080"),
+		DatabaseURL:  getEnv("DATABASE_URL", "postgres://postgres:postgres@localhost:5432/mooc?sslmode=disable"),
+		RedisURL:     getEnv("REDIS_URL", "localhost:6379"),
+		QueueBackend: getEnv("QUEUE_BACKEND", "asynq"),
+		PubSubTopic:  getEnv("PUBSUB_TOPIC", ""),
+
+		PubSubDocumentsTopic:     getEnv("PUBSUB_DOCUMENTS_TOPIC", ""),
+		MediaDocumentsInFunction: getEnv("MEDIA_DOCUMENTS_IN_FUNCTION", "") == "true",
+		S3Endpoint:               getEnv("STORAGE_ENDPOINT", getEnv("S3_ENDPOINT", "http://localhost:9000")),
+		S3Bucket:                 getEnv("STORAGE_BUCKET", getEnv("S3_BUCKET", "mooc-storage")),
+		HLSBucket:                getEnv("MEDIA_HLS_BUCKET", ""),
+		GCPProjectID:             getEnv("GCP_PROJECT_ID", getEnv("GOOGLE_CLOUD_PROJECT", "plataforma-mooc-entrega2")),
+		GCSSignerAccount:         getEnv("GCS_SIGNER_ACCOUNT", getEnv("STORAGE_SIGNER_ACCOUNT", "")),
 
 		StorageBackend: getEnv("STORAGE_BACKEND", "minio"),
 		S3AccessKey:    getEnv("S3_ACCESS_KEY", getEnv("MINIO_ROOT_USER", "minioadmin")),

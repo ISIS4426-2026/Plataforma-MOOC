@@ -62,7 +62,18 @@ type MediaProcessorOptions struct {
 	MaxOriginalBytes int64
 	// Ladder is the declared set of renditions. Empty uses transcode.DefaultLadder.
 	Ladder []transcode.Rendition
+	// DocumentsInFunction says the document checks (malware_scan) belong to the
+	// Cloud Function (Entrega 5). The worker then refuses them: a message of that
+	// type that still reaches it was misrouted, and running it here would be a
+	// second execution of a task that has another owner.
+	DocumentsInFunction bool
 }
+
+// ErrDocumentsMigrated is returned for a document job that reached a worker
+// which no longer runs them. It is deliberately NOT permanent: the resource is
+// left untouched and the message is redelivered until the subscription's
+// dead-letter policy parks it, where it stays visible instead of being lost.
+var ErrDocumentsMigrated = errors.New("document checks run in the Cloud Function, not in this worker")
 
 // MediaProcessor runs the media pipeline for one job.
 //
@@ -193,6 +204,11 @@ func (p *MediaProcessor) process(ctx context.Context, payload task.MediaProcessP
 			slog.String("object_key", payload.StoragePath),
 		)
 		return nil
+	}
+
+	// Checked before the resource is touched, so a misrouted message changes nothing.
+	if p.opts.DocumentsInFunction && payload.TaskType == media.TaskMalwareScan {
+		return fmt.Errorf("resource %s: %w", resource.ID, ErrDocumentsMigrated)
 	}
 
 	if _, err := p.resources.SetProcessingStatus(ctx, resource.ID, domain.ResourceProcessingProcessing, p.entry(resource.ID)); err != nil {

@@ -132,6 +132,8 @@ func main() {
 			WorkDir:          cfg.MediaWorkDir,
 			MaxOriginalBytes: cfg.MediaMaxOriginalBytes,
 			Ladder:           ladder,
+
+			DocumentsInFunction: cfg.MediaDocumentsInFunction,
 		},
 		nil,
 	)

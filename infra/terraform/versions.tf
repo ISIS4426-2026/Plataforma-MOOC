@@ -24,6 +24,12 @@ terraform {
       # `plan` diera resultados distintos segun quien lo ejecute y cuando.
       version = "8.4.0"
     }
+
+    # Empaqueta el codigo de la funcion (Entrega 5) en un zip dentro del propio plan, sin paso previo a mano.
+    archive = {
+      source  = "hashicorp/archive"
+      version = "2.7.1"
+    }
   }
 
   backend "gcs" {
