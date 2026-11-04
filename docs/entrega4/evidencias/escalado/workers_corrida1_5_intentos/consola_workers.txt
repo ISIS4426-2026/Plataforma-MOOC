@@ -1,0 +1,22 @@
+== Fase workers: 9 videos de video_corto.mp4 (2599190 bytes) subidos a la vez
+  9 originales subidos; confirmando todos a la vez
+  9 confirmaciones aceptadas (202) en 157ms: el backend responde sin esperar a los workers
+    0s: 0/9 terminados
+   10s: 0/9 terminados
+   20s: 0/9 terminados
+   30s: 0/9 terminados
+   40s: 1/9 terminados
+   50s: 1/9 terminados
+   60s: 3/9 terminados
+   71s: 3/9 terminados
+   81s: 3/9 terminados
+   91s: 4/9 terminados
+  101s: 4/9 terminados
+  111s: 6/9 terminados
+  121s: 7/9 terminados
+  131s: 7/9 terminados
+  141s: 7/9 terminados
+  151s: 7/9 terminados
+  161s: 8/9 terminados
+  171s: 9/9 terminados
+  terminaron 9 de 9 (0 fallidos)

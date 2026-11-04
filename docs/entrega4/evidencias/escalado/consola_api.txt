@@ -1,0 +1,5 @@
+== Fase api: escalones de [50 200 500] usuarios concurrentes, 1m40s cada uno, GET /api/v1/courses?limit=20
+  escalon 1:  50 usuarios ·  56320 peticiones · 0 errores · 563 req/s · p50 87ms p95 116ms p99 133ms · 1 instancia(s)
+  escalon 2: 200 usuarios · 120072 peticiones · 0 errores · 1201 req/s · p50 167ms p95 230ms p99 260ms · 1 instancia(s)
+  escalon 3: 500 usuarios · 137877 peticiones · 0 errores · 1379 req/s · p50 149ms p95 1.304s p99 1.419s · 1 instancia(s)
+  instancias distintas del backend vistas en toda la fase: 1
