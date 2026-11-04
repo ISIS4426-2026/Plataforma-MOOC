@@ -1,0 +1,7 @@
+  # google_cloudfunctions2_function.doccheck[0] has changed
+  # google_cloud_run_v2_service.backend[0] will be updated in-place
+  # google_cloud_run_v2_service.workers[0] will be updated in-place
+  # google_cloud_run_v2_service_iam_member.fn_trigger_invokes[0] will be created
+  # google_cloudfunctions2_function.doccheck[0] is tainted, so must be replaced
+  # google_storage_bucket_object.doccheck_source[0] must be replaced
+Plan: 3 to add, 2 to change, 2 to destroy.

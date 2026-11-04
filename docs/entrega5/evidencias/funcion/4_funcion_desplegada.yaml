@@ -1,0 +1,18 @@
+buildConfig:
+  entryPoint: DocCheck
+  runtime: go124
+eventTrigger:
+  eventType: google.cloud.pubsub.topic.v1.messagePublished
+  pubsubTopic: projects/plataforma-mooc-entrega2/topics/mooc-media-documents
+  retryPolicy: RETRY_POLICY_RETRY
+  serviceAccountEmail: sa-fn-trigger@plataforma-mooc-entrega2.iam.gserviceaccount.com
+name: projects/plataforma-mooc-entrega2/locations/us-east1/functions/mooc-doccheck
+serviceConfig:
+  availableMemory: 256Mi
+  ingressSettings: ALLOW_INTERNAL_ONLY
+  maxInstanceCount: 3
+  maxInstanceRequestConcurrency: 4
+  service: projects/plataforma-mooc-entrega2/locations/us-east1/services/mooc-doccheck
+  serviceAccountEmail: sa-fn-doccheck@plataforma-mooc-entrega2.iam.gserviceaccount.com
+  timeoutSeconds: 60
+state: ACTIVE
