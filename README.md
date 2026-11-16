@@ -22,6 +22,35 @@ Desde la **Entrega 2** incluye además el despliegue en **Google Cloud Platform*
 - **Video de sutentación de la Entrega 2 (Analisis-pruebas):** <https://youtu.be/tn9JgmWbn_M>
 - **Video corto de flujo happy path postman-gcp de Entrega 2 multimedia:** <https://www.youtube.com/watch?v=Zh9pefwJNEA>
 - **Video de sutentación de la Entrega 3** <https://www.youtube.com/watch?v=yHv4ZpIWkik>
+- **Video de sustentación de la Entrega 4:** <https://youtu.be/QmGNnvAwnkc>
+---
+
+## Entrega 4 — Despliegue en Cloud Run y Cloud Pub/Sub
+
+Frontend, backend y workers corren como **tres servicios independientes de Cloud Run** (máximo 3 instancias cada uno), y
+el backend ya no encola en Redis: **publica los trabajos de medios en un topic de Pub/Sub**, que los entrega con una
+**suscripción push autenticada** al servicio privado de workers. Todo el detalle está en
+[`docs/entrega4/README.md`](docs/entrega4/README.md).
+
+| | |
+| :--- | :--- |
+| **URL del frontend** | <https://mooc-frontend-921648860819.us-east1.run.app> — reenvía `/api` al backend, mismo origen |
+| **URL del backend** | <https://mooc-backend-921648860819.us-east1.run.app/api/v1/health> |
+| **Workers** | privados: solo la cuenta de la suscripción push puede invocarlos (sin credencial, 403) |
+| **Video de sustentación** | <https://youtu.be/QmGNnvAwnkc> |
+
+> [!NOTE]
+> El ambiente se apaga cuando no se usa, por costo; mientras está apagado, las URL no responden. Encenderlo y
+> apagarlo está en la [guía de despliegue](docs/entrega4/README.md#7-guía-de-despliegue-reproducible).
+
+| Entregable del enunciado | Dónde está |
+| :--- | :--- |
+| Guía reproducible de despliegue: imágenes, servicios, topic, suscripción y permisos | [`docs/entrega4/README.md` §7](docs/entrega4/README.md#7-guía-de-despliegue-reproducible) · [`infra/terraform/cloudrun.tf`](infra/terraform/cloudrun.tf) |
+| Diagrama actualizado | [`docs/entrega4/README.md` §2](docs/entrega4/README.md#2-arquitectura) |
+| Evidencias: URL, límites de instancias y registros de una tarea de la publicación a la finalización | [§3 y §8](docs/entrega4/README.md#8-evidencia-del-despliegue) · [`evidencias/recorrido/`](docs/entrega4/evidencias/recorrido/resultados.md) |
+| Verificación breve del escalamiento con métricas | [§9](docs/entrega4/README.md#9-verificación-de-escalado) · [`evidencias/escalado/`](docs/entrega4/evidencias/escalado/) |
+| Video de sustentación (≤ 20 min) | <https://youtu.be/QmGNnvAwnkc> · guion en [`GUION_VIDEO.md`](docs/entrega4/GUION_VIDEO.md) |
+
 ---
 
 ## Entrega 3 — Aplicación elástica IaaS
