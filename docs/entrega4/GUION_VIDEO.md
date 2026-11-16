@@ -1,5 +1,7 @@
 # Guion del video — Entrega 4 (≈ 14 min, máximo 20)
 
+**Video publicado:** <https://youtu.be/QmGNnvAwnkc>
+
 Una sola persona puede grabarlo de corrido: cada bloque dice **qué se ve**, **qué se dice** y de dónde sale la cifra. Las cifras
 están en [`README.md`](README.md); si el video y el documento difieren, manda el documento.
 

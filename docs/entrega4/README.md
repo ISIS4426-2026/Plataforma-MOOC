@@ -12,6 +12,8 @@ Proyecto `plataforma-mooc-entrega2` · región `us-east1`.
 | Backend (API) | `https://mooc-backend-921648860819.us-east1.run.app` | público, protegido por la sesión y el CSRF de la propia API |
 | Workers | `https://mooc-workers-921648860819.us-east1.run.app` | **privado**: solo la cuenta de la suscripción push tiene `run.invoker` (sin credencial responde 403) |
 
+**Video de sustentación:** <https://youtu.be/QmGNnvAwnkc> (guion en [`GUION_VIDEO.md`](GUION_VIDEO.md)).
+
 El navegador solo conoce el frontend: nginx reenvía `/api` al backend, así que página y API comparten origen y la cookie de
 sesión (`SameSite=Lax`) sigue funcionando sin CORS ni cambios de autenticación.
 
@@ -30,6 +32,7 @@ sesión (`SameSite=Lax`) sigue funcionando sin CORS ni cambios de autenticación
 | Guía reproducible | §7 |
 | Evidencia: URLs, límites, registros de una tarea de la publicación a la finalización | §8 |
 | Verificación breve de escalado con métricas (instancias y mensajes pendientes) | §9 |
+| Video de sustentación (≤ 20 min, enlace accesible) | <https://youtu.be/QmGNnvAwnkc> |
 
 ## 2. Arquitectura
 
